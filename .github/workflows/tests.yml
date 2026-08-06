@@ -33,4 +33,4 @@ jobs:
       run: |
         python -m ruff check .
         python -m ruff format --check .
-        python -m mypy abbr2words examples
+        python -m mypy spokenform examples
