@@ -88,7 +88,15 @@ _UNITS = {
     "mio.": ("Million", "Millionen"),
     "mrd.": ("Milliarde", "Milliarden"),
 }
-_CURRENCIES = {"eur": "Euro", "€": "Euro", "usd": "Dollar", "$": "Dollar", "gbp": "Pfund", "£": "Pfund", "chf": "Schweizer Franken"}
+_CURRENCIES = {
+    "eur": "Euro",
+    "€": "Euro",
+    "usd": "Dollar",
+    "$": "Dollar",
+    "gbp": "Pfund",
+    "£": "Pfund",
+    "chf": "Schweizer Franken",
+}
 _COMPOSITES = {
     "Prof.": "Professor",
     "ggf.": "gegebenenfalls",
@@ -102,8 +110,13 @@ _COMPOSITES = {
     "u.a.": "unter anderem",
     "u. a.": "unter anderem",
 }
-_COMPOSITE_RE = re.compile("|".join(re.escape(item) for item in sorted(_COMPOSITES, key=len, reverse=True)))
-_LITERAL_RE = re.compile(r"https?://\S+|www\.\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?<!\w)v\d+(?:\.\d+){2,}(?!\w)", re.IGNORECASE)
+_COMPOSITE_RE = re.compile(
+    "|".join(re.escape(item) for item in sorted(_COMPOSITES, key=len, reverse=True))
+)
+_LITERAL_RE = re.compile(
+    r"https?://\S+|www\.\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|(?<!\w)v\d+(?:\.\d+){2,}(?!\w)",
+    re.IGNORECASE,
+)
 
 
 def _spell(value: int | Decimal) -> str:
@@ -177,7 +190,11 @@ def _date_replacement(match: re.Match[str], text: str) -> str | None:
     day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
     if not _valid_date(day, month, year):
         return None
-    ending = "en" if re.search(r"\b(?:am|zum|vom)\s*$", text[max(0, match.start() - 8) : match.start()], re.I) else "er"
+    ending = (
+        "en"
+        if re.search(r"\b(?:am|zum|vom)\s*$", text[max(0, match.start() - 8) : match.start()], re.I)
+        else "er"
+    )
     month_name = list(_MONTHS)[month - 1].capitalize()
     return f"{_ordinal(day, ending)} {month_name} {_year_text(year)}"
 
@@ -202,18 +219,60 @@ def _temperature_replacement(match: re.Match[str]) -> str:
     return f"{_number_text(match['number'])} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}"
 
 
-def _quantity_replacement(match: re.Match[str], text: str, *, terminal_end: int | None = None) -> str:
+def _quantity_replacement(
+    match: re.Match[str], text: str, *, terminal_end: int | None = None
+) -> str:
     raw = match["number"]
     unit_key = match["unit"].lower()
     singular, plural = _UNITS[unit_key]
     value = _parse_number(raw)
     noun = singular if value == 1 else plural
-    one = "ein" if unit_key in {"kg", "g", "mg", "km", "cm", "mm", "m", "m3", "m³", "ltr.", "w", "v", "kwh", "wh", "ghz", "mhz", "khz", "hz", "std.", "min.", "sek.", "stck.", "mah", "ma", "tsd."} else None
+    one = (
+        "ein"
+        if unit_key
+        in {
+            "kg",
+            "g",
+            "mg",
+            "km",
+            "cm",
+            "mm",
+            "m",
+            "m3",
+            "m³",
+            "ltr.",
+            "w",
+            "v",
+            "kwh",
+            "wh",
+            "ghz",
+            "mhz",
+            "khz",
+            "hz",
+            "std.",
+            "min.",
+            "sek.",
+            "stck.",
+            "mah",
+            "ma",
+            "tsd.",
+        }
+        else None
+    )
     number = _number_text(raw, one=one)
     if value == 1 and unit_key in {"std.", "min.", "sek.", "ltr.", "mio.", "mrd."}:
-        number = {"std.": "eine", "min.": "eine", "sek.": "eine", "ltr.": "ein", "mio.": "eine", "mrd.": "eine"}[unit_key]
+        number = {
+            "std.": "eine",
+            "min.": "eine",
+            "sek.": "eine",
+            "ltr.": "ein",
+            "mio.": "eine",
+            "mrd.": "eine",
+        }[unit_key]
     result = f"{number} {noun}"
-    if (match["dot"] or unit_key.endswith(".")) and _terminal_dot(text, terminal_end or match.end()):
+    if (match["dot"] or unit_key.endswith(".")) and _terminal_dot(
+        text, terminal_end or match.end()
+    ):
         result += "."
     return result
 
@@ -238,7 +297,9 @@ def iter_structured_replacements(
     candidates: list[Replacement] = []
 
     def add(match: re.Match[str], value: str | None, rule: str, kind: str = "structured") -> None:
-        if value is None or any(match.start() < end and start < match.end() for start, end in protected):
+        if value is None or any(
+            match.start() < end and start < match.end() for start, end in protected
+        ):
             return
         candidates.append(Replacement(match.start(), match.end(), value, kind, "de", rule))
 
@@ -249,7 +310,11 @@ def iter_structured_replacements(
         year = int(match["year"] or 2000)
         if match["year"] and _valid_date(int(match["day"]), month, year):
             ending = _context_ending(text, match.start())
-            add(match, f"{_ordinal(int(match['day']), ending)} {match['month']} {match['year']}", "de.text-date")
+            add(
+                match,
+                f"{_ordinal(int(match['day']), ending)} {match['month']} {match['year']}",
+                "de.text-date",
+            )
     for match in _DE_TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         hour_text = "ein" if hour == 1 else _spell(hour)
@@ -269,7 +334,9 @@ def iter_structured_replacements(
             if value.endswith("."):
                 value = value[:-1]
             candidate = Replacement(match.start(), end, value, "structured", "de", "de.quantity")
-            if not any(candidate.start < right and left < candidate.end for left, right in protected):
+            if not any(
+                candidate.start < right and left < candidate.end for left, right in protected
+            ):
                 candidates.append(candidate)
             continue
         add(match, value, "de.quantity")
@@ -281,7 +348,11 @@ def iter_structured_replacements(
         }.get(label, label)
         add(match, f"{label_text} {_spell(int(match['number']))}", "de.label")
     for match in _DE_ORDINAL.finditer(text):
-        add(match, _ordinal(int(match["number"]), _context_ending(text, match.start())), "de.ordinal")
+        add(
+            match,
+            _ordinal(int(match["number"]), _context_ending(text, match.start())),
+            "de.ordinal",
+        )
     # Lexical abbreviations such as Prof., ggf., ca., and z. B. remain owned
     # by abbr2words.  Structured normalization only classifies expressions
     # whose numeric content changes their semantics.

@@ -13,14 +13,14 @@ warnings.
 
 ## Ownership audit
 
-| Language | Suitable for spokenform | Keep downstream | Status |
-| --- | --- | --- | --- |
-| cs | dates, numbers, currencies, locale decimal/grouping semantics | G2P and lexicon behavior | parser hardening covered; parity corpus pending |
-| en | dates, currencies, ordinary written numbers | phoneme-sensitive years, digit-by-digit and suffix heuristics | ownership documented; parity corpus pending |
-| es | dates, numbers, currencies, units | G2P/tokenizer typography | parser hardening covered; parity corpus pending |
-| fr | dates, numbers, currencies, units | G2P/tokenizer typography | parser hardening covered; parity corpus pending |
-| it | dates, numbers, currencies, units | G2P/tokenizer typography | parser hardening covered; parity corpus pending |
-| pt | dates, numbers, currencies, units | G2P/tokenizer typography | parser hardening covered; parity corpus pending |
+| Language | Suitable for spokenform                                       | Keep downstream                                               | Status                                          |
+| -------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------- |
+| cs       | dates, numbers, currencies, locale decimal/grouping semantics | G2P and lexicon behavior                                      | parser hardening covered; parity corpus pending |
+| en       | dates, currencies, ordinary written numbers                   | phoneme-sensitive years, digit-by-digit and suffix heuristics | ownership documented; parity corpus pending     |
+| es       | dates, numbers, currencies, units                             | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
+| fr       | dates, numbers, currencies, units                             | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
+| it       | dates, numbers, currencies, units                             | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
+| pt       | dates, numbers, currencies, units                             | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
 
 This audit intentionally does not port language detection, markup parsing, mixed
 language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model

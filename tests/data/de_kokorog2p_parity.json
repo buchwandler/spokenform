@@ -1,14 +1,34 @@
 [
-  {"name": "quantity singular", "input": "1 kg", "expected": "ein Kilogramm"},
-  {"name": "quantity plural", "input": "2 Std.", "expected": "zwei Stunden."},
-  {"name": "attached unit", "input": "2kg", "expected": "zwei Kilogramm"},
-  {"name": "grouped currency", "input": "1.234,56 EUR", "expected": "eintausendzweihundertvierunddreißig Euro sechsundfünfzig Cent"},
-  {"name": "prefix currency", "input": "CHF 12,80", "expected": "zwölf Schweizer Franken achtzig Cent"},
-  {"name": "valid date", "input": "Zum 14.05.2026", "expected": "Zum vierzehnten Mai zweitausendsechsundzwanzig"},
-  {"name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026"},
-  {"name": "valid time", "input": "01:00 Uhr", "expected": "ein Uhr"},
-  {"name": "invalid time", "input": "25:99", "expected": "25:99"},
-  {"name": "temperature", "input": "-1,2 °C", "expected": "minus eins Komma zwei Grad Celsius"},
-  {"name": "label", "input": "S. 12", "expected": "Seite zwölf"},
-  {"name": "leading decimal", "input": ",02", "expected": "null Komma null zwei"}
+  { "name": "quantity singular", "input": "1 kg", "expected": "ein Kilogramm" },
+  { "name": "quantity plural", "input": "2 Std.", "expected": "zwei Stunden." },
+  { "name": "attached unit", "input": "2kg", "expected": "zwei Kilogramm" },
+  {
+    "name": "grouped currency",
+    "input": "1.234,56 EUR",
+    "expected": "eintausendzweihundertvierunddreißig Euro sechsundfünfzig Cent"
+  },
+  {
+    "name": "prefix currency",
+    "input": "CHF 12,80",
+    "expected": "zwölf Schweizer Franken achtzig Cent"
+  },
+  {
+    "name": "valid date",
+    "input": "Zum 14.05.2026",
+    "expected": "Zum vierzehnten Mai zweitausendsechsundzwanzig"
+  },
+  { "name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026" },
+  { "name": "valid time", "input": "01:00 Uhr", "expected": "ein Uhr" },
+  { "name": "invalid time", "input": "25:99", "expected": "25:99" },
+  {
+    "name": "temperature",
+    "input": "-1,2 °C",
+    "expected": "minus eins Komma zwei Grad Celsius"
+  },
+  { "name": "label", "input": "S. 12", "expected": "Seite zwölf" },
+  {
+    "name": "leading decimal",
+    "input": ",02",
+    "expected": "null Komma null zwei"
+  }
 ]

@@ -90,17 +90,17 @@ def test_cooking_paragraph_golden() -> None:
     source = (
         "Zum 14.05.2026 um 18:20 Uhr ist das Abendessen geplant. Für den\n"
         "Auflauf brauchen wir 1,5 kg Kartoffeln, 500 g Quark, 2 Eier, 1 ltr.\n"
-        "Milch und ggf. 3 cm mehr Backpapier. Prof. Klein sagt: \"Bitte stelle\n"
+        'Milch und ggf. 3 cm mehr Backpapier. Prof. Klein sagt: "Bitte stelle\n'
         "die Form auf die 2. Schiene, backe alles für 45 Min. und lass es danach\n"
-        "1 Min. oder auch 2 Min. ruhen.\" Die Kosten liegen bei ca. 12,80 EUR\n"
+        '1 Min. oder auch 2 Min. ruhen." Die Kosten liegen bei ca. 12,80 EUR\n'
         "zzgl. Pfand."
     )
     expected = (
         "Zum vierzehnten Mai zweitausendsechsundzwanzig um achtzehn Uhr zwanzig ist das Abendessen geplant. Für den\n"
         "Auflauf brauchen wir eins Komma fünf Kilogramm Kartoffeln, fünfhundert Gramm Quark, zwei Eier, ein Liter\n"
-        "Milch und gegebenenfalls drei Zentimeter mehr Backpapier. Professor Klein sagt: \"Bitte stelle\n"
+        'Milch und gegebenenfalls drei Zentimeter mehr Backpapier. Professor Klein sagt: "Bitte stelle\n'
         "die Form auf die zweite Schiene, backe alles für fünfundvierzig Minuten und lass es danach\n"
-        "eine Minute oder auch zwei Minuten ruhen.\" Die Kosten liegen bei zirka zwölf Euro achtzig Cent\n"
+        'eine Minute oder auch zwei Minuten ruhen." Die Kosten liegen bei zirka zwölf Euro achtzig Cent\n'
         "zuzüglich Pfand."
     )
     assert prepare(source, language="de", use_spacy=False).spoken_text == expected
