@@ -78,7 +78,7 @@ class PreparedText:
     language: str
     stages: tuple[PreparationStage, ...] = ()
     mapped_edits: tuple[MappedEdit, ...] = ()
-    offset_map: "OffsetMap | None" = None
+    offset_map: OffsetMap | None = None
     warnings: tuple[str, ...] = ()
 
     @property

@@ -15,7 +15,7 @@ from .annotations import (
 )
 from .config import PreparationConfig
 from .mapping import OffsetMap, replacements_from_diff
-from .models import PreparationStage, PreparedText, TokenAnnotation, make_stage
+from .models import PreparationStage, PreparedText, TokenAnnotation
 from .numbers import normalize_numbers
 from .protection import (
     ProtectedSpan,

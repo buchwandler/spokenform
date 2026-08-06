@@ -16,7 +16,7 @@ def test_real_spacy_blank_pipeline_annotations() -> None:
     assert annotations[0].text == "The"
     assert annotations[0].start == 0
     assert annotations[-1].end == len(text)
-    assert all(text[item.start:item.end] == item.text for item in annotations)
+    assert all(text[item.start : item.end] == item.text for item in annotations)
 
 
 def test_real_spacy_model_path_loading(tmp_path: Path) -> None:

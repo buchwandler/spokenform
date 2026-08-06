@@ -18,6 +18,7 @@ def test_optional_dependencies_keep_spacy_and_remove_ssmd_and_lingua() -> None:
         for requirement in requirements
     )
 
+
 def test_declared_package_files_exist() -> None:
     root = Path(__file__).parents[1]
     assert (root / "NOTICE").is_file()

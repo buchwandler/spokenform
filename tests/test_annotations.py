@@ -87,8 +87,7 @@ def test_annotations_are_remapped_after_protected_spans(
     assert isinstance(transformed, str)
     assert adapted is not None
     first = adapted[0]  # type: ignore[index]
-    assert transformed[first.start:first.end] == "in."
-
+    assert transformed[first.start : first.end] == "in."
 
 
 def test_annotation_validation_rejects_empty_spans() -> None:

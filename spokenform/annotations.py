@@ -96,10 +96,7 @@ def remap_annotations_for_replacements(
     ordered = tuple(sorted(replacements, key=lambda item: (item[0], item[1])))
     remapped: list[TokenAnnotation] = []
     for annotation in annotations:
-        if any(
-            start < annotation.end and annotation.start < end
-            for start, end, _ in ordered
-        ):
+        if any(start < annotation.end and annotation.start < end for start, end, _ in ordered):
             continue
 
         def map_boundary(position: int) -> int:
