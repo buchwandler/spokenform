@@ -23,32 +23,102 @@ _NUM2WORDS_LANG: Final[dict[str, str]] = {
 _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
-        "ledna", "února", "března", "dubna", "května", "června",
-        "července", "srpna", "září", "října", "listopadu", "prosince",
+        "ledna",
+        "února",
+        "března",
+        "dubna",
+        "května",
+        "června",
+        "července",
+        "srpna",
+        "září",
+        "října",
+        "listopadu",
+        "prosince",
     ),
     "de": (
-        "Januar", "Februar", "März", "April", "Mai", "Juni",
-        "Juli", "August", "September", "Oktober", "November", "Dezember",
+        "Januar",
+        "Februar",
+        "März",
+        "April",
+        "Mai",
+        "Juni",
+        "Juli",
+        "August",
+        "September",
+        "Oktober",
+        "November",
+        "Dezember",
     ),
     "en": (
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December",
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ),
     "es": (
-        "enero", "febrero", "marzo", "abril", "mayo", "junio",
-        "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
     ),
     "fr": (
-        "janvier", "février", "mars", "avril", "mai", "juin",
-        "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+        "janvier",
+        "février",
+        "mars",
+        "avril",
+        "mai",
+        "juin",
+        "juillet",
+        "août",
+        "septembre",
+        "octobre",
+        "novembre",
+        "décembre",
     ),
     "it": (
-        "gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno",
-        "luglio", "agosto", "settembre", "ottobre", "novembre", "dicembre",
+        "gennaio",
+        "febbraio",
+        "marzo",
+        "aprile",
+        "maggio",
+        "giugno",
+        "luglio",
+        "agosto",
+        "settembre",
+        "ottobre",
+        "novembre",
+        "dicembre",
     ),
     "pt": (
-        "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-        "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+        "janeiro",
+        "fevereiro",
+        "março",
+        "abril",
+        "maio",
+        "junho",
+        "julho",
+        "agosto",
+        "setembro",
+        "outubro",
+        "novembro",
+        "dezembro",
     ),
 }
 _TIME_JOINERS: Final[dict[str, str]] = {
@@ -63,8 +133,12 @@ _TIME_JOINERS: Final[dict[str, str]] = {
 
 _URL_OR_EMAIL_RE = re.compile(r"https?://\S+|www\.\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 _VERSION_RE = re.compile(r"(?<!\w)v\d+(?:\.\d+){2,}(?!\w)", re.IGNORECASE)
-_DATE_DMY_RE = re.compile(r"(?<!\d)(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)")
-_DATE_ISO_RE = re.compile(r"(?<!\d)(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)")
+_DATE_DMY_RE = re.compile(
+    r"(?<!\d)(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)"
+)
+_DATE_ISO_RE = re.compile(
+    r"(?<!\d)(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
+)
 _TIME_RE = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?!\d)(?:\s+Uhr)?")
 _CURRENCY_PREFIX_RE = re.compile(
     r"(?<!\w)(?P<currency>[€$£])\s*(?P<number>[+\-−]?\d+(?:[.,]\d{1,2})?)(?!\w)"

@@ -23,7 +23,6 @@ keywords = [
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "License :: OSI Approved :: Apache Software License",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.10",
@@ -40,6 +39,7 @@ dependencies = [
 
 [project.optional-dependencies]
 spacy = ["spacy>=3.7,<4"]
+ssmd = ["ssmd>=0.8.1,<0.9"]
 langdetect = ["lingua-language-detector>=2,<3"]
 dev = [
   "build>=1",
@@ -51,6 +51,7 @@ dev = [
 ]
 all = [
   "spacy>=3.7,<4",
+  "ssmd>=0.8.1,<0.9",
   "lingua-language-detector>=2,<3",
 ]
 

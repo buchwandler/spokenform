@@ -3,11 +3,14 @@
 `spokenform` converts written text into a readable form intended for speech systems.
 It is a text-to-text frontend: raw text in, reviewable spoken text out.
 
-The MVP combines:
+The package provides a staged written-to-spoken boundary:
 
 - context-aware abbreviation and numeric-unit expansion from `abbr2words`;
 - number, date, time, currency, decimal, and ordinal verbalization with `num2words`;
 - stage-level provenance through `PreparedText`;
+- composed clean-text-to-spoken-text offset maps with left/right boundary bias;
+- protected literal and caller-supplied phoneme ranges;
+- optional SSMD parsing and explicit language-mark rendering;
 - optional provider-neutral spaCy annotations;
 - optional whole-document language detection through Lingua;
 - conservative protection for URLs, email addresses, and semantic versions.
@@ -62,16 +65,31 @@ prepared = prepare(
 
 print(prepared.spoken_text)
 print(prepared.render_changes())
+
+from spokenform import PreparationConfig
+
+prepared = prepare(
+    '[Bonjour]{lang="fr"} paid 2 EUR',
+    config=PreparationConfig(language="en", markup="ssmd"),
+)
+print(prepared.clean_text)   # SSMD-free text
+print(prepared.spoken_text)  # text intended for a G2P frontend
+print(prepared.offset_map.map_source_span(0, 7))
 ```
 
 The result contains:
 
 - `source_text`: unchanged caller input;
-- `clean_text`: currently the same source text; reserved for future SSMD parsing;
+- `clean_text`: SSMD-free written text;
 - `spoken_text`: readable normalized output;
 - `language` and `language_spans`;
-- ordered stages and edit scripts;
-- warnings for future recoverable normalization issues.
+- ordered stages, mapped edits, and a composed `offset_map`;
+- semantic/protected spans and structured warnings;
+- optional `marked_text` and `render_ssmd()` output.
+
+Offsets in `language_spans` and `semantic_spans` refer to `clean_text`. The
+offset map maps clean-text boundaries to `spoken_text`; use `bias="left"` or
+`bias="right"` at an expansion boundary.
 
 ## CLI
 
@@ -102,6 +120,24 @@ Install support with:
 python -m pip install -e ".[spacy]"
 ```
 
+An injected pipeline is reused by the preparation call. To let spokenform load
+a named installed model, pass `use_spacy=True, spacy_model="..."`. Models are
+never downloaded automatically and are cached by language/model key; call
+`reset_spacy_cache()` in tests or long-lived hosts when needed.
+
+## SSMD and protection
+
+Install SSMD support with `python -m pip install -e ".[ssmd]"`. The default
+`markup="plain"` mode never interprets bracket syntax. `markup="ssmd"` parses
+language, phoneme, say-as, substitution, and literal annotations before
+normalization. Explicit SSMD language spans take precedence over caller spans
+and detection. `ph` and literal semantics are protected from generic
+abbreviation and number rules.
+
+Use `ProtectedSpan(start, end, kind="phoneme")` or a `(start, end)` tuple to
+protect a clean-text range. Invalid or overlapping ranges warn by default and
+raise `ProtectionError` with `strict=True`.
+
 ## Optional language detection
 
 ```python
@@ -127,10 +163,16 @@ prepared = prepare(
 ## Current MVP limits
 
 - Language detection assigns one language to the complete document. Span-level code-switching is a later milestone.
-- Stage edits are exact within each stage, but there is not yet a composed source-to-output offset map.
 - Date, time, currency, and ordinal grammar is deliberately conservative and not yet exhaustive.
-- SSMD parsing and serialization are not part of the MVP. `clean_text` and language spans leave a stable extension point.
 - `abbr2words` currently exposes final expanded text rather than public semantic replacement objects, so edits are reconstructed deterministically at stage boundaries.
+
+## Ownership boundary
+
+`spokenform` owns written-text cleanup, semantic verbalization, language spans,
+SSMD extraction, protection, provenance, and source/output mapping. A downstream
+G2P package owns punctuation normalization, tokenization, lexicons, phoneme
+selection, overrides after remapping, and vocabulary/token IDs. `spokenform`
+does not generate phonemes and does not import `kokorog2p`.
 
 ## Intended dependency direction
 

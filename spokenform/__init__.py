@@ -9,19 +9,42 @@ try:
 except PackageNotFoundError:  # source tree before installation
     __version__ = "0.1.0"
 
-from abbr2words import TokenAnnotation
-
 from .annotations import annotations_from_spacy, spacy_annotations
 from .api import normalize_spacing, prepare, prepare_text
+from .config import PreparationConfig
 from .detection import LanguageDetector, lingua_detector
-from .models import LanguageSpan, PreparedText, PreparationStage, TextEdit
+from .mapping import OffsetMap, Replacement
+from .models import (
+    LanguageSpan,
+    MappedEdit,
+    PreparationStage,
+    PreparedText,
+    SemanticSpan,
+    TextEdit,
+    TokenAnnotation,
+)
 from .numbers import normalize_numbers
+from .protection import ProtectedSpan, ProtectionError
+from .spacy_support import SpacyModelError, load_spacy_model, reset_spacy_cache
+from .ssmd import ParsedMarkup, SSMDParseError
 
 __all__ = [
     "LanguageDetector",
+    "PreparationConfig",
     "LanguageSpan",
+    "MappedEdit",
+    "OffsetMap",
     "PreparedText",
     "PreparationStage",
+    "SemanticSpan",
+    "ProtectedSpan",
+    "ProtectionError",
+    "ParsedMarkup",
+    "SSMDParseError",
+    "SpacyModelError",
+    "load_spacy_model",
+    "reset_spacy_cache",
+    "Replacement",
     "TextEdit",
     "TokenAnnotation",
     "__version__",

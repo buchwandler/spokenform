@@ -5,7 +5,9 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
-from abbr2words import TokenAnnotation
+from abbr2words import TokenAnnotation as AbbrTokenAnnotation
+
+from .models import TokenAnnotation
 
 
 def annotations_from_spacy(doc: Iterable[Any]) -> tuple[TokenAnnotation, ...]:
@@ -22,8 +24,11 @@ def annotations_from_spacy(doc: Iterable[Any]) -> tuple[TokenAnnotation, ...]:
             TokenAnnotation(
                 start=start,
                 end=start + len(text),
+                text=text,
                 pos=getattr(token, "pos_", None) or None,
                 tag=getattr(token, "tag_", None) or None,
+                lemma=getattr(token, "lemma_", None) or None,
+                language=getattr(token, "lang_", None) or None,
             )
         )
     return tuple(annotations)
@@ -36,4 +41,30 @@ def spacy_annotations(text: str, nlp: Any) -> tuple[TokenAnnotation, ...]:
     return annotations_from_spacy(nlp(text))
 
 
-__all__ = ["TokenAnnotation", "annotations_from_spacy", "spacy_annotations"]
+def to_abbr2words_annotations(
+    annotations: Iterable[TokenAnnotation] | None,
+) -> tuple[AbbrTokenAnnotation, ...] | None:
+    """Adapt public annotations to the internal abbr2words contract.
+
+    The dependency currently consumes only source offsets, POS, and tags. The
+    richer provider-neutral model remains the type exposed to callers.
+    """
+    if annotations is None:
+        return None
+    return tuple(
+        AbbrTokenAnnotation(
+            start=int(annotation.start),
+            end=int(annotation.end),
+            pos=getattr(annotation, "pos", None),
+            tag=getattr(annotation, "tag", None),
+        )
+        for annotation in annotations
+    )
+
+
+__all__ = [
+    "TokenAnnotation",
+    "annotations_from_spacy",
+    "spacy_annotations",
+    "to_abbr2words_annotations",
+]

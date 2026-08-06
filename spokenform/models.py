@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from difflib import SequenceMatcher
-from typing import Any
+from typing import Any, Literal
+
+
+@dataclass(frozen=True, slots=True)
+class TokenAnnotation:
+    """Provider-neutral lexical annotation aligned to one input text."""
+
+    start: int
+    end: int
+    text: str | None = None
+    pos: str | None = None
+    tag: str | None = None
+    lemma: str | None = None
+    language: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +44,7 @@ class PreparationStage:
     before: str
     after: str
     edits: tuple[TextEdit, ...] = ()
+    mapped_edits: tuple[MappedEdit, ...] = ()
 
     @property
     def changed(self) -> bool:
@@ -44,7 +59,34 @@ class LanguageSpan:
     start: int
     end: int
     language: str
-    source: str = "configured"
+    source: Literal["ssmd", "configured", "caller", "detected", "fallback"] = "configured"
+    confidence: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SemanticSpan:
+    """Provider-neutral semantic markup or literal span."""
+
+    start: int
+    end: int
+    kind: str
+    attributes: Mapping[str, str]
+    source: str
+    protected: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class MappedEdit:
+    """A replacement with source and output coordinates."""
+
+    source_start: int
+    source_end: int
+    output_start: int
+    output_end: int
+    source: str
+    replacement: str
+    stage: str
+    language: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,7 +99,11 @@ class PreparedText:
     language: str
     stages: tuple[PreparationStage, ...] = ()
     language_spans: tuple[LanguageSpan, ...] = ()
+    semantic_spans: tuple[SemanticSpan, ...] = ()
+    mapped_edits: tuple[MappedEdit, ...] = ()
+    offset_map: Any | None = None
     warnings: tuple[str, ...] = ()
+    marked_text: str | None = None
 
     @property
     def text(self) -> str:
@@ -93,6 +139,41 @@ class PreparedText:
         """Return a JSON-serializable representation."""
         return asdict(self)
 
+    def render_ssmd(
+        self,
+        *,
+        source: str = "clean",
+        include_detected: bool = True,
+        include_configured: bool = False,
+    ) -> str:
+        """Render language spans around clean or mapped spoken text."""
+        if source not in {"clean", "spoken"}:
+            raise ValueError("source must be 'clean' or 'spoken'")
+        text = self.clean_text if source == "clean" else self.spoken_text
+        spans = self.language_spans
+        if source == "spoken" and self.offset_map is not None:
+            mapped_spans: list[LanguageSpan] = []
+            for span in spans:
+                start, end = self.offset_map.map_source_span(span.start, span.end)
+                mapped_spans.append(
+                    LanguageSpan(
+                        start=start,
+                        end=end,
+                        language=span.language,
+                        source=span.source,
+                        confidence=span.confidence,
+                    )
+                )
+            spans = tuple(mapped_spans)
+        from .ssmd import render_language_marks
+
+        return render_language_marks(
+            text,
+            spans,
+            include_detected=include_detected,
+            include_configured=include_configured,
+        )
+
 
 def diff_edits(before: str, after: str, stage: str) -> tuple[TextEdit, ...]:
     """Build a deterministic edit script between two stage values."""
@@ -118,4 +199,15 @@ def diff_edits(before: str, after: str, stage: str) -> tuple[TextEdit, ...]:
 
 def make_stage(name: str, before: str, after: str) -> PreparationStage:
     """Create a stage and its deterministic edit script."""
-    return PreparationStage(name=name, before=before, after=after, edits=diff_edits(before, after, name))
+    edits = diff_edits(before, after, name)
+    from .mapping import apply_replacements, replacements_from_diff
+
+    replacements = replacements_from_diff(before, after, name)
+    _, mapped_edits, _ = apply_replacements(before, replacements, stage=name)
+    return PreparationStage(
+        name=name,
+        before=before,
+        after=after,
+        edits=edits,
+        mapped_edits=mapped_edits,
+    )
