@@ -12,17 +12,17 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
+  - git:1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
 paths:
-- spokenform/mapping.py
-- spokenform/protection.py
-- spokenform/spacy_support.py
-- spokenform/config.py
-- spokenform/stages.py
+  - spokenform/mapping.py
+  - spokenform/protection.py
+  - spokenform/spacy_support.py
+  - spokenform/config.py
+  - spokenform/stages.py
 issues: []
 prs: []
 sources:
-- git:1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
+  - git:1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
 contributors: []
 breaking: false
 internal: false

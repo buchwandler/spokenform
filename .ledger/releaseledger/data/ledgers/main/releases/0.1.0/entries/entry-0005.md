@@ -12,16 +12,16 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:ca64233b5cd710116e3cdaef41c718e7d9b02589
+  - git:ca64233b5cd710116e3cdaef41c718e7d9b02589
 paths:
-- .github/workflows/codecov.yml
-- .github/workflows/pre-commit.yml
-- .github/workflows/python-publish.yml
-- .github/workflows/tests.yml
+  - .github/workflows/codecov.yml
+  - .github/workflows/pre-commit.yml
+  - .github/workflows/python-publish.yml
+  - .github/workflows/tests.yml
 issues: []
 prs: []
 sources:
-- git:ca64233b5cd710116e3cdaef41c718e7d9b02589
+  - git:ca64233b5cd710116e3cdaef41c718e7d9b02589
 contributors: []
 breaking: false
 internal: true

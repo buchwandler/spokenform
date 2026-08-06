@@ -12,15 +12,15 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:e98aafe907f546a161a428b92f205490b44a3a81
+  - git:e98aafe907f546a161a428b92f205490b44a3a81
 paths:
-- spokenform/detection.py
-- spokenform/ssmd.py
-- spokenform/api.py
+  - spokenform/detection.py
+  - spokenform/ssmd.py
+  - spokenform/api.py
 issues: []
 prs: []
 sources:
-- git:e98aafe907f546a161a428b92f205490b44a3a81
+  - git:e98aafe907f546a161a428b92f205490b44a3a81
 contributors: []
 breaking: false
 internal: false

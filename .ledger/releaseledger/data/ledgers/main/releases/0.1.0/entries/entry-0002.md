@@ -12,13 +12,13 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:c74ec4a12b4e46a87c5f22df1d571149db325ce3
+  - git:c74ec4a12b4e46a87c5f22df1d571149db325ce3
 paths:
-- .ledger/ledger.toml
+  - .ledger/ledger.toml
 issues: []
 prs: []
 sources:
-- git:c74ec4a12b4e46a87c5f22df1d571149db325ce3
+  - git:c74ec4a12b4e46a87c5f22df1d571149db325ce3
 contributors: []
 breaking: false
 internal: true

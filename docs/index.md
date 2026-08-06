@@ -20,6 +20,7 @@ mapping
 examples
 limitations
 release-checklist
+changelog
 ```
 
 ## Scope

@@ -11,259 +11,263 @@ git_head_sha: 847a0635798274488069a248e3c4b83efd5a9d6d
 git_range: cefdaf9e8ab951d1d9f8c60b1051109c8747c11f..847a0635798274488069a248e3c4b83efd5a9d6d
 commit_count: 7
 rows:
-- sha: cd2893a227c1790c11bd67b6b49ac2f8b8d43dc4
-  source_ref: git:cd2893a227c1790c11bd67b6b49ac2f8b8d43dc4
-  short_sha: cd2893a
-  changed_paths:
-  - .codecrate.toml
-  - .gitignore
-  - .pre-commit-config.yaml
-  - CONTRIBUTING.md
-  - MANIFEST.in
-  - NOTICE
-  - README.md
-  - examples/basic.py
-  - pyproject.toml
-  - spokenform/__init__.py
-  - spokenform/__main__.py
-  - spokenform/annotations.py
-  - spokenform/api.py
-  - spokenform/cli.py
-  - spokenform/detection.py
-  - spokenform/models.py
-  - spokenform/numbers.py
-  - spokenform/py.typed
-  - tests/test_annotations.py
-  - tests/test_api.py
-  - tests/test_cli.py
-  - tests/test_numbers.py
-  stats:
-    files_changed: 0
-    insertions: 1190
-    deletions: 39
-  inspected: true
-  inspected_paths:
-  - spokenform/api.py
-  - spokenform/numbers.py
-  - spokenform/models.py
-  - spokenform/annotations.py
-  - pyproject.toml
-  observed_behavior: Initial library with core normalization API, number verbalization,
-    token annotations, and CLI
-  public_impact: public
-  decision: accepted
-  evidence_subject: 'feat:'
-  target_entry_id: entry-0001
-  notes: Foundation release - core spoken form normalization
-- sha: c74ec4a12b4e46a87c5f22df1d571149db325ce3
-  source_ref: git:c74ec4a12b4e46a87c5f22df1d571149db325ce3
-  short_sha: c74ec4a
-  changed_paths:
-  - .ledger/ledger.toml
-  - .ledger/releaseledger/.ledger-project.toml
-  - .ledger/releaseledger/config.toml
-  - .ledger/releaseledger/data/.ledger-project.toml
-  - .ledger/taskledger/.ledger-project.toml
-  - .ledger/taskledger/config.toml
-  stats:
-    files_changed: 0
-    insertions: 99
-    deletions: 0
-  inspected: true
-  inspected_paths:
-  - .ledger/ledger.toml
-  observed_behavior: Added release and task ledger configuration
-  public_impact: internal
-  decision: internal
-  evidence_subject: 'chore: add ledger tools'
-  target_entry_id: entry-0002
-  notes: Development tooling only
-- sha: 1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
-  source_ref: git:1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
-  short_sha: 1d0e87d
-  changed_paths:
-  - README.md
-  - pyproject.toml
-  - spokenform/__init__.py
-  - spokenform/annotations.py
-  - spokenform/api.py
-  - spokenform/config.py
-  - spokenform/mapping.py
-  - spokenform/models.py
-  - spokenform/numbers.py
-  - spokenform/protection.py
-  - spokenform/spacy_support.py
-  - spokenform/ssmd.py
-  - spokenform/stages.py
-  - tests/data/golden_s0.json
-  - tests/test_annotations.py
-  - tests/test_golden_s0.py
-  - tests/test_mapping.py
-  - tests/test_protection.py
-  - tests/test_spacy.py
-  - tests/test_ssmd.py
-  stats:
-    files_changed: 0
-    insertions: 1481
-    deletions: 52
-  inspected: true
-  inspected_paths:
-  - spokenform/mapping.py
-  - spokenform/protection.py
-  - spokenform/spacy_support.py
-  - spokenform/config.py
-  - spokenform/stages.py
-  observed_behavior: Added offset mapping, text protection, spaCy integration, configuration
-    system, and pipeline stages
-  public_impact: public
-  decision: accepted
-  evidence_subject: 'feat: prepare for first release'
-  target_entry_id: entry-0003
-  notes: Major feature additions for release
-- sha: e98aafe907f546a161a428b92f205490b44a3a81
-  source_ref: git:e98aafe907f546a161a428b92f205490b44a3a81
-  short_sha: e98aafe
-  changed_paths:
-  - README.md
-  - pyproject.toml
-  - spokenform/__init__.py
-  - spokenform/api.py
-  - spokenform/cli.py
-  - spokenform/config.py
-  - spokenform/detection.py
-  - spokenform/models.py
-  - spokenform/ssmd.py
-  - tests/test_api.py
-  - tests/test_cli.py
-  - tests/test_packaging.py
-  - tests/test_spacy.py
-  - tests/test_ssmd.py
-  stats:
-    files_changed: 0
-    insertions: 253
-    deletions: 527
-  inspected: true
-  inspected_paths:
-  - spokenform/detection.py
-  - spokenform/ssmd.py
-  - spokenform/api.py
-  - spokenform/models.py
-  observed_behavior: Removed language detection and SSML Speech Synthesis Markup features
-    to simplify library
-  public_impact: public
-  decision: accepted
-  evidence_subject: 'feat: remove lang detect and ssmd feature to simplify lib'
-  target_entry_id: entry-0004
-  notes: Simplification - removed detection and SSMD modules
-- sha: ca64233b5cd710116e3cdaef41c718e7d9b02589
-  source_ref: git:ca64233b5cd710116e3cdaef41c718e7d9b02589
-  short_sha: ca64233
-  changed_paths:
-  - .github/workflows/codecov.yml
-  - .github/workflows/pre-commit.yml
-  - .github/workflows/python-publish.yml
-  - .github/workflows/tests.yml
-  stats:
-    files_changed: 0
-    insertions: 127
-    deletions: 0
-  inspected: true
-  inspected_paths:
-  - .github/workflows/tests.yml
-  - .github/workflows/codecov.yml
-  observed_behavior: Updated CI workflow configurations
-  public_impact: internal
-  decision: internal
-  evidence_subject: 'chore: ci'
-  target_entry_id: entry-0005
-  notes: CI infrastructure
-- sha: 7f0c5901aa8820b93ac8453de13610adb10585c2
-  source_ref: git:7f0c5901aa8820b93ac8453de13610adb10585c2
-  short_sha: 7f0c590
-  changed_paths:
-  - .codecrate.toml
-  - .github/workflows/codecov.yml
-  - .github/workflows/docs.yml
-  - .github/workflows/pre-commit.yml
-  - .github/workflows/python-publish.yml
-  - .github/workflows/tests.yml
-  - CONTRIBUTING.md
-  - MANIFEST.in
-  - NOTICE
-  - README.md
-  - docs/api.md
-  - docs/architecture.md
-  - docs/cli.md
-  - docs/conf.py
-  - docs/examples.md
-  - docs/index.md
-  - docs/installation.md
-  - docs/limitations.md
-  - docs/mapping.md
-  - docs/protection.md
-  - docs/quickstart.md
-  - docs/release-checklist.md
-  - docs/requirements.txt
-  - docs/spacy.md
-  - examples/README.md
-  - examples/basic.py
-  - examples/english_spacy.py
-  - examples/german.py
-  - examples/injected_pipeline.py
-  - examples/offset_mapping.py
-  - examples/protected_text.py
-  - pyproject.toml
-  - spokenform/__init__.py
-  - spokenform/annotations.py
-  - spokenform/api.py
-  - spokenform/cli.py
-  - spokenform/config.py
-  - spokenform/models.py
-  - spokenform/spacy_support.py
-  - tests/test_annotations.py
-  - tests/test_api.py
-  - tests/test_cli.py
-  - tests/test_examples.py
-  - tests/test_packaging.py
-  - tests/test_spacy.py
-  - tests/test_spacy_integration.py
-  stats:
-    files_changed: 0
-    insertions: 1228
-    deletions: 212
-  inspected: true
-  inspected_paths:
-  - docs/
-  - examples/
-  - spokenform/annotations.py
-  - spokenform/spacy_support.py
-  - README.md
-  observed_behavior: Added comprehensive documentation, examples, spaCy annotation
-    support, and package metadata
-  public_impact: public
-  decision: accepted
-  evidence_subject: 'feat: prepare package for release'
-  target_entry_id: entry-0006
-  notes: Documentation and examples for release
-- sha: 847a0635798274488069a248e3c4b83efd5a9d6d
-  source_ref: git:847a0635798274488069a248e3c4b83efd5a9d6d
-  short_sha: 847a063
-  changed_paths:
-  - .github/workflows/codecov.yml
-  - .github/workflows/docs.yml
-  - .github/workflows/pre-commit.yml
-  - .github/workflows/python-publish.yml
-  - .github/workflows/tests.yml
-  stats:
-    files_changed: 0
-    insertions: 73
-    deletions: 147
-  inspected: true
-  inspected_paths:
-  - .github/workflows/
-  observed_behavior: Updated CI workflow configurations
-  public_impact: internal
-  decision: internal
-  evidence_subject: 'chore: update ci'
-  target_entry_id: entry-0007
-  notes: CI infrastructure
+  - sha: cd2893a227c1790c11bd67b6b49ac2f8b8d43dc4
+    source_ref: git:cd2893a227c1790c11bd67b6b49ac2f8b8d43dc4
+    short_sha: cd2893a
+    changed_paths:
+      - .codecrate.toml
+      - .gitignore
+      - .pre-commit-config.yaml
+      - CONTRIBUTING.md
+      - MANIFEST.in
+      - NOTICE
+      - README.md
+      - examples/basic.py
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/__main__.py
+      - spokenform/annotations.py
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/detection.py
+      - spokenform/models.py
+      - spokenform/numbers.py
+      - spokenform/py.typed
+      - tests/test_annotations.py
+      - tests/test_api.py
+      - tests/test_cli.py
+      - tests/test_numbers.py
+    stats:
+      files_changed: 0
+      insertions: 1190
+      deletions: 39
+    inspected: true
+    inspected_paths:
+      - spokenform/api.py
+      - spokenform/numbers.py
+      - spokenform/models.py
+      - spokenform/annotations.py
+      - pyproject.toml
+    observed_behavior:
+      Initial library with core normalization API, number verbalization,
+      token annotations, and CLI
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat:"
+    target_entry_id: entry-0001
+    notes: Foundation release - core spoken form normalization
+  - sha: c74ec4a12b4e46a87c5f22df1d571149db325ce3
+    source_ref: git:c74ec4a12b4e46a87c5f22df1d571149db325ce3
+    short_sha: c74ec4a
+    changed_paths:
+      - .ledger/ledger.toml
+      - .ledger/releaseledger/.ledger-project.toml
+      - .ledger/releaseledger/config.toml
+      - .ledger/releaseledger/data/.ledger-project.toml
+      - .ledger/taskledger/.ledger-project.toml
+      - .ledger/taskledger/config.toml
+    stats:
+      files_changed: 0
+      insertions: 99
+      deletions: 0
+    inspected: true
+    inspected_paths:
+      - .ledger/ledger.toml
+    observed_behavior: Added release and task ledger configuration
+    public_impact: internal
+    decision: internal
+    evidence_subject: "chore: add ledger tools"
+    target_entry_id: entry-0002
+    notes: Development tooling only
+  - sha: 1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
+    source_ref: git:1d0e87d1333aa313ba60cdeeeb6f77e4277dac71
+    short_sha: 1d0e87d
+    changed_paths:
+      - README.md
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/annotations.py
+      - spokenform/api.py
+      - spokenform/config.py
+      - spokenform/mapping.py
+      - spokenform/models.py
+      - spokenform/numbers.py
+      - spokenform/protection.py
+      - spokenform/spacy_support.py
+      - spokenform/ssmd.py
+      - spokenform/stages.py
+      - tests/data/golden_s0.json
+      - tests/test_annotations.py
+      - tests/test_golden_s0.py
+      - tests/test_mapping.py
+      - tests/test_protection.py
+      - tests/test_spacy.py
+      - tests/test_ssmd.py
+    stats:
+      files_changed: 0
+      insertions: 1481
+      deletions: 52
+    inspected: true
+    inspected_paths:
+      - spokenform/mapping.py
+      - spokenform/protection.py
+      - spokenform/spacy_support.py
+      - spokenform/config.py
+      - spokenform/stages.py
+    observed_behavior:
+      Added offset mapping, text protection, spaCy integration, configuration
+      system, and pipeline stages
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: prepare for first release"
+    target_entry_id: entry-0003
+    notes: Major feature additions for release
+  - sha: e98aafe907f546a161a428b92f205490b44a3a81
+    source_ref: git:e98aafe907f546a161a428b92f205490b44a3a81
+    short_sha: e98aafe
+    changed_paths:
+      - README.md
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/config.py
+      - spokenform/detection.py
+      - spokenform/models.py
+      - spokenform/ssmd.py
+      - tests/test_api.py
+      - tests/test_cli.py
+      - tests/test_packaging.py
+      - tests/test_spacy.py
+      - tests/test_ssmd.py
+    stats:
+      files_changed: 0
+      insertions: 253
+      deletions: 527
+    inspected: true
+    inspected_paths:
+      - spokenform/detection.py
+      - spokenform/ssmd.py
+      - spokenform/api.py
+      - spokenform/models.py
+    observed_behavior:
+      Removed language detection and SSML Speech Synthesis Markup features
+      to simplify library
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: remove lang detect and ssmd feature to simplify lib"
+    target_entry_id: entry-0004
+    notes: Simplification - removed detection and SSMD modules
+  - sha: ca64233b5cd710116e3cdaef41c718e7d9b02589
+    source_ref: git:ca64233b5cd710116e3cdaef41c718e7d9b02589
+    short_sha: ca64233
+    changed_paths:
+      - .github/workflows/codecov.yml
+      - .github/workflows/pre-commit.yml
+      - .github/workflows/python-publish.yml
+      - .github/workflows/tests.yml
+    stats:
+      files_changed: 0
+      insertions: 127
+      deletions: 0
+    inspected: true
+    inspected_paths:
+      - .github/workflows/tests.yml
+      - .github/workflows/codecov.yml
+    observed_behavior: Updated CI workflow configurations
+    public_impact: internal
+    decision: internal
+    evidence_subject: "chore: ci"
+    target_entry_id: entry-0005
+    notes: CI infrastructure
+  - sha: 7f0c5901aa8820b93ac8453de13610adb10585c2
+    source_ref: git:7f0c5901aa8820b93ac8453de13610adb10585c2
+    short_sha: 7f0c590
+    changed_paths:
+      - .codecrate.toml
+      - .github/workflows/codecov.yml
+      - .github/workflows/docs.yml
+      - .github/workflows/pre-commit.yml
+      - .github/workflows/python-publish.yml
+      - .github/workflows/tests.yml
+      - CONTRIBUTING.md
+      - MANIFEST.in
+      - NOTICE
+      - README.md
+      - docs/api.md
+      - docs/architecture.md
+      - docs/cli.md
+      - docs/conf.py
+      - docs/examples.md
+      - docs/index.md
+      - docs/installation.md
+      - docs/limitations.md
+      - docs/mapping.md
+      - docs/protection.md
+      - docs/quickstart.md
+      - docs/release-checklist.md
+      - docs/requirements.txt
+      - docs/spacy.md
+      - examples/README.md
+      - examples/basic.py
+      - examples/english_spacy.py
+      - examples/german.py
+      - examples/injected_pipeline.py
+      - examples/offset_mapping.py
+      - examples/protected_text.py
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/annotations.py
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/config.py
+      - spokenform/models.py
+      - spokenform/spacy_support.py
+      - tests/test_annotations.py
+      - tests/test_api.py
+      - tests/test_cli.py
+      - tests/test_examples.py
+      - tests/test_packaging.py
+      - tests/test_spacy.py
+      - tests/test_spacy_integration.py
+    stats:
+      files_changed: 0
+      insertions: 1228
+      deletions: 212
+    inspected: true
+    inspected_paths:
+      - docs/
+      - examples/
+      - spokenform/annotations.py
+      - spokenform/spacy_support.py
+      - README.md
+    observed_behavior:
+      Added comprehensive documentation, examples, spaCy annotation
+      support, and package metadata
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: prepare package for release"
+    target_entry_id: entry-0006
+    notes: Documentation and examples for release
+  - sha: 847a0635798274488069a248e3c4b83efd5a9d6d
+    source_ref: git:847a0635798274488069a248e3c4b83efd5a9d6d
+    short_sha: 847a063
+    changed_paths:
+      - .github/workflows/codecov.yml
+      - .github/workflows/docs.yml
+      - .github/workflows/pre-commit.yml
+      - .github/workflows/python-publish.yml
+      - .github/workflows/tests.yml
+    stats:
+      files_changed: 0
+      insertions: 73
+      deletions: 147
+    inspected: true
+    inspected_paths:
+      - .github/workflows/
+    observed_behavior: Updated CI workflow configurations
+    public_impact: internal
+    decision: internal
+    evidence_subject: "chore: update ci"
+    target_entry_id: entry-0007
+    notes: CI infrastructure

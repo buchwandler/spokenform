@@ -7,7 +7,7 @@ versioning:
 version: v0.1.0
 status: canceled
 title: null
-released_at: '2026-08-06'
+released_at: "2026-08-06"
 previous_version: 0.1.0
 cancel_reason: Imported tag duplicate; canonical release is v0.1.0
 superseded_by: null
