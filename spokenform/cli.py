@@ -23,6 +23,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-abbreviations", action="store_true")
     parser.add_argument("--no-numbers", action="store_true")
     parser.add_argument("--keep-whitespace", action="store_true")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Raise on unavailable spaCy models and invalid protected spans",
+    )
     output = parser.add_mutually_exclusive_group()
     output.add_argument("--changes", action="store_true", help="Show stage-by-stage changes")
     output.add_argument("--json", action="store_true", help="Emit structured JSON")
@@ -44,6 +49,7 @@ def main(argv: list[str] | None = None) -> int:
         expand_abbreviations=not args.no_abbreviations,
         expand_numbers=not args.no_numbers,
         normalize_whitespace=not args.keep_whitespace,
+        strict=args.strict,
     )
     if args.json:
         print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
@@ -51,4 +57,6 @@ def main(argv: list[str] | None = None) -> int:
         print(result.render_changes())
     else:
         print(result.spoken_text)
+        for warning in result.warnings:
+            print(f"warning: {warning}", file=sys.stderr)
     return 0

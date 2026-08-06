@@ -1,85 +1,39 @@
 # spokenform
 
-`spokenform` converts written text in one explicitly selected language into a
-readable form intended for speech systems. It is a text-to-text frontend:
-written text in, reviewable spoken text out.
+`spokenform` converts plain written text in one selected language into reviewable
+text intended for speech systems. It is a text-to-text frontend: written text in,
+spoken form out.
 
-The package provides a staged written-to-spoken boundary:
+The package provides:
 
-- context-aware abbreviation and numeric-unit expansion from `abbr2words`;
-- number, date, time, currency, decimal, and ordinal verbalization with `num2words`;
-- optional provider-neutral spaCy annotations for higher-quality contextual expansion;
+- context-aware abbreviation and numeric-unit expansion through `abbr2words`;
+- number, date, time, currency, decimal, and ordinal verbalization through `num2words`;
+- optional provider-neutral spaCy annotations for POS-aware abbreviation rules;
 - stage-level provenance through `PreparedText`;
-- composed input-to-spoken offset maps with left/right boundary bias;
-- caller-supplied and automatically discovered protected ranges;
+- composed input-to-output offset maps with left/right boundary bias;
+- caller-defined and automatically discovered protected ranges;
 - conservative protection for URLs, email addresses, and semantic versions.
 
-It intentionally does **not** detect languages, parse or render SSMD, segment
-mixed-language text, generate phonemes, or depend on `kokorog2p`.
+It intentionally does **not** detect languages, parse or render SSMD, segment mixed
+languages, generate phonemes, or depend on `kokorog2p`.
 
-## Language boundary
-
-Every `prepare()` call processes exactly one language. The caller must select the
-language before invoking `spokenform`:
-
-```python
-from spokenform import prepare
-
-prepared = prepare("Prof. Klein hat 2 kg.", language="de")
-```
-
-Language detection and mixed-language handling belong in the orchestration or G2P
-layer. A foreign word can remain unchanged through normalization and be detected or
-marked on `prepared.spoken_text` afterward. Existing source spans can be transferred
-with `prepared.offset_map`.
-
-Markup must also be parsed outside this package. After external parsing, pass plain
-text to `prepare()` and use `ProtectedSpan` for ranges that generic normalization
-must not change.
-
-## Layout
-
-The import package is directly in the repository root. There is no `src/` directory:
-
-```text
-spokenform/
-├── spokenform/
-├── tests/
-├── examples/
-├── pyproject.toml
-└── README.md
-```
-
-## Start developing
+## Installation
 
 ```bash
-python -m venv .venv
-. .venv/bin/activate             # Windows: .venv\Scripts\activate
-python -m pip install --upgrade pip
-python -m pip install -e ".[dev]"
-python -m pytest
+python -m pip install spokenform
 ```
 
-Install optional spaCy support with:
+For optional spaCy integration:
 
 ```bash
-python -m pip install -e ".[spacy]"
+python -m pip install "spokenform[spacy]"
+python -m spacy download de_core_news_sm
 ```
 
-Initialize Git before the first real release so `setuptools-scm` can derive versions:
+spaCy and its trained pipelines are separate packages. `spokenform` never downloads
+a model automatically.
 
-```bash
-git init
-git add .
-git commit -m "feat: initial spokenform MVP"
-git tag v0.1.0
-```
-
-`pyproject.toml` declares `dynamic = ["version"]`. Builds derive the version from Git
-tags and write `spokenform/_version.py`. The fallback version is `0.1.0` so the
-unpacked ZIP can be installed before Git is initialized.
-
-## Basic API
+## Quickstart
 
 ```python
 from spokenform import prepare
@@ -91,20 +45,32 @@ prepared = prepare(
 
 print(prepared.spoken_text)
 print(prepared.render_changes())
-print(prepared.offset_map.map_source_span(0, 11))
 ```
 
 The result contains:
 
 - `source_text`: unchanged caller input;
-- `clean_text`: the plain input text used by the normalization pipeline;
+- `clean_text`: plain text used by the normalization pipeline;
 - `spoken_text`: readable normalized output;
-- `language`: the normalized processing-language code;
-- ordered stages, mapped edits, and a composed `offset_map`;
+- `language`: normalized processing-language code;
+- ordered stages and mapped edits;
+- a composed `offset_map`;
 - structured warnings.
 
-The offset map maps `clean_text` boundaries to `spoken_text`; use `bias="left"` or
-`bias="right"` at an expansion boundary.
+`PreparedText.text` is an alias for `spoken_text`.
+
+## Language boundary
+
+Each call processes one language. Production callers should always pass
+`language=...`; English remains the API default for compatibility and simple CLI
+usage.
+
+Language detection and mixed-language handling belong in the orchestration or G2P
+layer. A foreign word may remain unchanged through normalization and be handled
+afterward. Existing source spans can be transferred with `prepared.offset_map`.
+
+Markup must also be parsed outside this package. Pass plain text to `prepare()` and
+use `ProtectedSpan` for ranges generic normalization must not change.
 
 ## Configuration
 
@@ -119,17 +85,18 @@ config = PreparationConfig(
     context=True,
 )
 
-prepared = prepare("The box is 2 in. wide.", config=config)
+prepared = prepare("The board is 2 in. wide.", config=config)
 ```
 
-Passing a `PreparationConfig` makes it the authoritative source for pipeline options.
+When a `PreparationConfig` is supplied, it is authoritative for pipeline options.
 
 ## spaCy support
 
-spaCy improves abbreviation expansion where part-of-speech context disambiguates a
-written form. The normalization API remains provider-neutral.
+spaCy supplies POS annotations for abbreviation rules that opt into POS guards. The public normalization API remains provider-neutral.
 
-Supply an already loaded pipeline:
+**Current dependency limitation:** `abbr2words` 0.2.0 accepts these annotations, but its bundled registries do not yet require POS labels. Therefore installing spaCy alone may not change default normalization output. The integration is usable for custom POS-guarded entries and is ready for future bundled rules.
+
+Load and inject a pipeline in the application:
 
 ```python
 import spacy
@@ -137,45 +104,46 @@ from spokenform import prepare
 
 nlp = spacy.load("en_core_web_sm")
 prepared = prepare(
-    "The box is 2 in. wide.",
+    "The board is 2 in. wide.",
     language="en",
     nlp=nlp,
 )
 ```
 
-Or let `spokenform` load a named model that is already installed:
+Or ask `spokenform` to load an already installed model:
 
 ```python
 prepared = prepare(
-    "The box is 2 in. wide.",
+    "The board is 2 in. wide.",
     language="en",
     spacy_model="en_core_web_sm",
+    strict=True,
 )
 ```
 
-Models are never downloaded automatically. Loaded models are cached by
-language/model key; call `reset_spacy_cache()` in tests or long-lived hosts when
-needed. Explicit `annotations` take precedence over `nlp` and `spacy_model`.
+Model names and paths are passed to `spacy.load()`. Loaded models are cached by
+language/model key. `reset_spacy_cache()` clears that cache.
 
-The CLI exposes the same model-loading path:
+The adapter reads the token attributes `text`, `idx`, `pos_`, `tag_`, `lemma_`, and `lang_`. `lang_` is carried as provider metadata; it is not used as language detection. Annotation spans are validated against the exact input text and remapped when protected ranges are replaced by internal sentinels.
+A trained pipeline with POS or morphological annotations is required for quality
+improvement; `spacy.blank(...)` supplies tokenization but normally no useful POS
+tags.
 
-```bash
-spokenform --lang en --spacy-model en_core_web_sm "The box is 2 in. wide."
-```
+Explicit `annotations` take precedence over `nlp` and `spacy_model`.
 
 ## Protection
 
-Use `ProtectedSpan(start, end, kind="literal")` or a `(start, end)` tuple to protect
-a plain-input range from abbreviation and number normalization:
+Use `ProtectedSpan(start, end)` or a `(start, end)` tuple to protect a source range:
 
 ```python
 from spokenform import ProtectedSpan, prepare
 
 text = "Keep Dr. literal, but verbalize 12."
+start = text.index("Dr.")
 prepared = prepare(
     text,
     language="en",
-    protected_spans=[ProtectedSpan(5, 8, kind="literal")],
+    protected_spans=[ProtectedSpan(start, start + 3)],
 )
 ```
 
@@ -183,34 +151,85 @@ Invalid or overlapping ranges warn by default and raise `ProtectionError` with
 `strict=True`. URLs, email addresses, and semantic versions are protected
 automatically.
 
+## Offset mapping
+
+```python
+from spokenform import prepare
+
+source = "Prof. Klein has 2 kg."
+prepared = prepare(source, language="de")
+
+start = source.index("Prof.")
+end = start + len("Prof.")
+spoken_start, spoken_end = prepared.offset_map.map_source_span(start, end)
+
+print(prepared.spoken_text[spoken_start:spoken_end])
+```
+
+Use `bias="left"` or `bias="right"` when mapping an individual boundary at an
+expansion.
+
 ## CLI
 
 ```bash
 spokenform --lang de "Prof. Klein hat 2 kg."
 spokenform --lang de --changes "Prof. Klein hat 2 kg."
 spokenform --lang de --json "Prof. Klein hat 2 kg."
+spokenform --lang en --spacy-model en_core_web_sm --strict "The board is 2 in. wide."
 echo "The value is 2." | spokenform --lang en
 ```
+
+## Examples
+
+Executable examples are in [`examples/`](examples/README.md):
+
+```bash
+python examples/basic.py
+python examples/german.py
+python examples/german.py --spacy-model de_core_news_sm
+python examples/protected_text.py
+python examples/offset_mapping.py
+```
+
+## Documentation
+
+Documentation sources use MyST Markdown. No reStructuredText source files are
+required.
+
+```bash
+python -m pip install -e .
+python -m pip install -r docs/requirements.txt
+sphinx-build -W -b html docs docs/_build/html
+```
+
+## Development
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+
+python -m pytest
+python -m ruff check .
+python -m ruff format --check .
+python -m mypy spokenform examples
+python -m build
+python -m twine check dist/*
+```
+
+On Windows, activate the environment with `.venv\Scripts\activate`.
 
 ## Current limits
 
 - One processing language is supported per call.
 - Language detection, mixed-language segmentation, and language marking are external.
 - SSMD and other markup must be parsed before calling `spokenform`.
-- Date, time, currency, and ordinal grammar is deliberately conservative and not yet exhaustive.
-- `abbr2words` currently exposes final expanded text rather than public semantic replacement objects, so edits are reconstructed deterministically at stage boundaries.
+- Date, time, currency, and ordinal grammar is conservative and not exhaustive.
+- `abbr2words` currently exposes final expanded text rather than semantic replacement objects, so stage edits are reconstructed deterministically from diffs.
+- Trained spaCy pipelines must be installed and version-compatible with the spaCy runtime.
 
-## Ownership boundary
-
-`spokenform` owns plain written-text cleanup, semantic verbalization, protected
-ranges, provenance, and input/output mapping. A caller or orchestration layer owns
-language detection, markup parsing, and mixed-language segmentation. A downstream
-G2P package owns punctuation normalization, tokenization, lexicons, phoneme
-selection, language marks, overrides after remapping, and vocabulary/token IDs.
-
-`spokenform` does not generate phonemes and does not import `kokorog2p`.
-
-## Intended dependency direction
+## Dependency direction
 
 ```text
 abbr2words ─┐
@@ -218,8 +237,18 @@ abbr2words ─┐
 num2words ──┘
 ```
 
-spaCy is an optional quality-enhancement dependency. `spokenform` remains independent
-of language-detection, markup, and phoneme-generation packages.
+spaCy is an optional quality dependency. `spokenform` remains independent of
+language detection, markup parsing, and phoneme generation.
+
+## Release versioning
+
+`setuptools-scm` derives versions from Git tags and writes
+`spokenform/_version.py` during builds. Use annotated tags such as `v0.1.0`.
+The source snapshot fallback is `0.1.0`.
+
+Before publishing, ensure the required `abbr2words` version exists on the target
+package index and run the checklist in
+[`docs/release-checklist.md`](docs/release-checklist.md).
 
 ## License
 

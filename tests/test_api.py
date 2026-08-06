@@ -99,3 +99,10 @@ def test_preparation_config_requires_a_non_empty_language() -> None:
 def test_removed_prepare_arguments_fail_with_type_error() -> None:
     with pytest.raises(TypeError):
         prepare("hello", language="en", detect_language=True)  # type: ignore[call-arg]
+
+
+def test_preparation_config_validates_spacy_options() -> None:
+    with pytest.raises(TypeError, match="use_spacy"):
+        PreparationConfig(language="en", use_spacy="yes")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="spacy_model"):
+        PreparationConfig(language="en", spacy_model="  ")

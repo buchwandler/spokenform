@@ -9,7 +9,7 @@ try:
 except PackageNotFoundError:  # source tree before installation
     __version__ = "0.1.0"
 
-from .annotations import annotations_from_spacy, spacy_annotations
+from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
 from .api import normalize_spacing, prepare, prepare_text
 from .config import PreparationConfig
 from .mapping import OffsetMap, Replacement
@@ -40,6 +40,7 @@ __all__ = [
     "TokenAnnotation",
     "__version__",
     "annotations_from_spacy",
+    "validate_annotations",
     "normalize_numbers",
     "normalize_spacing",
     "prepare",

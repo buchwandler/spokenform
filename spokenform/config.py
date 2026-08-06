@@ -24,8 +24,23 @@ class PreparationConfig:
             raise TypeError("language must be a string")
         if not self.language.strip():
             raise ValueError("language must not be empty")
-        if self.spacy_model is not None and not isinstance(self.spacy_model, str):
-            raise TypeError("spacy_model must be a string or None")
+        if self.use_spacy is not None and not isinstance(self.use_spacy, bool):
+            raise TypeError("use_spacy must be a bool or None")
+        if self.spacy_model is not None:
+            if not isinstance(self.spacy_model, str):
+                raise TypeError("spacy_model must be a string or None")
+            if not self.spacy_model.strip():
+                raise ValueError("spacy_model must not be empty")
+        for name in (
+            "expand_abbreviations",
+            "expand_numbers",
+            "normalize_whitespace",
+            "normalize_unicode",
+            "context",
+            "strict",
+        ):
+            if not isinstance(getattr(self, name), bool):
+                raise TypeError(f"{name} must be a bool")
 
 
 __all__ = ["PreparationConfig"]

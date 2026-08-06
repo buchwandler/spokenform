@@ -9,6 +9,7 @@ description = "Single-language written-to-spoken text normalization for speech a
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 authors = [
   { name = "Holger Nahrstaedt", email = "nahrstaedt@gmail.com" },
 ]
@@ -44,7 +45,7 @@ dev = [
   "mypy>=1.11",
   "pytest>=8",
   "pytest-cov>=5",
-  "ruff>=0.16",
+  "ruff>=0.16,<0.17",
   "twine>=5",
 ]
 all = ["spacy>=3.7,<4"]
@@ -56,13 +57,11 @@ spokenform = "spokenform.cli:main"
 Homepage = "https://github.com/buchwandler/spokenform"
 Repository = "https://github.com/buchwandler/spokenform"
 Issues = "https://github.com/buchwandler/spokenform/issues"
+Changelog = "https://github.com/buchwandler/spokenform/blob/main/CHANGELOG.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["spokenform*"]
-
-[tool.setuptools]
-license-files = ["LICENSE", "NOTICE"]
 
 [tool.setuptools.package-data]
 spokenform = ["py.typed"]

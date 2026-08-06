@@ -91,3 +91,15 @@ def test_explicit_annotations_take_precedence_over_model_loading(
         spacy_model="unused",
     )
     assert "two inch" in result.spoken_text
+
+
+def test_model_language_mismatch_is_rejected(monkeypatch: pytest.MonkeyPatch) -> None:
+    reset_spacy_cache()
+    pipeline = SimpleNamespace(lang="en")
+    monkeypatch.setitem(
+        __import__("sys").modules,
+        "spacy",
+        SimpleNamespace(load=lambda model: pipeline),
+    )
+    with pytest.raises(SpacyModelError, match="not 'de'"):
+        load_spacy_model("fake_model", language="de")

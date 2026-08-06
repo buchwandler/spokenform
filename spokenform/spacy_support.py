@@ -16,11 +16,18 @@ _LOCK = RLock()
 
 def load_spacy_model(model: str | None, *, language: str | None = None) -> Any:
     """Load and cache a named model; never download one implicitly."""
-    if not model:
+    if not isinstance(model, str) or not model.strip():
         raise SpacyModelError(
             "spaCy was requested without a model name; pass spacy_model='en_core_web_sm'"
         )
-    key = (language, model)
+    if language is not None and not isinstance(language, str):
+        raise TypeError("language must be a string or None")
+    expected_language = (
+        language.lower().replace("_", "-").split("-", 1)[0]
+        if language and language.strip()
+        else None
+    )
+    key = (expected_language, model)
     with _LOCK:
         if key in _CACHE:
             return _CACHE[key]
@@ -37,6 +44,19 @@ def load_spacy_model(model: str | None, *, language: str | None = None) -> Any:
             f"Requested spaCy model {model!r} is unavailable; install it explicitly "
             "and do not rely on automatic downloads"
         ) from exc
+
+    pipeline_language = getattr(pipeline, "lang", None)
+    actual_language = (
+        str(pipeline_language).lower().replace("_", "-").split("-", 1)[0]
+        if pipeline_language
+        else None
+    )
+    if expected_language and actual_language not in {None, expected_language, "xx"}:
+        raise SpacyModelError(
+            f"Requested spaCy model {model!r} uses language {actual_language!r}, "
+            f"not {expected_language!r}"
+        )
+
     with _LOCK:
         _CACHE[key] = pipeline
     return pipeline

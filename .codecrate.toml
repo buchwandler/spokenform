@@ -9,9 +9,15 @@ include = [
   "**/*.toml",
   "**/*.rst",
   "**/*.md",
+  "**/*.json",
+  "**/*.txt",
   "**/*.yaml",
   "**/*.yml",
+  "**/py.typed",
+  ".gitignore",
   "LICENSE*",
+  "MANIFEST.in",
+  "NOTICE*",
 ]
 split_max_chars = 2500000
 layout = "full"

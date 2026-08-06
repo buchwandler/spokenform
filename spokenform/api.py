@@ -8,7 +8,11 @@ from collections.abc import Iterable
 
 from abbr2words import abbr2words, normalize_language
 
-from .annotations import to_abbr2words_annotations
+from .annotations import (
+    remap_annotations_for_replacements,
+    to_abbr2words_annotations,
+    validate_annotations,
+)
 from .config import PreparationConfig
 from .mapping import OffsetMap, replacements_from_diff
 from .models import PreparationStage, PreparedText, TokenAnnotation, make_stage
@@ -36,16 +40,6 @@ def normalize_spacing(text: str, *, normalize_unicode: bool = True) -> str:
     return normalized.strip()
 
 
-def _run_stage(
-    stages: list[PreparationStage],
-    name: str,
-    before: str,
-    after: str,
-) -> str:
-    stages.append(make_stage(name, before, after))
-    return after
-
-
 def prepare(
     text: str,
     *,
@@ -53,7 +47,7 @@ def prepare(
     config: PreparationConfig | None = None,
     annotations: Iterable[TokenAnnotation] | None = None,
     nlp: object | None = None,
-    protected_spans: Iterable[ProtectedSpan] | None = None,
+    protected_spans: Iterable[ProtectedSpan | tuple[int, int]] | None = None,
     use_spacy: bool | None = None,
     spacy_model: str | None = None,
     expand_abbreviations: bool = True,
@@ -117,6 +111,8 @@ def prepare(
     protected = protect_text(clean_text, tuple(merged_protected))
 
     spacy_warnings: list[str] = []
+    if annotations is not None:
+        annotations = validate_annotations(clean_text, annotations)
     if annotations is None and use_spacy is not False:
         if nlp is None and (spacy_model is not None or use_spacy is True):
             try:
@@ -130,6 +126,13 @@ def prepare(
 
             annotations = spacy_annotations(clean_text, nlp)
 
+    protected_annotations = remap_annotations_for_replacements(
+        annotations,
+        ((span.start, span.end, 1) for span in protected.spans),
+    )
+    if protected_annotations is not None:
+        protected_annotations = validate_annotations(protected.text, protected_annotations)
+
     stages: list[PreparationStage] = []
     current = protected.text
 
@@ -142,7 +145,7 @@ def prepare(
                 value,
                 lang=language_code,
                 context=context,
-                annotations=to_abbr2words_annotations(annotations),
+                annotations=to_abbr2words_annotations(protected_annotations),
             ),
             restore=protected.restore,
         )

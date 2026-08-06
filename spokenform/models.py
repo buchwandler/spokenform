@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from difflib import SequenceMatcher
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .mapping import OffsetMap
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,7 +78,7 @@ class PreparedText:
     language: str
     stages: tuple[PreparationStage, ...] = ()
     mapped_edits: tuple[MappedEdit, ...] = ()
-    offset_map: Any | None = None
+    offset_map: "OffsetMap | None" = None
     warnings: tuple[str, ...] = ()
 
     @property
