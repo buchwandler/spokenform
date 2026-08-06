@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "spokenform"
 dynamic = ["version"]
-description = "Multilingual written-to-spoken text normalization for speech applications"
+description = "Single-language written-to-spoken text normalization for speech applications"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -39,8 +39,6 @@ dependencies = [
 
 [project.optional-dependencies]
 spacy = ["spacy>=3.7,<4"]
-ssmd = ["ssmd>=0.8.1,<0.9"]
-langdetect = ["lingua-language-detector>=2,<3"]
 dev = [
   "build>=1",
   "mypy>=1.11",
@@ -49,11 +47,7 @@ dev = [
   "ruff>=0.16",
   "twine>=5",
 ]
-all = [
-  "spacy>=3.7,<4",
-  "ssmd>=0.8.1,<0.9",
-  "lingua-language-detector>=2,<3",
-]
+all = ["spacy>=3.7,<4"]
 
 [project.scripts]
 spokenform = "spokenform.cli:main"

@@ -12,11 +12,14 @@ from .api import prepare
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="spokenform",
-        description="Convert written text into a readable spoken form.",
+        description="Convert one-language written text into a readable spoken form.",
     )
     parser.add_argument("text", nargs="*", help="Text to prepare; stdin is used when omitted")
     parser.add_argument("--lang", default="en", help="Language or locale code (default: en)")
-    parser.add_argument("--detect-language", action="store_true")
+    parser.add_argument(
+        "--spacy-model",
+        help="Name of an installed spaCy model to use for context-aware expansion",
+    )
     parser.add_argument("--no-abbreviations", action="store_true")
     parser.add_argument("--no-numbers", action="store_true")
     parser.add_argument("--keep-whitespace", action="store_true")
@@ -37,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
     result = prepare(
         source,
         language=args.lang,
-        detect_language=args.detect_language,
+        spacy_model=args.spacy_model,
         expand_abbreviations=not args.no_abbreviations,
         expand_numbers=not args.no_numbers,
         normalize_whitespace=not args.keep_whitespace,

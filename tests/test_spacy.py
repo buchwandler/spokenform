@@ -73,3 +73,21 @@ def test_model_cache_is_keyed_and_resettable(monkeypatch: pytest.MonkeyPatch) ->
     assert calls == ["fake_model"]
     reset_spacy_cache()
     assert load_spacy_model("fake_model", language="en") is not first
+
+
+def test_explicit_annotations_take_precedence_over_model_loading(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FailingNLP:
+        def __call__(self, text: str) -> object:
+            raise AssertionError("explicit annotations must prevent pipeline execution")
+
+    annotations = annotations_from_spacy(FakeNLP()("The box is 2 in."))
+    result = prepare(
+        "The box is 2 in.",
+        language="en",
+        annotations=annotations,
+        nlp=FailingNLP(),
+        spacy_model="unused",
+    )
+    assert "two inch" in result.spoken_text

@@ -5,21 +5,13 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable
-from typing import Literal
 
 from abbr2words import abbr2words, normalize_language
 
 from .annotations import to_abbr2words_annotations
 from .config import PreparationConfig
-from .detection import LanguageDetector, lingua_detector
 from .mapping import OffsetMap, replacements_from_diff
-from .models import (
-    LanguageSpan,
-    PreparationStage,
-    PreparedText,
-    TokenAnnotation,
-    make_stage,
-)
+from .models import PreparationStage, PreparedText, TokenAnnotation, make_stage
 from .numbers import normalize_numbers
 from .protection import (
     ProtectedSpan,
@@ -28,7 +20,6 @@ from .protection import (
     protect_text,
 )
 from .spacy_support import SpacyModelError, load_spacy_model
-from .ssmd import parse_markup
 from .stages import apply_stage
 
 _HORIZONTAL_SPACE_RE = re.compile(r"[\t\u00a0\u202f ]+")
@@ -60,15 +51,9 @@ def prepare(
     *,
     language: str = "en",
     config: PreparationConfig | None = None,
-    detect_language: bool = False,
-    detector: LanguageDetector | None = None,
-    allowed_languages: Iterable[str] | None = None,
     annotations: Iterable[TokenAnnotation] | None = None,
     nlp: object | None = None,
-    language_spans: Iterable[LanguageSpan] | None = None,
     protected_spans: Iterable[ProtectedSpan] | None = None,
-    markup: Literal["plain", "ssmd", "auto"] = "plain",
-    render_language_marks: bool = False,
     use_spacy: bool | None = None,
     spacy_model: str | None = None,
     expand_abbreviations: bool = True,
@@ -78,7 +63,10 @@ def prepare(
     context: bool = True,
     strict: bool = False,
 ) -> PreparedText:
-    """Convert written text into a readable form intended for speech.
+    """Convert one-language written text into a readable form intended for speech.
+
+    The caller selects the processing language. Language detection, mixed-language
+    segmentation, and markup parsing belong outside spokenform.
 
     Abbreviation and unit expansion runs before number verbalization so numeric
     context remains available to :mod:`abbr2words` guards.
@@ -87,11 +75,7 @@ def prepare(
         raise TypeError("text must be a string")
 
     if config is not None:
-        language = config.language or "en"
-        detect_language = config.detect_language
-        allowed_languages = config.allowed_languages
-        markup = config.markup
-        render_language_marks = config.render_language_marks
+        language = config.language
         use_spacy = config.use_spacy
         spacy_model = config.spacy_model
         expand_abbreviations = config.expand_abbreviations
@@ -100,13 +84,9 @@ def prepare(
         normalize_unicode = config.normalize_unicode
         context = config.context
         strict = config.strict
-    elif markup != "plain" or render_language_marks or use_spacy is not None or spacy_model:
+    elif use_spacy is not None or spacy_model is not None:
         PreparationConfig(
             language=language,
-            detect_language=detect_language,
-            allowed_languages=tuple(allowed_languages or ()),
-            markup=markup,
-            render_language_marks=render_language_marks,
             use_spacy=use_spacy,
             spacy_model=spacy_model,
             expand_abbreviations=expand_abbreviations,
@@ -116,30 +96,17 @@ def prepare(
             context=context,
             strict=strict,
         )
-    if markup != "plain":
-        parsed_markup = parse_markup(
-            text,
-            mode=markup,
-            language=language,
-            strict=strict,
-        )
-    else:
-        parsed_markup = parse_markup(text, mode="plain")
 
-    clean_text = parsed_markup.clean_text
+    clean_text = text
+    language_code = normalize_language(language)
 
     supplied_spans, protection_warnings = coerce_protected_spans(
         protected_spans,
         text_length=len(clean_text),
         strict=strict,
     )
-    markup_protected, markup_protection_warnings = coerce_protected_spans(
-        parsed_markup.protected_spans,
-        text_length=len(clean_text),
-        strict=strict,
-    )
     discovered_spans = discover_protected_spans(clean_text)
-    merged_protected: list[ProtectedSpan] = list(discovered_spans) + list(markup_protected)
+    merged_protected: list[ProtectedSpan] = list(discovered_spans)
     for candidate in supplied_spans:
         if not any(
             existing.start < candidate.end and candidate.start < existing.end
@@ -149,34 +116,19 @@ def prepare(
     merged_protected.sort(key=lambda item: (item.start, item.end))
     protected = protect_text(clean_text, tuple(merged_protected))
 
-    detected = False
-    resolved_language = language
-    if detect_language:
-        detector_impl = detector or lingua_detector(tuple(allowed_languages or ()))
-        resolved_language = detector_impl(clean_text)
-        detected = True
-    language_code = normalize_language(resolved_language)
-
     spacy_warnings: list[str] = []
-    if nlp is None and use_spacy is not False and spacy_model is not None:
-        try:
-            nlp = load_spacy_model(spacy_model, language=language_code)
-        except SpacyModelError as exc:
-            if strict:
-                raise
-            spacy_warnings.append(f"[SPACY] {exc}")
-    elif use_spacy is True and nlp is None:
-        try:
-            nlp = load_spacy_model(spacy_model, language=language_code)
-        except SpacyModelError as exc:
-            if strict:
-                raise
-            spacy_warnings.append(f"[SPACY] {exc}")
+    if annotations is None and use_spacy is not False:
+        if nlp is None and (spacy_model is not None or use_spacy is True):
+            try:
+                nlp = load_spacy_model(spacy_model, language=language_code)
+            except SpacyModelError as exc:
+                if strict:
+                    raise
+                spacy_warnings.append(f"[SPACY] {exc}")
+        if nlp is not None:
+            from .annotations import spacy_annotations
 
-    if nlp is not None and annotations is None and use_spacy is not False:
-        from .annotations import spacy_annotations
-
-        annotations = spacy_annotations(clean_text, nlp)
+            annotations = spacy_annotations(clean_text, nlp)
 
     stages: list[PreparationStage] = []
     current = protected.text
@@ -228,46 +180,15 @@ def prepare(
     for stage_map in stage_maps:
         offset_map = offset_map.compose(stage_map)
 
-    source: Literal["configured", "detected"] = "detected" if detected else "configured"
-    if parsed_markup.language_spans:
-        spans = parsed_markup.language_spans
-    elif language_spans is not None:
-        spans = tuple(language_spans)
-    else:
-        spans = (
-            (LanguageSpan(start=0, end=len(clean_text), language=language_code, source=source),)
-            if clean_text
-            else ()
-        )
-
-    warnings = (
-        *parsed_markup.warnings,
-        *protection_warnings,
-        *markup_protection_warnings,
-        *spacy_warnings,
-    )
-    marked_text = None
-    if render_language_marks:
-        marked_text = PreparedText(
-            source_text=text,
-            clean_text=clean_text,
-            spoken_text=current,
-            language=language_code,
-            language_spans=spans,
-        ).render_ssmd(source="clean")
-
     return PreparedText(
         source_text=text,
         clean_text=clean_text,
         spoken_text=current,
         language=language_code,
         stages=tuple(stages),
-        language_spans=spans,
         mapped_edits=tuple(edit for stage in stages for edit in stage.mapped_edits),
         offset_map=offset_map,
-        semantic_spans=parsed_markup.semantic_spans,
-        warnings=warnings,
-        marked_text=marked_text,
+        warnings=(*protection_warnings, *spacy_warnings),
     )
 
 

@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import asdict, dataclass
 from difflib import SequenceMatcher
-from typing import Any, Literal
+from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,29 +52,6 @@ class PreparationStage:
 
 
 @dataclass(frozen=True, slots=True)
-class LanguageSpan:
-    """A language assignment over a text span."""
-
-    start: int
-    end: int
-    language: str
-    source: Literal["ssmd", "configured", "caller", "detected", "fallback"] = "configured"
-    confidence: float | None = None
-
-
-@dataclass(frozen=True, slots=True)
-class SemanticSpan:
-    """Provider-neutral semantic markup or literal span."""
-
-    start: int
-    end: int
-    kind: str
-    attributes: Mapping[str, str]
-    source: str
-    protected: bool = False
-
-
-@dataclass(frozen=True, slots=True)
 class MappedEdit:
     """A replacement with source and output coordinates."""
 
@@ -98,12 +74,9 @@ class PreparedText:
     spoken_text: str
     language: str
     stages: tuple[PreparationStage, ...] = ()
-    language_spans: tuple[LanguageSpan, ...] = ()
-    semantic_spans: tuple[SemanticSpan, ...] = ()
     mapped_edits: tuple[MappedEdit, ...] = ()
     offset_map: Any | None = None
     warnings: tuple[str, ...] = ()
-    marked_text: str | None = None
 
     @property
     def text(self) -> str:
@@ -138,41 +111,6 @@ class PreparedText:
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation."""
         return asdict(self)
-
-    def render_ssmd(
-        self,
-        *,
-        source: str = "clean",
-        include_detected: bool = True,
-        include_configured: bool = False,
-    ) -> str:
-        """Render language spans around clean or mapped spoken text."""
-        if source not in {"clean", "spoken"}:
-            raise ValueError("source must be 'clean' or 'spoken'")
-        text = self.clean_text if source == "clean" else self.spoken_text
-        spans = self.language_spans
-        if source == "spoken" and self.offset_map is not None:
-            mapped_spans: list[LanguageSpan] = []
-            for span in spans:
-                start, end = self.offset_map.map_source_span(span.start, span.end)
-                mapped_spans.append(
-                    LanguageSpan(
-                        start=start,
-                        end=end,
-                        language=span.language,
-                        source=span.source,
-                        confidence=span.confidence,
-                    )
-                )
-            spans = tuple(mapped_spans)
-        from .ssmd import render_language_marks
-
-        return render_language_marks(
-            text,
-            spans,
-            include_detected=include_detected,
-            include_configured=include_configured,
-        )
 
 
 def diff_edits(before: str, after: str, stage: str) -> tuple[TextEdit, ...]:
