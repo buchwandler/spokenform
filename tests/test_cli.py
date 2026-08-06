@@ -29,3 +29,8 @@ def test_cli_selects_an_installed_spacy_model_without_detection_flag() -> None:
 def test_cli_exposes_strict_mode() -> None:
     args = _parser().parse_args(["--strict", "2 tests"])
     assert args.strict is True
+
+
+def test_cli_exposes_structured_toggle() -> None:
+    args = _parser().parse_args(["--no-structured", "2 kg"])
+    assert args.no_structured is True

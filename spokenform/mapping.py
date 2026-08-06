@@ -18,6 +18,7 @@ class Replacement:
     text: str
     kind: str = "replacement"
     language: str | None = None
+    rule: str | None = None
 
     def validate(self, source_length: int) -> None:
         if self.start < 0 or self.end < self.start or self.end > source_length:
@@ -226,6 +227,8 @@ class OffsetMap:
                     "replacement": edit.replacement,
                     "stage": edit.stage,
                     "language": edit.language,
+                    "kind": edit.kind,
+                    "rule": edit.rule,
                 }
                 for edit in self.edits
             ],
@@ -274,6 +277,8 @@ def apply_replacements(
                 replacement=replacement.text,
                 stage=stage,
                 language=replacement.language,
+                kind=replacement.kind,
+                rule=replacement.rule,
             )
         )
         cursor = replacement.end
@@ -318,4 +323,33 @@ def _validate_bias(bias: str) -> None:
         raise ValueError("bias must be 'left' or 'right'")
 
 
-__all__ = ["OffsetMap", "Replacement", "apply_replacements", "replacements_from_diff"]
+def resolve_replacements(
+    replacements: tuple[Replacement, ...],
+    *,
+    source_length: int,
+) -> tuple[Replacement, ...]:
+    """Select the highest-priority non-overlapping replacement candidates."""
+    for replacement in replacements:
+        replacement.validate(source_length)
+    ranked = sorted(
+        enumerate(replacements),
+        key=lambda item: (item[1].start, -(item[1].end - item[1].start), item[0]),
+    )
+    selected: list[Replacement] = []
+    for _, candidate in ranked:
+        if any(
+            candidate.start < existing.end and existing.start < candidate.end
+            for existing in selected
+        ):
+            continue
+        selected.append(candidate)
+    return tuple(sorted(selected, key=lambda item: (item.start, item.end)))
+
+
+__all__ = [
+    "OffsetMap",
+    "Replacement",
+    "apply_replacements",
+    "replacements_from_diff",
+    "resolve_replacements",
+]

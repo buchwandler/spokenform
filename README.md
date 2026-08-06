@@ -7,6 +7,8 @@ spoken form out.
 The package provides:
 
 - context-aware abbreviation and numeric-unit expansion through `abbr2words`;
+- a locale-aware structured-value stage for quantities, dates, times, currencies,
+  temperatures, labels, and contextual ordinals;
 - number, date, time, currency, decimal, and ordinal verbalization through `num2words`;
 - optional provider-neutral spaCy annotations for POS-aware abbreviation rules;
 - stage-level provenance through `PreparedText`;
@@ -80,6 +82,7 @@ from spokenform import PreparationConfig, prepare
 config = PreparationConfig(
     language="en",
     expand_abbreviations=True,
+    expand_structured=True,
     expand_numbers=True,
     normalize_whitespace=True,
     context=True,

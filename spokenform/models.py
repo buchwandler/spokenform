@@ -66,6 +66,8 @@ class MappedEdit:
     replacement: str
     stage: str
     language: str | None = None
+    kind: str = "replacement"
+    rule: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +97,23 @@ class PreparedText:
     def edits(self) -> tuple[TextEdit, ...]:
         """Return the ordered edits from every stage."""
         return tuple(edit for stage in self.stages for edit in stage.edits)
+
+    @property
+    def source_edits(self) -> tuple[MappedEdit, ...]:
+        """Return edits in the documented source-to-final coordinate space."""
+        return self.mapped_edits
+
+    def map_source_span(self, start: int, end: int) -> tuple[int, int]:
+        """Map an original source span to final spoken-text coordinates."""
+        if self.offset_map is None:
+            raise ValueError("No offset map is available")
+        return self.offset_map.map_source_span(start, end)
+
+    def map_output_span(self, start: int, end: int) -> tuple[int, int]:
+        """Map a final spoken-text span back to original source coordinates."""
+        if self.offset_map is None:
+            raise ValueError("No offset map is available")
+        return self.offset_map.map_output_span(start, end)
 
     def render_changes(self) -> str:
         """Render a compact, human-readable stage report."""

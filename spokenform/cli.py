@@ -21,6 +21,7 @@ def _parser() -> argparse.ArgumentParser:
         help="Name of an installed spaCy model to use for context-aware expansion",
     )
     parser.add_argument("--no-abbreviations", action="store_true")
+    parser.add_argument("--no-structured", action="store_true")
     parser.add_argument("--no-numbers", action="store_true")
     parser.add_argument("--keep-whitespace", action="store_true")
     parser.add_argument(
@@ -47,6 +48,7 @@ def main(argv: list[str] | None = None) -> int:
         language=args.lang,
         spacy_model=args.spacy_model,
         expand_abbreviations=not args.no_abbreviations,
+        expand_structured=not args.no_structured,
         expand_numbers=not args.no_numbers,
         normalize_whitespace=not args.keep_whitespace,
         strict=args.strict,

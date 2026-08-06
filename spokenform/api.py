@@ -24,7 +24,8 @@ from .protection import (
     protect_text,
 )
 from .spacy_support import SpacyModelError, load_spacy_model
-from .stages import apply_stage
+from .stages import apply_replacement_stage, apply_stage
+from .structured import normalize_structured
 
 _HORIZONTAL_SPACE_RE = re.compile(r"[\t\u00a0\u202f ]+")
 _LINE_SPACE_RE = re.compile(r" *\n *")
@@ -51,6 +52,7 @@ def prepare(
     use_spacy: bool | None = None,
     spacy_model: str | None = None,
     expand_abbreviations: bool = True,
+    expand_structured: bool = True,
     expand_numbers: bool = True,
     normalize_whitespace: bool = True,
     normalize_unicode: bool = True,
@@ -62,8 +64,8 @@ def prepare(
     The caller selects the processing language. Language detection, mixed-language
     segmentation, and markup parsing belong outside spokenform.
 
-    Abbreviation and unit expansion runs before number verbalization so numeric
-    context remains available to :mod:`abbr2words` guards.
+    Structured values run before lexical abbreviation expansion and generic
+    numbers so each complete expression receives one semantic replacement.
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
@@ -73,6 +75,7 @@ def prepare(
         use_spacy = config.use_spacy
         spacy_model = config.spacy_model
         expand_abbreviations = config.expand_abbreviations
+        expand_structured = config.expand_structured
         expand_numbers = config.expand_numbers
         normalize_whitespace = config.normalize_whitespace
         normalize_unicode = config.normalize_unicode
@@ -84,6 +87,7 @@ def prepare(
             use_spacy=use_spacy,
             spacy_model=spacy_model,
             expand_abbreviations=expand_abbreviations,
+            expand_structured=expand_structured,
             expand_numbers=expand_numbers,
             normalize_whitespace=normalize_whitespace,
             normalize_unicode=normalize_unicode,
@@ -135,6 +139,22 @@ def prepare(
 
     stages: list[PreparationStage] = []
     current = protected.text
+
+    if expand_structured:
+        structured = normalize_structured(
+            protected.restore(current),
+            language=language_code,
+            protected_ranges=((span.start, span.end) for span in merged_protected),
+        )
+        if structured.replacements:
+            current = apply_replacement_stage(
+                stages,
+                "structured",
+                current,
+                structured.replacements,
+                protected_values=protected.values,
+                language=language_code,
+            )
 
     if expand_abbreviations:
         current = apply_stage(

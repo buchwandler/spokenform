@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Final
 
@@ -130,6 +131,7 @@ _TIME_JOINERS: Final[dict[str, str]] = {
     "it": " e ",
     "pt": " e ",
 }
+_GERMAN_YEAR_POLICY: Final[str] = "century_for_1100_1999"
 
 _URL_OR_EMAIL_RE = re.compile(r"https?://\S+|www\.\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 _VERSION_RE = re.compile(r"(?<!\w)v\d+(?:\.\d+){2,}(?!\w)", re.IGNORECASE)
@@ -141,14 +143,19 @@ _DATE_ISO_RE = re.compile(
 )
 _TIME_RE = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?!\d)(?:\s+Uhr)?")
 _CURRENCY_PREFIX_RE = re.compile(
-    r"(?<!\w)(?P<currency>[€$£])\s*(?P<number>[+\-−]?\d+(?:[.,]\d{1,2})?)(?!\w)"
+    r"(?<!\w)(?P<currency>EUR|USD|GBP|CHF|€|\$|£)\s*(?P<number>[+\-−]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)(?!\w)",
+    re.IGNORECASE,
 )
 _CURRENCY_SUFFIX_RE = re.compile(
-    r"(?<!\w)(?P<number>[+\-−]?\d+(?:[.,]\d{1,2})?)\s*(?P<currency>EUR|USD|GBP|€|\$|£)(?!\w)",
+    r"(?<!\w)(?P<number>[+\-−]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)\s*(?P<currency>EUR|USD|GBP|CHF|€|\$|£)(?!\w)",
     re.IGNORECASE,
 )
 _ORDINAL_RE = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÀ-ž])")
-_NUMBER_RE = re.compile(r"(?<![\w.])[+\-−]?\d+(?:[.,]\d+)?(?![\w.])")
+_NUMBER_RE = re.compile(r"(?<![\w.])[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?![\w.])")
+_DATE_CANDIDATE_RE = re.compile(
+    r"(?<!\d)(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)"
+)
+_TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
 
 
 @dataclass(frozen=True, slots=True)
@@ -179,6 +186,22 @@ def _protect(text: str) -> _ProtectedText:
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
+
+    def invalid_date(match: re.Match[str]) -> str:
+        try:
+            date(int(match["year"]), int(match["month"]), int(match["day"]))
+        except ValueError:
+            return replace(match)
+        return match.group(0)
+
+    protected = _DATE_CANDIDATE_RE.sub(invalid_date, protected)
+
+    def invalid_time(match: re.Match[str]) -> str:
+        if int(match["hour"]) > 23 or int(match["minute"]) > 59:
+            return replace(match)
+        return match.group(0)
+
+    protected = _TIME_CANDIDATE_RE.sub(invalid_time, protected)
     return _ProtectedText(protected, tuple(values))
 
 
@@ -193,6 +216,14 @@ def _base_language(language: str) -> str:
 def _spell(value: int | Decimal, language: str, *, ordinal: bool = False) -> str:
     target = "ordinal" if ordinal else "cardinal"
     return str(num2words(value, lang=_NUM2WORDS_LANG[language], to=target))
+
+
+def _year_text(year: int, language: str) -> str:
+    if language == "de" and _GERMAN_YEAR_POLICY == "century_for_1100_1999" and 1100 <= year < 2000:
+        century, remainder = divmod(year, 100)
+        prefix = f"{_spell(century, language)}hundert"
+        return prefix if remainder == 0 else f"{prefix}{_spell(remainder, language)}"
+    return _spell(year, language)
 
 
 def _decimal_value(raw: str, language: str) -> Decimal:
@@ -223,7 +254,7 @@ def _date_text(
 ) -> str:
     month_name = _MONTHS[language][month - 1]
     day_text = _spell(day, language, ordinal=language in {"de", "en"})
-    year_text = _spell(year, language)
+    year_text = _year_text(year, language)
     if language == "de":
         if german_dative:
             day_text = day_text if day_text.endswith("n") else f"{day_text}n"
@@ -241,6 +272,10 @@ def _date_text(
 
 def _replace_dates(text: str, language: str) -> str:
     def replacement(match: re.Match[str]) -> str:
+        try:
+            date(int(match.group("year")), int(match.group("month")), int(match.group("day")))
+        except ValueError:
+            return match.group(0)
         prefix = match.string[max(0, match.start() - 12) : match.start()]
         german_dative = language == "de" and bool(
             re.search(r"\b(?:am|zum|vom)\s*$", prefix, re.IGNORECASE)
@@ -288,9 +323,34 @@ def _replace_currencies(text: str, language: str) -> str:
                 )
             )
         except (NotImplementedError, TypeError, ValueError):
+            if language == "de" and value >= 0:
+                major = int(value)
+                cents = int((value - major) * 100)
+                labels = {
+                    "CHF": "Schweizer Franken",
+                    "EUR": "Euro",
+                    "USD": "Dollar",
+                    "GBP": "Pfund",
+                }
+                result = f"{_spell(major, language)} {labels.get(currency, currency)}"
+                if cents:
+                    result += f" {_spell(cents, language)} Cent"
+                return result
             return f"{_spell(value, language)} {currency}"
 
     return _CURRENCY_SUFFIX_RE.sub(replace, _CURRENCY_PREFIX_RE.sub(replace, text))
+
+
+def _replace_years(text: str, language: str) -> str:
+    if language not in _SUPPORTED:
+        return text
+    pattern = re.compile(r"(?<![\w.])(?P<year>\d{4})(?![\w.])")
+
+    def replace(match: re.Match[str]) -> str:
+        year = int(match["year"])
+        return _year_text(year, language)
+
+    return pattern.sub(replace, text)
 
 
 def _replace_ordinals(text: str, language: str) -> str:
@@ -331,6 +391,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
         _replace_times,
         _replace_currencies,
         _replace_ordinals,
+        _replace_years,
         _replace_numbers,
     )
     for transformation in transformations:

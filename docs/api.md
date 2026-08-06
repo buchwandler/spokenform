@@ -55,3 +55,11 @@
 ```{autofunction} spokenform.normalize_numbers
 
 ```
+
+```{autofunction} spokenform.normalize_structured
+
+```
+
+```{autofunction} spokenform.iter_structured_replacements
+
+```

@@ -18,6 +18,7 @@ def test_german_readable_pipeline() -> None:
     assert "achtzehn Uhr zwanzig" in result.spoken_text
     assert "zwei Kilogramm" in result.spoken_text
     assert [stage.name for stage in result.stages] == [
+        "structured",
         "abbreviations",
         "numbers",
         "whitespace",
@@ -31,6 +32,7 @@ def test_disable_stages() -> None:
         "Prof. Klein hat 2 kg.",
         language="de",
         expand_abbreviations=False,
+        expand_structured=False,
         expand_numbers=False,
         normalize_whitespace=False,
     )

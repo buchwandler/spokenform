@@ -23,5 +23,6 @@ structured output.
 spokenform --lang en --spacy-model en_core_web_sm --strict "The board is 2 in. wide."
 ```
 
-Pipeline stages can be disabled with `--no-abbreviations`, `--no-numbers`, and
-`--keep-whitespace`.
+Pipeline stages can be disabled independently with `--no-structured`,
+`--no-abbreviations`, `--no-numbers`, and `--keep-whitespace`. Structured values
+remain available when lexical abbreviation expansion is disabled.

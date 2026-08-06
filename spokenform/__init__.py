@@ -12,7 +12,7 @@ except PackageNotFoundError:  # source tree before installation
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
 from .api import normalize_spacing, prepare, prepare_text
 from .config import PreparationConfig
-from .mapping import OffsetMap, Replacement
+from .mapping import OffsetMap, Replacement, resolve_replacements
 from .models import (
     MappedEdit,
     PreparationStage,
@@ -23,6 +23,7 @@ from .models import (
 from .numbers import normalize_numbers
 from .protection import ProtectedSpan, ProtectionError
 from .spacy_support import SpacyModelError, load_spacy_model, reset_spacy_cache
+from .structured import StageResult, iter_structured_replacements, normalize_structured
 
 __all__ = [
     "PreparationConfig",
@@ -36,12 +37,16 @@ __all__ = [
     "load_spacy_model",
     "reset_spacy_cache",
     "Replacement",
+    "resolve_replacements",
+    "StageResult",
     "TextEdit",
     "TokenAnnotation",
     "__version__",
     "annotations_from_spacy",
     "validate_annotations",
     "normalize_numbers",
+    "iter_structured_replacements",
+    "normalize_structured",
     "normalize_spacing",
     "prepare",
     "prepare_text",

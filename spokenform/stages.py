@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from .mapping import OffsetMap, Replacement, apply_replacements, resolve_replacements
 from .models import PreparationStage, make_stage
 
 
@@ -21,4 +22,76 @@ def apply_stage(
     return after
 
 
-__all__ = ["apply_stage"]
+def apply_replacement_stage(
+    stages: list[PreparationStage],
+    name: str,
+    text: str,
+    replacements: tuple[Replacement, ...],
+    *,
+    protected_values: tuple[str, ...] = (),
+    language: str | None = None,
+) -> str:
+    """Apply exact replacements while keeping protected sentinels internal.
+
+    Replacement coordinates are defined against the visible stage input. The
+    returned continuation value retains private-use sentinels so later stages
+    cannot rewrite protected values.
+    """
+    restoration = _restoration_map(text, protected_values)
+    visible_before = _restore(text, protected_values)
+    visible_replacements = resolve_replacements(
+        tuple(
+            Replacement(
+                item.start,
+                item.end,
+                item.text,
+                item.kind,
+                item.language or language,
+                item.rule,
+            )
+            for item in replacements
+        ),
+        source_length=len(visible_before),
+    )
+    visible_after, mapped_edits, _ = apply_replacements(
+        visible_before, visible_replacements, stage=name
+    )
+    stage = make_stage(name, visible_before, visible_after)
+    stages.append(
+        PreparationStage(
+            name=stage.name,
+            before=stage.before,
+            after=stage.after,
+            edits=stage.edits,
+            mapped_edits=mapped_edits,
+        )
+    )
+
+    internal: list[Replacement] = []
+    for item in visible_replacements:
+        start, end = restoration.map_output_span(item.start, item.end)
+        internal.append(Replacement(start, end, item.text, item.kind, item.language, item.rule))
+    internal = list(resolve_replacements(tuple(internal), source_length=len(text)))
+    after, _, _ = apply_replacements(text, tuple(internal), stage=name)
+    return after
+
+
+def _restore(text: str, values: tuple[str, ...]) -> str:
+    result = text
+    for index, value in enumerate(values):
+        result = result.replace(chr(0xE000 + index), value)
+    return result
+
+
+def _restoration_map(text: str, values: tuple[str, ...]) -> OffsetMap:
+    replacements = tuple(
+        Replacement(index, index + 1, values[ord(character) - 0xE000])
+        for index, character in enumerate(text)
+        if 0xE000 <= ord(character) < 0xE000 + len(values)
+    )
+    return OffsetMap.from_replacements(
+        len(text), replacements, output_length=len(_restore(text, values))
+    )
+
+
+__all__ = ["apply_stage", "apply_replacement_stage"]

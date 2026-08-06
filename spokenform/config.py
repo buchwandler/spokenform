@@ -13,6 +13,7 @@ class PreparationConfig:
     use_spacy: bool | None = None
     spacy_model: str | None = None
     expand_abbreviations: bool = True
+    expand_structured: bool = True
     expand_numbers: bool = True
     normalize_whitespace: bool = True
     normalize_unicode: bool = True
@@ -33,6 +34,7 @@ class PreparationConfig:
                 raise ValueError("spacy_model must not be empty")
         for name in (
             "expand_abbreviations",
+            "expand_structured",
             "expand_numbers",
             "normalize_whitespace",
             "normalize_unicode",

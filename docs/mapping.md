@@ -20,3 +20,9 @@ boundary may correspond to both sides of an expanded replacement.
 
 `map_source_span()` uses left bias for the start and right bias for the end.
 `map_output_span()` performs the inverse operation.
+
+Structured edits are available on the structured stage and expose the complete
+source expression, spoken replacement, `kind`, language, and locale `rule`.
+For downstream adapters, prefer `PreparedText.source_edits`,
+`PreparedText.map_source_span()`, and `PreparedText.map_output_span()` rather
+than importing mapping internals.
