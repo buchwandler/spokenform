@@ -26,3 +26,7 @@ def test_currency_prefix_and_suffix() -> None:
 
 def test_bare_dotted_version_is_not_verbalized() -> None:
     assert normalize_numbers("Version 1.2.3", language="en") == "Version 1.2.3"
+
+
+def test_french_decimal_digits_keep_fractional_zero() -> None:
+    assert normalize_numbers("0,02", language="fr") == "zéro virgule zéro deux"

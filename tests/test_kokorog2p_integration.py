@@ -55,3 +55,16 @@ def test_adapter_contract_keeps_runs_composable() -> None:
     left = prepare_for_kokorog2p(source[:8], "de")
     right = prepare_for_kokorog2p(source[8:], "de")
     assert left.spoken_text + right.spoken_text == "  Hallo  zwei Kilogramm  "
+
+
+def test_french_adapter_token_and_phoneme_parity_fixture() -> None:
+    source = "Le 14.05.2026 coûte 12,80 EUR."
+    result = prepare_for_kokorog2p(source, "fr")
+    tokens = _tokenize(result.spoken_text)
+    phonemes = _phonemize(tokens)
+    assert result.spoken_text == (
+        "Le quatorze mai deux mille vingt-six coûte douze euros quatre-vingts centimes."
+    )
+    assert phonemes == [token.casefold() for token in tokens]
+    assert all(not any(character.isdigit() for character in token) for token in tokens)
+    assert all("\ue000" not in warning for warning in result.warnings)

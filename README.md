@@ -66,14 +66,17 @@ The result contains:
 Use `prepare_for_kokorog2p(text, language=...)` for one explicitly selected
 language run. The adapter preserves caller-owned run whitespace and protected
 overrides, emits exact source-coordinate replacements, and leaves tokenization,
-G2P, phonemization, and model punctuation to kokorog2p. German is the first
-parity-complete migration target; Czech, English, Spanish, French, Italian, and
+G2P, phonemization, and model punctuation to kokorog2p. German and French are
+parity-gated semantic migration targets; Czech, English, Spanish, Italian, and
 Portuguese number categories remain caller-managed.
 
 German quantity symbols are recognized by `abbr2words.iter_unit_matches()`.
 spokenform owns only the canonical German grammar that realizes those matches,
 including gender, invariant `Stück`, currency decomposition, and lexical decimal
-digits. This prevents the two packages from maintaining competing symbol lists.
+digits. French likewise realizes canonical `abbr2words` quantity and currency
+identities, including French dates, times, ordinals, decimal digits, plural
+grammar, temperatures, and major/minor currency units. Neither locale copies raw
+symbol inventories or downstream tokenizer/phoneme rules.
 
 ## Language boundary
 

@@ -97,3 +97,10 @@ def test_protected_number_unit_abbreviation_and_adjacent_expression() -> None:
     )
     assert result.spoken_text == "2 kg Professor drei Kilogramm"
     assert result.map_source_span(start, start + len("2 kg")) == (0, len("2 kg"))
+
+
+def test_french_partial_quantity_protection_expands_to_complete_candidate() -> None:
+    source = "2 kg et 3 kg"
+    start = source.index("2 kg") + 2
+    result = prepare(source, language="fr", use_spacy=False, protected_spans=[(start, start + 2)])
+    assert result.spoken_text == "2 kg et trois kilogrammes"

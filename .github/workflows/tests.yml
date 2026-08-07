@@ -45,7 +45,6 @@ jobs:
     - name: Install released downstream stack
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -e ".[dev]"
-        python -m pip install "kokorog2p[de]"
+        python -m pip install "spokenform" "kokorog2p[de,fr]"
     - name: Run real kokorog2p compatibility gate
       run: python -m pytest -q tests/test_real_kokorog2p_integration.py

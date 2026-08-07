@@ -34,7 +34,7 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  "abbr2words>=0.2.1,<0.3.0",
+  "abbr2words>=0.2.2,<0.3.0",
   "num2words>=0.5.14,<0.6",
 ]
 

@@ -37,11 +37,18 @@ spokenform owns semantic spacing and punctuation consumed by a structured or
 lexical expression. Downstream G2P owns quote style, dash canonicalization,
 apostrophe variants, and punctuation choices required only by a model tokenizer.
 
-The German structured boundary is deliberately split: `abbr2words` recognizes
+The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical
-identity; spokenform realizes that identity with German gender, number, currency,
-date, ordinal, and decimal policy. No German symbol or alias inventory is copied
-into spokenform.
+identity; `spokenform.structured` dispatches to locale-owned German or French
+semantic grammar. No symbol or alias inventory is copied into spokenform. French
+owns its dates, h/colon times, ordinals, decimal digit reading, quantities,
+temperatures, and currency decomposition, while G2P typography and phonemes stay
+downstream.
+
+French is promoted to `NumberPolicy.STRUCTURED_AND_PLAIN` only after its parity
+corpus and real downstream gate pass. Every locale replacement retains exact
+source spans and composed source/output mapping, and partial caller protection
+expands to a complete structured candidate before semantic matching.
 
 `prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
 preserves run boundaries, honors protected spans fail-closed, and does not perform

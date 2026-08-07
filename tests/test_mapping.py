@@ -103,3 +103,13 @@ def test_source_replacements_are_ordered_non_overlapping_and_reconstructable() -
         ("1 kWh", "eine Kilowattstunde"),
         ("12,50 EUR", "zwölf Euro fünfzig Cent"),
     ]
+
+
+def test_french_source_replacements_preserve_nbsp_coordinates() -> None:
+    source = "2\u00a0kg et 12,80 EUR"
+    result = prepare(source, language="fr", use_spacy=False)
+    assert result.spoken_text == "deux kilogrammes et douze euros quatre-vingts centimes"
+    assert [(item.source, item.replacement, item.rule) for item in result.source_replacements] == [
+        ("2\u00a0kg", "deux kilogrammes", "fr.quantity"),
+        ("12,80 EUR", "douze euros quatre-vingts centimes", "fr.currency"),
+    ]
