@@ -34,6 +34,13 @@ final offsets refer to `PreparedText.spoken_text`; stage-local offsets remain
 available only under each `PreparationStage`. `PreparedText.to_adapter_dict()`
 is the stable JSON-ready projection for a kokorog2p adapter.
 
+`prepare_for_kokorog2p()` requires an explicit language and performs no language
+detection, tokenization, G2P, or model-punctuation rewriting. Its default profile
+preserves run boundary whitespace. Pass caller-owned `protected_spans` to prevent
+semantic replacements; partial overlap is handled fail-closed by protecting the
+complete recognized quantity expression. Use `source_replacements` and the offset
+helpers to rebase downstream token and override coordinates.
+
 ```{autoclass} spokenform.PreparationStage
 :members:
 ```

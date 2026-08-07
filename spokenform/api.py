@@ -6,7 +6,7 @@ import re
 import unicodedata
 from collections.abc import Iterable
 
-from abbr2words import abbr2words_with_replacements, normalize_language
+from abbr2words import abbr2words_with_replacements, iter_unit_matches, normalize_language
 
 from .annotations import (
     remap_annotations_for_replacements,
@@ -86,6 +86,8 @@ def prepare(
     normalize_line_whitespace: bool = True,
     collapse_blank_lines: bool = True,
     number_policy: NumberPolicy | None = None,
+    preserve_run_boundaries: bool = False,
+    model_punctuation: bool = False,
     context: bool = True,
     strict: bool = False,
 ) -> PreparedText:
@@ -114,6 +116,8 @@ def prepare(
         normalize_line_whitespace = config.normalize_line_whitespace
         collapse_blank_lines = config.collapse_blank_lines
         number_policy = config.number_policy
+        preserve_run_boundaries = config.preserve_run_boundaries
+        model_punctuation = config.model_punctuation
         context = config.context
         strict = config.strict
     elif use_spacy is not None or spacy_model is not None:
@@ -131,6 +135,8 @@ def prepare(
             normalize_line_whitespace=normalize_line_whitespace,
             collapse_blank_lines=collapse_blank_lines,
             number_policy=number_policy,
+            preserve_run_boundaries=preserve_run_boundaries,
+            model_punctuation=model_punctuation,
             context=context,
             strict=strict,
         )
@@ -139,6 +145,8 @@ def prepare(
     language_code = normalize_language(language)
     selected_number_policy = number_policy
     policy_warnings: list[str] = []
+    if model_punctuation:
+        policy_warnings.append("[PUNCTUATION] model punctuation remains downstream")
     if selected_number_policy is None:
         structured_numbers_enabled = expand_structured
         plain_numbers_enabled = expand_numbers
@@ -163,6 +171,9 @@ def prepare(
         protected_spans,
         text_length=len(clean_text),
         strict=strict,
+    )
+    supplied_spans = _expand_partial_structured_protection(
+        clean_text, language=language, spans=supplied_spans
     )
     discovered_spans = discover_protected_spans(clean_text)
     merged_protected: list[ProtectedSpan] = list(discovered_spans)
@@ -333,10 +344,12 @@ def prepare(
             lambda value: normalize_spacing(
                 value,
                 normalize_unicode=False,
-                strip_outer_whitespace=strip_outer_whitespace,
-                collapse_horizontal_whitespace=collapse_horizontal_whitespace,
-                normalize_line_whitespace=normalize_line_whitespace,
-                collapse_blank_lines=collapse_blank_lines,
+                strip_outer_whitespace=strip_outer_whitespace and not preserve_run_boundaries,
+                collapse_horizontal_whitespace=(
+                    collapse_horizontal_whitespace and not preserve_run_boundaries
+                ),
+                normalize_line_whitespace=normalize_line_whitespace and not preserve_run_boundaries,
+                collapse_blank_lines=collapse_blank_lines and not preserve_run_boundaries,
             ),
             restore=protected.restore,
         )
@@ -418,3 +431,20 @@ def prepare_for_kokorog2p(
 
 
 __all__ = ["prepare", "prepare_text", "prepare_for_kokorog2p", "normalize_spacing"]
+
+
+def _expand_partial_structured_protection(
+    text: str,
+    *,
+    language: str,
+    spans: tuple[ProtectedSpan, ...],
+) -> tuple[ProtectedSpan, ...]:
+    """Fail closed when a caller span intersects a recognized quantity."""
+    if not spans:
+        return spans
+    ranges = [(span.start, span.end, span.kind) for span in spans]
+    for match in iter_unit_matches(text, normalize_language(language)):
+        for index, (start, end, kind) in enumerate(ranges):
+            if start < match.end and match.start < end:
+                ranges[index] = (min(start, match.start), max(end, match.end), kind)
+    return tuple(ProtectedSpan(start, end, kind=kind) for start, end, kind in ranges)

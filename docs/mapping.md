@@ -39,3 +39,8 @@ conversion. The default span mapping uses left bias at the start and right bias
 at the end, so a source span containing generated text maps over the complete
 generated output. Use `to_adapter_dict()` when a JSON-ready kokorog2p result is
 required.
+
+Structured semantic expressions are represented by one source-aligned replacement
+for their complete span, for example `12,50 EUR` becomes one currency replacement.
+`PreparedText.source_replacements` are ordered, non-overlapping, deterministic,
+and use original-source coordinates even when later stages modify generated text.

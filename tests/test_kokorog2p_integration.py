@@ -1,6 +1,6 @@
 import re
 
-from spokenform import prepare_for_kokorog2p
+from spokenform import ProtectedSpan, prepare_for_kokorog2p
 
 
 def _tokenize(text: str) -> list[str]:
@@ -35,3 +35,23 @@ def test_german_adapter_token_and_phoneme_parity_fixture() -> None:
     assert phonemes == [token.casefold() for token in tokens]
     assert "\ue000" not in result.spoken_text
     assert all("\ue000" not in warning for warning in result.warnings)
+
+
+def test_adapter_protected_override_and_adjacent_semantic_expression() -> None:
+    source = "Override 2 kg; speak 3 kg."
+    start = source.index("2 kg")
+    result = prepare_for_kokorog2p(
+        source,
+        "de",
+        protected_spans=[ProtectedSpan(start, start + len("2 kg"), kind="g2p-override")],
+    )
+    assert result.spoken_text == "Override 2 kg; speak drei Kilogramm."
+    assert result.protected_spans[0].kind == "g2p-override"
+    assert result.map_source_span(start, start + len("2 kg")) == (start, start + len("2 kg"))
+
+
+def test_adapter_contract_keeps_runs_composable() -> None:
+    source = "  Hallo  2 kg  "
+    left = prepare_for_kokorog2p(source[:8], "de")
+    right = prepare_for_kokorog2p(source[8:], "de")
+    assert left.spoken_text + right.spoken_text == "  Hallo  zwei Kilogramm  "

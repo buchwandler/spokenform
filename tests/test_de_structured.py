@@ -20,7 +20,7 @@ def test_german_quantity_inventory_and_grammar() -> None:
         "2 Std.": "zwei Stunden.",
         "1 Mio.": "eine Million.",
         "2 Mio.": "zwei Millionen.",
-        "1 kWh": "ein Kilowattstunde",
+        "1 kWh": "eine Kilowattstunde",
         "2 kWh": "zwei Kilowattstunden",
         "1,0 kg": "ein Kilogramm",
         "1,5 kg": "eins Komma fünf Kilogramm",
@@ -34,7 +34,7 @@ def test_german_quantity_inventory_and_grammar() -> None:
 
 def test_german_structured_values_and_invalid_candidates() -> None:
     cases = {
-        "03.01.2026": "dritter Januar zweitausendsechsundzwanzig",
+        "03.01.2026": "dritte Januar zweitausendsechsundzwanzig",
         "am 3. Tag": "am dritten Tag",
         "der 3. Versuch": "der dritte Versuch",
         "auf die 2. Schiene": "auf die zweite Schiene",
@@ -122,3 +122,42 @@ def test_german_source_replacements_are_sorted_and_reconstruct_final_text() -> N
         for edit in result.source_edits
     )
     assert result.source_edits
+
+
+def test_brief_german_parity_categories() -> None:
+    cases = {
+        "1 Wh": "eine Wattstunde",
+        "1 mAh": "eine Milliamperestunde",
+        "1 Sek.": "eine Sekunde.",
+        "1 MIN. warten": "eine Minute warten",
+        "1 Ltr. Milch": "ein Liter Milch",
+        "2 STCK. Eier": "zwei Stück Eier",
+        "1 mio. EUR": "eine Million Euro",
+        "2 mrd. EUR": "zwei Milliarden Euro",
+        "1 EUR": "ein Euro",
+        "2 EUR": "zwei Euro",
+        "12.50 EUR": "zwölf Euro fünfzig Cent",
+        "-1,25 EUR": "minus ein Euro fünfundzwanzig Cent",
+        "0,05 EUR": "null Euro fünf Cent",
+        "1.000,50": "eintausend Komma fünf null",
+        "3,14": "drei Komma eins vier",
+        ".02": "null Komma null zwei",
+        "03/01/26": "dritte Januar zweitausendsechsundzwanzig",
+        "3. Maerz 2026": "dritte März zweitausendsechsundzwanzig",
+        "3. Mär 2026": "dritte März zweitausendsechsundzwanzig",
+        "zur 6. Version": "zur sechsten Version",
+        "auf der 7. Etage": "auf der siebten Etage",
+        "ins 4. Fach": "ins vierte Fach",
+        "Nummer 12.": "Nummer zwölf.",
+        "Gleis 7.": "Gleis sieben.",
+        "31.02.2026": "31.02.2026",
+        "25:99": "25:99",
+        "Model5kg": "Model5kg",
+    }
+    for source, expected in cases.items():
+        assert prepare(source, language="de", use_spacy=False).spoken_text == expected, source
+
+
+def test_structured_match_is_fail_closed_at_partial_decimal_overlap() -> None:
+    result = prepare("1.000,50 kg", language="de", use_spacy=False)
+    assert result.spoken_text == "eintausend Komma fünf null Kilogramm"

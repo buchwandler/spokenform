@@ -2,9 +2,14 @@
 
 spaCy is optional. `spokenform` uses it only to obtain source-aligned lexical annotations for POS-aware abbreviation rules.
 
-## Current effect with `abbr2words` 0.2.0
+## Current effect with the released `abbr2words` structured API
 
-`abbr2words` 0.2.0 accepts POS annotations, but its bundled language registries do not currently require POS labels. A trained model may therefore produce the same default output as the non-spaCy path. The integration is useful for custom entries with POS guards and keeps `spokenform` ready for future bundled POS-aware rules.
+`abbr2words` accepts POS annotations, but its bundled language registries do not
+necessarily require POS labels. A trained model may therefore produce the same
+default output as the non-spaCy path. The integration is useful for custom entries
+with POS guards. Structured German quantity recognition remains source-aligned
+through the same released `abbr2words` API; spaCy does not perform language
+detection or replace the explicit adapter contract.
 
 ## Load an installed model by name
 

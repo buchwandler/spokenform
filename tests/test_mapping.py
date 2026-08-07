@@ -84,3 +84,22 @@ def test_source_replacements_merge_edits_inside_generated_text() -> None:
     assert replacements[0].source == "a"
     assert replacements[0].replacement == "axc"
     assert replacements[0].stages == ("first", "second")
+
+
+def test_source_replacements_are_ordered_non_overlapping_and_reconstructable() -> None:
+    source = "1 kWh, 12,50 EUR"
+    result = prepare(source, language="de", use_spacy=False)
+    edits = result.source_replacements
+    assert list(edits) == sorted(edits, key=lambda item: (item.source_start, item.output_start))
+    assert all(
+        left.source_end <= right.source_start for left, right in zip(edits, edits[1:], strict=False)
+    )
+    assert all(source[item.source_start : item.source_end] == item.source for item in edits)
+    assert all(
+        result.spoken_text[item.output_start : item.output_end] == item.replacement
+        for item in edits
+    )
+    assert [(item.source, item.replacement) for item in edits] == [
+        ("1 kWh", "eine Kilowattstunde"),
+        ("12,50 EUR", "zwölf Euro fünfzig Cent"),
+    ]

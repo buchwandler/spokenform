@@ -123,7 +123,19 @@ def test_kokorog2p_profile_preserves_outer_run_spaces() -> None:
         expand_numbers=False,
     )
 
-    assert result.spoken_text == " Hallo "
+    assert result.spoken_text == "  Hallo  "
+
+
+def test_kokorog2p_profile_keeps_model_punctuation_downstream() -> None:
+    result = prepare(
+        "Hallo!",
+        config=PreparationConfig(language="de", model_punctuation=True),
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+    )
+    assert result.spoken_text == "Hallo!"
+    assert any("model punctuation remains downstream" in warning for warning in result.warnings)
 
 
 def test_kokorog2p_adapter_projection_is_complete_and_serializable() -> None:

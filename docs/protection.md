@@ -20,3 +20,9 @@ offsets and are half-open: the start is included and the end is excluded.
 
 Invalid or overlapping caller ranges are skipped with warnings by default.
 `strict=True` turns them into `ProtectionError`.
+
+Protection is fail-closed for structured expressions: if a caller span partially
+intersects a recognized numeric quantity, the complete candidate is protected so
+later generic-number or abbreviation stages cannot create a hybrid rewrite. URLs,
+e-mail addresses, versions, numbers, units, abbreviations, and adjacent
+unprotected expressions are covered by the adapter tests.

@@ -9,12 +9,13 @@
 - Protected spans use internal private-use sentinels. Inputs containing the same
   private-use characters are an uncommon edge case that should be covered before a
   stability release.
-- `abbr2words` 0.2.0 accepts POS annotations, but its bundled registries do not yet
-  require POS labels. spaCy therefore does not necessarily alter default output.
-- Structured stage edits retain exact rule metadata. Abbreviation and generic
-  number edits may still be reconstructed from deterministic diffs because
-  `abbr2words` currently returns final text rather than semantic replacement
-  objects.
+- `abbr2words` accepts POS annotations, but its bundled registries do not
+  necessarily require POS labels. spaCy therefore does not necessarily alter
+  default output.
+- German quantity recognition depends on the released `abbr2words` structured
+  match API. spokenform owns the semantic grammar, not the symbol inventory.
+- German is the only migration-ready numeric language. Other languages remain
+  caller-managed until their own downstream parity corpora are accepted.
 
 # Limitations and readiness gates
 
@@ -28,7 +29,9 @@ Portuguese, and English number categories remain caller-managed until their own
 parity corpora are approved. Unsupported language categories use an explicit
 `NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
 
-Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps outer
-run whitespace caller-owned, enables exact protection/mapping, and makes number
-ownership visible. Do not remove a downstream normalizer until a dual-run
-comparison covers text, source offsets, token boundaries, phonemes, and warnings.
+Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps all run
+boundary whitespace caller-owned, enables exact protection/mapping, and makes
+number ownership visible. `model_punctuation` only records that punctuation stays
+downstream; spokenform does not rewrite model punctuation. Do not remove a
+downstream normalizer until a dual-run comparison covers text, source offsets,
+token boundaries, phonemes, protected overrides, and warnings.

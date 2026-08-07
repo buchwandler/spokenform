@@ -7,7 +7,8 @@
 3. obtain or validate optional lexical annotations;
 4. replace protected ranges with internal sentinels and remap annotation offsets;
 5. normalize Unicode independently when enabled;
-6. parse complete structured values with the selected locale;
+6. ask `abbr2words` for source-aligned structured quantity identities and realize
+   them with the selected locale's semantic grammar;
 7. expand lexical abbreviations with exact `abbr2words` replacements;
 8. verbalize remaining generic numeric forms according to `NumberPolicy`;
 9. normalize whitespace according to independently configurable controls;
@@ -35,3 +36,13 @@ lexicons, pronunciations, and vocabulary IDs.
 spokenform owns semantic spacing and punctuation consumed by a structured or
 lexical expression. Downstream G2P owns quote style, dash canonicalization,
 apostrophe variants, and punctuation choices required only by a model tokenizer.
+
+The German structured boundary is deliberately split: `abbr2words` recognizes
+numeric symbols and returns the exact span, numeric lexeme, category, and canonical
+identity; spokenform realizes that identity with German gender, number, currency,
+date, ordinal, and decimal policy. No German symbol or alias inventory is copied
+into spokenform.
+
+`prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
+preserves run boundaries, honors protected spans fail-closed, and does not perform
+language detection, tokenization, G2P, or model-punctuation rewriting.

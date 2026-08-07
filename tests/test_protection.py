@@ -72,3 +72,28 @@ def test_unicode_normalization_around_protected_placeholder_preserves_offsets() 
 
     assert result.spoken_text[output_start:output_end] == "https://example.org/é"
     assert result.map_output_span(output_start, output_end) == (url_start, url_end)
+
+
+def test_partial_protected_structured_expression_is_left_unchanged() -> None:
+    source = "2 kg and 3 kg"
+    protected_start = source.index("2 kg") + 2
+    result = prepare(
+        source,
+        language="de",
+        use_spacy=False,
+        protected_spans=[(protected_start, protected_start + 2)],
+    )
+    assert result.spoken_text == "2 kg and drei Kilogramm"
+
+
+def test_protected_number_unit_abbreviation_and_adjacent_expression() -> None:
+    source = "2 kg Prof. 3 kg"
+    start = source.index("2 kg")
+    result = prepare(
+        source,
+        language="de",
+        use_spacy=False,
+        protected_spans=[(start, start + len("2 kg"))],
+    )
+    assert result.spoken_text == "2 kg Professor drei Kilogramm"
+    assert result.map_source_span(start, start + len("2 kg")) == (0, len("2 kg"))

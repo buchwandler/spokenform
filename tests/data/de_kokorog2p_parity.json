@@ -76,5 +76,146 @@
     "name": "protected adjacent quantity",
     "input": "\"(2 kg)\"",
     "expected": "\"(zwei Kilogramm)\""
+  },
+  {
+    "name": "feminine energy singular",
+    "input": "1 kWh",
+    "expected": "eine Kilowattstunde"
+  },
+  {
+    "name": "feminine watt-hour singular",
+    "input": "1 Wh",
+    "expected": "eine Wattstunde"
+  },
+  {
+    "name": "feminine charge singular",
+    "input": "1 mAh",
+    "expected": "eine Milliamperestunde"
+  },
+  {
+    "name": "invariant piece plural",
+    "input": "2 Stck. Eier",
+    "expected": "zwei Stück Eier"
+  },
+  {
+    "name": "dotted duration alias",
+    "input": "45 min. backen",
+    "expected": "fünfundvierzig Minuten backen"
+  },
+  {
+    "name": "case duration alias",
+    "input": "1 MIN. warten",
+    "expected": "eine Minute warten"
+  },
+  {
+    "name": "case litre alias",
+    "input": "1 Ltr. Milch",
+    "expected": "ein Liter Milch"
+  },
+  {
+    "name": "magnitude currency",
+    "input": "1 mio. EUR",
+    "expected": "eine Million Euro"
+  },
+  {
+    "name": "billion currency",
+    "input": "2 mrd. EUR",
+    "expected": "zwei Milliarden Euro"
+  },
+  { "name": "currency one", "input": "1 EUR", "expected": "ein Euro" },
+  {
+    "name": "currency dot decimal",
+    "input": "12.50 EUR",
+    "expected": "zwölf Euro fünfzig Cent"
+  },
+  {
+    "name": "currency negative",
+    "input": "-1,25 EUR",
+    "expected": "minus ein Euro fünfundzwanzig Cent"
+  },
+  {
+    "name": "currency leading zero cents",
+    "input": "0,05 EUR",
+    "expected": "null Euro fünf Cent"
+  },
+  {
+    "name": "plain trailing fractional zero",
+    "input": "1.000,50",
+    "expected": "eintausend Komma fünf null"
+  },
+  {
+    "name": "plain decimal",
+    "input": "3,14",
+    "expected": "drei Komma eins vier"
+  },
+  {
+    "name": "plain leading decimal dot",
+    "input": ".02",
+    "expected": "null Komma null zwei"
+  },
+  {
+    "name": "plain leading decimal comma",
+    "input": ",02",
+    "expected": "null Komma null zwei"
+  },
+  {
+    "name": "two digit date",
+    "input": "03/01/26",
+    "expected": "dritte Januar zweitausendsechsundzwanzig"
+  },
+  {
+    "name": "Maerz date",
+    "input": "3. Maerz 2026",
+    "expected": "dritte März zweitausendsechsundzwanzig"
+  },
+  {
+    "name": "abbreviated March date",
+    "input": "3. Mär 2026",
+    "expected": "dritte März zweitausendsechsundzwanzig"
+  },
+  {
+    "name": "ordinal zur",
+    "input": "zur 6. Version",
+    "expected": "zur sechsten Version"
+  },
+  {
+    "name": "ordinal auf der",
+    "input": "auf der 7. Etage",
+    "expected": "auf der siebten Etage"
+  },
+  {
+    "name": "ordinal ins",
+    "input": "ins 4. Fach",
+    "expected": "ins vierte Fach"
+  },
+  {
+    "name": "capitalized number label",
+    "input": "Nummer 12.",
+    "expected": "Nummer zwölf."
+  },
+  {
+    "name": "capitalized track label",
+    "input": "Gleis 7.",
+    "expected": "Gleis sieben."
+  },
+  {
+    "name": "invalid date remains literal",
+    "input": "31.02.2026",
+    "expected": "31.02.2026"
+  },
+  {
+    "name": "invalid time remains literal",
+    "input": "25:99",
+    "expected": "25:99"
+  },
+  {
+    "name": "standalone symbol false positive",
+    "input": "Model5kg",
+    "expected": "Model5kg"
+  },
+  {
+    "name": "partial decimal quantity is literal number",
+    "input": "1.000,50 kg",
+    "expected": "eintausend Komma fünf null Kilogramm"
   }
 ]

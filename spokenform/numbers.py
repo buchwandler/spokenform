@@ -152,6 +152,9 @@ _CURRENCY_SUFFIX_RE = re.compile(
 )
 _ORDINAL_RE = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÀ-ž])")
 _NUMBER_RE = re.compile(r"(?<![\w.])[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?![\w.])")
+_GERMAN_NUMBER_RE = re.compile(
+    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?|[.,]\d+)(?![\w.])"
+)
 _DATE_CANDIDATE_RE = re.compile(
     r"(?<!\d)(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)"
 )
@@ -364,14 +367,33 @@ def _replace_ordinals(text: str, language: str) -> str:
 
 
 def _replace_numbers(text: str, language: str) -> str:
+    pattern = _GERMAN_NUMBER_RE if language == "de" else _NUMBER_RE
+
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)
+        if language == "de":
+            unsigned = raw.lstrip("+−-")
+            negative = raw.startswith(("-", "−"))
+            if unsigned.startswith((".", ",")):
+                integer, fraction = "0", unsigned[1:]
+            elif "," in unsigned:
+                integer, fraction = unsigned.split(",", 1)
+            else:
+                integer, fraction = unsigned, None
+            integer_value = int(re.sub(r"[.\s]", "", integer) or "0")
+            if fraction is None:
+                spoken = _spell(integer_value, language)
+            else:
+                spoken = f"{_spell(integer_value, language)} Komma " + " ".join(
+                    _spell(int(digit), language) for digit in fraction
+                )
+            return f"minus {spoken}" if negative else spoken
         value = _decimal_value(raw, language)
         if value == value.to_integral_value():
             return _spell(int(value), language)
         return _spell(value, language)
 
-    return _NUMBER_RE.sub(replace, text)
+    return pattern.sub(replace, text)
 
 
 def normalize_numbers(text: str, *, language: str) -> str:
