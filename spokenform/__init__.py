@@ -10,13 +10,20 @@ except PackageNotFoundError:  # source tree before installation
     __version__ = "0.1.0"
 
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
-from .api import normalize_spacing, prepare, prepare_text
-from .config import PreparationConfig
-from .mapping import OffsetMap, Replacement, resolve_replacements
+from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
+from .config import NumberPolicy, PreparationConfig, number_policy_for_language
+from .mapping import (
+    OffsetMap,
+    Replacement,
+    compose_source_replacements,
+    convert_abbr_replacements,
+    resolve_replacements,
+)
 from .models import (
     MappedEdit,
     PreparationStage,
     PreparedText,
+    SourceReplacement,
     TextEdit,
     TokenAnnotation,
 )
@@ -27,6 +34,8 @@ from .structured import StageResult, iter_structured_replacements, normalize_str
 
 __all__ = [
     "PreparationConfig",
+    "NumberPolicy",
+    "number_policy_for_language",
     "MappedEdit",
     "OffsetMap",
     "PreparedText",
@@ -37,6 +46,9 @@ __all__ = [
     "load_spacy_model",
     "reset_spacy_cache",
     "Replacement",
+    "SourceReplacement",
+    "compose_source_replacements",
+    "convert_abbr_replacements",
     "resolve_replacements",
     "StageResult",
     "TextEdit",
@@ -49,6 +61,7 @@ __all__ = [
     "normalize_structured",
     "normalize_spacing",
     "prepare",
+    "prepare_for_kokorog2p",
     "prepare_text",
     "spacy_annotations",
 ]

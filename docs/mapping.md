@@ -26,3 +26,15 @@ source expression, spoken replacement, `kind`, language, and locale `rule`.
 For downstream adapters, prefer `PreparedText.source_edits`,
 `PreparedText.map_source_span()`, and `PreparedText.map_output_span()` rather
 than importing mapping internals.
+# Mapping and provenance
+
+`PreparationStage.edits` and `PreparationStage.mapped_edits` are local to the
+stage input. `PreparedText.source_edits` is the composed source-global surface:
+each `SourceReplacement` points into the original source and the final spoken
+output, and records all stages contributing to that output span.
+
+Use `PreparedText.map_source_span()` and `map_output_span()` for boundary-aware
+conversion. The default span mapping uses left bias at the start and right bias
+at the end, so a source span containing generated text maps over the complete
+generated output. Use `to_adapter_dict()` when a JSON-ready kokorog2p result is
+required.

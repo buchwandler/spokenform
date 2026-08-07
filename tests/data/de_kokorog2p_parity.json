@@ -30,5 +30,15 @@
     "name": "leading decimal",
     "input": ",02",
     "expected": "null Komma null zwei"
-  }
+  },
+  { "name": "sentence-final dotted unit", "input": "45 Min.", "expected": "fünfundvierzig Minuten." },
+  { "name": "page label", "input": "S. 12", "expected": "Seite zwölf" },
+  { "name": "running number label", "input": "Lfd. Nr. 12", "expected": "laufende Nummer zwölf" },
+  { "name": "invalid date and time", "input": "31.02.2026 25:99", "expected": "31.02.2026 25:99" },
+  { "name": "ordinal dative", "input": "der 1. Versuch", "expected": "der erste Versuch" },
+  { "name": "ordinal accusative", "input": "die 2. Schiene", "expected": "die zweite Schiene" },
+  { "name": "repeated quantities", "input": "1 kg 2 kg", "expected": "ein Kilogramm zwei Kilogramm" },
+  { "name": "currency suffix", "input": "12,80 EUR", "expected": "zwölf Euro achtzig Cent" },
+  { "name": "flexible abbreviation variants", "input": "Prof. ggf. ca. zzgl. z. B. d. h. u. a.", "expected": "Professor gegebenenfalls zirka zuzüglich zum Beispiel das heißt unter anderem" },
+  { "name": "protected adjacent quantity", "input": "\"(2 kg)\"", "expected": "\"(zwei Kilogramm)\"" }
 ]

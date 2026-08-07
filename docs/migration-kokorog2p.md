@@ -1,9 +1,17 @@
 # kokorog2p migration boundary
 
 spokenform can serve an experimental downstream adapter for one selected language
-run. Call `prepare()`, preserve caller override spans with `ProtectedSpan`, use
+run. Call `prepare_for_kokorog2p()` (or pass `PreparationConfig.for_kokorog2p()`),
+preserve caller override spans with `ProtectedSpan`, use
 `PreparedText.source_edits` and the public span helpers to remap boundaries, and
-inspect `warnings` before passing the result to a G2P tokenizer.
+inspect `warnings` before passing the result to a G2P tokenizer. The adapter
+projection is available through `PreparedText.to_adapter_dict()`.
+
+The German integration contract is tested at three boundaries: spoken text,
+source replacement/offset provenance, and a downstream-style token/phoneme
+fixture. spokenform does not own tokenization, lexicon lookup, phonemization,
+quote/dash typography, or model punctuation. A downstream adapter should run a
+dual comparison before removing its legacy normalizer.
 
 The first parity target is German. Lexical abbreviations continue to come from
 `abbr2words`; structured values are controlled by `expand_structured`; generic

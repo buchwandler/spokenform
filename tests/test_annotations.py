@@ -68,12 +68,21 @@ def test_annotations_are_remapped_after_protected_spans(
         lang: str,
         context: bool,
         annotations: object,
-    ) -> str:
+        protected_spans: object,
+    ) -> object:
         captured["text"] = text
         captured["annotations"] = annotations
-        return text
+        from abbr2words import abbr2words_with_replacements
 
-    monkeypatch.setattr(api, "abbr2words", capture)
+        return abbr2words_with_replacements(
+            text,
+            lang=lang,
+            context=context,
+            annotations=annotations,
+            protected_spans=protected_spans,
+        )
+
+    monkeypatch.setattr(api, "abbr2words_with_replacements", capture)
     api.prepare(
         source,
         language="en",
@@ -88,6 +97,42 @@ def test_annotations_are_remapped_after_protected_spans(
     assert adapted is not None
     first = adapted[0]  # type: ignore[index]
     assert transformed[first.start : first.end] == "in."
+
+
+def test_annotations_are_remapped_between_structured_and_abbreviation_stages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from abbr2words import abbr2words_with_replacements
+
+    import spokenform.api as api
+
+    source = "Am 01.01.2024 Dr. Klein"
+    token_start = source.index("Dr.")
+    annotations = (TokenAnnotation(token_start, token_start + 3, text="Dr.", pos="PROPN"),)
+    captured: dict[str, object] = {}
+
+    def capture(text: str, **kwargs: object) -> object:
+        captured["text"] = text
+        captured["annotations"] = kwargs["annotations"]
+        return abbr2words_with_replacements(text, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(api, "abbr2words_with_replacements", capture)
+    result = api.prepare(
+        source,
+        language="de",
+        annotations=annotations,
+        expand_numbers=False,
+        normalize_whitespace=False,
+        use_spacy=False,
+    )
+
+    transformed = captured["text"]
+    adapted = captured["annotations"]
+    assert isinstance(transformed, str)
+    assert adapted is not None
+    first = adapted[0]  # type: ignore[index]
+    assert transformed[first.start : first.end] == "Dr."
+    assert result.spoken_text.endswith("Doktor Klein")
 
 
 def test_annotation_validation_rejects_empty_spans() -> None:

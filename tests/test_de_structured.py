@@ -104,3 +104,21 @@ def test_cooking_paragraph_golden() -> None:
         "zuzüglich Pfand."
     )
     assert prepare(source, language="de", use_spacy=False).spoken_text == expected
+
+
+def test_german_source_replacements_are_sorted_and_reconstruct_final_text() -> None:
+    source = "Prof. 14.05.2026 2 kg 2 kg"
+    result = prepare(source, language="de", use_spacy=False)
+
+    assert list(result.source_edits) == sorted(
+        result.source_edits,
+        key=lambda edit: (edit.source_start, edit.output_start),
+    )
+    assert all(
+        source[edit.source_start : edit.source_end] == edit.source for edit in result.source_edits
+    )
+    assert all(
+        result.spoken_text[edit.output_start : edit.output_end] == edit.replacement
+        for edit in result.source_edits
+    )
+    assert result.source_edits

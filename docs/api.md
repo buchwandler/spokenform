@@ -6,9 +6,18 @@
 
 ```
 
+```{autofunction} spokenform.prepare_for_kokorog2p
+
+```
+
 ```{autofunction} spokenform.normalize_spacing
 
 ```
+
+`normalize_unicode`, `strip_outer_whitespace`, `collapse_horizontal_whitespace`,
+`normalize_line_whitespace`, and `collapse_blank_lines` are independent policy
+controls. `normalize_whitespace=False` remains the compatibility switch for
+skipping the whitespace stage entirely.
 
 ```{autoclass} spokenform.PreparationConfig
 :members:
@@ -19,6 +28,11 @@
 ```{autoclass} spokenform.PreparedText
 :members:
 ```
+
+All public source offsets refer to the original string passed to `prepare()`;
+final offsets refer to `PreparedText.spoken_text`; stage-local offsets remain
+available only under each `PreparationStage`. `PreparedText.to_adapter_dict()`
+is the stable JSON-ready projection for a kokorog2p adapter.
 
 ```{autoclass} spokenform.PreparationStage
 :members:

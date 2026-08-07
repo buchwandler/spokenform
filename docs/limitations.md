@@ -15,3 +15,19 @@
   number edits may still be reconstructed from deterministic diffs because
   `abbr2words` currently returns final text rather than semantic replacement
   objects.
+# Limitations and readiness gates
+
+spokenform is a one-language written-to-spoken layer. Callers own language
+selection, mixed-language segmentation, markup/SSML, tokenization, lexicons,
+phonemization, and model-specific punctuation.
+
+German is the first kokorog2p parity target and has text, source mapping, and
+downstream-style token/phoneme fixtures. Czech, Spanish, French, Italian,
+Portuguese, and English number categories remain caller-managed until their own
+parity corpora are approved. Unsupported language categories use an explicit
+`NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
+
+Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps outer
+run whitespace caller-owned, enables exact protection/mapping, and makes number
+ownership visible. Do not remove a downstream normalizer until a dual-run
+comparison covers text, source offsets, token boundaries, phonemes, and warnings.

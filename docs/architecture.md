@@ -6,18 +6,24 @@
 2. discover literal ranges such as URLs, email addresses, and semantic versions;
 3. obtain or validate optional lexical annotations;
 4. replace protected ranges with internal sentinels and remap annotation offsets;
-5. parse complete structured values with the selected locale;
-6. expand lexical abbreviations with `abbr2words`;
-7. verbalize remaining generic numeric forms with `num2words`;
-8. normalize Unicode and whitespace;
-9. restore protected text and compose stage offset maps.
+5. normalize Unicode independently when enabled;
+6. parse complete structured values with the selected locale;
+7. expand lexical abbreviations with exact `abbr2words` replacements;
+8. verbalize remaining generic numeric forms according to `NumberPolicy`;
+9. normalize whitespace according to independently configurable controls;
+10. restore protected text and compose stage offset maps.
 
-Each stage records its input, output, edits, and mapped edits. Structured stages
-emit one exact semantic `Replacement` per consumed expression; generic and
-third-party text-only stages retain deterministic diff edits. The final
+Each stage records its input, output, edits, and mapped edits. Structured and
+abbreviation stages emit exact replacements; temporary text-only stages retain
+deterministic diff edits only at stage scope. The final
 `PreparedText.offset_map` composes all stage maps from `clean_text` coordinates to
-`spoken_text` coordinates, while `PreparedText.source_edits` and its span helpers
-are the migration-facing source/output surface.
+`spoken_text` coordinates. `PreparedText.source_edits` contains composed
+`SourceReplacement` records in original-source/final-output coordinates; it must
+not be confused with stage-local `mapped_edits`.
+
+All public source offsets refer to the original string passed to `prepare()`.
+Final offsets refer to `PreparedText.spoken_text`. Boundary APIs expose explicit
+left/right bias for insertions, deletions, and generated replacement text.
 
 ## Ownership boundary
 

@@ -3,7 +3,7 @@ import inspect
 import pytest
 
 import spokenform
-from spokenform import PreparationConfig, prepare
+from spokenform import NumberPolicy, PreparationConfig, prepare, prepare_for_kokorog2p
 
 
 def test_german_readable_pipeline() -> None:
@@ -66,6 +66,97 @@ def test_spacing_is_last_and_reviewable() -> None:
     assert result.spoken_text == "Hello world"
     assert result.stages[-1].name == "whitespace"
     assert result.stages[-1].changed
+
+
+def test_unicode_normalization_is_independent_from_whitespace() -> None:
+    decomposed = "e\u0301"
+    preserved = prepare(
+        decomposed,
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+        normalize_whitespace=False,
+        normalize_unicode=False,
+        use_spacy=False,
+    )
+    normalized = prepare(
+        decomposed,
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+        normalize_whitespace=False,
+        normalize_unicode=True,
+        use_spacy=False,
+    )
+
+    assert preserved.spoken_text == decomposed
+    assert normalized.spoken_text == "é"
+
+
+def test_whitespace_controls_are_independent() -> None:
+    source = "  a\t\u00a0b \n\n\n c  "
+    result = prepare(
+        source,
+        config=PreparationConfig(
+            language="en",
+            expand_abbreviations=False,
+            expand_structured=False,
+            expand_numbers=False,
+            normalize_unicode=False,
+            strip_outer_whitespace=False,
+            collapse_horizontal_whitespace=False,
+            normalize_line_whitespace=False,
+            collapse_blank_lines=False,
+            use_spacy=False,
+        ),
+    )
+
+    assert result.spoken_text == source
+
+
+def test_kokorog2p_profile_preserves_outer_run_spaces() -> None:
+    result = prepare(
+        "  Hallo  ",
+        config=PreparationConfig.for_kokorog2p("de"),
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+    )
+
+    assert result.spoken_text == " Hallo "
+
+
+def test_kokorog2p_adapter_projection_is_complete_and_serializable() -> None:
+    result = prepare_for_kokorog2p("Prof. 2 kg", "de")
+    projection = result.to_adapter_dict()
+    serialized = result.to_dict()
+
+    assert projection["spoken_text"] == result.spoken_text
+    assert projection["language"] == "de"
+    assert projection["source_replacements"]
+    assert projection["offset_map"]["source_length"] == len(result.source_text)  # type: ignore[index]
+    assert "stage_report" in projection
+    assert serialized["source_edits"] == serialized["source_replacements"]
+
+
+def test_kokorog2p_number_policy_is_explicit_by_language() -> None:
+    german = prepare_for_kokorog2p("2 kg", "de")
+    english = prepare_for_kokorog2p("2", "en")
+    disabled = prepare(
+        "2",
+        config=PreparationConfig(
+            language="de",
+            number_policy=NumberPolicy.NONE,
+            expand_abbreviations=False,
+            use_spacy=False,
+        ),
+    )
+
+    assert "zwei Kilogramm" in german.spoken_text
+    assert english.spoken_text == "2"
+    assert any("caller-managed" in warning for warning in english.warnings)
+    assert disabled.spoken_text == "2"
+    assert any("unsupported number policy" in warning for warning in disabled.warnings)
 
 
 def test_removed_api_arguments_and_exports_are_absent() -> None:

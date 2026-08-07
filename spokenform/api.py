@@ -6,15 +6,21 @@ import re
 import unicodedata
 from collections.abc import Iterable
 
-from abbr2words import abbr2words, normalize_language
+from abbr2words import abbr2words_with_replacements, normalize_language
 
 from .annotations import (
     remap_annotations_for_replacements,
     to_abbr2words_annotations,
     validate_annotations,
 )
-from .config import PreparationConfig
-from .mapping import OffsetMap, replacements_from_diff
+from .config import NumberPolicy, PreparationConfig
+from .mapping import (
+    OffsetMap,
+    Replacement,
+    compose_source_replacements,
+    convert_abbr_replacements,
+    replacements_from_diff,
+)
 from .models import PreparationStage, PreparedText, TokenAnnotation
 from .numbers import normalize_numbers
 from .protection import (
@@ -24,7 +30,12 @@ from .protection import (
     protect_text,
 )
 from .spacy_support import SpacyModelError, load_spacy_model
-from .stages import apply_replacement_stage, apply_stage
+from .stages import (
+    apply_replacement_stage,
+    apply_stage,
+    map_internal_protected_spans_to_visible,
+    map_visible_replacements_to_internal,
+)
 from .structured import normalize_structured
 
 _HORIZONTAL_SPACE_RE = re.compile(r"[\t\u00a0\u202f ]+")
@@ -32,13 +43,27 @@ _LINE_SPACE_RE = re.compile(r" *\n *")
 _EXCESS_LINES_RE = re.compile(r"\n{3,}")
 
 
-def normalize_spacing(text: str, *, normalize_unicode: bool = True) -> str:
-    """Apply conservative Unicode and whitespace normalization."""
+def normalize_spacing(
+    text: str,
+    *,
+    normalize_unicode: bool = True,
+    strip_outer_whitespace: bool = True,
+    collapse_horizontal_whitespace: bool = True,
+    normalize_line_whitespace: bool = True,
+    collapse_blank_lines: bool = True,
+    number_policy: NumberPolicy | None = None,
+) -> str:
+    """Apply independently configurable Unicode and whitespace policies."""
     normalized = unicodedata.normalize("NFC", text) if normalize_unicode else text
-    normalized = _HORIZONTAL_SPACE_RE.sub(" ", normalized)
-    normalized = _LINE_SPACE_RE.sub("\n", normalized)
-    normalized = _EXCESS_LINES_RE.sub("\n\n", normalized)
-    return normalized.strip()
+    if collapse_horizontal_whitespace:
+        normalized = _HORIZONTAL_SPACE_RE.sub(" ", normalized)
+    if normalize_line_whitespace:
+        normalized = re.sub(r"[\t\u00a0\u202f ]*\n[\t\u00a0\u202f ]*", "\n", normalized)
+    if collapse_blank_lines:
+        normalized = _EXCESS_LINES_RE.sub("\n\n", normalized)
+    if strip_outer_whitespace:
+        normalized = normalized.strip()
+    return normalized
 
 
 def prepare(
@@ -56,6 +81,11 @@ def prepare(
     expand_numbers: bool = True,
     normalize_whitespace: bool = True,
     normalize_unicode: bool = True,
+    strip_outer_whitespace: bool = True,
+    collapse_horizontal_whitespace: bool = True,
+    normalize_line_whitespace: bool = True,
+    collapse_blank_lines: bool = True,
+    number_policy: NumberPolicy | None = None,
     context: bool = True,
     strict: bool = False,
 ) -> PreparedText:
@@ -79,6 +109,11 @@ def prepare(
         expand_numbers = config.expand_numbers
         normalize_whitespace = config.normalize_whitespace
         normalize_unicode = config.normalize_unicode
+        strip_outer_whitespace = config.strip_outer_whitespace
+        collapse_horizontal_whitespace = config.collapse_horizontal_whitespace
+        normalize_line_whitespace = config.normalize_line_whitespace
+        collapse_blank_lines = config.collapse_blank_lines
+        number_policy = config.number_policy
         context = config.context
         strict = config.strict
     elif use_spacy is not None or spacy_model is not None:
@@ -91,12 +126,38 @@ def prepare(
             expand_numbers=expand_numbers,
             normalize_whitespace=normalize_whitespace,
             normalize_unicode=normalize_unicode,
+            strip_outer_whitespace=strip_outer_whitespace,
+            collapse_horizontal_whitespace=collapse_horizontal_whitespace,
+            normalize_line_whitespace=normalize_line_whitespace,
+            collapse_blank_lines=collapse_blank_lines,
+            number_policy=number_policy,
             context=context,
             strict=strict,
         )
 
     clean_text = text
     language_code = normalize_language(language)
+    selected_number_policy = number_policy
+    policy_warnings: list[str] = []
+    if selected_number_policy is None:
+        structured_numbers_enabled = expand_structured
+        plain_numbers_enabled = expand_numbers
+    else:
+        structured_numbers_enabled = expand_structured and selected_number_policy in {
+            NumberPolicy.STRUCTURED_AND_PLAIN,
+        }
+        plain_numbers_enabled = expand_numbers and selected_number_policy in {
+            NumberPolicy.PLAIN,
+            NumberPolicy.STRUCTURED_AND_PLAIN,
+        }
+        if selected_number_policy is NumberPolicy.CALLER_MANAGED:
+            policy_warnings.append(
+                f"[NUMBERS] caller-managed number categories for language {language_code!r}"
+            )
+        elif selected_number_policy is NumberPolicy.NONE:
+            policy_warnings.append(
+                f"[NUMBERS] unsupported number policy for language {language_code!r}"
+            )
 
     supplied_spans, protection_warnings = coerce_protected_spans(
         protected_spans,
@@ -130,23 +191,58 @@ def prepare(
 
             annotations = spacy_annotations(clean_text, nlp)
 
-    protected_annotations = remap_annotations_for_replacements(
+    current_annotations = remap_annotations_for_replacements(
         annotations,
         ((span.start, span.end, 1) for span in protected.spans),
     )
-    if protected_annotations is not None:
-        protected_annotations = validate_annotations(protected.text, protected_annotations)
+    if current_annotations is not None:
+        current_annotations = validate_annotations(protected.text, current_annotations)
 
     stages: list[PreparationStage] = []
     current = protected.text
 
-    if expand_structured:
+    if normalize_unicode:
+        before = current
+        normalized = unicodedata.normalize("NFC", current)
+        if normalized != current:
+            current = apply_stage(
+                stages,
+                "unicode",
+                current,
+                lambda value: unicodedata.normalize("NFC", value),
+                restore=protected.restore,
+            )
+            unicode_stage = stages[-1]
+            unicode_replacements = replacements_from_diff(
+                unicode_stage.before,
+                unicode_stage.after,
+                unicode_stage.name,
+            )
+            internal_replacements = map_visible_replacements_to_internal(
+                before,
+                unicode_replacements,
+                protected.values,
+            )
+            current_annotations = remap_annotations_for_replacements(
+                current_annotations,
+                ((item.start, item.end, len(item.text)) for item in internal_replacements),
+            )
+
+    if structured_numbers_enabled:
         structured = normalize_structured(
             protected.restore(current),
             language=language_code,
-            protected_ranges=((span.start, span.end) for span in merged_protected),
+            protected_ranges=map_internal_protected_spans_to_visible(
+                current,
+                protected.values,
+            ),
         )
         if structured.replacements:
+            internal_replacements = map_visible_replacements_to_internal(
+                current,
+                structured.replacements,
+                protected.values,
+            )
             current = apply_replacement_stage(
                 stages,
                 "structured",
@@ -155,22 +251,56 @@ def prepare(
                 protected_values=protected.values,
                 language=language_code,
             )
+            current_annotations = remap_annotations_for_replacements(
+                current_annotations,
+                ((item.start, item.end, len(item.text)) for item in internal_replacements),
+            )
 
     if expand_abbreviations:
-        current = apply_stage(
+        visible_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            (
+                (index, index + 1, len(value))
+                for index, character in enumerate(current)
+                if 0xE000 <= ord(character) < 0xE000 + len(protected.values)
+                for value in (protected.values[ord(character) - 0xE000],)
+            ),
+        )
+        abbreviation_result = abbr2words_with_replacements(
+            protected.restore(current),
+            lang=language_code,
+            context=context,
+            annotations=to_abbr2words_annotations(visible_annotations),
+            protected_spans=map_internal_protected_spans_to_visible(
+                current,
+                protected.values,
+            ),
+        )
+        abbreviation_replacements = convert_abbr_replacements(
+            abbreviation_result.replacements,
+            language=language_code,
+        )
+        before = current
+        current = apply_replacement_stage(
             stages,
             "abbreviations",
             current,
-            lambda value: abbr2words(
-                value,
-                lang=language_code,
-                context=context,
-                annotations=to_abbr2words_annotations(protected_annotations),
-            ),
-            restore=protected.restore,
+            abbreviation_replacements,
+            protected_values=protected.values,
+            language=language_code,
+        )
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            abbreviation_replacements,
+            protected.values,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
         )
 
-    if expand_numbers:
+    if plain_numbers_enabled:
+        before = current
         current = apply_stage(
             stages,
             "numbers",
@@ -178,30 +308,85 @@ def prepare(
             lambda value: normalize_numbers(value, language=language_code),
             restore=protected.restore,
         )
+        number_stage = stages[-1]
+        number_replacements = replacements_from_diff(
+            number_stage.before,
+            number_stage.after,
+            number_stage.name,
+        )
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            number_replacements,
+            protected.values,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
+        )
 
     if normalize_whitespace:
+        before = current
         current = apply_stage(
             stages,
             "whitespace",
             current,
-            lambda value: normalize_spacing(value, normalize_unicode=normalize_unicode),
+            lambda value: normalize_spacing(
+                value,
+                normalize_unicode=False,
+                strip_outer_whitespace=strip_outer_whitespace,
+                collapse_horizontal_whitespace=collapse_horizontal_whitespace,
+                normalize_line_whitespace=normalize_line_whitespace,
+                collapse_blank_lines=collapse_blank_lines,
+            ),
             restore=protected.restore,
+        )
+        whitespace_stage = stages[-1]
+        whitespace_replacements = replacements_from_diff(
+            whitespace_stage.before,
+            whitespace_stage.after,
+            whitespace_stage.name,
+        )
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            whitespace_replacements,
+            protected.values,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
         )
 
     current = protected.restore(current)
 
-    stage_maps = [
+    stage_maps = tuple(
         OffsetMap.from_replacements(
             len(stage.before),
-            replacements_from_diff(stage.before, stage.after, stage.name),
+            tuple(
+                Replacement(
+                    edit.source_start,
+                    edit.source_end,
+                    edit.replacement,
+                    edit.kind,
+                    edit.language,
+                    edit.rule,
+                )
+                for edit in stage.mapped_edits
+            ),
             output_length=len(stage.after),
             edits=stage.mapped_edits,
         )
         for stage in stages
-    ]
+    )
     offset_map = OffsetMap.identity(len(clean_text))
     for stage_map in stage_maps:
         offset_map = offset_map.compose(stage_map)
+
+    source_replacements = compose_source_replacements(
+        clean_text,
+        current,
+        tuple(stages),
+        stage_maps,
+    )
 
     return PreparedText(
         source_text=text,
@@ -210,12 +395,26 @@ def prepare(
         language=language_code,
         stages=tuple(stages),
         mapped_edits=tuple(edit for stage in stages for edit in stage.mapped_edits),
+        source_replacements=source_replacements,
+        protected_spans=tuple(merged_protected),
         offset_map=offset_map,
-        warnings=(*protection_warnings, *spacy_warnings),
+        warnings=(*protection_warnings, *spacy_warnings, *policy_warnings),
     )
 
 
 prepare_text = prepare
 
 
-__all__ = ["prepare", "prepare_text", "normalize_spacing"]
+def prepare_for_kokorog2p(
+    text: str,
+    language: str = "en",
+    *,
+    config: PreparationConfig | None = None,
+    **kwargs: object,
+) -> PreparedText:
+    """Prepare one language with the kokorog2p-safe profile."""
+    selected = config or PreparationConfig.for_kokorog2p(language)
+    return prepare(text, config=selected, **kwargs)  # type: ignore[arg-type]
+
+
+__all__ = ["prepare", "prepare_text", "prepare_for_kokorog2p", "normalize_spacing"]

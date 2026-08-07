@@ -22,6 +22,11 @@ def test_public_span_helpers_and_serialization_round_trip() -> None:
     output_start, output_end = result.map_source_span(start, end)
     assert result.spoken_text[output_start:output_end] == "zwei Kilogramm"
     assert result.map_output_span(output_start, output_end) == (start, end)
-    assert result.source_edits == result.mapped_edits
+    assert result.source_edits
+    assert result.source_edits[0].source_start == source.index("Prof.")
+    assert result.source_edits[0].output_start == result.spoken_text.index("Professor")
+    quantity_edit = next(edit for edit in result.source_edits if edit.source == "2 kg")
+    assert quantity_edit.replacement == "zwei Kilogramm"
+    assert quantity_edit.stages == ("structured",)
     restored = OffsetMap.from_dict(result.to_dict()["offset_map"])
     assert restored.source_to_output(len(source)) == len(result.spoken_text)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from .mapping import OffsetMap, Replacement, apply_replacements, resolve_replacements
-from .models import PreparationStage, make_stage
+from .models import PreparationStage, TextEdit, make_stage
 
 
 def apply_stage(
@@ -37,7 +37,6 @@ def apply_replacement_stage(
     returned continuation value retains private-use sentinels so later stages
     cannot rewrite protected values.
     """
-    restoration = _restoration_map(text, protected_values)
     visible_before = _restore(text, protected_values)
     visible_replacements = resolve_replacements(
         tuple(
@@ -56,24 +55,66 @@ def apply_replacement_stage(
     visible_after, mapped_edits, _ = apply_replacements(
         visible_before, visible_replacements, stage=name
     )
-    stage = make_stage(name, visible_before, visible_after)
+    edits = tuple(
+        TextEdit(
+            start=item.start,
+            end=item.end,
+            source=visible_before[item.start : item.end],
+            replacement=item.text,
+            stage=name,
+        )
+        for item in visible_replacements
+    )
     stages.append(
         PreparationStage(
-            name=stage.name,
-            before=stage.before,
-            after=stage.after,
-            edits=stage.edits,
+            name=name,
+            before=visible_before,
+            after=visible_after,
+            edits=edits,
             mapped_edits=mapped_edits,
         )
     )
 
-    internal: list[Replacement] = []
-    for item in visible_replacements:
-        start, end = restoration.map_output_span(item.start, item.end)
-        internal.append(Replacement(start, end, item.text, item.kind, item.language, item.rule))
-    internal = list(resolve_replacements(tuple(internal), source_length=len(text)))
+    internal = map_visible_replacements_to_internal(
+        text,
+        visible_replacements,
+        protected_values,
+    )
     after, _, _ = apply_replacements(text, tuple(internal), stage=name)
     return after
+
+
+def map_visible_replacements_to_internal(
+    text: str,
+    replacements: tuple[Replacement, ...],
+    protected_values: tuple[str, ...],
+) -> tuple[Replacement, ...]:
+    """Translate visible-stage replacements to protected working-text offsets."""
+    restoration = _restoration_map(text, protected_values)
+    internal = tuple(
+        Replacement(
+            *restoration.map_output_span(item.start, item.end),
+            item.text,
+            item.kind,
+            item.language,
+            item.rule,
+        )
+        for item in replacements
+    )
+    return resolve_replacements(internal, source_length=len(text))
+
+
+def map_internal_protected_spans_to_visible(
+    text: str,
+    protected_values: tuple[str, ...],
+) -> tuple[tuple[int, int], ...]:
+    """Return protected sentinel spans in the restored visible text."""
+    restoration = _restoration_map(text, protected_values)
+    return tuple(
+        restoration.map_source_span(index, index + 1)
+        for index, character in enumerate(text)
+        if 0xE000 <= ord(character) < 0xE000 + len(protected_values)
+    )
 
 
 def _restore(text: str, values: tuple[str, ...]) -> str:
@@ -94,4 +135,9 @@ def _restoration_map(text: str, values: tuple[str, ...]) -> OffsetMap:
     )
 
 
-__all__ = ["apply_stage", "apply_replacement_stage"]
+__all__ = [
+    "apply_stage",
+    "apply_replacement_stage",
+    "map_internal_protected_spans_to_visible",
+    "map_visible_replacements_to_internal",
+]

@@ -6,6 +6,8 @@ from dataclasses import asdict, dataclass
 from difflib import SequenceMatcher
 from typing import TYPE_CHECKING, Any
 
+from .protection import ProtectedSpan
+
 if TYPE_CHECKING:
     from .mapping import OffsetMap
 
@@ -71,6 +73,22 @@ class MappedEdit:
 
 
 @dataclass(frozen=True, slots=True)
+class SourceReplacement:
+    """A replacement projected from original source to final output."""
+
+    source_start: int
+    source_end: int
+    output_start: int
+    output_end: int
+    source: str
+    replacement: str
+    stages: tuple[str, ...]
+    language: str | None = None
+    kind: str = "replacement"
+    rule: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class PreparedText:
     """Readable spoken text with normalization provenance."""
 
@@ -80,6 +98,8 @@ class PreparedText:
     language: str
     stages: tuple[PreparationStage, ...] = ()
     mapped_edits: tuple[MappedEdit, ...] = ()
+    source_replacements: tuple[SourceReplacement, ...] = ()
+    protected_spans: tuple[ProtectedSpan, ...] = ()
     offset_map: OffsetMap | None = None
     warnings: tuple[str, ...] = ()
 
@@ -99,9 +119,19 @@ class PreparedText:
         return tuple(edit for stage in self.stages for edit in stage.edits)
 
     @property
-    def source_edits(self) -> tuple[MappedEdit, ...]:
+    def source_edits(self) -> tuple[SourceReplacement, ...]:
         """Return edits in the documented source-to-final coordinate space."""
-        return self.mapped_edits
+        return self.source_replacements
+
+    @property
+    def replacements(self) -> tuple[SourceReplacement, ...]:
+        """Stable adapter alias for composed source replacements."""
+        return self.source_replacements
+
+    @property
+    def stage_report(self) -> str:
+        """Return the diagnostic stage report for adapter logging."""
+        return self.render_changes()
 
     def map_source_span(self, start: int, end: int) -> tuple[int, int]:
         """Map an original source span to final spoken-text coordinates."""
@@ -132,7 +162,22 @@ class PreparedText:
 
     def to_dict(self) -> dict[str, Any]:
         """Return a JSON-serializable representation."""
-        return asdict(self)
+        payload = asdict(self)
+        payload["source_edits"] = payload["source_replacements"]
+        payload["stage_report"] = self.stage_report
+        return payload
+
+    def to_adapter_dict(self) -> dict[str, Any]:
+        """Return the stable kokorog2p-facing result projection."""
+        return {
+            "spoken_text": self.spoken_text,
+            "language": self.language,
+            "source_replacements": [asdict(item) for item in self.source_replacements],
+            "offset_map": self.offset_map.to_dict() if self.offset_map is not None else None,
+            "warnings": list(self.warnings),
+            "protected_spans": [asdict(item) for item in self.protected_spans],
+            "stage_report": self.stage_report,
+        }
 
 
 def diff_edits(before: str, after: str, stage: str) -> tuple[TextEdit, ...]:

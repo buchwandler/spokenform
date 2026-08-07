@@ -1,4 +1,12 @@
-from spokenform import OffsetMap, Replacement, prepare
+from spokenform import (
+    MappedEdit,
+    OffsetMap,
+    PreparationStage,
+    Replacement,
+    TextEdit,
+    compose_source_replacements,
+    prepare,
+)
 from spokenform.mapping import apply_replacements
 
 
@@ -44,3 +52,35 @@ def test_composed_preparation_map_and_serialization() -> None:
     assert serialized["mapped_edits"]
     restored = OffsetMap.from_dict(serialized["offset_map"])
     assert restored.source_to_output(len(result.clean_text)) == len(result.spoken_text)
+
+
+def test_source_replacements_merge_edits_inside_generated_text() -> None:
+    first = PreparationStage(
+        name="first",
+        before="a",
+        after="abc",
+        edits=(TextEdit(0, 1, "a", "abc", "first"),),
+        mapped_edits=(MappedEdit(0, 1, 0, 3, "a", "abc", "first"),),
+    )
+    second = PreparationStage(
+        name="second",
+        before="abc",
+        after="axc",
+        edits=(TextEdit(1, 2, "b", "x", "second"),),
+        mapped_edits=(MappedEdit(1, 2, 1, 2, "b", "x", "second"),),
+    )
+    maps = (
+        OffsetMap.from_replacements(1, (Replacement(0, 1, "abc"),), output_length=3),
+        OffsetMap.from_replacements(3, (Replacement(1, 2, "x"),), output_length=3),
+    )
+
+    replacements = compose_source_replacements("a", "axc", (first, second), maps)
+
+    assert replacements == (replacements[0],)
+    assert replacements[0].source_start == 0
+    assert replacements[0].source_end == 1
+    assert replacements[0].output_start == 0
+    assert replacements[0].output_end == 3
+    assert replacements[0].source == "a"
+    assert replacements[0].replacement == "axc"
+    assert replacements[0].stages == ("first", "second")
