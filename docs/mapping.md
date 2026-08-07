@@ -26,6 +26,7 @@ source expression, spoken replacement, `kind`, language, and locale `rule`.
 For downstream adapters, prefer `PreparedText.source_edits`,
 `PreparedText.map_source_span()`, and `PreparedText.map_output_span()` rather
 than importing mapping internals.
+
 # Mapping and provenance
 
 `PreparationStage.edits` and `PreparationStage.mapped_edits` are local to the

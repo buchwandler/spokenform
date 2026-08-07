@@ -15,6 +15,7 @@
   number edits may still be reconstructed from deterministic diffs because
   `abbr2words` currently returns final text rather than semantic replacement
   objects.
+
 # Limitations and readiness gates
 
 spokenform is a one-language written-to-spoken layer. Callers own language
