@@ -40,10 +40,16 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "mass-gram": QuantityGrammar("mass-gram", "n", "Gramm", "Gramm"),
     "mass-kilogram": QuantityGrammar("mass-kilogram", "n", "Kilogramm", "Kilogramm"),
     "mass-tonne": QuantityGrammar("mass-tonne", "f", "Tonne", "Tonnen"),
-    "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "f", "Kilowattstunde", "Kilowattstunden"),
+    "energy-kilowatt-hour": QuantityGrammar(
+        "energy-kilowatt-hour", "f", "Kilowattstunde", "Kilowattstunden"
+    ),
     "energy-watt-hour": QuantityGrammar("energy-watt-hour", "f", "Wattstunde", "Wattstunden"),
-    "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "f", "Milliamperestunde", "Milliamperestunden"),
-    "current-milliampere": QuantityGrammar("current-milliampere", "n", "Milliampere", "Milliampere"),
+    "charge-milliampere-hour": QuantityGrammar(
+        "charge-milliampere-hour", "f", "Milliamperestunde", "Milliamperestunden"
+    ),
+    "current-milliampere": QuantityGrammar(
+        "current-milliampere", "n", "Milliampere", "Milliampere"
+    ),
     "frequency-gigahertz": QuantityGrammar("frequency-gigahertz", "m", "Gigahertz", "Gigahertz"),
     "frequency-megahertz": QuantityGrammar("frequency-megahertz", "m", "Megahertz", "Megahertz"),
     "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "m", "Kilohertz", "Kilohertz"),
@@ -57,19 +63,53 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
 }
 
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
-_DATE = re.compile(r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2,4})(?!\d)")
-_TEXT_DATE = re.compile(r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|Mär|Apr|Mai|Juni|Juli|Aug|September|Sept|Oktober|November|Dezember|Dez)(?:\s+(?P<year>\d{2,4}))?", re.IGNORECASE)
+_DATE = re.compile(
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2,4})(?!\d)"
+)
+_TEXT_DATE = re.compile(
+    r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|Mär|Apr|Mai|Juni|Juli|Aug|September|Sept|Oktober|November|Dezember|Dez)(?:\s+(?P<year>\d{2,4}))?",
+    re.IGNORECASE,
+)
 _TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
-_CURRENCY_PREFIX = re.compile(rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE)
-_CURRENCY_SUFFIX = re.compile(rf"(?<![\w.])(?P<number>{_NUMBER})\s*(?P<symbol>[^\W\d_€$£]+|[€$£])(?!\w)", re.IGNORECASE)
-_TEMPERATURE = re.compile(rf"(?<!\w)(?P<number>{_NUMBER})\s*°?\s*(?P<unit>°?C|°?F)(?!\w)", re.IGNORECASE)
-_LABEL = re.compile(r"(?P<label>laufende\s+Nummer|Lfd\.\s*Nr\.|Nummer|Gleis|Kapitel|Absatz|Seite|S\.)\s+(?P<number>\d+)(?!\w)", re.IGNORECASE)
+_CURRENCY_PREFIX = re.compile(
+    rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
+)
+_CURRENCY_SUFFIX = re.compile(
+    rf"(?<![\w.])(?P<number>{_NUMBER})\s*(?P<symbol>[^\W\d_€$£]+|[€$£])(?!\w)", re.IGNORECASE
+)
+_TEMPERATURE = re.compile(
+    rf"(?<!\w)(?P<number>{_NUMBER})\s*°?\s*(?P<unit>°?C|°?F)(?!\w)", re.IGNORECASE
+)
+_LABEL = re.compile(
+    r"(?P<label>laufende\s+Nummer|Lfd\.\s*Nr\.|Nummer|Gleis|Kapitel|Absatz|Seite|S\.)\s+(?P<number>\d+)(?!\w)",
+    re.IGNORECASE,
+)
 _ORDINAL = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÄÖÜäöüß])")
-_MONTHS = {"januar": (1, "Januar"), "februar": (2, "Februar"), "märz": (3, "März"), "maerz": (3, "März"), "mär": (3, "März"), "april": (4, "April"), "apr": (4, "April"), "mai": (5, "Mai"), "juni": (6, "Juni"), "juli": (7, "Juli"), "august": (8, "August"), "aug": (8, "August"), "september": (9, "September"), "sept": (9, "September"), "oktober": (10, "Oktober"), "november": (11, "November"), "dezember": (12, "Dezember"), "dez": (12, "Dezember")}
+_MONTHS = {
+    "januar": (1, "Januar"),
+    "februar": (2, "Februar"),
+    "märz": (3, "März"),
+    "maerz": (3, "März"),
+    "mär": (3, "März"),
+    "april": (4, "April"),
+    "apr": (4, "April"),
+    "mai": (5, "Mai"),
+    "juni": (6, "Juni"),
+    "juli": (7, "Juli"),
+    "august": (8, "August"),
+    "aug": (8, "August"),
+    "september": (9, "September"),
+    "sept": (9, "September"),
+    "oktober": (10, "Oktober"),
+    "november": (11, "November"),
+    "dezember": (12, "Dezember"),
+    "dez": (12, "Dezember"),
+}
 
 
 def _spell(value: int | Decimal) -> str:
     from num2words import num2words
+
     return str(num2words(value, lang="de"))
 
 
@@ -107,6 +147,7 @@ def _year(value: int) -> str:
 
 def _ordinal(value: int, ending: str) -> str:
     from num2words import num2words
+
     word = str(num2words(value, lang="de", to="ordinal"))
     if ending == "er" and word.endswith("e"):
         return word[:-1] + "er"
@@ -118,8 +159,10 @@ def _ordinal(value: int, ending: str) -> str:
 
 
 def _ending(text: str, start: int) -> str:
-    prefix = re.sub(r"\s+", " ", text[max(0, start - 48):start].lower()).rstrip()
-    if prefix.endswith(("am", "im", "vom", "zum", "zur", "auf der", "an der", "in dem", "in den", "auf den")):
+    prefix = re.sub(r"\s+", " ", text[max(0, start - 48) : start].lower()).rstrip()
+    if prefix.endswith(
+        ("am", "im", "vom", "zum", "zur", "auf der", "an der", "in dem", "in den", "auf den")
+    ):
         return "en"
     if prefix.endswith(("ans", "ins", "die", "auf die", "der")):
         return "e"
@@ -143,7 +186,11 @@ def _quantity(match: UnitMatch, text: str) -> str | None:
     if grammar is None:
         return None
     negative, integer, fraction = _parts(match.value)
-    value = Decimal(f"{'-' if negative else ''}{integer}.{fraction}" if fraction else f"{'-' if negative else ''}{integer}")
+    value = Decimal(
+        f"{'-' if negative else ''}{integer}.{fraction}"
+        if fraction
+        else f"{'-' if negative else ''}{integer}"
+    )
     noun = grammar.singular if value == 1 else grammar.plural
     number = _number(match.value)
     if value == 1:
@@ -161,7 +208,12 @@ def _currency_id(symbol: str) -> str | None:
 
 
 def _currency_name(canonical_id: str) -> str:
-    return {"currency-euro": "Euro", "currency-dollar": "Dollar", "currency-pound": "Pfund", "currency-swiss-franc": "Schweizer Franken"}.get(canonical_id, "")
+    return {
+        "currency-euro": "Euro",
+        "currency-dollar": "Dollar",
+        "currency-pound": "Pfund",
+        "currency-swiss-franc": "Schweizer Franken",
+    }.get(canonical_id, "")
 
 
 def _currency(raw: str, canonical_id: str) -> str:
@@ -178,30 +230,46 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
     return any(start < right and left < end for left, right in protected)
 
 
-def iter_replacements(text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()) -> tuple[Replacement, ...]:
+def iter_replacements(
+    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+) -> tuple[Replacement, ...]:
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
 
     def add(match: re.Match[str], replacement: str | None, rule: str) -> None:
         if replacement is not None and not _overlaps(match.start(), match.end(), protected):
-            candidates.append(Replacement(match.start(), match.end(), replacement, "structured", "de", rule))
+            candidates.append(
+                Replacement(match.start(), match.end(), replacement, "structured", "de", rule)
+            )
 
     for match in _DATE.finditer(text):
         day, month, year_raw = int(match["day"]), int(match["month"]), match["year"]
         date_year = int(year_raw) if len(year_raw) == 4 else 2000 + int(year_raw)
         if _valid(day, month, date_year):
             month_name = next(name for number, name in _MONTHS.values() if number == month)
-            add(match, f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e')} {month_name} {_year(date_year)}", "de.date")
+            add(
+                match,
+                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e')} {month_name} {_year(date_year)}",
+                "de.date",
+            )
     for match in _TEXT_DATE.finditer(text):
         month, month_name = _MONTHS[match["month"].lower()]
         year_raw, day = match["year"], int(match["day"])
-        text_year: int | None = int(year_raw) if year_raw and len(year_raw) == 4 else (2000 + int(year_raw) if year_raw else None)
+        text_year: int | None = (
+            int(year_raw)
+            if year_raw and len(year_raw) == 4
+            else (2000 + int(year_raw) if year_raw else None)
+        )
         if text_year is None or _valid(day, month, text_year):
-            value = f"{_ordinal(day, _ending(text, match.start()) if text[:match.start()].strip() else 'e')} {month_name}"
+            value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e')} {month_name}"
             add(match, f"{value} {_year(text_year)}" if text_year else value, "de.text-date")
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
-        value = f"{'ein' if hour == 1 else _spell(hour)} Uhr" if minute == 0 else f"{'ein' if hour == 1 else _spell(hour)} Uhr {_spell(minute)}"
+        value = (
+            f"{'ein' if hour == 1 else _spell(hour)} Uhr"
+            if minute == 0
+            else f"{'ein' if hour == 1 else _spell(hour)} Uhr {_spell(minute)}"
+        )
         add(match, value, "de.time")
     for pattern in (_CURRENCY_PREFIX, _CURRENCY_SUFFIX):
         for match in pattern.finditer(text):
@@ -210,22 +278,39 @@ def iter_replacements(text: str, *, protected_ranges: Iterable[tuple[int, int]] 
                 add(match, _currency(match["number"], canonical_id), "de.currency")
     for match in _TEMPERATURE.finditer(text):
         unit = match["unit"].lower().replace("°", "")
-        add(match, f"{_number(match['number'])} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}", "de.temperature")
+        add(
+            match,
+            f"{_number(match['number'])} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}",
+            "de.temperature",
+        )
     for match in iter_unit_matches(text, "de", protected_spans=protected):
         if match.category == "currency" or (match.start and text[match.start - 1] in ".,"):
             continue
         if match.category == "magnitude":
-            tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[match.end:])
+            tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[match.end :])
             canonical_id = _currency_id(tail["symbol"]) if tail else None
             if tail and canonical_id:
                 base = _quantity(match, text)
                 if base and not _overlaps(match.start, match.end + tail.end(), protected):
-                    candidates.append(Replacement(match.start, match.end + tail.end(), f"{base} {_currency_name(canonical_id)}", "structured", "de", "de.magnitude-currency"))
+                    candidates.append(
+                        Replacement(
+                            match.start,
+                            match.end + tail.end(),
+                            f"{base} {_currency_name(canonical_id)}",
+                            "structured",
+                            "de",
+                            "de.magnitude-currency",
+                        )
+                    )
                 continue
         if not _overlaps(match.start, match.end, protected):
             replacement = _quantity(match, text)
             if replacement:
-                candidates.append(Replacement(match.start, match.end, replacement, "structured", "de", "de.quantity"))
+                candidates.append(
+                    Replacement(
+                        match.start, match.end, replacement, "structured", "de", "de.quantity"
+                    )
+                )
     for match in _LABEL.finditer(text):
         label = match["label"]
         normalized = label.casefold().replace(" ", "")

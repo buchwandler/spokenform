@@ -47,28 +47,63 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "mass-kilogram": QuantityGrammar("mass-kilogram", "kilogramme", "kilogrammes"),
     "mass-tonne": QuantityGrammar("mass-tonne", "tonne", "tonnes", "f"),
     "temperature-kelvin": QuantityGrammar("temperature-kelvin", "kelvin", "kelvins"),
-    "speed-meter-per-second": QuantityGrammar("speed-meter-per-second", "mètre par seconde", "mètres par seconde"),
-    "speed-kilometer-per-hour": QuantityGrammar("speed-kilometer-per-hour", "kilomètre par heure", "kilomètres par heure"),
-    "area-square-millimeter": QuantityGrammar("area-square-millimeter", "millimètre carré", "millimètres carrés"),
-    "area-square-centimeter": QuantityGrammar("area-square-centimeter", "centimètre carré", "centimètres carrés"),
+    "speed-meter-per-second": QuantityGrammar(
+        "speed-meter-per-second", "mètre par seconde", "mètres par seconde"
+    ),
+    "speed-kilometer-per-hour": QuantityGrammar(
+        "speed-kilometer-per-hour", "kilomètre par heure", "kilomètres par heure"
+    ),
+    "area-square-millimeter": QuantityGrammar(
+        "area-square-millimeter", "millimètre carré", "millimètres carrés"
+    ),
+    "area-square-centimeter": QuantityGrammar(
+        "area-square-centimeter", "centimètre carré", "centimètres carrés"
+    ),
     "area-square-meter": QuantityGrammar("area-square-meter", "mètre carré", "mètres carrés"),
-    "area-square-kilometer": QuantityGrammar("area-square-kilometer", "kilomètre carré", "kilomètres carrés"),
+    "area-square-kilometer": QuantityGrammar(
+        "area-square-kilometer", "kilomètre carré", "kilomètres carrés"
+    ),
     "area-hectare": QuantityGrammar("area-hectare", "hectare", "hectares"),
-    "volume-cubic-millimeter": QuantityGrammar("volume-cubic-millimeter", "millimètre cube", "millimètres cubes"),
-    "volume-cubic-centimeter": QuantityGrammar("volume-cubic-centimeter", "centimètre cube", "centimètres cubes"),
+    "volume-cubic-millimeter": QuantityGrammar(
+        "volume-cubic-millimeter", "millimètre cube", "millimètres cubes"
+    ),
+    "volume-cubic-centimeter": QuantityGrammar(
+        "volume-cubic-centimeter", "centimètre cube", "centimètres cubes"
+    ),
     "volume-cubic-meter": QuantityGrammar("volume-cubic-meter", "mètre cube", "mètres cubes"),
 }
 
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
-_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)")
-_DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)")
+_DATE_DMY = re.compile(
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)"
+)
+_DATE_ISO = re.compile(
+    r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
+)
 _DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{2,4}(?!\d)")
 _TIME_COLON = re.compile(r"(?<![\w.])(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
-_TIME_H = re.compile(r"(?<![\w.])(?P<hour>\d{1,2})\s*h(?:(?:\s*)(?P<minute>\d{2}))?(?!\w)", re.IGNORECASE)
+_TIME_H = re.compile(
+    r"(?<![\w.])(?P<hour>\d{1,2})\s*h(?:(?:\s*)(?P<minute>\d{2}))?(?!\w)", re.IGNORECASE
+)
 _TIME_CANDIDATE = re.compile(r"(?<![\w.])\d{1,2}\s*(?::\s*\d{2}|h\s*\d{0,2})(?!\w)", re.IGNORECASE)
-_ORDINAL = re.compile(r"(?<![\w.,])(?P<number>\d+)\s*(?P<suffix>er|ère|re|ème|e|nd|nde)\b", re.IGNORECASE)
+_ORDINAL = re.compile(
+    r"(?<![\w.,])(?P<number>\d+)\s*(?P<suffix>er|ère|re|ème|e|nd|nde)\b", re.IGNORECASE
+)
 _PLAIN_NUMBER = re.compile(rf"(?<![\w.])(?P<number>{_NUMBER})(?![\w.])")
-_MONTHS = ("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+_MONTHS = (
+    "janvier",
+    "février",
+    "mars",
+    "avril",
+    "mai",
+    "juin",
+    "juillet",
+    "août",
+    "septembre",
+    "octobre",
+    "novembre",
+    "décembre",
+)
 
 
 def _spell(value: int | Decimal, *, ordinal: bool = False) -> str:
@@ -188,7 +223,9 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
     return any(start < right and left < end for left, right in protected)
 
 
-def iter_replacements(text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()) -> tuple[Replacement, ...]:
+def iter_replacements(
+    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+) -> tuple[Replacement, ...]:
     """Return French structured candidates before shared conflict resolution."""
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
@@ -211,10 +248,20 @@ def iter_replacements(text: str, *, protected_ranges: Iterable[tuple[int, int]] 
         if hour <= 23 and minute <= 59:
             add(match.start(), match.end(), _time_text(hour, minute), "fr.time")
     for match in _ORDINAL.finditer(text):
-        add(match.start(), match.end(), _ordinal_text(int(match["number"]), match["suffix"]), "fr.ordinal")
+        add(
+            match.start(),
+            match.end(),
+            _ordinal_text(int(match["number"]), match["suffix"]),
+            "fr.ordinal",
+        )
     for match in iter_unit_matches(text, "fr", protected_spans=protected):
         replacement = _quantity_text(match, text)
-        add(match.start, match.end, replacement, "fr.currency" if match.category == "currency" else "fr.quantity")
+        add(
+            match.start,
+            match.end,
+            replacement,
+            "fr.currency" if match.category == "currency" else "fr.quantity",
+        )
 
     excluded = [match.span() for match in _DATE_CANDIDATE.finditer(text)]
     excluded.extend(match.span() for match in _TIME_CANDIDATE.finditer(text))

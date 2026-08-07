@@ -91,8 +91,20 @@ def test_real_french_downstream_contract() -> None:
     ]
     tokens = _real_french_g2p()(prepared.spoken_text)
     assert [token.text for token in tokens] == [
-        "Le", "quatorze", "mai", "deux", "mille", "vingt", "-", "six",
-        "coûte", "douze", "euros", "cinq", "centimes", ".",
+        "Le",
+        "quatorze",
+        "mai",
+        "deux",
+        "mille",
+        "vingt",
+        "-",
+        "six",
+        "coûte",
+        "douze",
+        "euros",
+        "cinq",
+        "centimes",
+        ".",
     ]
     assert all(token.phonemes is not None for token in tokens)
     assert all(
