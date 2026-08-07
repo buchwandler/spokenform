@@ -54,7 +54,8 @@ def main(argv: list[str] | None = None) -> int:
         strict=args.strict,
     )
     if args.json:
-        print(json.dumps(result.to_dict(), ensure_ascii=False, indent=2))
+        # Keep CLI JSON portable when stdout uses a legacy Windows code page.
+        print(json.dumps(result.to_dict(), ensure_ascii=True, indent=2))
     elif args.changes:
         print(result.render_changes())
     else:

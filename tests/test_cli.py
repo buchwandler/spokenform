@@ -15,6 +15,7 @@ def test_module_cli_json() -> None:
         text=True,
     )
     payload = json.loads(completed.stdout)
+    assert completed.stdout.isascii()
     assert payload["language"] == "de"
     assert "zwei Kilogramm" in payload["spoken_text"]
 
