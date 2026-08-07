@@ -66,17 +66,20 @@ The result contains:
 Use `prepare_for_kokorog2p(text, language=...)` for one explicitly selected
 language run. The adapter preserves caller-owned run whitespace and protected
 overrides, emits exact source-coordinate replacements, and leaves tokenization,
-G2P, phonemization, and model punctuation to kokorog2p. German and French are
-parity-gated semantic migration targets; Czech, English, Spanish, Italian, and
-Portuguese number categories remain caller-managed.
+G2P, phonemization, and model punctuation to kokorog2p. German, French, and
+Spanish are parity-gated semantic migration targets; Czech, English, Italian,
+and Portuguese number categories remain caller-managed.
 
 German quantity symbols are recognized by `abbr2words.iter_unit_matches()`.
 spokenform owns only the canonical German grammar that realizes those matches,
 including gender, invariant `Stück`, currency decomposition, and lexical decimal
 digits. French likewise realizes canonical `abbr2words` quantity and currency
 identities, including French dates, times, ordinals, decimal digits, plural
-grammar, temperatures, and major/minor currency units. Neither locale copies raw
-symbol inventories or downstream tokenizer/phoneme rules.
+grammar, temperatures, and major/minor currency units. Spanish realizes
+canonical quantities, temperatures, currencies, dates, and ordinary numbers;
+Spanish `18:20`-style time expressions remain caller-managed until a reviewed
+time corpus is accepted. Neither locale copies raw symbol inventories or
+downstream tokenizer/phoneme rules.
 
 ## Language boundary
 
@@ -248,6 +251,8 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
 - Language detection, mixed-language segmentation, and language marking are external.
 - SSMD and other markup must be parsed before calling `spokenform`.
 - Date, time, currency, and ordinal grammar is conservative and not exhaustive.
+- Spanish parity ownership covers reviewed dates, quantities, temperatures,
+  currencies, and ordinary numbers; time expressions remain caller-managed.
 - `abbr2words` currently exposes final expanded text rather than semantic replacement objects, so stage edits are reconstructed deterministically from diffs.
 - Trained spaCy pipelines must be installed and version-compatible with the spaCy runtime.
 
@@ -268,8 +273,8 @@ language detection, markup parsing, and phoneme generation.
 `spokenform/_version.py` during builds. Use annotated tags such as `v0.1.0`.
 The source snapshot fallback is `0.1.0`.
 
-Before publishing, ensure the required `abbr2words` version exists on the target
-package index and run the checklist in
+Before publishing, ensure the released `abbr2words>=0.2.2` prerequisite exists
+on the target package index and run the checklist in
 [`docs/release-checklist.md`](docs/release-checklist.md).
 
 ## License

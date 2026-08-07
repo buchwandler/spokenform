@@ -6,6 +6,7 @@ import pytest
 
 pytest.importorskip("kokorog2p")
 from kokorog2p.de.g2p import GermanG2P  # noqa: E402
+from kokorog2p.es.g2p import SpanishG2P  # noqa: E402
 from kokorog2p.fr.g2p import FrenchG2P  # noqa: E402
 
 from spokenform import ProtectedSpan, prepare_for_kokorog2p  # noqa: E402
@@ -67,6 +68,53 @@ def test_real_downstream_protected_override_coordinates() -> None:
     assert any(token.text == "zwei" for token in tokens)
     assert all(token.phonemes for token in tokens)
     assert all("\ue000" not in token.text for token in tokens)
+
+
+def _real_spanish_g2p(dialect: str) -> SpanishG2P:
+    return SpanishG2P(
+        use_espeak_fallback=False,
+        use_goruut_fallback=False,
+        use_spacy=False,
+        dialect=dialect,
+    )
+
+
+def test_real_spanish_downstream_contract_is_dialect_independent() -> None:
+    source = "El 14.05.2026 cuesta 12,80 EUR."
+    prepared = prepare_for_kokorog2p(source, "es")
+    assert prepared.spoken_text == (
+        "El catorce de mayo de dos mil veintiséis cuesta doce euros con ochenta céntimos."
+    )
+    assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
+        ("14.05.2026", "catorce de mayo de dos mil veintiséis"),
+        ("12,80 EUR", "doce euros con ochenta céntimos"),
+    ]
+    for dialect in ("es", "la"):
+        tokens = _real_spanish_g2p(dialect)(prepared.spoken_text)
+        assert tokens
+        assert all(token.phonemes for token in tokens)
+        assert all(
+            prepared.spoken_text[token._["char_start"] : token._["char_end"]] == token.text
+            for token in tokens
+        )
+        assert not any(character.isdigit() for token in tokens for character in token.text)
+        assert not prepared.warnings
+
+
+def test_real_spanish_downstream_protected_override_coordinates() -> None:
+    source = "Override 2 kg; normaliza 3 kg."
+    start = source.index("2 kg")
+    prepared = prepare_for_kokorog2p(
+        source,
+        "es",
+        protected_spans=[ProtectedSpan(start, start + len("2 kg"), kind="g2p-override")],
+    )
+    assert prepared.spoken_text == "Override 2 kg; normaliza tres kilogramos."
+    output_start, output_end = prepared.map_source_span(start, start + len("2 kg"))
+    assert prepared.spoken_text[output_start:output_end] == "2 kg"
+    for dialect in ("es", "la"):
+        tokens = _real_spanish_g2p(dialect)(prepared.spoken_text)
+        assert all(token.phonemes for token in tokens)
 
 
 def _real_french_g2p() -> FrenchG2P:

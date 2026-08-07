@@ -1,7 +1,248 @@
-"""Spanish locale ownership metadata."""
+"""Spanish semantic grammar owned by spokenform.
+
+Written symbols and lexical abbreviations are recognized by :mod:`abbr2words`.
+This module only realizes the canonical identities returned by that API and
+emits exact source-aligned semantic replacements.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, InvalidOperation
+
+from abbr2words import UnitMatch, iter_unit_matches
+from num2words import num2words
 
 from ..config import NumberPolicy
+from ..mapping import Replacement
 
-NUMBER_POLICY = NumberPolicy.CALLER_MANAGED
+NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
-__all__ = ["NUMBER_POLICY"]
+
+@dataclass(frozen=True, slots=True)
+class QuantityGrammar:
+    canonical_id: str
+    gender: str
+    singular: str
+    plural: str
+
+
+QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
+    "duration-second": QuantityGrammar("duration-second", "m", "segundo", "segundos"),
+    "duration-minute": QuantityGrammar("duration-minute", "m", "minuto", "minutos"),
+    "duration-hour": QuantityGrammar("duration-hour", "f", "hora", "horas"),
+    "duration-day": QuantityGrammar("duration-day", "m", "día", "días"),
+    "length-millimeter": QuantityGrammar("length-millimeter", "m", "milímetro", "milímetros"),
+    "length-centimeter": QuantityGrammar("length-centimeter", "m", "centímetro", "centímetros"),
+    "length-meter": QuantityGrammar("length-meter", "m", "metro", "metros"),
+    "length-kilometer": QuantityGrammar("length-kilometer", "m", "kilómetro", "kilómetros"),
+    "volume-milliliter": QuantityGrammar("volume-milliliter", "m", "mililitro", "mililitros"),
+    "volume-liter": QuantityGrammar("volume-liter", "m", "litro", "litros"),
+    "mass-microgram": QuantityGrammar("mass-microgram", "m", "microgramo", "microgramos"),
+    "mass-milligram": QuantityGrammar("mass-milligram", "m", "miligramo", "miligramos"),
+    "mass-gram": QuantityGrammar("mass-gram", "m", "gramo", "gramos"),
+    "mass-kilogram": QuantityGrammar("mass-kilogram", "m", "kilogramo", "kilogramos"),
+    "mass-tonne": QuantityGrammar("mass-tonne", "f", "tonelada", "toneladas"),
+    "area-square-millimeter": QuantityGrammar(
+        "area-square-millimeter", "m", "milímetro cuadrado", "milímetros cuadrados"
+    ),
+    "area-square-centimeter": QuantityGrammar(
+        "area-square-centimeter", "m", "centímetro cuadrado", "centímetros cuadrados"
+    ),
+    "area-square-meter": QuantityGrammar(
+        "area-square-meter", "m", "metro cuadrado", "metros cuadrados"
+    ),
+    "area-square-kilometer": QuantityGrammar(
+        "area-square-kilometer", "m", "kilómetro cuadrado", "kilómetros cuadrados"
+    ),
+    "area-hectare": QuantityGrammar("area-hectare", "m", "hectárea", "hectáreas"),
+    "volume-cubic-millimeter": QuantityGrammar(
+        "volume-cubic-millimeter", "m", "milímetro cúbico", "milímetros cúbicos"
+    ),
+    "volume-cubic-centimeter": QuantityGrammar(
+        "volume-cubic-centimeter", "m", "centímetro cúbico", "centímetros cúbicos"
+    ),
+    "volume-cubic-meter": QuantityGrammar(
+        "volume-cubic-meter", "m", "metro cúbico", "metros cúbicos"
+    ),
+    "speed-meter-per-second": QuantityGrammar(
+        "speed-meter-per-second", "m", "metro por segundo", "metros por segundo"
+    ),
+    "speed-kilometer-per-hour": QuantityGrammar(
+        "speed-kilometer-per-hour", "m", "kilómetro por hora", "kilómetros por hora"
+    ),
+}
+
+_NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)"
+_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
+_DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
+_DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{4}(?!\d)")
+_TIME_CANDIDATE = re.compile(r"(?<![\w.])\d{1,2}:\d{2}(?!\d)")
+_MONTHS = (
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre",
+)
+
+
+def _parts(raw: str) -> tuple[bool, int, str | None]:
+    value = raw.replace("−", "-").replace("\u00a0", " ").replace("\u202f", " ")
+    negative, unsigned = value.startswith("-"), value.lstrip("+-")
+    if unsigned.startswith(","):
+        integer, fraction = "0", unsigned[1:]
+    elif "," in unsigned:
+        integer, fraction = unsigned.split(",", 1)
+    else:
+        integer, fraction = unsigned, None
+    integer = re.sub(r"[.\s]", "", integer) or "0"
+    return negative, int(integer), fraction
+
+
+def _decimal(raw: str) -> Decimal:
+    negative, integer, fraction = _parts(raw)
+    value = f"{'-' if negative else ''}{integer}"
+    if fraction is not None:
+        value += f".{fraction}"
+    try:
+        return Decimal(value)
+    except InvalidOperation as exc:
+        raise ValueError(f"Cannot parse Spanish number {raw!r}") from exc
+
+
+def _spell(value: int) -> str:
+    return str(num2words(value, lang="es"))
+
+
+def _apocopate(text: str, gender: str) -> str:
+    """Apply reviewed Spanish one-ending agreement before a noun."""
+    if gender == "f":
+        return text[:-3] + "una" if text.endswith("uno") else text
+    if text.endswith("veintiuno"):
+        return f"{text[:-8]}veintiún"
+    if text.endswith(" y uno"):
+        return f"{text[:-5]} y un"
+    if text.endswith("uno"):
+        return f"{text[:-3]}un"
+    return text
+
+
+def _number_text(raw: str, *, gender: str | None = None, apocopate: bool = False) -> str:
+    negative, integer, fraction = _parts(raw)
+    if fraction is None:
+        result = _spell(integer)
+        if apocopate:
+            result = _apocopate(result, gender or "m")
+    else:
+        result = f"{_spell(integer)} coma " + " ".join(_spell(int(digit)) for digit in fraction)
+    return f"menos {result}" if negative else result
+
+
+def _valid_date(day: int, month: int, year: int) -> bool:
+    try:
+        date(year, month, day)
+    except ValueError:
+        return False
+    return True
+
+
+def _date_text(day: int, month: int, year: int) -> str:
+    return f"{_spell(day)} de {_MONTHS[month - 1]} de {_spell(year)}"
+
+
+def _terminal_dot(text: str, end: int) -> bool:
+    return not text[end:].strip(" \t\n\"'”’»)]}")
+
+
+def _quantity_text(match: UnitMatch, text: str) -> str | None:
+    canonical_id = match.canonical_id or ""
+    if canonical_id.startswith("currency-"):
+        return _currency_text(match.value, canonical_id)
+    if canonical_id in {"temperature-celsius", "temperature-fahrenheit"}:
+        unit = "Celsius" if canonical_id.endswith("celsius") else "Fahrenheit"
+        value = _decimal(match.value)
+        noun = f"grado {unit}" if abs(value) == 1 else f"grados {unit}"
+        return f"{_number_text(match.value, gender='m', apocopate=',' not in match.value)} {noun}"
+    grammar = QUANTITY_GRAMMAR.get(canonical_id)
+    if grammar is None:
+        return None
+    value = _decimal(match.value)
+    noun = grammar.singular if abs(value) == 1 else grammar.plural
+    result = _number_text(match.value, gender=grammar.gender, apocopate="," not in match.value)
+    if match.symbol.endswith(".") and _terminal_dot(text, match.end):
+        noun += "."
+    return f"{result} {noun}"
+
+
+def _currency_text(raw: str, canonical_id: str) -> str:
+    negative, integer, fraction = _parts(raw)
+    names = {
+        "currency-euro": ("euro", "euros", "céntimo", "céntimos"),
+        "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
+        "currency-pound-sterling": ("libra esterlina", "libras esterlinas", "penique", "peniques"),
+    }
+    singular, plural, minor_singular, minor_plural = names.get(
+        canonical_id, (canonical_id, canonical_id, "centavo", "centavos")
+    )
+    major = singular if integer == 1 else plural
+    gender = "f" if canonical_id == "currency-pound-sterling" else "m"
+    major_raw = f"{'-' if negative else ''}{integer}"
+    number = _number_text(major_raw, gender=gender, apocopate=True)
+    if fraction is not None:
+        minor_value = int(fraction)
+        if minor_value:
+            minor = minor_singular if minor_value == 1 else minor_plural
+            minor_number = _number_text(str(minor_value), gender="m", apocopate=True)
+            result = f"{number} {major} con {minor_number} {minor}"
+        else:
+            result = f"{number} {major}"
+    else:
+        result = f"{number} {major}"
+    return result
+
+
+def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
+    return any(start < right and left < end for left, right in protected)
+
+
+def iter_replacements(
+    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+) -> tuple[Replacement, ...]:
+    """Return Spanish structured and plain-number semantic candidates."""
+    protected = tuple(protected_ranges)
+    candidates: list[Replacement] = []
+
+    def add(start: int, end: int, value: str | None, rule: str) -> None:
+        if value is not None and not _overlaps(start, end, protected):
+            candidates.append(Replacement(start, end, value, "structured", "es", rule))
+
+    for pattern in (_DATE_DMY, _DATE_ISO):
+        for match in pattern.finditer(text):
+            day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
+            if 1 <= month <= 12 and _valid_date(day, month, year):
+                add(match.start(), match.end(), _date_text(day, month, year), "es.date")
+
+    for match in iter_unit_matches(text, "es", protected_spans=protected):
+        replacement = _quantity_text(match, text)
+        add(
+            match.start,
+            match.end,
+            replacement,
+            "es.currency" if match.category == "currency" else "es.quantity",
+        )
+
+    return tuple(candidates)
+
+
+__all__ = ["NUMBER_POLICY", "QUANTITY_GRAMMAR", "QuantityGrammar", "iter_replacements"]

@@ -7,7 +7,7 @@ the public span helpers to remap boundaries, and inspect `warnings` before passi
 the result to a G2P tokenizer. The adapter projection is available through
 `PreparedText.to_adapter_dict()`.
 
-The German and French integration contracts are tested at three boundaries: spoken text,
+The German, French, and Spanish integration contracts are tested at three boundaries: spoken text,
 source replacement/offset provenance, and a downstream-style token/phoneme
 fixture. spokenform does not own tokenization, lexicon lookup, phonemization,
 quote/dash typography, or model punctuation. A downstream adapter should run a
@@ -19,21 +19,24 @@ delete a downstream normalizer
 until both paths have been compared for prepared text, source replacements,
 extended token positions, phonemes, warnings, and protected overrides. A real
 downstream gate is provided in `tests/test_real_kokorog2p_integration.py` and is
-run in CI with released `kokorog2p[de,fr]` packages.
+run in CI with released `kokorog2p[de,fr]` packages; SpanishG2P is part of the
+base package and is exercised by the same gate.
 
 ## Ownership audit
 
-| Language | Suitable for spokenform                                                      | Keep downstream                                               | Status                                          |
-| -------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------- |
-| cs       | dates, numbers, currencies, locale decimal/grouping semantics                | G2P and lexicon behavior                                      | caller-managed; parity corpus pending           |
-| en       | dates, currencies, ordinary written numbers                                  | phoneme-sensitive years, digit-by-digit and suffix heuristics | ownership documented; parity corpus pending     |
-| es       | dates, numbers, currencies, units                                            | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
-| fr       | dates, times, numbers, ordinals, currencies, temperatures, units, exact maps | G2P/tokenizer typography, lexicon, phonemes                   | parity-gated; `STRUCTURED_AND_PLAIN`            |
-| it       | dates, numbers, currencies, units                                            | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
-| pt       | dates, numbers, currencies, units                                            | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending |
+| Language | Suitable for spokenform                                                      | Keep downstream                                               | Status                                                    |
+| -------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------- |
+| cs       | dates, numbers, currencies, locale decimal/grouping semantics                | G2P and lexicon behavior                                      | caller-managed; parity corpus pending                     |
+| en       | dates, currencies, ordinary written numbers                                  | phoneme-sensitive years, digit-by-digit and suffix heuristics | ownership documented; parity corpus pending               |
+| es       | reviewed dates, ordinary numbers, currencies, units, temperatures            | G2P/tokenizer typography; time expressions                    | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed |
+| fr       | dates, times, numbers, ordinals, currencies, temperatures, units, exact maps | G2P/tokenizer typography, lexicon, phonemes                   | parity-gated; `STRUCTURED_AND_PLAIN`                      |
+| it       | dates, numbers, currencies, units                                            | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending           |
+| pt       | dates, numbers, currencies, units                                            | G2P/tokenizer typography                                      | parser hardening covered; parity corpus pending           |
 
 This audit intentionally does not port language detection, markup parsing, mixed
 language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model
-specific quote/dash behavior into spokenform. French is ready for downstream
-handoff with the released `abbr2words>=0.2.2` prerequisite and the real French
-parity gate; package publication remains the release workflow boundary.
+specific quote/dash behavior into spokenform. French and Spanish are ready for
+downstream handoff only with the released `abbr2words>=0.2.2` prerequisite and
+their real parity gates; package publication remains the release workflow
+boundary. Spanish time ownership is intentionally deferred until a reviewed time
+corpus exists.

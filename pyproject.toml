@@ -34,6 +34,7 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
+  # 0.2.2 is the first released abbr2words version with Spanish structured currency identities.
   "abbr2words>=0.2.2,<0.3.0",
   "num2words>=0.5.14,<0.6",
 ]

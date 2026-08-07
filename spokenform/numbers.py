@@ -159,6 +159,9 @@ _DATE_CANDIDATE_RE = re.compile(
     r"(?<!\d)(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)"
 )
 _TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
+_SPANISH_PLAIN_NUMBER_RE = re.compile(
+    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -419,3 +422,54 @@ def normalize_numbers(text: str, *, language: str) -> str:
     for transformation in transformations:
         result = transformation(result, base)
     return _ProtectedText(result, protected.values).restore()
+
+
+def _protect_plain_numbers(text: str) -> _ProtectedText:
+    """Protect literals and reviewed structured candidates for a plain pass."""
+    values: list[str] = []
+
+    def replace(match: re.Match[str]) -> str:
+        index = len(values)
+        values.append(match.group(0))
+        return _placeholder(index)
+
+    protected = _URL_OR_EMAIL_RE.sub(replace, text)
+    protected = _VERSION_RE.sub(replace, protected)
+    for pattern in (_DATE_DMY_RE, _DATE_ISO_RE, _TIME_CANDIDATE_RE):
+        protected = pattern.sub(replace, protected)
+    return _ProtectedText(protected, tuple(values))
+
+
+def _normalize_spanish_plain_numbers(text: str) -> str:
+    protected = _protect_plain_numbers(text)
+
+    def replace(match: re.Match[str]) -> str:
+        raw = match.group(0).replace("−", "-")
+        negative = raw.startswith("-")
+        unsigned = raw.lstrip("+-")
+        if unsigned.startswith(","):
+            integer, fraction = "0", unsigned[1:]
+        elif "," in unsigned:
+            integer, fraction = unsigned.split(",", 1)
+        else:
+            integer, fraction = re.sub(r"[.]", "", unsigned), None
+        result = str(num2words(int(integer), lang="es"))
+        if fraction is not None:
+            result += " coma " + " ".join(
+                str(num2words(int(digit), lang="es")) for digit in fraction
+            )
+        return f"menos {result}" if negative else result
+
+    return _ProtectedText(
+        _SPANISH_PLAIN_NUMBER_RE.sub(replace, protected.text), protected.values
+    ).restore()
+
+
+def normalize_plain_numbers(text: str, *, language: str) -> str:
+    """Verbalize only ordinary numbers, preserving all structured candidates."""
+    if not isinstance(text, str):
+        raise TypeError("text must be a string")
+    base = _base_language(language)
+    if base == "es":
+        return _normalize_spanish_plain_numbers(text)
+    return normalize_numbers(text, language=base)

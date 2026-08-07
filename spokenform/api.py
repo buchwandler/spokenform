@@ -22,7 +22,7 @@ from .mapping import (
     replacements_from_diff,
 )
 from .models import PreparationStage, PreparedText, TokenAnnotation
-from .numbers import normalize_numbers
+from .numbers import normalize_plain_numbers
 from .protection import (
     ProtectedSpan,
     coerce_protected_spans,
@@ -316,7 +316,7 @@ def prepare(
             stages,
             "numbers",
             current,
-            lambda value: normalize_numbers(value, language=language_code),
+            lambda value: normalize_plain_numbers(value, language=language_code),
             restore=protected.restore,
         )
         number_stage = stages[-1]
