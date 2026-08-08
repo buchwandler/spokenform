@@ -20,9 +20,9 @@ def number_policy_for_language(language: str) -> NumberPolicy:
     base = language.strip().lower().replace("_", "-").split("-", 1)[0]
     if base == "de":
         return NumberPolicy.STRUCTURED_AND_PLAIN
-    if base in {"cs", "pt", "en"}:
+    if base in {"cs", "en"}:
         return NumberPolicy.CALLER_MANAGED
-    if base in {"es", "it"}:
+    if base in {"es", "it", "pt"}:
         return NumberPolicy.STRUCTURED_AND_PLAIN
     if base == "fr":
         return NumberPolicy.STRUCTURED_AND_PLAIN

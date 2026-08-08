@@ -491,11 +491,14 @@ def normalize_plain_numbers(text: str, *, language: str) -> str:
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     base = _base_language(language)
-    if base in {"es", "it"}:
+    if base in {"es", "it", "pt"}:
+        number_language = language
+        if base == "pt":
+            number_language = "pt_BR" if language in {"pt", "pt-br"} else "pt"
         return _normalize_comma_decimal_plain_numbers(
             text,
-            language=base,
-            decimal_word="coma" if base == "es" else "virgola",
-            negative_word="menos" if base == "es" else "meno",
+            language=number_language,
+            decimal_word={"es": "coma", "it": "virgola", "pt": "vírgula"}[base],
+            negative_word={"es": "menos", "it": "meno", "pt": "menos"}[base],
         )
     return normalize_numbers(text, language=base)

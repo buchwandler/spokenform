@@ -41,10 +41,15 @@ def iter_structured_replacements(
         from .locales.es import iter_replacements
     elif base == "it":
         from .locales.it import iter_replacements
+    elif base == "pt":
+        from .locales.pt import iter_replacements
     else:
         return ()
 
-    candidates = iter_replacements(text, protected_ranges=protected)
+    if base == "pt":
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
+    else:
+        candidates = iter_replacements(text, protected_ranges=protected)
     return resolve_replacements(candidates, source_length=len(text))
 
 

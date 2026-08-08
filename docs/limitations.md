@@ -14,10 +14,10 @@
   default output.
 - German quantity recognition depends on the released `abbr2words` structured
   match API. spokenform owns the semantic grammar, not the symbol inventory.
-- German, French, Spanish, and Italian have parity-gated structured ownership.
-  Spanish and Italian time expressions remain caller-managed because no reviewed
-  ownership contract is included. Czech, Portuguese, and English remain
-  caller-managed.
+- German, French, Spanish, Italian, and Portuguese have parity-gated structured
+  ownership. Spanish, Italian, and Portuguese time expressions remain
+  caller-managed because no reviewed ownership contract is included. Czech and
+  English remain caller-managed for number categories.
 - French decimal money is decomposed deterministically into major and minor
   units; reviewed fixtures define spelling and preserve written fractional
   precision rather than delegating to a third-party currency string.
@@ -31,10 +31,11 @@ spokenform is a one-language written-to-spoken layer. Callers own language
 selection, mixed-language segmentation, markup/SSML, tokenization, lexicons,
 phonemization, and model-specific punctuation.
 
-German was the first kokorog2p parity target. French, Spanish, and Italian now
+German was the first kokorog2p parity target. French, Spanish, Italian, and
+Portuguese now
 have text, source mapping, downstream token/phoneme, protection, and
-released-stack fixtures. Spanish and Italian time remain caller-managed. Czech,
-Portuguese, and English number categories remain caller-managed. Unsupported language categories use an explicit
+released-stack fixtures. Spanish, Italian, and Portuguese time remain
+caller-managed. Czech and English number categories remain caller-managed. Unsupported language categories use an explicit
 `NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
 
 Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps all run

@@ -142,6 +142,7 @@ def prepare(
         )
 
     clean_text = text
+    requested_language = language.strip().lower().replace("_", "-")
     language_code = normalize_language(language)
     selected_number_policy = number_policy
     policy_warnings: list[str] = []
@@ -242,7 +243,7 @@ def prepare(
     if structured_numbers_enabled:
         structured = normalize_structured(
             protected.restore(current),
-            language=language_code,
+            language=requested_language,
             protected_ranges=map_internal_protected_spans_to_visible(
                 current,
                 protected.values,
@@ -316,7 +317,7 @@ def prepare(
             stages,
             "numbers",
             current,
-            lambda value: normalize_plain_numbers(value, language=language_code),
+            lambda value: normalize_plain_numbers(value, language=requested_language),
             restore=protected.restore,
         )
         number_stage = stages[-1]
