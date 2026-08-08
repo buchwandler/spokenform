@@ -66,9 +66,9 @@ The result contains:
 Use `prepare_for_kokorog2p(text, language=...)` for one explicitly selected
 language run. The adapter preserves caller-owned run whitespace and protected
 overrides, emits exact source-coordinate replacements, and leaves tokenization,
-G2P, phonemization, and model punctuation to kokorog2p. German, French, and
-Spanish are parity-gated semantic migration targets; Czech, English, Italian,
-and Portuguese number categories remain caller-managed.
+G2P, phonemization, and model punctuation to kokorog2p. German, French, Spanish,
+and Italian are parity-gated semantic migration targets; Czech, English, and
+Portuguese number categories remain caller-managed.
 
 German quantity symbols are recognized by `abbr2words.iter_unit_matches()`.
 spokenform owns only the canonical German grammar that realizes those matches,
@@ -77,9 +77,10 @@ digits. French likewise realizes canonical `abbr2words` quantity and currency
 identities, including French dates, times, ordinals, decimal digits, plural
 grammar, temperatures, and major/minor currency units. Spanish realizes
 canonical quantities, temperatures, currencies, dates, and ordinary numbers;
-Spanish `18:20`-style time expressions remain caller-managed until a reviewed
-time corpus is accepted. Neither locale copies raw symbol inventories or
-downstream tokenizer/phoneme rules.
+Spanish `18:20`-style time expressions remain caller-managed. Italian realizes
+reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
+Italian colon times remain caller-managed. Neither locale copies raw symbol
+inventories or downstream tokenizer/phoneme rules.
 
 ## Language boundary
 
@@ -253,6 +254,9 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
 - Date, time, currency, and ordinal grammar is conservative and not exhaustive.
 - Spanish parity ownership covers reviewed dates, quantities, temperatures,
   currencies, and ordinary numbers; time expressions remain caller-managed.
+- Italian parity ownership covers reviewed dates, quantities, temperatures,
+  currencies, and ordinary numbers; colon times remain caller-managed.
+- Czech, Portuguese, and English remain caller-managed for number categories.
 - `abbr2words` currently exposes final expanded text rather than semantic replacement objects, so stage edits are reconstructed deterministically from diffs.
 - Trained spaCy pipelines must be installed and version-compatible with the spaCy runtime.
 

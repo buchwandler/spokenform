@@ -158,6 +158,9 @@ _GERMAN_NUMBER_RE = re.compile(
 _DATE_CANDIDATE_RE = re.compile(
     r"(?<!\d)(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)"
 )
+_ISO_DATE_CANDIDATE_RE = re.compile(
+    r"(?<!\d)(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)"
+)
 _TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
 _SPANISH_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
@@ -168,11 +171,12 @@ _SPANISH_PLAIN_NUMBER_RE = re.compile(
 class _ProtectedText:
     text: str
     values: tuple[str, ...]
+    placeholder_start: int = 0xE000
 
     def restore(self) -> str:
         result = self.text
         for index, value in enumerate(self.values):
-            result = result.replace(_placeholder(index), value)
+            result = result.replace(chr(self.placeholder_start + index), value)
         return result
 
 
@@ -427,20 +431,35 @@ def normalize_numbers(text: str, *, language: str) -> str:
 def _protect_plain_numbers(text: str) -> _ProtectedText:
     """Protect literals and reviewed structured candidates for a plain pass."""
     values: list[str] = []
+    existing_offsets = [
+        ord(character) - 0xE000 for character in text if 0xE000 <= ord(character) < 0xE000 + 0x1900
+    ]
+    placeholder_start = 0xE000 + max(existing_offsets, default=-1) + 1
 
     def replace(match: re.Match[str]) -> str:
         index = len(values)
         values.append(match.group(0))
-        return _placeholder(index)
+        return chr(placeholder_start + index)
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
-    for pattern in (_DATE_DMY_RE, _DATE_ISO_RE, _TIME_CANDIDATE_RE):
+    for pattern in (
+        _DATE_CANDIDATE_RE,
+        _ISO_DATE_CANDIDATE_RE,
+        _TIME_CANDIDATE_RE,
+    ):
         protected = pattern.sub(replace, protected)
-    return _ProtectedText(protected, tuple(values))
+    return _ProtectedText(protected, tuple(values), placeholder_start)
 
 
-def _normalize_spanish_plain_numbers(text: str) -> str:
+def _normalize_comma_decimal_plain_numbers(
+    text: str,
+    *,
+    language: str,
+    decimal_word: str,
+    negative_word: str,
+) -> str:
+    """Verbalize ordinary comma-decimal numbers while preserving digit precision."""
     protected = _protect_plain_numbers(text)
 
     def replace(match: re.Match[str]) -> str:
@@ -453,15 +472,17 @@ def _normalize_spanish_plain_numbers(text: str) -> str:
             integer, fraction = unsigned.split(",", 1)
         else:
             integer, fraction = re.sub(r"[.]", "", unsigned), None
-        result = str(num2words(int(integer), lang="es"))
+        result = str(num2words(int(integer), lang=language))
         if fraction is not None:
-            result += " coma " + " ".join(
-                str(num2words(int(digit), lang="es")) for digit in fraction
+            result += f" {decimal_word} " + " ".join(
+                str(num2words(int(digit), lang=language)) for digit in fraction
             )
-        return f"menos {result}" if negative else result
+        return f"{negative_word} {result}" if negative else result
 
     return _ProtectedText(
-        _SPANISH_PLAIN_NUMBER_RE.sub(replace, protected.text), protected.values
+        _SPANISH_PLAIN_NUMBER_RE.sub(replace, protected.text),
+        protected.values,
+        protected.placeholder_start,
     ).restore()
 
 
@@ -470,6 +491,11 @@ def normalize_plain_numbers(text: str, *, language: str) -> str:
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     base = _base_language(language)
-    if base == "es":
-        return _normalize_spanish_plain_numbers(text)
+    if base in {"es", "it"}:
+        return _normalize_comma_decimal_plain_numbers(
+            text,
+            language=base,
+            decimal_word="coma" if base == "es" else "virgola",
+            negative_word="menos" if base == "es" else "meno",
+        )
     return normalize_numbers(text, language=base)

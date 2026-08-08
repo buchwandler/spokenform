@@ -39,6 +39,8 @@ def iter_structured_replacements(
         from .locales.fr import iter_replacements
     elif base == "es":
         from .locales.es import iter_replacements
+    elif base == "it":
+        from .locales.it import iter_replacements
     else:
         return ()
 

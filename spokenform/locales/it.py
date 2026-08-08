@@ -1,7 +1,227 @@
-"""Italian locale ownership metadata."""
+"""Italian semantic grammar owned by spokenform.
+
+``abbr2words`` recognizes the written symbol and returns its canonical
+identity. This module owns the Italian number agreement and semantic wording.
+"""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import date
+from decimal import Decimal, InvalidOperation
+
+from abbr2words import UnitMatch, iter_unit_matches
+from num2words import num2words
 
 from ..config import NumberPolicy
+from ..mapping import Replacement
 
-NUMBER_POLICY = NumberPolicy.CALLER_MANAGED
+NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
-__all__ = ["NUMBER_POLICY"]
+
+@dataclass(frozen=True, slots=True)
+class QuantityGrammar:
+    canonical_id: str
+    singular: str
+    plural: str
+    article: str = "un"
+
+
+QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
+    "duration-second": QuantityGrammar("duration-second", "secondo", "secondi"),
+    "duration-minute": QuantityGrammar("duration-minute", "minuto", "minuti"),
+    "duration-hour": QuantityGrammar("duration-hour", "ora", "ore", "un'"),
+    "duration-day": QuantityGrammar("duration-day", "giorno", "giorni"),
+    "length-millimeter": QuantityGrammar("length-millimeter", "millimetro", "millimetri"),
+    "length-centimeter": QuantityGrammar("length-centimeter", "centimetro", "centimetri"),
+    "length-meter": QuantityGrammar("length-meter", "metro", "metri"),
+    "length-kilometer": QuantityGrammar("length-kilometer", "chilometro", "chilometri"),
+    "volume-milliliter": QuantityGrammar("volume-milliliter", "millilitro", "millilitri"),
+    "volume-liter": QuantityGrammar("volume-liter", "litro", "litri"),
+    "mass-microgram": QuantityGrammar("mass-microgram", "microgrammo", "microgrammi"),
+    "mass-milligram": QuantityGrammar("mass-milligram", "milligrammo", "milligrammi"),
+    "mass-gram": QuantityGrammar("mass-gram", "grammo", "grammi"),
+    "mass-kilogram": QuantityGrammar("mass-kilogram", "chilogrammo", "chilogrammi"),
+    "mass-tonne": QuantityGrammar("mass-tonne", "tonnellata", "tonnellate", "una"),
+    "temperature-kelvin": QuantityGrammar("temperature-kelvin", "kelvin", "kelvin"),
+    "area-square-millimeter": QuantityGrammar(
+        "area-square-millimeter", "millimetro quadrato", "millimetri quadrati"
+    ),
+    "area-square-centimeter": QuantityGrammar(
+        "area-square-centimeter", "centimetro quadrato", "centimetri quadrati"
+    ),
+    "area-square-meter": QuantityGrammar("area-square-meter", "metro quadrato", "metri quadrati"),
+    "area-square-kilometer": QuantityGrammar(
+        "area-square-kilometer", "chilometro quadrato", "chilometri quadrati"
+    ),
+    "area-hectare": QuantityGrammar("area-hectare", "ettaro", "ettari"),
+    "volume-cubic-millimeter": QuantityGrammar(
+        "volume-cubic-millimeter", "millimetro cubo", "millimetri cubi"
+    ),
+    "volume-cubic-centimeter": QuantityGrammar(
+        "volume-cubic-centimeter", "centimetro cubo", "centimetri cubi"
+    ),
+    "volume-cubic-meter": QuantityGrammar("volume-cubic-meter", "metro cubo", "metri cubi"),
+    "speed-meter-per-second": QuantityGrammar(
+        "speed-meter-per-second", "metro al secondo", "metri al secondo"
+    ),
+    "speed-kilometer-per-hour": QuantityGrammar(
+        "speed-kilometer-per-hour", "chilometro all'ora", "chilometri all'ora"
+    ),
+}
+
+_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
+_DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
+_MONTHS = (
+    "gennaio",
+    "febbraio",
+    "marzo",
+    "aprile",
+    "maggio",
+    "giugno",
+    "luglio",
+    "agosto",
+    "settembre",
+    "ottobre",
+    "novembre",
+    "dicembre",
+)
+
+
+def _parts(raw: str) -> tuple[bool, int, str | None]:
+    value = raw.replace("−", "-").replace("\u00a0", " ").replace("\u202f", " ")
+    negative, unsigned = value.startswith("-"), value.lstrip("+-")
+    if unsigned.startswith(","):
+        integer, fraction = "0", unsigned[1:]
+    elif "," in unsigned:
+        integer, fraction = unsigned.split(",", 1)
+    else:
+        integer, fraction = unsigned, None
+    integer = re.sub(r"[.\s]", "", integer) or "0"
+    return negative, int(integer), fraction
+
+
+def _decimal(raw: str) -> Decimal:
+    negative, integer, fraction = _parts(raw)
+    normalized = f"{'-' if negative else ''}{integer}"
+    if fraction is not None:
+        normalized += f".{fraction}"
+    try:
+        return Decimal(normalized)
+    except InvalidOperation as exc:
+        raise ValueError(f"Cannot parse Italian number {raw!r}") from exc
+
+
+def _spell(value: int) -> str:
+    return str(num2words(value, lang="it"))
+
+
+def _number_text(raw: str, *, singular_article: str | None = None) -> str:
+    negative, integer, fraction = _parts(raw)
+    if fraction is None:
+        result = _spell(integer)
+        if integer == 1 and singular_article is not None:
+            result = singular_article
+    else:
+        result = f"{_spell(integer)} virgola " + " ".join(_spell(int(digit)) for digit in fraction)
+    return f"meno {result}" if negative else result
+
+
+def _valid_date(day: int, month: int, year: int) -> bool:
+    try:
+        date(year, month, day)
+    except ValueError:
+        return False
+    return True
+
+
+def _date_text(day: int, month: int, year: int) -> str:
+    return f"{_spell(day)} {_MONTHS[month - 1]} {_spell(year)}"
+
+
+def _terminal_dot(text: str, end: int) -> bool:
+    return not text[end:].strip(" \t\n\"'”’»)]}")
+
+
+def _quantity_text(match: UnitMatch, text: str) -> str | None:
+    canonical_id = match.canonical_id or ""
+    if canonical_id.startswith("currency-"):
+        return _currency_text(match.value, canonical_id)
+    if canonical_id in {"temperature-celsius", "temperature-fahrenheit"}:
+        unit = "Celsius" if canonical_id.endswith("celsius") else "Fahrenheit"
+        value = _decimal(match.value)
+        noun = f"grado {unit}" if abs(value) == 1 else f"gradi {unit}"
+        article = "un" if "," not in match.value else None
+        return f"{_number_text(match.value, singular_article=article)} {noun}"
+    grammar = QUANTITY_GRAMMAR.get(canonical_id)
+    if grammar is None:
+        return None
+    value = _decimal(match.value)
+    singular = value == 1
+    noun = grammar.singular if singular else grammar.plural
+    number = _number_text(
+        match.value,
+        singular_article=grammar.article if singular else None,
+    )
+    result = f"{number}{noun}" if singular and grammar.article.endswith("'") else f"{number} {noun}"
+    if match.symbol.endswith(".") and _terminal_dot(text, match.end):
+        result += "."
+    return result
+
+
+def _currency_text(raw: str, canonical_id: str) -> str:
+    negative, integer, fraction = _parts(raw)
+    names = {
+        "currency-euro": ("euro", "euro", "centesimo", "centesimi"),
+        "currency-us-dollar": ("dollaro", "dollari", "centesimo", "centesimi"),
+        "currency-pound-sterling": ("sterlina", "sterline", "centesimo", "centesimi"),
+    }
+    singular, plural, minor_singular, minor_plural = names[canonical_id]
+    major = singular if integer == 1 else plural
+    major_raw = f"{'-' if negative else ''}{integer}"
+    number = _number_text(major_raw, singular_article="un" if integer == 1 else None)
+    result = f"{number} {major}"
+    if fraction is not None:
+        minor_value = int((fraction + "00")[:2])
+        if minor_value:
+            minor = minor_singular if minor_value == 1 else minor_plural
+            minor_number = "un" if minor_value == 1 else _spell(minor_value)
+            result += f" e {minor_number} {minor}"
+    return result
+
+
+def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
+    return any(start < right and left < end for left, right in protected)
+
+
+def iter_replacements(
+    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+) -> tuple[Replacement, ...]:
+    """Return exact Italian structured and semantic replacement candidates."""
+    protected = tuple(protected_ranges)
+    candidates: list[Replacement] = []
+
+    def add(start: int, end: int, value: str | None, rule: str) -> None:
+        if value is not None and not _overlaps(start, end, protected):
+            candidates.append(Replacement(start, end, value, "structured", "it", rule))
+
+    for pattern in (_DATE_DMY, _DATE_ISO):
+        for match in pattern.finditer(text):
+            day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
+            if 1 <= month <= 12 and _valid_date(day, month, year):
+                add(match.start(), match.end(), _date_text(day, month, year), "it.date")
+
+    for match in iter_unit_matches(text, "it", protected_spans=protected):
+        replacement = _quantity_text(match, text)
+        add(
+            match.start,
+            match.end,
+            replacement,
+            "it.currency" if match.category == "currency" else "it.quantity",
+        )
+    return tuple(candidates)
+
+
+__all__ = ["NUMBER_POLICY", "QUANTITY_GRAMMAR", "QuantityGrammar", "iter_replacements"]

@@ -8,6 +8,7 @@ pytest.importorskip("kokorog2p")
 from kokorog2p.de.g2p import GermanG2P  # noqa: E402
 from kokorog2p.es.g2p import SpanishG2P  # noqa: E402
 from kokorog2p.fr.g2p import FrenchG2P  # noqa: E402
+from kokorog2p.it import ItalianG2P  # noqa: E402
 
 from spokenform import ProtectedSpan, prepare_for_kokorog2p  # noqa: E402
 
@@ -176,4 +177,50 @@ def test_real_french_downstream_protected_override_coordinates() -> None:
     assert prepared.spoken_text[output_start:output_end] == "2 kg"
     tokens = _real_french_g2p()(prepared.spoken_text)
     assert all(token.phonemes is not None for token in tokens)
+    assert all("\ue000" not in token.text for token in tokens)
+
+
+def _real_italian_g2p() -> ItalianG2P:
+    return ItalianG2P(
+        use_espeak_fallback=False,
+        use_goruut_fallback=False,
+        use_spacy=False,
+    )
+
+
+def test_real_italian_downstream_contract() -> None:
+    source = "Il 14.05.2026 costa 12,80 EUR."
+    prepared = prepare_for_kokorog2p(source, "it")
+    assert prepared.spoken_text == (
+        "Il quattordici maggio duemilaventisei costa dodici euro e ottanta centesimi."
+    )
+    assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
+        ("14.05.2026", "quattordici maggio duemilaventisei"),
+        ("12,80 EUR", "dodici euro e ottanta centesimi"),
+    ]
+    tokens = _real_italian_g2p()(prepared.spoken_text)
+    assert tokens
+    assert all(token.phonemes for token in tokens if token.is_word)
+    assert all(
+        prepared.spoken_text[token._["char_start"] : token._["char_end"]] == token.text
+        for token in tokens
+    )
+    assert not any(character.isdigit() for token in tokens for character in token.text)
+    assert not prepared.warnings
+
+
+def test_real_italian_protected_override_coordinates() -> None:
+    source = "Override 2 kg; normalizza 3 kg."
+    start = source.index("2 kg")
+    prepared = prepare_for_kokorog2p(
+        source,
+        "it",
+        protected_spans=[ProtectedSpan(start, start + len("2 kg"), kind="g2p-override")],
+    )
+    assert prepared.spoken_text == "Override 2 kg; normalizza tre chilogrammi."
+    output_start, output_end = prepared.map_source_span(start, start + len("2 kg"))
+    assert prepared.spoken_text[output_start:output_end] == "2 kg"
+    tokens = _real_italian_g2p()(prepared.spoken_text)
+    assert any(token.text == "tre" for token in tokens)
+    assert all(token.phonemes for token in tokens if token.is_word)
     assert all("\ue000" not in token.text for token in tokens)

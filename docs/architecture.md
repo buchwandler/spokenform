@@ -39,13 +39,14 @@ apostrophe variants, and punctuation choices required only by a model tokenizer.
 
 The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical
-identity; `spokenform.structured` dispatches to locale-owned German, French, or
-Spanish semantic grammar. No symbol or alias inventory is copied into
-spokenform. French owns its dates, h/colon times, ordinals, decimal digit
+identity; `spokenform.structured` dispatches to locale-owned German, French,
+Spanish, or Italian semantic grammar. No symbol or alias inventory is copied
+into spokenform. French owns its dates, h/colon times, ordinals, decimal digit
 reading, quantities, temperatures, and currency decomposition. Spanish owns
 reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
-Spanish colon times remain caller-managed. G2P typography and phonemes stay
-downstream.
+Spanish colon times remain caller-managed. Italian owns reviewed dates,
+quantities, temperatures, currencies, and ordinary numbers; Italian colon times
+remain caller-managed. G2P typography and phonemes stay downstream.
 
 French is promoted to `NumberPolicy.STRUCTURED_AND_PLAIN` only after its parity
 corpus and real downstream gate pass. Every locale replacement retains exact
@@ -56,6 +57,12 @@ Spanish is promoted to the same policy only after its parity corpus and real
 `kokorog2p` `es`/`la` gate pass. Its plain-number stage protects reviewed dates,
 time candidates, URLs, e-mail addresses, and semantic versions so policy
 promotion cannot silently claim an unreviewed category.
+
+Italian is promoted to the same policy after its parity corpus and real
+`kokorog2p` Italian gate pass. Its plain-number stage protects valid and invalid
+date candidates, colon-time candidates, URLs, e-mail addresses, and semantic
+versions. Czech, Portuguese, and English remain caller-managed. All reviewed
+Italian quantity and currency symbols continue to come from `abbr2words`.
 
 `prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
 preserves run boundaries, honors protected spans fail-closed, and does not perform
