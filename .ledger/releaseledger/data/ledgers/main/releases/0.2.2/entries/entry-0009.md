@@ -3,25 +3,25 @@ schema_version: 2
 object_type: release_entry
 versioning:
   schema_version: 1
-  revision: 3
-entry_id: entry-0005
+  revision: 2
+entry_id: entry-0009
 release_version: 0.2.2
 kind: added
 summary:
-  Added parity-gated Italian semantic normalization for reviewed numbers, units,
-  temperatures, currencies, and numeric dates
+  Added English locale with structured text normalization for dates, times,
+  numbers, ordinals, quantities, temperatures, and currencies
 status: accepted
 audience: null
 scopes: []
 source_refs:
-  - git:5250ece2d2b5426b456acd1e27a801e8d59de41b
+  - git:db4d42370a3ae77c4871edede28be5e25ce68285
 paths:
-  - spokenform/locales/it.py
+  - spokenform/locales/en.py
 issues: []
 prs: []
 sources: []
 contributors: []
 breaking: false
 internal: false
-order: 5
+order: 9
 ---

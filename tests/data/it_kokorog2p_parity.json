@@ -1,27 +1,95 @@
 [
-  {"name": "lexical title abbreviation", "input": "Prof. Klein", "expected": "Professor Klein"},
-  {"name": "ordinary integer", "input": "12", "expected": "dodici"},
-  {"name": "negative integer", "input": "−12", "expected": "meno dodici"},
-  {"name": "decimal digits", "input": "12,80", "expected": "dodici virgola otto zero"},
-  {"name": "leading decimal", "input": ",02", "expected": "zero virgola zero due"},
-  {"name": "dmy dotted date", "input": "14.05.2026", "expected": "quattordici maggio duemilaventisei"},
-  {"name": "dmy slashed date", "input": "14/05/2026", "expected": "quattordici maggio duemilaventisei"},
-  {"name": "iso date", "input": "2026-05-14", "expected": "quattordici maggio duemilaventisei"},
-  {"name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026"},
-  {"name": "mass", "input": "1 kg e 2 kg", "expected": "un chilogrammo e due chilogrammi"},
-  {"name": "duration", "input": "1 h e 2 min.", "expected": "un'ora e due minuti."},
-  {"name": "area and volume", "input": "1 m² e 2 m³", "expected": "un metro quadrato e due metri cubi"},
-  {"name": "compound unit", "input": "2 km/h", "expected": "due chilometri all'ora"},
-  {"name": "temperature", "input": "25°C", "expected": "venticinque gradi Celsius"},
-  {"name": "temperature negative", "input": "−1 °C", "expected": "meno un grado Celsius"},
-  {"name": "temperature decimal", "input": "1,5°C", "expected": "uno virgola cinque gradi Celsius"},
-  {"name": "euro suffix decimal", "input": "12,80 EUR", "expected": "dodici euro e ottanta centesimi"},
-  {"name": "euro prefix decimal", "input": "€12,80", "expected": "dodici euro e ottanta centesimi"},
-  {"name": "dollar", "input": "$10", "expected": "dieci dollari"},
-  {"name": "pound", "input": "£5", "expected": "cinque sterline"},
-  {"name": "singular euro", "input": "1 EUR", "expected": "un euro"},
-  {"name": "minor singular", "input": "1,01 EUR", "expected": "un euro e un centesimo"},
-  {"name": "time remains caller managed", "input": "Ci vediamo alle 18:20.", "expected": "Ci vediamo alle 18:20."},
+  {
+    "name": "lexical title abbreviation",
+    "input": "Prof. Klein",
+    "expected": "Professor Klein"
+  },
+  { "name": "ordinary integer", "input": "12", "expected": "dodici" },
+  { "name": "negative integer", "input": "−12", "expected": "meno dodici" },
+  {
+    "name": "decimal digits",
+    "input": "12,80",
+    "expected": "dodici virgola otto zero"
+  },
+  {
+    "name": "leading decimal",
+    "input": ",02",
+    "expected": "zero virgola zero due"
+  },
+  {
+    "name": "dmy dotted date",
+    "input": "14.05.2026",
+    "expected": "quattordici maggio duemilaventisei"
+  },
+  {
+    "name": "dmy slashed date",
+    "input": "14/05/2026",
+    "expected": "quattordici maggio duemilaventisei"
+  },
+  {
+    "name": "iso date",
+    "input": "2026-05-14",
+    "expected": "quattordici maggio duemilaventisei"
+  },
+  { "name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026" },
+  {
+    "name": "mass",
+    "input": "1 kg e 2 kg",
+    "expected": "un chilogrammo e due chilogrammi"
+  },
+  {
+    "name": "duration",
+    "input": "1 h e 2 min.",
+    "expected": "un'ora e due minuti."
+  },
+  {
+    "name": "area and volume",
+    "input": "1 m² e 2 m³",
+    "expected": "un metro quadrato e due metri cubi"
+  },
+  {
+    "name": "compound unit",
+    "input": "2 km/h",
+    "expected": "due chilometri all'ora"
+  },
+  {
+    "name": "temperature",
+    "input": "25°C",
+    "expected": "venticinque gradi Celsius"
+  },
+  {
+    "name": "temperature negative",
+    "input": "−1 °C",
+    "expected": "meno un grado Celsius"
+  },
+  {
+    "name": "temperature decimal",
+    "input": "1,5°C",
+    "expected": "uno virgola cinque gradi Celsius"
+  },
+  {
+    "name": "euro suffix decimal",
+    "input": "12,80 EUR",
+    "expected": "dodici euro e ottanta centesimi"
+  },
+  {
+    "name": "euro prefix decimal",
+    "input": "€12,80",
+    "expected": "dodici euro e ottanta centesimi"
+  },
+  { "name": "dollar", "input": "$10", "expected": "dieci dollari" },
+  { "name": "pound", "input": "£5", "expected": "cinque sterline" },
+  { "name": "singular euro", "input": "1 EUR", "expected": "un euro" },
+  {
+    "name": "minor singular",
+    "input": "1,01 EUR",
+    "expected": "un euro e un centesimo"
+  },
+  {
+    "name": "time remains caller managed",
+    "input": "Ci vediamo alle 18:20.",
+    "expected": "Ci vediamo alle 18:20."
+  },
   {
     "name": "compact migration scenario",
     "input": "Il 14.05.2026 il Prof. Klein necessita di 1,5 kg di farina, 500 g di zucchero, 2 l di acqua e 25°C. Il costo è 12,80 EUR.",

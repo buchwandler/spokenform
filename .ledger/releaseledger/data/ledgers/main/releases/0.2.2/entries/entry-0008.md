@@ -3,25 +3,27 @@ schema_version: 2
 object_type: release_entry
 versioning:
   schema_version: 1
-  revision: 1
+  revision: 3
 entry_id: entry-0008
 release_version: 0.2.2
 kind: docs
-summary: Documented Italian migration ownership, the released abbr2words prerequisite,
+summary:
+  Documented Italian migration ownership, the released abbr2words prerequisite,
   and downstream release readiness
-status: draft
+status: accepted
 audience: null
 scopes: []
-source_refs: []
+source_refs:
+  - git:5250ece2d2b5426b456acd1e27a801e8d59de41b
 paths:
-- README.md
-- docs/architecture.md
-- docs/limitations.md
-- docs/migration-kokorog2p.md
+  - README.md
+  - docs/architecture.md
+  - docs/limitations.md
+  - docs/migration-kokorog2p.md
 issues: []
 prs: []
 sources:
-- tl:task-0010
+  - tl:task-0010
 contributors: []
 breaking: false
 internal: false

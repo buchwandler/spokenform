@@ -1,28 +1,104 @@
 [
-  {"name": "lexical title abbreviation", "input": "Sr. Silva", "expected": "Senhor Silva"},
-  {"name": "lexical doctor abbreviation", "input": "Dra. Costa", "expected": "Doutora Costa"},
-  {"name": "ordinary integer", "input": "12", "expected": "doze"},
-  {"name": "negative integer", "input": "−12", "expected": "menos doze"},
-  {"name": "decimal digits", "input": "12,80", "expected": "doze vírgula oito zero"},
-  {"name": "leading decimal", "input": ",02", "expected": "zero vírgula zero dois"},
-  {"name": "dmy dotted date", "input": "14.05.2026", "expected": "catorze de maio de dois mil e vinte e seis"},
-  {"name": "dmy slashed date", "input": "14/05/2026", "expected": "catorze de maio de dois mil e vinte e seis"},
-  {"name": "iso date", "input": "2026-05-14", "expected": "catorze de maio de dois mil e vinte e seis"},
-  {"name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026"},
-  {"name": "mass singular plural", "input": "1 kg e 2 kg", "expected": "um quilograma e dois quilogramas"},
-  {"name": "feminine duration", "input": "1 h e 2 h", "expected": "uma hora e duas horas"},
-  {"name": "dotted duration", "input": "2 min.", "expected": "dois minutos."},
-  {"name": "length", "input": "2 m", "expected": "dois metros"},
-  {"name": "area and cubic volume", "input": "1 m² e 2 m³", "expected": "um metro quadrado e dois metros cúbicos"},
-  {"name": "speed", "input": "2 km/h", "expected": "dois quilômetros por hora"},
-  {"name": "temperature singular plural", "input": "1°C e 25°F", "expected": "um grau Celsius e vinte e cinco graus Fahrenheit"},
-  {"name": "euro suffix decimal", "input": "12,80 EUR", "expected": "doze euros e oitenta centavos"},
-  {"name": "euro prefix decimal", "input": "€12,80", "expected": "doze euros e oitenta centavos"},
-  {"name": "dollar", "input": "$2", "expected": "dois dólares"},
-  {"name": "pound", "input": "£1", "expected": "uma libra esterlina"},
-  {"name": "real prefix", "input": "R$ 12,80", "expected": "doze reais e oitenta centavos"},
-  {"name": "real suffix", "input": "12,80 BRL", "expected": "doze reais e oitenta centavos"},
-  {"name": "time remains caller managed", "input": "Até às 18:20.", "expected": "Até às 18:20."},
-  {"name": "invalid time remains unchanged", "input": "O horário 25:70 permanece.", "expected": "O horário 25:70 permanece."},
-  {"name": "compact migration scenario", "input": "Em 14.05.2026, o Sr. Silva precisa de 2 kg a 25°C e paga R$ 12,80.", "expected": "Em catorze de maio de dois mil e vinte e seis, o Senhor Silva precisa de dois quilogramas a vinte e cinco graus Celsius e paga doze reais e oitenta centavos."}
+  {
+    "name": "lexical title abbreviation",
+    "input": "Sr. Silva",
+    "expected": "Senhor Silva"
+  },
+  {
+    "name": "lexical doctor abbreviation",
+    "input": "Dra. Costa",
+    "expected": "Doutora Costa"
+  },
+  { "name": "ordinary integer", "input": "12", "expected": "doze" },
+  { "name": "negative integer", "input": "−12", "expected": "menos doze" },
+  {
+    "name": "decimal digits",
+    "input": "12,80",
+    "expected": "doze vírgula oito zero"
+  },
+  {
+    "name": "leading decimal",
+    "input": ",02",
+    "expected": "zero vírgula zero dois"
+  },
+  {
+    "name": "dmy dotted date",
+    "input": "14.05.2026",
+    "expected": "catorze de maio de dois mil e vinte e seis"
+  },
+  {
+    "name": "dmy slashed date",
+    "input": "14/05/2026",
+    "expected": "catorze de maio de dois mil e vinte e seis"
+  },
+  {
+    "name": "iso date",
+    "input": "2026-05-14",
+    "expected": "catorze de maio de dois mil e vinte e seis"
+  },
+  { "name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026" },
+  {
+    "name": "mass singular plural",
+    "input": "1 kg e 2 kg",
+    "expected": "um quilograma e dois quilogramas"
+  },
+  {
+    "name": "feminine duration",
+    "input": "1 h e 2 h",
+    "expected": "uma hora e duas horas"
+  },
+  { "name": "dotted duration", "input": "2 min.", "expected": "dois minutos." },
+  { "name": "length", "input": "2 m", "expected": "dois metros" },
+  {
+    "name": "area and cubic volume",
+    "input": "1 m² e 2 m³",
+    "expected": "um metro quadrado e dois metros cúbicos"
+  },
+  {
+    "name": "speed",
+    "input": "2 km/h",
+    "expected": "dois quilômetros por hora"
+  },
+  {
+    "name": "temperature singular plural",
+    "input": "1°C e 25°F",
+    "expected": "um grau Celsius e vinte e cinco graus Fahrenheit"
+  },
+  {
+    "name": "euro suffix decimal",
+    "input": "12,80 EUR",
+    "expected": "doze euros e oitenta centavos"
+  },
+  {
+    "name": "euro prefix decimal",
+    "input": "€12,80",
+    "expected": "doze euros e oitenta centavos"
+  },
+  { "name": "dollar", "input": "$2", "expected": "dois dólares" },
+  { "name": "pound", "input": "£1", "expected": "uma libra esterlina" },
+  {
+    "name": "real prefix",
+    "input": "R$ 12,80",
+    "expected": "doze reais e oitenta centavos"
+  },
+  {
+    "name": "real suffix",
+    "input": "12,80 BRL",
+    "expected": "doze reais e oitenta centavos"
+  },
+  {
+    "name": "time remains caller managed",
+    "input": "Até às 18:20.",
+    "expected": "Até às 18:20."
+  },
+  {
+    "name": "invalid time remains unchanged",
+    "input": "O horário 25:70 permanece.",
+    "expected": "O horário 25:70 permanece."
+  },
+  {
+    "name": "compact migration scenario",
+    "input": "Em 14.05.2026, o Sr. Silva precisa de 2 kg a 25°C e paga R$ 12,80.",
+    "expected": "Em catorze de maio de dois mil e vinte e seis, o Senhor Silva precisa de dois quilogramas a vinte e cinco graus Celsius e paga doze reais e oitenta centavos."
+  }
 ]
