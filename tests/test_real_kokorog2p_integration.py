@@ -6,6 +6,7 @@ import pytest
 
 pytest.importorskip("kokorog2p")
 from kokorog2p.de.g2p import GermanG2P  # noqa: E402
+from kokorog2p.en.g2p import EnglishG2P  # noqa: E402
 from kokorog2p.es.g2p import SpanishG2P  # noqa: E402
 from kokorog2p.fr.g2p import FrenchG2P  # noqa: E402
 from kokorog2p.it import ItalianG2P  # noqa: E402
@@ -21,6 +22,43 @@ def _real_g2p() -> GermanG2P:
         use_spacy=False,
         use_lexicon=False,
     )
+
+
+def _real_english_g2p() -> EnglishG2P:
+    return EnglishG2P(
+        language="en-us",
+        use_espeak_fallback=False,
+        use_goruut_fallback=False,
+        use_spacy=False,
+        load_gold=True,
+        load_silver=True,
+        strict=False,
+    )
+
+
+def test_real_english_downstream_contract() -> None:
+    source = (
+        "At 3:00, it was 37°C. Pay $12.50 for 10 in. World War II began in 1984, "
+        "and 1st edition uses 1.02.3."
+    )
+    prepared = prepare_for_kokorog2p(source, "en")
+    assert prepared.spoken_text == (
+        "At three o'clock, it was thirty seven degrees Celsius. Pay "
+        "twelve dollars and fifty cents for ten inches World War II began in 1984, "
+        "and 1st edition uses 1.02.3."
+    )
+    tokens = _real_english_g2p()(prepared.spoken_text)
+    assert tokens
+    assert all(token.phonemes for token in tokens)
+    assert all(
+        prepared.spoken_text[token._["char_start"] : token._["char_end"]] == token.text
+        for token in tokens
+    )
+    assert any(token.text == "1984" for token in tokens)
+    assert any(token.text == "II" for token in tokens)
+    assert any(token.text == "1st" for token in tokens)
+    assert any(token.text == "1.02.3" for token in tokens)
+    assert not prepared.warnings
 
 
 def test_real_german_downstream_contract() -> None:

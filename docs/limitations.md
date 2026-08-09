@@ -14,10 +14,12 @@
   default output.
 - German quantity recognition depends on the released `abbr2words` structured
   match API. spokenform owns the semantic grammar, not the symbol inventory.
-- German, French, Spanish, Italian, Portuguese, and Czech have parity-gated
+- English, German, French, Spanish, Italian, Portuguese, and Czech have parity-gated
   structured ownership. Spanish, Italian, Portuguese, and Czech time
   expressions remain caller-managed because no reviewed time ownership contract
-  is included. English remains caller-managed for number categories.
+  is included. English intentionally reserves years, suffix ordinals, Roman
+  numerals, phone/ID sequences, dotted versions, numeric suffixes, and
+  phoneme-sensitive helpers for kokorog2p.
 - French decimal money is decomposed deterministically into major and minor
   units; reviewed fixtures define spelling and preserve written fractional
   precision rather than delegating to a third-party currency string.
@@ -31,12 +33,13 @@ spokenform is a one-language written-to-spoken layer. Callers own language
 selection, mixed-language segmentation, markup/SSML, tokenization, lexicons,
 phonemization, and model-specific punctuation.
 
-German was the first kokorog2p parity target. French, Spanish, Italian, and
-Portuguese now
+German was the first kokorog2p parity target. English, French, Spanish, Italian,
+and Portuguese now
 have text, source mapping, downstream token/phoneme, protection, and
 released-stack fixtures. Spanish, Italian, Portuguese, and Czech time remain
-caller-managed. Czech semantic number categories are owned by spokenform;
-English number categories remain caller-managed. Unsupported language categories use an explicit
+caller-managed. Czech and English semantic number categories are owned by
+spokenform; English deliberately keeps context-sensitive numeric categories
+downstream. Unsupported language categories use an explicit
 `NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
 
 Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps all run

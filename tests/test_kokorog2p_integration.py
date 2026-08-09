@@ -68,3 +68,27 @@ def test_french_adapter_token_and_phoneme_parity_fixture() -> None:
     assert phonemes == [token.casefold() for token in tokens]
     assert all(not any(character.isdigit() for character in token) for token in tokens)
     assert all("\ue000" not in warning for warning in result.warnings)
+
+
+def test_english_adapter_preserves_migrated_and_reserved_ownership() -> None:
+    source = (
+        "At 3:00, it was 37°C. Pay $12.50 for 10 in. World War II began in 1984, "
+        "and 1st edition uses 1.02.3."
+    )
+    result = prepare_for_kokorog2p(source, "en")
+    assert result.spoken_text == (
+        "At three o'clock, it was thirty seven degrees Celsius. Pay "
+        "twelve dollars and fifty cents for ten inches World War II began in 1984, "
+        "and 1st edition uses 1.02.3."
+    )
+    assert [(item.source, item.rule) for item in result.source_replacements] == [
+        ("3:00", "en.time"),
+        ("37°C", "en.quantity"),
+        ("$12.50", "en.currency"),
+        ("10 in.", "en.quantity"),
+    ]
+    tokens = _tokenize(result.spoken_text)
+    assert "1984" in tokens and "II" in tokens
+    assert "1st" in result.spoken_text and "1.02.3" in result.spoken_text
+    assert _phonemize(tokens) == [token.casefold() for token in tokens]
+    assert "\ue000" not in result.spoken_text

@@ -57,9 +57,9 @@ def test_annotations_are_remapped_after_protected_spans(
 ) -> None:
     import spokenform.api as api
 
-    source = "https://example.org/long-path 2 in."
-    token_start = source.index("in.")
-    annotations = (TokenAnnotation(token_start, token_start + 3, text="in.", pos="NOUN"),)
+    source = "https://example.org/long-path 2 cats."
+    token_start = source.index("cats")
+    annotations = (TokenAnnotation(token_start, token_start + 4, text="cats", pos="NOUN"),)
     captured: dict[str, object] = {}
 
     def capture(
@@ -96,7 +96,7 @@ def test_annotations_are_remapped_after_protected_spans(
     assert isinstance(transformed, str)
     assert adapted is not None
     first = adapted[0]  # type: ignore[index]
-    assert transformed[first.start : first.end] == "in."
+    assert transformed[first.start : first.end] == "cats"
 
 
 def test_annotations_are_remapped_between_structured_and_abbreviation_stages(

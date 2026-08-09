@@ -33,7 +33,11 @@ def iter_structured_replacements(
 
     base = _base_language(language)
     protected = tuple(protected_ranges)
-    if base == "de":
+    if base == "en":
+        from .locales.en import iter_replacements
+
+        candidates = iter_replacements(text, protected_ranges=protected)
+    elif base == "de":
         from .locales.de import iter_replacements
 
         candidates = iter_replacements(text, protected_ranges=protected)

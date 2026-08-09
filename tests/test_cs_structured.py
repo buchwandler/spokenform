@@ -10,11 +10,11 @@ from spokenform import (
 from spokenform.config import number_policy_for_language
 
 
-def test_czech_policy_aliases_and_english_boundary() -> None:
+def test_czech_policy_aliases_and_english_policy() -> None:
     for language in ("cs", "cs-cz", "cs_CZ"):
         assert number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN
         assert PreparationConfig.for_kokorog2p(language).number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
-    assert number_policy_for_language("en") is NumberPolicy.CALLER_MANAGED
+    assert number_policy_for_language("en") is NumberPolicy.STRUCTURED_AND_PLAIN
 
 
 def test_czech_ordinary_numbers_and_precision() -> None:

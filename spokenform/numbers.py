@@ -169,6 +169,9 @@ _SPANISH_PLAIN_NUMBER_RE = re.compile(
 _CZECH_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
 )
+_ENGLISH_PLAIN_NUMBER_RE = re.compile(
+    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:,\d{3})+|\d{1,3})(?:\.\d+)?|\.\d+)(?![\w.])"
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -529,6 +532,72 @@ def _normalize_czech_plain_numbers(text: str) -> str:
     ).restore()
 
 
+def _english_spell(value: int) -> str:
+    """Spell a safe English cardinal without punctuation or hyphens."""
+    return str(num2words(value, lang="en")).replace(",", "").replace("-", " ")
+
+
+def _english_plain_number_text(raw: str) -> str:
+    """Render one reviewed English ordinary number, preserving fraction digits."""
+    normalized = raw.replace("−", "-")
+    negative = normalized.startswith("-")
+    positive = normalized.startswith("+")
+    unsigned = normalized.lstrip("+-").replace(",", "")
+    if unsigned.startswith("."):
+        integer, fraction = "", unsigned[1:]
+        result = "point " + " ".join(_english_spell(int(digit)) for digit in fraction)
+    elif "." in unsigned:
+        integer, fraction = unsigned.split(".", 1)
+        result = f"{_english_spell(int(integer))} point " + " ".join(
+            _english_spell(int(digit)) for digit in fraction
+        )
+    else:
+        result = _english_spell(int(unsigned))
+    if negative:
+        return f"minus {result}"
+    if positive:
+        return f"plus {result}"
+    return result
+
+
+def _protect_english_units(protected: _ProtectedText) -> _ProtectedText:
+    """Reserve every recognized unit so unknown/future IDs fail closed."""
+    from abbr2words import iter_unit_matches
+
+    values = list(protected.values)
+    result = protected.text
+    occupied: list[tuple[int, int]] = []
+    for match in reversed(tuple(iter_unit_matches(result, "en"))):
+        if any(match.start < end and start < match.end for start, end in occupied):
+            continue
+        index = len(values)
+        values.append(result[match.start : match.end])
+        placeholder = chr(protected.placeholder_start + index)
+        result = result[: match.start] + placeholder + result[match.end :]
+        occupied.append((match.start, match.end))
+    return _ProtectedText(result, tuple(values), protected.placeholder_start)
+
+
+def _normalize_english_plain_numbers(text: str) -> str:
+    """Verbalize only low-risk English cardinals and decimals.
+
+    Four-digit and longer ungrouped digit strings are deliberately excluded:
+    they may be years, phone/ID values, or another downstream-owned sequence.
+    Dates, times, versions, URLs, emails, and recognized units are protected
+    atomically before this pass.
+    """
+    protected = _protect_english_units(_protect_plain_numbers(text))
+
+    def replace(match: re.Match[str]) -> str:
+        return _english_plain_number_text(match.group(0))
+
+    return _ProtectedText(
+        _ENGLISH_PLAIN_NUMBER_RE.sub(replace, protected.text),
+        protected.values,
+        protected.placeholder_start,
+    ).restore()
+
+
 def normalize_plain_numbers(text: str, *, language: str) -> str:
     """Verbalize only ordinary numbers, preserving all structured candidates."""
     if not isinstance(text, str):
@@ -546,4 +615,6 @@ def normalize_plain_numbers(text: str, *, language: str) -> str:
             decimal_word={"es": "coma", "it": "virgola", "pt": "vírgula"}[base],
             negative_word={"es": "menos", "it": "meno", "pt": "menos"}[base],
         )
+    if base == "en":
+        return _normalize_english_plain_numbers(text)
     return normalize_numbers(text, language=base)

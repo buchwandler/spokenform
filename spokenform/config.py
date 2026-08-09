@@ -21,7 +21,7 @@ def number_policy_for_language(language: str) -> NumberPolicy:
     if base == "de":
         return NumberPolicy.STRUCTURED_AND_PLAIN
     if base == "en":
-        return NumberPolicy.CALLER_MANAGED
+        return NumberPolicy.STRUCTURED_AND_PLAIN
     if base == "cs":
         return NumberPolicy.STRUCTURED_AND_PLAIN
     if base in {"es", "it", "pt"}:
