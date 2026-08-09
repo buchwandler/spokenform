@@ -41,6 +41,23 @@ semantic replacements; partial overlap is handled fail-closed by protecting the
 complete recognized quantity expression. Use `source_replacements` and the offset
 helpers to rebase downstream token and override coordinates.
 
+The preferred downstream surface is `PreparationConfig.for_kokorog2p()`,
+`prepare_for_kokorog2p()`, `PreparedText.source_replacements`,
+`PreparedText.offset_map`, and `NumberPolicy`. The lower-level mapping and stage
+helpers are advanced exports rather than requirements for a normal adapter.
+
+## Export classification
+
+The stable application-facing surface is `prepare()`,
+`prepare_for_kokorog2p()`, `prepare_text`, `PreparationConfig`, `NumberPolicy`,
+`PreparedText`, `ProtectedSpan`, `ProtectionError`, `TokenAnnotation`, and
+`__version__`. `number_policy_for_language()` and `normalize_numbers()` are
+stable locale-policy helpers. The annotation adapters, spaCy model helpers,
+structured-stage helpers, `StageResult`, and mapping/replacement classes and
+conversion functions are advanced public APIs: they remain exported for
+compatibility and diagnostics, but downstream integrations should prefer the
+high-level preparation surface. No exported symbol is removed in 0.2.2.
+
 ```{autoclass} spokenform.PreparationStage
 :members:
 ```

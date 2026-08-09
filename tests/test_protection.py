@@ -74,6 +74,24 @@ def test_unicode_normalization_around_protected_placeholder_preserves_offsets() 
     assert result.map_output_span(output_start, output_end) == (url_start, url_end)
 
 
+def test_existing_private_use_character_does_not_collide_with_protected_placeholder() -> None:
+    source = "Literal \ue000 and https://example.org/2 kg 3 kg"
+    protected_start = source.index("https://")
+    protected_end = protected_start + len("https://example.org/2 kg")
+
+    result = prepare(
+        source,
+        language="de",
+        use_spacy=False,
+        protected_spans=[(protected_start, protected_end)],
+    )
+
+    assert "Literal \ue000" in result.spoken_text
+    assert "https://example.org/2 kg" in result.spoken_text
+    assert result.spoken_text.endswith("drei Kilogramm")
+    assert all("\ue000" not in warning for warning in result.warnings)
+
+
 def test_partial_protected_structured_expression_is_left_unchanged() -> None:
     source = "2 kg and 3 kg"
     protected_start = source.index("2 kg") + 2

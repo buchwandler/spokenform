@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from importlib.metadata import PackageNotFoundError, version
-
 try:
-    __version__ = version("spokenform")
-except PackageNotFoundError:  # source tree before installation
-    __version__ = "0.1.0"
+    from ._version import version as __version__
+except (ImportError, AttributeError):  # source tree before setuptools_scm generation
+    __version__ = "0+unknown"
 
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
 from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text

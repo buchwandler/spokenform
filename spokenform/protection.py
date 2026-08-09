@@ -103,11 +103,15 @@ class ProtectedText:
     text: str
     spans: tuple[ProtectedSpan, ...]
     values: tuple[str, ...]
+    placeholders: tuple[str, ...] = ()
 
     def restore(self, text: str | None = None) -> str:
         result = self.text if text is None else text
         for index, value in enumerate(self.values):
-            result = result.replace(_placeholder(index), value)
+            placeholder = (
+                self.placeholders[index] if index < len(self.placeholders) else _placeholder(index)
+            )
+            result = result.replace(placeholder, value)
         return result
 
 
@@ -118,19 +122,43 @@ def _placeholder(index: int) -> str:
 
 
 def protect_text(text: str, spans: tuple[ProtectedSpan, ...]) -> ProtectedText:
-    """Replace protected source ranges with private-use sentinels."""
+    """Replace protected source ranges with input-safe private-use sentinels."""
     if not spans:
         return ProtectedText(text, (), ())
+    placeholders = _allocate_placeholders(text, len(spans))
     parts: list[str] = []
     values: list[str] = []
     cursor = 0
     for index, span in enumerate(spans):
         parts.append(text[cursor : span.start])
         values.append(text[span.start : span.end])
-        parts.append(_placeholder(index))
+        parts.append(placeholders[index])
         cursor = span.end
     parts.append(text[cursor:])
-    return ProtectedText("".join(parts), spans, tuple(values))
+    return ProtectedText("".join(parts), spans, tuple(values), placeholders)
+
+
+def _allocate_placeholders(text: str, count: int) -> tuple[str, ...]:
+    """Allocate private-use characters absent from *text* and each other."""
+    if count <= 0:
+        return ()
+    used = set(text)
+    candidates = (
+        range(0xE000, 0xF900),
+        range(0xF0000, 0x100000),
+        range(0x100000, 0x110000),
+    )
+    placeholders: list[str] = []
+    for codepoints in candidates:
+        for codepoint in codepoints:
+            placeholder = chr(codepoint)
+            if placeholder in used:
+                continue
+            placeholders.append(placeholder)
+            used.add(placeholder)
+            if len(placeholders) == count:
+                return tuple(placeholders)
+    raise ProtectionError("Too many protected spans for available private-use sentinels")
 
 
 __all__ = [

@@ -34,8 +34,8 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  # 0.2.2 is the first released abbr2words version with Spanish structured currency identities.
-  "abbr2words>=0.2.2,<0.3.0",
+  # 0.2.4 provides the structured identities required by all migrated locales.
+  "abbr2words>=0.2.4,<0.3.0",
   "num2words>=0.5.14,<0.6",
 ]
 
@@ -59,7 +59,7 @@ spokenform = "spokenform.cli:main"
 Homepage = "https://github.com/buchwandler/spokenform"
 Repository = "https://github.com/buchwandler/spokenform"
 Issues = "https://github.com/buchwandler/spokenform/issues"
-Changelog = "https://github.com/buchwandler/spokenform/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/buchwandler/spokenform/blob/main/docs/changelog.md"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -70,7 +70,7 @@ spokenform = ["py.typed"]
 
 [tool.setuptools_scm]
 version_file = "spokenform/_version.py"
-fallback_version = "0.1.0"
+fallback_version = "0+unknown"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -80,6 +80,11 @@ addopts = "-q --strict-markers"
 source = ["spokenform"]
 branch = true
 omit = ["spokenform/_version.py"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = false
 
 [tool.ruff]
 target-version = "py310"

@@ -77,12 +77,8 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     ),
 }
 
-_DATE_DMY = re.compile(
-    r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)"
-)
-_DATE_ISO = re.compile(
-    r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)"
-)
+_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
+_DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
 _MONTHS = (
     "janeiro",
     "fevereiro",
@@ -134,7 +130,11 @@ def _spell(value: int, language: str) -> str:
 
 def _feminize_integer(text: str) -> str:
     """Apply Portuguese cardinal agreement before a feminine noun."""
-    text = re.sub(r"\b(duzent|trezent|quatrocent|quinhent|seiscent|setecent|oitocent|novecent)os\b", r"\1as", text)
+    text = re.sub(
+        r"\b(duzent|trezent|quatrocent|quinhent|seiscent|setecent|oitocent|novecent)os\b",
+        r"\1as",
+        text,
+    )
     if re.search(r"\bdois$", text):
         return f"{text[:-4]}duas"
     if re.search(r"\bum$", text):
@@ -174,7 +174,7 @@ def _terminal_dot(text: str, end: int) -> bool:
 def _currency_text(raw: str, canonical_id: str, *, language: str) -> str:
     negative, integer, fraction = _parts(raw)
     european = _number_language(language) == "pt"
-    minor_singular, minor_plural = (("cêntimo", "cêntimos") if european else ("centavo", "centavos"))
+    minor_singular, minor_plural = ("cêntimo", "cêntimos") if european else ("centavo", "centavos")
     names = {
         "currency-euro": ("euro", "euros", "m"),
         "currency-us-dollar": ("dólar", "dólares", "m"),

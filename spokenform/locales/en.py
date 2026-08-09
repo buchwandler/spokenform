@@ -53,9 +53,7 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "volume-cubic-centimeter": QuantityGrammar(
         "volume-cubic-centimeter", "cubic centimeter", "cubic centimeters"
     ),
-    "volume-cubic-meter": QuantityGrammar(
-        "volume-cubic-meter", "cubic meter", "cubic meters"
-    ),
+    "volume-cubic-meter": QuantityGrammar("volume-cubic-meter", "cubic meter", "cubic meters"),
     "volume-milliliter": QuantityGrammar("volume-milliliter", "milliliter", "milliliters"),
     "volume-liter": QuantityGrammar("volume-liter", "liter", "liters"),
     "mass-microgram": QuantityGrammar("mass-microgram", "microgram", "micrograms"),
@@ -64,7 +62,9 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "mass-kilogram": QuantityGrammar("mass-kilogram", "kilogram", "kilograms"),
     "mass-tonne": QuantityGrammar("mass-tonne", "tonne", "tonnes"),
     "temperature-kelvin": QuantityGrammar("temperature-kelvin", "kelvin", "kelvins"),
-    "temperature-celsius": QuantityGrammar("temperature-celsius", "degree Celsius", "degrees Celsius"),
+    "temperature-celsius": QuantityGrammar(
+        "temperature-celsius", "degree Celsius", "degrees Celsius"
+    ),
     "temperature-fahrenheit": QuantityGrammar(
         "temperature-fahrenheit", "degree Fahrenheit", "degrees Fahrenheit"
     ),
@@ -89,9 +89,7 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "customary-quart": QuantityGrammar("customary-quart", "quart", "quarts"),
     "customary-pint": QuantityGrammar("customary-pint", "pint", "pints"),
     "customary-teaspoon": QuantityGrammar("customary-teaspoon", "teaspoon", "teaspoons"),
-    "customary-tablespoon": QuantityGrammar(
-        "customary-tablespoon", "tablespoon", "tablespoons"
-    ),
+    "customary-tablespoon": QuantityGrammar("customary-tablespoon", "tablespoon", "tablespoons"),
 }
 
 _DATE_DMY = re.compile(

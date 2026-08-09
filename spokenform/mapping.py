@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Any
+from typing import Any, Protocol
 
-from .models import MappedEdit, SourceReplacement
+from .models import MappedEdit, PreparationStage, SourceReplacement
+
+
+class _AbbreviationReplacement(Protocol):
+    start: int
+    end: int
+    text: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +30,16 @@ class Replacement:
     def validate(self, source_length: int) -> None:
         if self.start < 0 or self.end < self.start or self.end > source_length:
             raise ValueError(f"Invalid replacement range ({self.start}, {self.end})")
+
+
+@dataclass(frozen=True, slots=True)
+class _ReplacementPosition:
+    replacement: Replacement
+    output_start: int
+
+    @property
+    def output_end(self) -> int:
+        return self.output_start + len(self.replacement.text)
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,80 +74,78 @@ class OffsetMap:
                 len(replacement.text) - (replacement.end - replacement.start)
                 for replacement in replacements
             )
+        positions, source_deltas, output_deltas = _precompute_replacement_positions(
+            source_length,
+            replacements,
+            output_length,
+        )
+        insertions = {
+            position.replacement.start: position
+            for position in positions
+            if position.replacement.start == position.replacement.end
+        }
+        non_insertions = tuple(
+            position
+            for position in positions
+            if position.replacement.start < position.replacement.end
+        )
         source_left: list[int] = []
         source_right: list[int] = []
+        non_insertion_index = 0
         for position in range(source_length + 1):
-            containing = next(
-                (
-                    replacement
-                    for replacement in replacements
-                    if replacement.start <= position <= replacement.end
-                    and replacement.start < replacement.end
-                ),
-                None,
+            while (
+                non_insertion_index < len(non_insertions)
+                and non_insertions[non_insertion_index].replacement.end < position
+            ):
+                non_insertion_index += 1
+            containing = (
+                non_insertions[non_insertion_index]
+                if non_insertion_index < len(non_insertions)
+                and non_insertions[non_insertion_index].replacement.start <= position
+                else None
             )
-            insertion = next(
-                (
-                    replacement
-                    for replacement in replacements
-                    if replacement.start == replacement.end == position
-                ),
-                None,
-            )
+            insertion = insertions.get(position)
             if insertion is not None:
-                output_start = _output_start(position, replacements)
-                source_left.append(output_start)
-                source_right.append(output_start + len(insertion.text))
+                source_left.append(insertion.output_start)
+                source_right.append(insertion.output_end)
             elif containing is not None:
-                output_start = _output_start(containing.start, replacements)
-                output_end = output_start + len(containing.text)
-                if position == containing.end:
-                    source_left.append(output_end)
-                    source_right.append(output_end)
+                replacement = containing.replacement
+                if position == replacement.end:
+                    source_left.append(containing.output_end)
+                    source_right.append(containing.output_end)
                 else:
-                    source_left.append(output_start)
-                    source_right.append(output_end)
+                    source_left.append(containing.output_start)
+                    source_right.append(containing.output_end)
             else:
-                mapped = position + sum(
-                    len(replacement.text) - (replacement.end - replacement.start)
-                    for replacement in replacements
-                    if replacement.end <= position
-                )
+                mapped = position + source_deltas[position]
                 source_left.append(mapped)
                 source_right.append(mapped)
 
         output_left: list[int] = []
         output_right: list[int] = []
+        output_position_index = 0
         for position in range(output_length + 1):
-            containing = next(
-                (
-                    replacement
-                    for replacement in replacements
-                    if _output_start(replacement.start, replacements)
-                    <= position
-                    <= _output_start(replacement.start, replacements) + len(replacement.text)
-                ),
-                None,
+            while (
+                output_position_index < len(positions)
+                and positions[output_position_index].output_end < position
+            ):
+                output_position_index += 1
+            containing = (
+                positions[output_position_index]
+                if output_position_index < len(positions)
+                and positions[output_position_index].output_start <= position
+                else None
             )
             if containing is not None:
-                output_start = _output_start(containing.start, replacements)
-                output_end = output_start + len(containing.text)
-                if position == output_end:
-                    output_left.append(containing.end)
-                    output_right.append(containing.end)
+                replacement = containing.replacement
+                if position == containing.output_end:
+                    output_left.append(replacement.end)
+                    output_right.append(replacement.end)
                 else:
-                    output_left.append(containing.start)
-                    output_right.append(containing.end)
+                    output_left.append(replacement.start)
+                    output_right.append(replacement.end)
             else:
-                source_position = position
-                for replacement in replacements:
-                    output_end = _output_start(replacement.start, replacements) + len(
-                        replacement.text
-                    )
-                    if output_end <= position:
-                        source_position += (replacement.end - replacement.start) - len(
-                            replacement.text
-                        )
+                source_position = position + output_deltas[position]
                 output_left.append(source_position)
                 output_right.append(source_position)
 
@@ -309,13 +324,51 @@ def _validate_replacements(source_length: int, replacements: tuple[Replacement, 
         previous_end = replacement.end
 
 
-def _output_start(source_position: int, replacements: tuple[Replacement, ...]) -> int:
-    return source_position + sum(
-        len(replacement.text) - (replacement.end - replacement.start)
+def _precompute_replacement_positions(
+    source_length: int,
+    replacements: tuple[Replacement, ...],
+    output_length: int,
+) -> tuple[
+    tuple[_ReplacementPosition, ...],
+    tuple[int, ...],
+    tuple[int, ...],
+]:
+    """Precompute replacement coordinates and cumulative coordinate deltas."""
+    strict_events = [0] * (source_length + 1)
+    inclusive_events = [0] * (source_length + 1)
+    for replacement in replacements:
+        delta = len(replacement.text) - (replacement.end - replacement.start)
+        inclusive_events[replacement.end] += delta
+        if replacement.start < replacement.end:
+            strict_events[replacement.end] += delta
+        elif replacement.end < source_length:
+            strict_events[replacement.end + 1] += delta
+
+    source_deltas = _prefix_sums(strict_events)
+    inclusive_deltas = _prefix_sums(inclusive_events)
+    positions = tuple(
+        _ReplacementPosition(replacement, replacement.start + source_deltas[replacement.start])
         for replacement in replacements
-        if replacement.end < source_position
-        or (replacement.end == source_position and replacement.start < source_position)
     )
+
+    output_events = [0] * (output_length + 1)
+    for position in positions:
+        delta = len(position.replacement.text) - (
+            position.replacement.end - position.replacement.start
+        )
+        if position.output_end <= output_length:
+            output_events[position.output_end] += -delta
+    output_deltas = _prefix_sums(output_events)
+    return positions, inclusive_deltas, output_deltas
+
+
+def _prefix_sums(events: list[int]) -> tuple[int, ...]:
+    total = 0
+    result: list[int] = []
+    for event in events:
+        total += event
+        result.append(total)
+    return tuple(result)
 
 
 def _validate_bias(bias: str) -> None:
@@ -347,7 +400,7 @@ def resolve_replacements(
 
 
 def convert_abbr_replacements(
-    replacements: Any,
+    replacements: Iterable[_AbbreviationReplacement],
     *,
     language: str | None = None,
 ) -> tuple[Replacement, ...]:
@@ -376,7 +429,7 @@ def convert_abbr_replacements(
 def compose_source_replacements(
     source_text: str,
     output_text: str,
-    stages: tuple[Any, ...],
+    stages: tuple[PreparationStage, ...],
     stage_maps: tuple[OffsetMap, ...],
 ) -> tuple[SourceReplacement, ...]:
     """Project stage-local edits into original-source/final-output space.

@@ -24,13 +24,20 @@ def test_portuguese_parity_corpus() -> None:
 def test_portuguese_policy_and_region_preservation() -> None:
     for language in ("pt", "pt-br", "pt-pt"):
         assert number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN
-        assert PreparationConfig.for_kokorog2p(language).number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
+        assert (
+            PreparationConfig.for_kokorog2p(language).number_policy
+            is NumberPolicy.STRUCTURED_AND_PLAIN
+        )
     assert number_policy_for_language("cs") is NumberPolicy.STRUCTURED_AND_PLAIN
     assert number_policy_for_language("en") is NumberPolicy.STRUCTURED_AND_PLAIN
     assert prepare("16", language="pt-br", use_spacy=False).spoken_text == "dezesseis"
     assert prepare("16", language="pt-pt", use_spacy=False).spoken_text == "dezasseis"
-    assert prepare("12,80 EUR", language="pt-br", use_spacy=False).spoken_text.endswith("oitenta centavos")
-    assert prepare("12,80 EUR", language="pt-pt", use_spacy=False).spoken_text.endswith("oitenta cêntimos")
+    assert prepare("12,80 EUR", language="pt-br", use_spacy=False).spoken_text.endswith(
+        "oitenta centavos"
+    )
+    assert prepare("12,80 EUR", language="pt-pt", use_spacy=False).spoken_text.endswith(
+        "oitenta cêntimos"
+    )
 
 
 def test_portuguese_complete_canonical_quantity_inventory_and_agreement() -> None:
@@ -74,9 +81,14 @@ def test_portuguese_gender_agreement_covers_compound_cardinals() -> None:
 
 
 def test_portuguese_decimal_precision_dates_and_caller_managed_times() -> None:
-    assert prepare("12,80", language="pt-br", use_spacy=False).spoken_text == "doze vírgula oito zero"
+    assert (
+        prepare("12,80", language="pt-br", use_spacy=False).spoken_text == "doze vírgula oito zero"
+    )
     assert prepare(",02", language="pt-br", use_spacy=False).spoken_text == "zero vírgula zero dois"
-    assert prepare("−1,05", language="pt-br", use_spacy=False).spoken_text == "menos um vírgula zero cinco"
+    assert (
+        prepare("−1,05", language="pt-br", use_spacy=False).spoken_text
+        == "menos um vírgula zero cinco"
+    )
     expected_date = "catorze de maio de dois mil e vinte e seis"
     for source in ("14.05.2026", "14/05/2026", "2026-05-14"):
         assert prepare(source, language="pt-br", use_spacy=False).spoken_text == expected_date
@@ -102,7 +114,10 @@ def test_portuguese_currency_is_deterministic_and_source_aligned() -> None:
 
 
 def test_portuguese_dotted_duration_preserves_sentence_boundary() -> None:
-    assert prepare("2 min. depois", language="pt-br", use_spacy=False).spoken_text == "dois minutos depois"
+    assert (
+        prepare("2 min. depois", language="pt-br", use_spacy=False).spoken_text
+        == "dois minutos depois"
+    )
     assert prepare("2 min.", language="pt-br", use_spacy=False).spoken_text == "dois minutos."
 
 
@@ -110,7 +125,9 @@ def test_portuguese_structured_replacements_are_exact_sorted_and_non_overlapping
     source = "Em 14.05.2026, há 1,5 kg e 1,5 kg; custa R$ 12,80."
     replacements = iter_structured_replacements(source, language="pt-br")
     assert list(replacements) == sorted(replacements, key=lambda item: (item.start, item.end))
-    assert all(left.end <= right.start for left, right in zip(replacements, replacements[1:], strict=False))
+    assert all(
+        left.end <= right.start for left, right in zip(replacements, replacements[1:], strict=False)
+    )
     assert [(item.start, item.end, source[item.start : item.end]) for item in replacements] == [
         (3, 13, "14.05.2026"),
         (18, 24, "1,5 kg"),
@@ -123,7 +140,9 @@ def test_portuguese_structured_replacements_are_exact_sorted_and_non_overlapping
 def test_portuguese_protection_is_fail_closed_and_keeps_adjacent_quantity() -> None:
     source = "URL https://example.org/2kg email dev2@example.org v1.2.3 2 kg e 3 kg"
     partial = source.index("2 kg") + 2
-    result = prepare(source, language="pt-br", use_spacy=False, protected_spans=[(partial, partial + 2)])
+    result = prepare(
+        source, language="pt-br", use_spacy=False, protected_spans=[(partial, partial + 2)]
+    )
     assert result.spoken_text == (
         "URL https://example.org/2kg email dev2@example.org v1.2.3 2 kg e três quilogramas"
     )
@@ -163,7 +182,9 @@ def test_portuguese_repeated_fragments_and_nbsp_offsets_keep_provenance() -> Non
 
 
 def test_portuguese_plain_pass_protects_literals_and_structured_candidates() -> None:
-    source = "https://example.org/2 email dev2@example.org v1.2.3 31.02.2026 2026-02-31 25:70 18:20 12"
+    source = (
+        "https://example.org/2 email dev2@example.org v1.2.3 31.02.2026 2026-02-31 25:70 18:20 12"
+    )
     assert prepare(source, language="pt-br", use_spacy=False).spoken_text == (
         "https://example.org/2 email dev2@example.org v1.2.3 31.02.2026 2026-02-31 25:70 18:20 doze"
     )

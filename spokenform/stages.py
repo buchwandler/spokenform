@@ -29,6 +29,7 @@ def apply_replacement_stage(
     replacements: tuple[Replacement, ...],
     *,
     protected_values: tuple[str, ...] = (),
+    protected_placeholders: tuple[str, ...] = (),
     language: str | None = None,
 ) -> str:
     """Apply exact replacements while keeping protected sentinels internal.
@@ -37,7 +38,7 @@ def apply_replacement_stage(
     returned continuation value retains private-use sentinels so later stages
     cannot rewrite protected values.
     """
-    visible_before = _restore(text, protected_values)
+    visible_before = _restore(text, protected_values, protected_placeholders)
     visible_replacements = resolve_replacements(
         tuple(
             Replacement(
@@ -79,6 +80,7 @@ def apply_replacement_stage(
         text,
         visible_replacements,
         protected_values,
+        protected_placeholders,
     )
     after, _, _ = apply_replacements(text, tuple(internal), stage=name)
     return after
@@ -88,9 +90,10 @@ def map_visible_replacements_to_internal(
     text: str,
     replacements: tuple[Replacement, ...],
     protected_values: tuple[str, ...],
+    protected_placeholders: tuple[str, ...] = (),
 ) -> tuple[Replacement, ...]:
     """Translate visible-stage replacements to protected working-text offsets."""
-    restoration = _restoration_map(text, protected_values)
+    restoration = _restoration_map(text, protected_values, protected_placeholders)
     internal = tuple(
         Replacement(
             *restoration.map_output_span(item.start, item.end),
@@ -107,31 +110,49 @@ def map_visible_replacements_to_internal(
 def map_internal_protected_spans_to_visible(
     text: str,
     protected_values: tuple[str, ...],
+    protected_placeholders: tuple[str, ...] = (),
 ) -> tuple[tuple[int, int], ...]:
     """Return protected sentinel spans in the restored visible text."""
-    restoration = _restoration_map(text, protected_values)
+    restoration = _restoration_map(text, protected_values, protected_placeholders)
+    placeholders = set(
+        protected_placeholders
+        or tuple(chr(0xE000 + index) for index in range(len(protected_values)))
+    )
     return tuple(
         restoration.map_source_span(index, index + 1)
         for index, character in enumerate(text)
-        if 0xE000 <= ord(character) < 0xE000 + len(protected_values)
+        if character in placeholders
     )
 
 
-def _restore(text: str, values: tuple[str, ...]) -> str:
+def _restore(
+    text: str,
+    values: tuple[str, ...],
+    placeholders: tuple[str, ...] = (),
+) -> str:
     result = text
-    for index, value in enumerate(values):
-        result = result.replace(chr(0xE000 + index), value)
+    actual_placeholders = placeholders or tuple(chr(0xE000 + index) for index in range(len(values)))
+    for placeholder, value in zip(actual_placeholders, values, strict=True):
+        result = result.replace(placeholder, value)
     return result
 
 
-def _restoration_map(text: str, values: tuple[str, ...]) -> OffsetMap:
+def _restoration_map(
+    text: str,
+    values: tuple[str, ...],
+    placeholders: tuple[str, ...] = (),
+) -> OffsetMap:
+    actual_placeholders = placeholders or tuple(chr(0xE000 + index) for index in range(len(values)))
+    replacements_by_placeholder = dict(zip(actual_placeholders, values, strict=True))
     replacements = tuple(
-        Replacement(index, index + 1, values[ord(character) - 0xE000])
+        Replacement(index, index + 1, replacements_by_placeholder[character])
         for index, character in enumerate(text)
-        if 0xE000 <= ord(character) < 0xE000 + len(values)
+        if character in replacements_by_placeholder
     )
     return OffsetMap.from_replacements(
-        len(text), replacements, output_length=len(_restore(text, values))
+        len(text),
+        replacements,
+        output_length=len(_restore(text, values, actual_placeholders)),
     )
 
 

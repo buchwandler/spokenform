@@ -40,6 +40,8 @@ def load_spacy_model(model: str | None, *, language: str | None = None) -> Any:
     try:
         pipeline = spacy.load(model)
     except Exception as exc:
+        # spaCy model loaders expose several version-dependent exception types;
+        # normalize that optional-dependency boundary without losing the cause.
         raise SpacyModelError(
             f"Requested spaCy model {model!r} is unavailable; install it explicitly "
             "and do not rely on automatic downloads"

@@ -1,22 +1,24 @@
 name: Run tests
-on: [push]
+on:
+  push:
+  pull_request:
 jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v4
     - name: Setup Python
-      uses: actions/setup-python@master
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install packages
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -e ".[dev,examples]"
+        python -m pip install -e ".[dev]"
     - name: Build distributions
       run: python -m build
     - name: Run tests
@@ -34,17 +36,62 @@ jobs:
         python -m ruff check .
         python -m ruff format --check .
         python -m mypy spokenform examples
-  real-downstream:
+  candidate-downstream:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v4
     - name: Setup Python
-      uses: actions/setup-python@master
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install candidate and downstream stack
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e "."
+        python -m pip install "kokorog2p[de,fr]" pytest
+    - name: Assert candidate spokenform import
+      env:
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+      run: |
+        python - <<'PY'
+        import os
+        from pathlib import Path
+        import spokenform
+
+        expected = Path(os.environ["GITHUB_WORKSPACE"]) / "spokenform" / "__init__.py"
+        actual = Path(spokenform.__file__).resolve()
+        assert actual == expected.resolve(), (actual, expected)
+        print(actual)
+        PY
+    - name: Run real kokorog2p compatibility gate
+      run: python -m pytest -q tests/test_real_kokorog2p_integration.py
+  released-downstream:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
       with:
         python-version: "3.12"
     - name: Install released downstream stack
       run: |
         python -m pip install --upgrade pip
-        python -m pip install "spokenform" "kokorog2p[de,fr]"
-    - name: Run real kokorog2p compatibility gate
-      run: python -m pytest -q tests/test_real_kokorog2p_integration.py
+        python -m pip install "spokenform" "kokorog2p[de,fr]" pytest
+    - name: Assert released spokenform import
+      env:
+        GITHUB_WORKSPACE: ${{ github.workspace }}
+      working-directory: /tmp
+      run: |
+        python - <<'PY'
+        import os
+        from pathlib import Path
+        import spokenform
+
+        checkout = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+        actual = Path(spokenform.__file__).resolve()
+        assert checkout not in actual.parents, (actual, checkout)
+        print(actual)
+        PY
+    - name: Run released kokorog2p compatibility gate
+      working-directory: /tmp
+      run: python -m pytest -q "$GITHUB_WORKSPACE/tests/test_real_kokorog2p_integration.py"

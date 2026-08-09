@@ -1,20 +1,24 @@
 name: CodeCov
-on: push
+on:
+  push:
+  pull_request:
 jobs:
   run:
     runs-on: ubuntu-latest
     env:
       OS: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/checkout@v4
     - name: Setup Python
-      uses: actions/setup-python@master
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
     - name: 'generate report'
       run: |
         python -m pip install --upgrade pip
-        python -m pip install -e ".[dev,examples]"
+        python -m pip install -e ".[dev]"
         python -m build
-        python -m pytest --cov --cov-branch --cov-report=xml
+        python -m pytest --cov=spokenform --cov-branch --cov-report=term-missing --cov-report=xml
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:

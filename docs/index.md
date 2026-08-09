@@ -13,6 +13,7 @@ installation
 quickstart
 architecture
 api
+migration-kokorog2p
 cli
 spacy
 protection

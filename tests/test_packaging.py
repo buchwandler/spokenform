@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import spokenform
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10
@@ -28,6 +30,29 @@ def test_declared_package_files_exist() -> None:
     assert (root / "MANIFEST.in").is_file()
     assert (root / "spokenform" / "py.typed").is_file()
     assert (root / "tests" / "data" / "golden_s0.json").is_file()
+
+
+def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
+    project = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]
+    dependencies = project["dependencies"]
+
+    assert "abbr2words>=0.2.4,<0.3.0" in dependencies
+    assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)
+
+
+def test_scm_version_fallback_is_neutral() -> None:
+    project = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )
+
+    assert project["tool"]["setuptools_scm"]["fallback_version"] == "0+unknown"
+
+
+def test_public_exports_are_bound() -> None:
+    assert spokenform.__all__
+    assert all(hasattr(spokenform, name) for name in spokenform.__all__)
 
 
 def test_documentation_sources_are_markdown() -> None:

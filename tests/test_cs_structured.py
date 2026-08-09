@@ -13,7 +13,10 @@ from spokenform.config import number_policy_for_language
 def test_czech_policy_aliases_and_english_policy() -> None:
     for language in ("cs", "cs-cz", "cs_CZ"):
         assert number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN
-        assert PreparationConfig.for_kokorog2p(language).number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
+        assert (
+            PreparationConfig.for_kokorog2p(language).number_policy
+            is NumberPolicy.STRUCTURED_AND_PLAIN
+        )
     assert number_policy_for_language("en") is NumberPolicy.STRUCTURED_AND_PLAIN
 
 
@@ -151,7 +154,9 @@ def test_czech_nbsp_and_repeated_source_spans_are_exact() -> None:
     assert result.spoken_text == "dva kilogramy a dva kilogramy"
     structured = next(stage for stage in result.stages if stage.name == "structured")
     assert [edit.source for edit in structured.mapped_edits] == ["2\u00a0kg", "2\u00a0kg"]
-    assert all(source[edit.source_start : edit.source_end] == edit.source for edit in result.source_edits)
+    assert all(
+        source[edit.source_start : edit.source_end] == edit.source for edit in result.source_edits
+    )
 
 
 def test_czech_structured_replacements_are_sorted_and_non_overlapping() -> None:
@@ -160,7 +165,9 @@ def test_czech_structured_replacements_are_sorted_and_non_overlapping() -> None:
     assert [(item.start, item.end) for item in replacements] == sorted(
         (item.start, item.end) for item in replacements
     )
-    assert all(source[item.start : item.end] == source[item.start : item.end] for item in replacements)
+    assert all(
+        source[item.start : item.end] == source[item.start : item.end] for item in replacements
+    )
     assert [(item.rule, item.text) for item in replacements] == [
         ("cs.date", "čtrnáctého května dva tisíce dvacet šest"),
         ("cs.quantity", "dva kilogramy"),

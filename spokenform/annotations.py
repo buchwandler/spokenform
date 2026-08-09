@@ -2,15 +2,30 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any
+from collections.abc import Iterable, Iterator
+from typing import Protocol
 
 from abbr2words import TokenAnnotation as AbbrTokenAnnotation
 
 from .models import TokenAnnotation
 
 
-def annotations_from_spacy(doc: Iterable[Any]) -> tuple[TokenAnnotation, ...]:
+class _SpacyToken(Protocol):
+    idx: int
+    text: str
+
+
+class _SpacyDoc(Protocol):
+    text: str
+
+    def __iter__(self) -> Iterator[_SpacyToken]: ...
+
+
+class _SpacyPipeline(Protocol):
+    def __call__(self, text: str) -> _SpacyDoc: ...
+
+
+def annotations_from_spacy(doc: Iterable[_SpacyToken]) -> tuple[TokenAnnotation, ...]:
     """Convert a spaCy-like ``Doc`` into source-aligned annotations.
 
     The adapter imports no spaCy modules and can therefore be used with compatible
@@ -122,7 +137,7 @@ def remap_annotations_for_replacements(
     return tuple(remapped)
 
 
-def spacy_annotations(text: str, nlp: Any) -> tuple[TokenAnnotation, ...]:
+def spacy_annotations(text: str, nlp: _SpacyPipeline) -> tuple[TokenAnnotation, ...]:
     """Run an existing spaCy-compatible pipeline and convert its tokens."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")

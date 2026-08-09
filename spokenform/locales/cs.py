@@ -43,7 +43,9 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "duration-hour": _grammar("duration-hour", "f", "hodina", "hodiny", "hodin"),
     "duration-day": _grammar("duration-day", "m", "den", "dny", "dnů"),
     "length-millimeter": _grammar("length-millimeter", "m", "milimetr", "milimetry", "milimetrů"),
-    "length-centimeter": _grammar("length-centimeter", "m", "centimetr", "centimetry", "centimetrů"),
+    "length-centimeter": _grammar(
+        "length-centimeter", "m", "centimetr", "centimetry", "centimetrů"
+    ),
     "length-meter": _grammar("length-meter", "m", "metr", "metry", "metrů"),
     "length-kilometer": _grammar("length-kilometer", "m", "kilometr", "kilometry", "kilometrů"),
     "volume-milliliter": _grammar("volume-milliliter", "m", "mililitr", "mililitry", "mililitrů"),
@@ -58,26 +60,50 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
         "speed-meter-per-second", "m", "metr za sekundu", "metry za sekundu", "metrů za sekundu"
     ),
     "speed-kilometer-per-hour": _grammar(
-        "speed-kilometer-per-hour", "m", "kilometr za hodinu", "kilometry za hodinu", "kilometrů za hodinu"
+        "speed-kilometer-per-hour",
+        "m",
+        "kilometr za hodinu",
+        "kilometry za hodinu",
+        "kilometrů za hodinu",
     ),
     "area-square-millimeter": _grammar(
-        "area-square-millimeter", "m", "milimetr čtvereční", "milimetry čtvereční", "milimetrů čtverečních"
+        "area-square-millimeter",
+        "m",
+        "milimetr čtvereční",
+        "milimetry čtvereční",
+        "milimetrů čtverečních",
     ),
     "area-square-centimeter": _grammar(
-        "area-square-centimeter", "m", "centimetr čtvereční", "centimetry čtvereční", "centimetrů čtverečních"
+        "area-square-centimeter",
+        "m",
+        "centimetr čtvereční",
+        "centimetry čtvereční",
+        "centimetrů čtverečních",
     ),
     "area-square-meter": _grammar(
         "area-square-meter", "m", "metr čtvereční", "metry čtvereční", "metrů čtverečních"
     ),
     "area-square-kilometer": _grammar(
-        "area-square-kilometer", "m", "kilometr čtvereční", "kilometry čtvereční", "kilometrů čtverečních"
+        "area-square-kilometer",
+        "m",
+        "kilometr čtvereční",
+        "kilometry čtvereční",
+        "kilometrů čtverečních",
     ),
     "area-hectare": _grammar("area-hectare", "m", "hektar", "hektary", "hektarů"),
     "volume-cubic-millimeter": _grammar(
-        "volume-cubic-millimeter", "m", "milimetr krychlový", "milimetry krychlové", "milimetrů krychlových"
+        "volume-cubic-millimeter",
+        "m",
+        "milimetr krychlový",
+        "milimetry krychlové",
+        "milimetrů krychlových",
     ),
     "volume-cubic-centimeter": _grammar(
-        "volume-cubic-centimeter", "m", "centimetr krychlový", "centimetry krychlové", "centimetrů krychlových"
+        "volume-cubic-centimeter",
+        "m",
+        "centimetr krychlový",
+        "centimetry krychlové",
+        "centimetrů krychlových",
     ),
     "volume-cubic-meter": _grammar(
         "volume-cubic-meter", "m", "metr krychlový", "metry krychlové", "metrů krychlových"
@@ -91,17 +117,51 @@ _DATE_ISO = re.compile(
     r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
 )
 _MONTHS = (
-    "ledna", "února", "března", "dubna", "května", "června",
-    "července", "srpna", "září", "října", "listopadu", "prosince",
+    "ledna",
+    "února",
+    "března",
+    "dubna",
+    "května",
+    "června",
+    "července",
+    "srpna",
+    "září",
+    "října",
+    "listopadu",
+    "prosince",
 )
 _DAY_GENITIVE = (
-    "prvního", "druhého", "třetího", "čtvrtého", "pátého", "šestého",
-    "sedmého", "osmého", "devátého", "desátého", "jedenáctého", "dvanáctého",
-    "třináctého", "čtrnáctého", "patnáctého", "šestnáctého", "sedmnáctého",
-    "osmnáctého", "devatenáctého", "dvacátého", "dvacátého prvního",
-    "dvacátého druhého", "dvacátého třetího", "dvacátého čtvrtého",
-    "dvacátého pátého", "dvacátého šestého", "dvacátého sedmého",
-    "dvacátého osmého", "dvacátého devátého", "třicátého", "třicátého prvního",
+    "prvního",
+    "druhého",
+    "třetího",
+    "čtvrtého",
+    "pátého",
+    "šestého",
+    "sedmého",
+    "osmého",
+    "devátého",
+    "desátého",
+    "jedenáctého",
+    "dvanáctého",
+    "třináctého",
+    "čtrnáctého",
+    "patnáctého",
+    "šestnáctého",
+    "sedmnáctého",
+    "osmnáctého",
+    "devatenáctého",
+    "dvacátého",
+    "dvacátého prvního",
+    "dvacátého druhého",
+    "dvacátého třetího",
+    "dvacátého čtvrtého",
+    "dvacátého pátého",
+    "dvacátého šestého",
+    "dvacátého sedmého",
+    "dvacátého osmého",
+    "dvacátého devátého",
+    "třicátého",
+    "třicátého prvního",
 )
 
 
@@ -141,10 +201,14 @@ def _gendered_cardinal(value: int, gender: str | None) -> str:
     # including 21--24, so gender agreement is limited to small cardinals.
     if value > 4:
         return result
-    last = {"m": {"jedna": "jeden", "dva": "dva"}, "f": {"jedna": "jedna", "dva": "dvě"}, "n": {"jedna": "jedno", "dva": "dvě"}}.get(gender, {})
+    last = {
+        "m": {"jedna": "jeden", "dva": "dva"},
+        "f": {"jedna": "jedna", "dva": "dvě"},
+        "n": {"jedna": "jedno", "dva": "dvě"},
+    }.get(gender, {})
     for source, target in last.items():
         if result == source or result.endswith(f" {source}"):
-            return f"{result[:-len(source)]}{target}"
+            return f"{result[: -len(source)]}{target}"
     return result
 
 
@@ -190,7 +254,10 @@ _CURRENCY_GRAMMAR = {
     "currency-czech-koruna": (("koruna", "koruny", "korun", "f"), ("haléř", "haléře", "haléřů")),
     "currency-euro": (("euro", "eura", "eur", "n"), ("cent", "centy", "centů")),
     "currency-us-dollar": (("dolar", "dolary", "dolarů", "m"), ("cent", "centy", "centů")),
-    "currency-pound-sterling": (("libra šterlinků", "libry šterlinků", "liber šterlinků", "f"), ("pence", "pence", "pencí")),
+    "currency-pound-sterling": (
+        ("libra šterlinků", "libry šterlinků", "liber šterlinků", "f"),
+        ("pence", "pence", "pencí"),
+    ),
 }
 
 
@@ -207,7 +274,13 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
         minor_value = int((fraction + "00")[:2])
         if minor_value:
             minor_one, minor_few, minor_many = grammar[1]
-            minor_noun = minor_one if minor_value == 1 else minor_few if minor_value in {2, 3, 4} else minor_many
+            minor_noun = (
+                minor_one
+                if minor_value == 1
+                else minor_few
+                if minor_value in {2, 3, 4}
+                else minor_many
+            )
             result += f" a {_spell(minor_value)} {minor_noun}"
     return result
 
@@ -262,8 +335,20 @@ def iter_replacements(
 
     for match in iter_unit_matches(text, "cs", protected_spans=protected):
         replacement = _quantity_text(match, text)
-        add(match.start, match.end, replacement, "cs.currency" if match.category == "currency" else "cs.quantity")
+        add(
+            match.start,
+            match.end,
+            replacement,
+            "cs.currency" if match.category == "currency" else "cs.quantity",
+        )
     return tuple(candidates)
 
 
-__all__ = ["NUMBER_POLICY", "QUANTITY_GRAMMAR", "QuantityGrammar", "date_text", "iter_replacements", "number_text"]
+__all__ = [
+    "NUMBER_POLICY",
+    "QUANTITY_GRAMMAR",
+    "QuantityGrammar",
+    "date_text",
+    "iter_replacements",
+    "number_text",
+]

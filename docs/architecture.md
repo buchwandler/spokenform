@@ -84,3 +84,8 @@ from `abbr2words`.
 `prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
 preserves run boundaries, honors protected spans fail-closed, and does not perform
 language detection, tokenization, G2P, or model-punctuation rewriting.
+
+The downstream migration set currently includes `cs`, `de`, `fr`, `es`, `it`,
+and `pt`. English has a supported structured `spokenform` API profile and
+parity fixtures, but the kokorog2p adapter has not migrated English semantic
+ownership; that decision remains explicit and downstream-managed.

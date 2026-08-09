@@ -279,10 +279,11 @@ language detection, markup parsing, and phoneme generation.
 ## Release versioning
 
 `setuptools-scm` derives versions from Git tags and writes
-`spokenform/_version.py` during builds. Use annotated tags such as `v0.1.0`.
-The source snapshot fallback is `0.1.0`.
+`spokenform/_version.py` during builds. Use annotated tags such as `v0.2.2`.
+The source-tree fallback when SCM metadata has not been generated is the neutral
+version `0+unknown`; release builds derive their version from the annotated tag.
 
-Before publishing, ensure the released `abbr2words>=0.2.2` prerequisite exists
+Before publishing, ensure the released `abbr2words>=0.2.4` prerequisite exists
 on the target package index and run the checklist in
 [`docs/release-checklist.md`](docs/release-checklist.md).
 

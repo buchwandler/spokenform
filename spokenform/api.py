@@ -5,10 +5,12 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable
+from typing import cast
 
 from abbr2words import abbr2words_with_replacements, iter_unit_matches, normalize_language
 
 from .annotations import (
+    _SpacyPipeline,
     remap_annotations_for_replacements,
     to_abbr2words_annotations,
     validate_annotations,
@@ -21,10 +23,11 @@ from .mapping import (
     convert_abbr_replacements,
     replacements_from_diff,
 )
-from .models import PreparationStage, PreparedText, TokenAnnotation
+from .models import PreparationStage, PreparedText, SourceReplacement, TokenAnnotation
 from .numbers import normalize_plain_numbers
 from .protection import (
     ProtectedSpan,
+    ProtectedText,
     coerce_protected_spans,
     discover_protected_spans,
     protect_text,
@@ -53,7 +56,11 @@ def normalize_spacing(
     collapse_blank_lines: bool = True,
     number_policy: NumberPolicy | None = None,
 ) -> str:
-    """Apply independently configurable Unicode and whitespace policies."""
+    """Apply independently configurable Unicode and whitespace policies.
+
+    ``number_policy`` remains accepted for 0.2.x compatibility. Numeric policy
+    selection belongs to :func:`prepare`; spacing itself does not consume it.
+    """
     normalized = unicodedata.normalize("NFC", text) if normalize_unicode else text
     if collapse_horizontal_whitespace:
         normalized = _HORIZONTAL_SPACE_RE.sub(" ", normalized)
@@ -144,71 +151,30 @@ def prepare(
     clean_text = text
     requested_language = language.strip().lower().replace("_", "-")
     language_code = normalize_language(language)
-    selected_number_policy = number_policy
-    policy_warnings: list[str] = []
-    if model_punctuation:
-        policy_warnings.append("[PUNCTUATION] model punctuation remains downstream")
-    if selected_number_policy is None:
-        structured_numbers_enabled = expand_structured
-        plain_numbers_enabled = expand_numbers
-    else:
-        structured_numbers_enabled = expand_structured and selected_number_policy in {
-            NumberPolicy.STRUCTURED_AND_PLAIN,
-        }
-        plain_numbers_enabled = expand_numbers and selected_number_policy in {
-            NumberPolicy.PLAIN,
-            NumberPolicy.STRUCTURED_AND_PLAIN,
-        }
-        if selected_number_policy is NumberPolicy.CALLER_MANAGED:
-            policy_warnings.append(
-                f"[NUMBERS] caller-managed number categories for language {language_code!r}"
-            )
-        elif selected_number_policy is NumberPolicy.NONE:
-            policy_warnings.append(
-                f"[NUMBERS] unsupported number policy for language {language_code!r}"
-            )
+    structured_numbers_enabled, plain_numbers_enabled, policy_warnings = _resolve_number_options(
+        language_code,
+        expand_structured=expand_structured,
+        expand_numbers=expand_numbers,
+        number_policy=number_policy,
+        model_punctuation=model_punctuation,
+    )
 
-    supplied_spans, protection_warnings = coerce_protected_spans(
-        protected_spans,
-        text_length=len(clean_text),
+    protected, merged_protected, protection_warnings = _prepare_protected_text(
+        clean_text,
+        language=language,
+        protected_spans=protected_spans,
         strict=strict,
     )
-    supplied_spans = _expand_partial_structured_protection(
-        clean_text, language=language, spans=supplied_spans
+    current_annotations, spacy_warnings = _prepare_annotations(
+        clean_text,
+        protected,
+        annotations=annotations,
+        nlp=nlp,
+        use_spacy=use_spacy,
+        spacy_model=spacy_model,
+        language_code=language_code,
+        strict=strict,
     )
-    discovered_spans = discover_protected_spans(clean_text)
-    merged_protected: list[ProtectedSpan] = list(discovered_spans)
-    for candidate in supplied_spans:
-        if not any(
-            existing.start < candidate.end and candidate.start < existing.end
-            for existing in merged_protected
-        ):
-            merged_protected.append(candidate)
-    merged_protected.sort(key=lambda item: (item.start, item.end))
-    protected = protect_text(clean_text, tuple(merged_protected))
-
-    spacy_warnings: list[str] = []
-    if annotations is not None:
-        annotations = validate_annotations(clean_text, annotations)
-    if annotations is None and use_spacy is not False:
-        if nlp is None and (spacy_model is not None or use_spacy is True):
-            try:
-                nlp = load_spacy_model(spacy_model, language=language_code)
-            except SpacyModelError as exc:
-                if strict:
-                    raise
-                spacy_warnings.append(f"[SPACY] {exc}")
-        if nlp is not None:
-            from .annotations import spacy_annotations
-
-            annotations = spacy_annotations(clean_text, nlp)
-
-    current_annotations = remap_annotations_for_replacements(
-        annotations,
-        ((span.start, span.end, 1) for span in protected.spans),
-    )
-    if current_annotations is not None:
-        current_annotations = validate_annotations(protected.text, current_annotations)
 
     stages: list[PreparationStage] = []
     current = protected.text
@@ -234,6 +200,7 @@ def prepare(
                 before,
                 unicode_replacements,
                 protected.values,
+                protected.placeholders,
             )
             current_annotations = remap_annotations_for_replacements(
                 current_annotations,
@@ -247,6 +214,7 @@ def prepare(
             protected_ranges=map_internal_protected_spans_to_visible(
                 current,
                 protected.values,
+                protected.placeholders,
             ),
         )
         if structured.replacements:
@@ -254,6 +222,7 @@ def prepare(
                 current,
                 structured.replacements,
                 protected.values,
+                protected.placeholders,
             )
             current = apply_replacement_stage(
                 stages,
@@ -261,6 +230,7 @@ def prepare(
                 current,
                 structured.replacements,
                 protected_values=protected.values,
+                protected_placeholders=protected.placeholders,
                 language=language_code,
             )
             current_annotations = remap_annotations_for_replacements(
@@ -269,13 +239,16 @@ def prepare(
             )
 
     if expand_abbreviations:
+        protected_value_by_placeholder = dict(
+            zip(protected.placeholders, protected.values, strict=True)
+        )
         visible_annotations = remap_annotations_for_replacements(
             current_annotations,
             (
                 (index, index + 1, len(value))
                 for index, character in enumerate(current)
-                if 0xE000 <= ord(character) < 0xE000 + len(protected.values)
-                for value in (protected.values[ord(character) - 0xE000],)
+                if character in protected_value_by_placeholder
+                for value in (protected_value_by_placeholder[character],)
             ),
         )
         abbreviation_result = abbr2words_with_replacements(
@@ -286,6 +259,7 @@ def prepare(
             protected_spans=map_internal_protected_spans_to_visible(
                 current,
                 protected.values,
+                protected.placeholders,
             ),
         )
         abbreviation_replacements = convert_abbr_replacements(
@@ -299,12 +273,14 @@ def prepare(
             current,
             abbreviation_replacements,
             protected_values=protected.values,
+            protected_placeholders=protected.placeholders,
             language=language_code,
         )
         internal_replacements = map_visible_replacements_to_internal(
             before,
             abbreviation_replacements,
             protected.values,
+            protected.placeholders,
         )
         current_annotations = remap_annotations_for_replacements(
             current_annotations,
@@ -330,6 +306,7 @@ def prepare(
             before,
             number_replacements,
             protected.values,
+            protected.placeholders,
         )
         current_annotations = remap_annotations_for_replacements(
             current_annotations,
@@ -364,6 +341,7 @@ def prepare(
             before,
             whitespace_replacements,
             protected.values,
+            protected.placeholders,
         )
         current_annotations = remap_annotations_for_replacements(
             current_annotations,
@@ -372,46 +350,20 @@ def prepare(
 
     current = protected.restore(current)
 
-    stage_maps = tuple(
-        OffsetMap.from_replacements(
-            len(stage.before),
-            tuple(
-                Replacement(
-                    edit.source_start,
-                    edit.source_end,
-                    edit.replacement,
-                    edit.kind,
-                    edit.language,
-                    edit.rule,
-                )
-                for edit in stage.mapped_edits
-            ),
-            output_length=len(stage.after),
-            edits=stage.mapped_edits,
-        )
-        for stage in stages
-    )
-    offset_map = OffsetMap.identity(len(clean_text))
-    for stage_map in stage_maps:
-        offset_map = offset_map.compose(stage_map)
-
-    source_replacements = compose_source_replacements(
+    offset_map, source_replacements = _finalize_mapping(
         clean_text,
         current,
         tuple(stages),
-        stage_maps,
     )
-
-    return PreparedText(
+    return _build_prepared_text(
         source_text=text,
         clean_text=clean_text,
         spoken_text=current,
         language=language_code,
         stages=tuple(stages),
-        mapped_edits=tuple(edit for stage in stages for edit in stage.mapped_edits),
-        source_replacements=source_replacements,
         protected_spans=tuple(merged_protected),
         offset_map=offset_map,
+        source_replacements=source_replacements,
         warnings=(*protection_warnings, *spacy_warnings, *policy_warnings),
     )
 
@@ -449,3 +401,159 @@ def _expand_partial_structured_protection(
             if start < match.end and match.start < end:
                 ranges[index] = (min(start, match.start), max(end, match.end), kind)
     return tuple(ProtectedSpan(start, end, kind=kind) for start, end, kind in ranges)
+
+
+def _prepare_protected_text(
+    text: str,
+    *,
+    language: str,
+    protected_spans: Iterable[ProtectedSpan | tuple[int, int]] | None,
+    strict: bool,
+) -> tuple[ProtectedText, tuple[ProtectedSpan, ...], tuple[str, ...]]:
+    """Validate, discover, merge, and sentinel-protect source ranges."""
+    supplied_spans, warnings = coerce_protected_spans(
+        protected_spans,
+        text_length=len(text),
+        strict=strict,
+    )
+    supplied_spans = _expand_partial_structured_protection(
+        text, language=language, spans=supplied_spans
+    )
+    merged: list[ProtectedSpan] = list(discover_protected_spans(text))
+    for candidate in supplied_spans:
+        if not any(
+            existing.start < candidate.end and candidate.start < existing.end for existing in merged
+        ):
+            merged.append(candidate)
+    merged.sort(key=lambda item: (item.start, item.end))
+    return protect_text(text, tuple(merged)), tuple(merged), warnings
+
+
+def _prepare_annotations(
+    clean_text: str,
+    protected: ProtectedText,
+    *,
+    annotations: Iterable[TokenAnnotation] | None,
+    nlp: object | None,
+    use_spacy: bool | None,
+    spacy_model: str | None,
+    language_code: str,
+    strict: bool,
+) -> tuple[Iterable[TokenAnnotation] | None, tuple[str, ...]]:
+    """Load/validate annotations and remap them into protected coordinates."""
+    warnings: list[str] = []
+    if annotations is not None:
+        annotations = validate_annotations(clean_text, annotations)
+    if annotations is None and use_spacy is not False:
+        if nlp is None and (spacy_model is not None or use_spacy is True):
+            try:
+                nlp = load_spacy_model(spacy_model, language=language_code)
+            except SpacyModelError as exc:
+                if strict:
+                    raise
+                warnings.append(f"[SPACY] {exc}")
+        if nlp is not None:
+            from .annotations import spacy_annotations
+
+            annotations = spacy_annotations(clean_text, cast(_SpacyPipeline, nlp))
+
+    current = remap_annotations_for_replacements(
+        annotations,
+        ((span.start, span.end, 1) for span in protected.spans),
+    )
+    if current is not None:
+        current = validate_annotations(protected.text, current)
+    return current, tuple(warnings)
+
+
+def _resolve_number_options(
+    language_code: str,
+    *,
+    expand_structured: bool,
+    expand_numbers: bool,
+    number_policy: NumberPolicy | None,
+    model_punctuation: bool,
+) -> tuple[bool, bool, tuple[str, ...]]:
+    """Resolve numeric ownership and downstream punctuation warnings once."""
+    warnings: list[str] = []
+    if model_punctuation:
+        warnings.append("[PUNCTUATION] model punctuation remains downstream")
+    if number_policy is None:
+        return expand_structured, expand_numbers, tuple(warnings)
+
+    structured_enabled = expand_structured and number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
+    plain_enabled = expand_numbers and number_policy in {
+        NumberPolicy.PLAIN,
+        NumberPolicy.STRUCTURED_AND_PLAIN,
+    }
+    if number_policy is NumberPolicy.CALLER_MANAGED:
+        warnings.append(
+            f"[NUMBERS] caller-managed number categories for language {language_code!r}"
+        )
+    elif number_policy is NumberPolicy.NONE:
+        warnings.append(f"[NUMBERS] unsupported number policy for language {language_code!r}")
+    return structured_enabled, plain_enabled, tuple(warnings)
+
+
+def _finalize_mapping(
+    clean_text: str,
+    spoken_text: str,
+    stages: tuple[PreparationStage, ...],
+) -> tuple[OffsetMap, tuple[SourceReplacement, ...]]:
+    """Compose stage maps and project edits into source coordinates."""
+    stage_maps = tuple(
+        OffsetMap.from_replacements(
+            len(stage.before),
+            tuple(
+                Replacement(
+                    edit.source_start,
+                    edit.source_end,
+                    edit.replacement,
+                    edit.kind,
+                    edit.language,
+                    edit.rule,
+                )
+                for edit in stage.mapped_edits
+            ),
+            output_length=len(stage.after),
+            edits=stage.mapped_edits,
+        )
+        for stage in stages
+    )
+    offset_map = OffsetMap.identity(len(clean_text))
+    for stage_map in stage_maps:
+        offset_map = offset_map.compose(stage_map)
+    source_replacements = compose_source_replacements(
+        clean_text,
+        spoken_text,
+        stages,
+        stage_maps,
+    )
+    return offset_map, source_replacements
+
+
+def _build_prepared_text(
+    *,
+    source_text: str,
+    clean_text: str,
+    spoken_text: str,
+    language: str,
+    stages: tuple[PreparationStage, ...],
+    protected_spans: tuple[ProtectedSpan, ...],
+    offset_map: OffsetMap,
+    source_replacements: tuple[SourceReplacement, ...],
+    warnings: tuple[str, ...],
+) -> PreparedText:
+    """Construct the public result from finalized pipeline state."""
+    return PreparedText(
+        source_text=source_text,
+        clean_text=clean_text,
+        spoken_text=spoken_text,
+        language=language,
+        stages=stages,
+        mapped_edits=tuple(edit for stage in stages for edit in stage.mapped_edits),
+        source_replacements=source_replacements,
+        protected_spans=protected_spans,
+        offset_map=offset_map,
+        warnings=warnings,
+    )

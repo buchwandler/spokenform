@@ -88,7 +88,10 @@ def test_protection_is_atomic_and_repeated_fragments_map_independently() -> None
     assert result.spoken_text == (
         "Protect 2 kg and two kilograms; URL https://example.org/2 and dev2@example.org."
     )
-    assert result.map_source_span(start, start + len("2 kg")) == (len("Protect "), len("Protect 2 kg"))
+    assert result.map_source_span(start, start + len("2 kg")) == (
+        len("Protect "),
+        len("Protect 2 kg"),
+    )
     assert "\ue000" not in result.spoken_text
     assert all("\ue000" not in str(value) for value in result.to_dict().values())
 
@@ -106,8 +109,14 @@ def test_idempotence_and_plain_number_reservations() -> None:
     assert result.spoken_text == (
         "forty two minus five three point one four point zero two thirty thousand 1984 1st II 1.02.3"
     )
-    assert prepare(result.spoken_text, language="en", use_spacy=False).spoken_text == result.spoken_text
+    assert (
+        prepare(result.spoken_text, language="en", use_spacy=False).spoken_text
+        == result.spoken_text
+    )
 
 
 def test_number_policy_for_english_aliases() -> None:
-    assert all(number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN for language in ("en", "en-us", "en-gb"))
+    assert all(
+        number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN
+        for language in ("en", "en-us", "en-gb")
+    )

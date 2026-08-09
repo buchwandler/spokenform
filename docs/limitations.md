@@ -6,9 +6,8 @@
 - Date, time, currency, ordinal, and locale grammar is intentionally conservative.
 - Invalid calendar dates and times are recognized as protected structured
   candidates and remain literal; ambiguous two-digit years remain unchanged.
-- Protected spans use internal private-use sentinels. Inputs containing the same
-  private-use characters are an uncommon edge case that should be covered before a
-  stability release.
+- Protected spans use allocated private-use sentinels that are checked against the
+  current input, so existing private-use characters are preserved literally.
 - `abbr2words` accepts POS annotations, but its bundled registries do not
   necessarily require POS labels. spaCy therefore does not necessarily alter
   default output.
@@ -33,13 +32,14 @@ spokenform is a one-language written-to-spoken layer. Callers own language
 selection, mixed-language segmentation, markup/SSML, tokenization, lexicons,
 phonemization, and model-specific punctuation.
 
-German was the first kokorog2p parity target. English, French, Spanish, Italian,
-and Portuguese now
+German was the first kokorog2p parity target. English has a direct spokenform API
+parity contract; French, Spanish, Italian, and Portuguese now
 have text, source mapping, downstream token/phoneme, protection, and
 released-stack fixtures. Spanish, Italian, Portuguese, and Czech time remain
 caller-managed. Czech and English semantic number categories are owned by
-spokenform; English deliberately keeps context-sensitive numeric categories
-downstream. Unsupported language categories use an explicit
+spokenform. The current kokorog2p semantic migration set excludes English, so
+its downstream adapter retains context-sensitive numeric categories. Unsupported
+language categories use an explicit
 `NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
 
 Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps all run
