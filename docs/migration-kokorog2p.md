@@ -28,7 +28,7 @@ are part of the base package and are exercised by the same gate.
 | Language | Suitable for spokenform                                                                                           | Keep downstream                                                                                                                                                                        | Status                                                           |
 | -------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | cs       | reviewed dates, ordinary numbers, quantities, temperatures, currencies, canonical units                           | G2P/lexicon behavior; colon times                                                                                                                                                      | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed        |
-| en       | dates, validated clock times, currencies, reviewed quantities, safe ordinary written numbers when called directly | all semantic ownership in the current kokorog2p adapter, plus phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, G2P decisions | spokenform API parity-gated; **not migrated in kokorog2p**       |
+| en       | dates, validated clock times, currencies, reviewed quantities, safe ordinary written numbers when called directly | phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, G2P decisions | adapter-ready / parity-gated; downstream activation remains a kokorog2p decision |
 | es       | reviewed dates, ordinary numbers, currencies, units, temperatures                                                 | G2P/tokenizer typography; time expressions                                                                                                                                             | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed        |
 | fr       | dates, times, numbers, ordinals, currencies, temperatures, units, exact maps                                      | G2P/tokenizer typography, lexicon, phonemes                                                                                                                                            | parity-gated; `STRUCTURED_AND_PLAIN`                             |
 | it       | reviewed dates, ordinary numbers, currencies, units, temperatures                                                 | G2P/tokenizer typography; colon-time ownership                                                                                                                                         | parity-gated; `STRUCTURED_AND_PLAIN`; colon times caller-managed |
@@ -40,10 +40,11 @@ digit strings remain raw so years, identifiers, and sequence-like values reach
 kokorog2p's `NumberConverter` and related heuristics. A structured candidate
 with unsupported fractional currency precision also remains unchanged.
 
-The current kokorog2p semantic migration set is `cs`, `de`, `fr`, `es`, `it`,
-and `pt`; it intentionally excludes English even though spokenform can prepare
-English directly. English migration requires an explicit downstream parity
-decision and must not be inferred from this release's API tests.
+English is adapter-ready and parity-gated for a future downstream handoff.
+Whether kokorog2p enables that path is a decision for kokorog2p and is
+intentionally not represented here as a live release-state tracker. English
+activation requires an explicit downstream parity decision and must not be
+inferred from spokenform API tests alone.
 
 This audit intentionally does not port language detection, markup parsing, mixed
 language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model
@@ -53,9 +54,9 @@ ready for downstream handoff only with the released `abbr2words>=0.2.4`
 prerequisite and their real parity gates; package publication remains the release
 workflow boundary. Spanish, Italian, Portuguese, and Czech time ownership is
 intentionally deferred until reviewed time corpora exist. English semantic
-number categories are available in the direct spokenform API, while the current
-kokorog2p adapter keeps English semantic ownership and reserved downstream forms
-under kokorog2p ownership.
+number categories are available in the direct spokenform API, while years,
+ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, and
+G2P decisions remain downstream-owned.
 
 ## Preferred adapter surface
 

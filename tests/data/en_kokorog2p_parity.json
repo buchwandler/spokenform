@@ -29,6 +29,29 @@
     "spoken": "twenty three fifty nine",
     "rule": "en.time"
   },
+  {
+    "id": "time-parenthesized",
+    "source": "(3:00)",
+    "spoken": "(three o'clock)",
+    "rule": "en.time"
+  },
+  {
+    "id": "time-quoted-punctuation",
+    "source": "\"3:03,\"",
+    "spoken": "\"three oh three,\"",
+    "rule": "en.time"
+  },
+  {
+    "id": "time-sentence-punctuation",
+    "source": "At 23:59.",
+    "spoken": "At twenty three fifty nine.",
+    "rule": "en.time"
+  },
+  { "id": "time-embedded-alphanumeric", "source": "abc3:00xyz", "spoken": "abc3:00xyz" },
+  { "id": "time-letter-prefix", "source": "x3:00", "spoken": "x3:00" },
+  { "id": "time-letter-suffix", "source": "3:00x", "spoken": "3:00x" },
+  { "id": "time-version-like", "source": "v3:00beta", "spoken": "v3:00beta" },
+  { "id": "time-identifier-like", "source": "id3:00_value", "spoken": "id3:00_value" },
   { "id": "invalid-time-hour", "source": "24:00", "spoken": "24:00" },
   { "id": "invalid-time-minute", "source": "12:99", "spoken": "12:99" },
   {
@@ -51,6 +74,60 @@
     "source": "-40°C.",
     "spoken": "minus forty degrees Celsius."
   },
+  {
+    "id": "temperature-celsius-letter-space",
+    "source": "37 C.",
+    "spoken": "thirty seven degrees Celsius.",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-celsius-tight",
+    "source": "37C",
+    "spoken": "thirty seven degrees Celsius",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-celsius-degree-space",
+    "source": "37° C",
+    "spoken": "thirty seven degrees Celsius",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-celsius-degree-spaced",
+    "source": "37 ° C",
+    "spoken": "thirty seven degrees Celsius",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-celsius-lowercase",
+    "source": "37 c.",
+    "spoken": "thirty seven degrees Celsius.",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-fahrenheit-letter-space",
+    "source": "98 F.",
+    "spoken": "ninety eight degrees Fahrenheit.",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-fahrenheit-tight",
+    "source": "98F",
+    "spoken": "ninety eight degrees Fahrenheit",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-fahrenheit-degree-space",
+    "source": "98° F",
+    "spoken": "ninety eight degrees Fahrenheit",
+    "rule": "en.quantity"
+  },
+  {
+    "id": "temperature-negative-letter-space",
+    "source": "-40 C.",
+    "spoken": "minus forty degrees Celsius.",
+    "rule": "en.quantity"
+  },
   { "id": "temperature-kelvin", "source": "1 K", "spoken": "one kelvin" },
   { "id": "quantity-one-kg", "source": "1 kg", "spoken": "one kilogram" },
   { "id": "quantity-two-kg", "source": "2 kg", "spoken": "two kilograms" },
@@ -69,6 +146,24 @@
     "id": "sentence-in",
     "source": "They wandered around in.",
     "spoken": "They wandered around in."
+  },
+  {
+    "id": "abbreviation-visit-st",
+    "source": "Visit St.",
+    "spoken": "Visit Saint",
+    "expand_numbers": false
+  },
+  {
+    "id": "abbreviation-main-street",
+    "source": "123 Main St.",
+    "spoken": "123 Main Street",
+    "expand_numbers": false
+  },
+  {
+    "id": "abbreviation-st-patrick",
+    "source": "St. Patrick",
+    "spoken": "Saint Patrick",
+    "expand_numbers": false
   },
   {
     "id": "currency-dollar-decimal",

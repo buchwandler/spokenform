@@ -26,7 +26,12 @@ def _fixture_rows() -> list[dict[str, str]]:
 @pytest.mark.parametrize("language", ["en", "en-us", "en-gb"])
 def test_english_parity_fixture(language: str) -> None:
     for row in _fixture_rows():
-        result = prepare(row["source"], language=language, use_spacy=False)
+        result = prepare(
+            row["source"],
+            language=language,
+            use_spacy=False,
+            expand_numbers=row.get("expand_numbers", True),
+        )
         assert result.spoken_text == row["spoken"], row["id"]
         if "rule" in row:
             assert any(edit.rule == row["rule"] for edit in result.source_replacements), row["id"]
@@ -66,6 +71,60 @@ def test_structured_rules_and_source_mapping_are_exact() -> None:
         cursor = item.source_end
     rebuilt.append(source[cursor:])
     assert "".join(rebuilt) == result.spoken_text
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("37 C.", "thirty seven degrees Celsius"),
+        ("37C", "thirty seven degrees Celsius"),
+        ("37° C", "thirty seven degrees Celsius"),
+        ("37 ° C", "thirty seven degrees Celsius"),
+        ("37 c.", "thirty seven degrees Celsius"),
+        ("98 F.", "ninety eight degrees Fahrenheit"),
+        ("98F", "ninety eight degrees Fahrenheit"),
+        ("98° F", "ninety eight degrees Fahrenheit"),
+        ("-40 C.", "minus forty degrees Celsius"),
+    ],
+)
+def test_temperature_aliases_are_atomic_source_aligned_replacements(
+    source: str, spoken: str
+) -> None:
+    wrapped = f"Before {source} after"
+    result = prepare(wrapped, language="en", use_spacy=False)
+    start = wrapped.index(source)
+    end = start + len(source)
+
+    assert result.spoken_text == f"Before {spoken} after"
+    assert len(result.source_replacements) == 1
+    replacement = result.source_replacements[0]
+    assert (replacement.source_start, replacement.source_end) == (start, end)
+    assert replacement.source == source
+    assert replacement.replacement == spoken
+    assert replacement.rule == "en.quantity"
+    assert replacement.kind == "structured"
+    output_start, output_end = result.map_source_span(start, end)
+    assert result.spoken_text[output_start:output_end] == spoken
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("Visit St.", "Visit Saint"),
+        ("123 Main St.", "123 Main Street"),
+        ("St. Patrick", "Saint Patrick"),
+        ("They wandered around in.", "They wandered around in."),
+        ("10 in.", "ten inches."),
+    ],
+)
+def test_english_abbreviation_compatibility(source: str, spoken: str) -> None:
+    result = prepare(
+        source,
+        language="en",
+        expand_numbers=False,
+        use_spacy=False,
+    )
+    assert result.spoken_text == spoken
 
 
 def test_currency_precision_and_invalid_structured_values_fail_closed() -> None:

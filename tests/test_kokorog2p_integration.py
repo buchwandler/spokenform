@@ -72,21 +72,30 @@ def test_french_adapter_token_and_phoneme_parity_fixture() -> None:
 
 def test_english_adapter_preserves_migrated_and_reserved_ownership() -> None:
     source = (
-        "At 3:00, it was 37°C. Pay $12.50 for 10 in. World War II began in 1984, "
+        "Visit St. Patrick at 37 C. Pay $12.50 for 10 in. World War II began in 1984, "
         "and 1st edition uses 1.02.3."
     )
     result = prepare_for_kokorog2p(source, "en")
     assert result.spoken_text == (
-        "At three o'clock, it was thirty seven degrees Celsius. Pay "
+        "Visit Saint Patrick at thirty seven degrees Celsius Pay "
         "twelve dollars and fifty cents for ten inches World War II began in 1984, "
         "and 1st edition uses 1.02.3."
     )
     assert [(item.source, item.rule) for item in result.source_replacements] == [
-        ("3:00", "en.time"),
-        ("37°C", "en.quantity"),
+        ("St.", "abbr:St."),
+        ("37 C.", "en.quantity"),
         ("$12.50", "en.currency"),
         ("10 in.", "en.quantity"),
     ]
+    assert [(item.source, item.replacement, item.kind) for item in result.source_replacements] == [
+        ("St.", "Saint", "abbreviation"),
+        ("37 C.", "thirty seven degrees Celsius", "structured"),
+        ("$12.50", "twelve dollars and fifty cents", "structured"),
+        ("10 in.", "ten inches", "structured"),
+    ]
+    for item in result.source_replacements:
+        assert source[item.source_start : item.source_end] == item.source
+        assert result.spoken_text[item.output_start : item.output_end] == item.replacement
     tokens = _tokenize(result.spoken_text)
     assert "1984" in tokens and "II" in tokens
     assert "1st" in result.spoken_text and "1.02.3" in result.spoken_text
