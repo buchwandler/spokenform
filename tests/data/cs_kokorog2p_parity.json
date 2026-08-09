@@ -1,0 +1,23 @@
+[
+  {"id": "cs-number-zero", "source": "0", "spoken": "nula", "category": "number"},
+  {"id": "cs-number-precision", "source": "1,50", "spoken": "jedna celá pět nula", "category": "number"},
+  {"id": "cs-number-negative", "source": "-25", "spoken": "mínus dvacet pět", "category": "number"},
+  {"id": "cs-date-leap-day", "source": "29.02.2024", "spoken": "dvacátého devátého února dva tisíce dvacet čtyři", "category": "date"},
+  {"id": "cs-date-invalid", "source": "29.02.2023", "spoken": "29.02.2023", "category": "protection"},
+  {"id": "cs-quantity-hour", "source": "2 h", "spoken": "dvě hodiny", "category": "quantity"},
+  {"id": "cs-quantity-distance", "source": "5 km", "spoken": "pět kilometrů", "category": "quantity"},
+  {"id": "cs-quantity-decimal", "source": "1,5 kg", "spoken": "jedna celá pět kilogramů", "category": "quantity"},
+  {"id": "cs-temperature-one", "source": "1°C", "spoken": "jeden stupeň Celsia", "category": "quantity", "intentional_bug_fix": true},
+  {"id": "cs-temperature-many", "source": "25°C", "spoken": "dvacet pět stupňů Celsia", "category": "quantity", "intentional_bug_fix": true},
+  {"id": "cs-temperature-fahrenheit", "source": "-10°F", "spoken": "mínus deset stupňů Fahrenheita", "category": "quantity"},
+  {"id": "cs-currency-koruna", "source": "12,80 Kč", "spoken": "dvanáct korun a osmdesát haléřů", "category": "currency"},
+  {"id": "cs-currency-euro", "source": "2 EUR", "spoken": "dvě eura", "category": "currency"},
+  {"id": "cs-currency-dollar", "source": "5 USD", "spoken": "pět dolarů", "category": "currency"},
+  {"id": "cs-currency-pound", "source": "1 GBP", "spoken": "jedna libra šterlinků", "category": "currency"},
+  {"id": "cs-abbreviation-dotted", "source": "1 hod.", "spoken": "jedna hodina.", "category": "abbreviation"},
+  {"id": "cs-protection-time", "source": "18:20", "spoken": "18:20", "category": "protection"},
+  {"id": "cs-protection-invalid-time", "source": "25:99", "spoken": "25:99", "category": "protection"},
+  {"id": "cs-protection-url", "source": "https://example.org/2kg", "spoken": "https://example.org/2kg", "category": "protection"},
+  {"id": "cs-protection-email", "source": "dev2@example.org", "spoken": "dev2@example.org", "category": "protection"},
+  {"id": "cs-protection-version", "source": "1.2.3", "spoken": "1.2.3", "category": "protection"}
+]

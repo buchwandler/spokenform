@@ -26,7 +26,7 @@ are part of the base package and are exercised by the same gate.
 
 | Language | Suitable for spokenform                                                      | Keep downstream                                               | Status                                                    |
 | -------- | ---------------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------- |
-| cs       | dates, numbers, currencies, locale decimal/grouping semantics                | G2P and lexicon behavior                                      | caller-managed; parity corpus pending                     |
+| cs       | reviewed dates, ordinary numbers, quantities, temperatures, currencies, canonical units | G2P/lexicon behavior; colon times | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed |
 | en       | dates, currencies, ordinary written numbers                                  | phoneme-sensitive years, digit-by-digit and suffix heuristics | ownership documented; parity corpus pending               |
 | es       | reviewed dates, ordinary numbers, currencies, units, temperatures            | G2P/tokenizer typography; time expressions                    | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed |
 | fr       | dates, times, numbers, ordinals, currencies, temperatures, units, exact maps | G2P/tokenizer typography, lexicon, phonemes                   | parity-gated; `STRUCTURED_AND_PLAIN`                      |
@@ -40,5 +40,5 @@ Portuguese are
 ready for downstream handoff only with the released `abbr2words>=0.2.2`
 prerequisite and their real parity gates; package publication remains the release
 workflow boundary. Spanish, Italian, and Portuguese time ownership is intentionally
-deferred until reviewed time corpora exist. Czech and English remain caller-managed
-for number categories.
+deferred until reviewed time corpora exist. English remains caller-managed for
+number categories; Czech semantic number categories are owned by spokenform.

@@ -40,7 +40,7 @@ apostrophe variants, and punctuation choices required only by a model tokenizer.
 The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical
 identity; `spokenform.structured` dispatches to locale-owned German, French,
-Spanish, Italian, or Portuguese semantic grammar. No symbol or alias inventory is copied
+Spanish, Italian, Portuguese, or Czech semantic grammar. No symbol or alias inventory is copied
 into spokenform. French owns its dates, h/colon times, ordinals, decimal digit
 reading, quantities, temperatures, and currency decomposition. Spanish owns
 reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
@@ -48,7 +48,9 @@ Spanish colon times remain caller-managed. Italian owns reviewed dates,
 quantities, temperatures, currencies, and ordinary numbers; Italian colon times
 remain caller-managed. Portuguese owns reviewed dates, quantities, temperatures,
 currencies, and ordinary numbers; Portuguese colon times remain caller-managed.
-G2P typography and phonemes stay downstream.
+Czech owns reviewed dates, quantities, temperatures, currencies, ordinary numbers,
+and canonical extended units; Czech colon times remain caller-managed. G2P
+typography and phonemes stay downstream.
 
 French is promoted to `NumberPolicy.STRUCTURED_AND_PLAIN` only after its parity
 corpus and real downstream gate pass. Every locale replacement retains exact
@@ -65,9 +67,12 @@ Italian is promoted to the same policy after its parity corpus and real
 date candidates, colon-time candidates, URLs, e-mail addresses, and semantic
 versions. Portuguese is promoted to the same policy after its parity corpus and
 real `kokorog2p` Portuguese gate pass; its plain-number stage protects reviewed
-dates, time candidates, URLs, e-mail addresses, and semantic versions. Czech and
-English remain caller-managed. All reviewed Italian and Portuguese quantity and
-currency symbols continue to come from `abbr2words`.
+dates, time candidates, URLs, e-mail addresses, and semantic versions. Czech is
+promoted to the same policy with a structured-safe plain-number stage that
+protects date/time candidates, URLs, e-mail addresses, semantic versions, and
+canonical structured values; Czech colon times remain caller-managed. English
+remains caller-managed. All reviewed quantity and currency symbols continue to
+come from `abbr2words`.
 
 `prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
 preserves run boundaries, honors protected spans fail-closed, and does not perform

@@ -39,3 +39,15 @@ result = prepare("The board is 2 in. wide.", config=config)
 ```
 
 When `config` is supplied, it is authoritative for pipeline options.
+
+For Czech downstream preparation, use the same adapter with an explicit language:
+
+```python
+from spokenform import prepare_for_kokorog2p
+
+result = prepare_for_kokorog2p("1°C, 12,80 Kč, 18:20", language="cs")
+assert result.spoken_text == "jeden stupeň Celsia, dvanáct korun a osmdesát haléřů, 18:20"
+```
+
+Czech semantic numbers and quantities are owned by spokenform; colon times stay
+caller-managed.

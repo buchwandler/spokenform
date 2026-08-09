@@ -35,21 +35,32 @@ def iter_structured_replacements(
     protected = tuple(protected_ranges)
     if base == "de":
         from .locales.de import iter_replacements
+
+        candidates = iter_replacements(text, protected_ranges=protected)
     elif base == "fr":
         from .locales.fr import iter_replacements
+
+        candidates = iter_replacements(text, protected_ranges=protected)
     elif base == "es":
         from .locales.es import iter_replacements
+
+        candidates = iter_replacements(text, protected_ranges=protected)
     elif base == "it":
         from .locales.it import iter_replacements
+
+        candidates = iter_replacements(text, protected_ranges=protected)
     elif base == "pt":
-        from .locales.pt import iter_replacements
+        from .locales.pt import iter_replacements as iter_portuguese_replacements
+
+        candidates = iter_portuguese_replacements(
+            text, language=language, protected_ranges=protected
+        )
+    elif base == "cs":
+        from .locales.cs import iter_replacements
+
+        candidates = iter_replacements(text, protected_ranges=protected)
     else:
         return ()
-
-    if base == "pt":
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    else:
-        candidates = iter_replacements(text, protected_ranges=protected)
     return resolve_replacements(candidates, source_length=len(text))
 
 

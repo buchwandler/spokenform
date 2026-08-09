@@ -73,6 +73,11 @@ helpers to rebase downstream token and override coordinates.
 
 ## Number normalization
 
+The Czech `normalize_numbers(language="cs")` path delegates to the reviewed
+structured and structured-safe plain-number grammar. It verbalizes ordinary
+numbers, validated dates, quantities, temperatures, and canonical currencies;
+colon-time candidates remain unchanged for caller-managed handling.
+
 ```{autofunction} spokenform.normalize_numbers
 
 ```

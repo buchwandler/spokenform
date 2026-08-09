@@ -3,7 +3,13 @@ from pathlib import Path
 
 from abbr2words import iter_unit_matches
 
-from spokenform import NumberPolicy, PreparationConfig, ProtectedSpan, iter_structured_replacements, prepare
+from spokenform import (
+    NumberPolicy,
+    PreparationConfig,
+    ProtectedSpan,
+    iter_structured_replacements,
+    prepare,
+)
 from spokenform.config import number_policy_for_language
 
 PARITY_PATH = Path(__file__).parent / "data" / "pt_kokorog2p_parity.json"
@@ -19,7 +25,7 @@ def test_portuguese_policy_and_region_preservation() -> None:
     for language in ("pt", "pt-br", "pt-pt"):
         assert number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN
         assert PreparationConfig.for_kokorog2p(language).number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
-    assert number_policy_for_language("cs") is NumberPolicy.CALLER_MANAGED
+    assert number_policy_for_language("cs") is NumberPolicy.STRUCTURED_AND_PLAIN
     assert number_policy_for_language("en") is NumberPolicy.CALLER_MANAGED
     assert prepare("16", language="pt-br", use_spacy=False).spoken_text == "dezesseis"
     assert prepare("16", language="pt-pt", use_spacy=False).spoken_text == "dezasseis"

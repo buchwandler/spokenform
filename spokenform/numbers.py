@@ -135,6 +135,7 @@ _GERMAN_YEAR_POLICY: Final[str] = "century_for_1100_1999"
 
 _URL_OR_EMAIL_RE = re.compile(r"https?://\S+|www\.\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")
 _VERSION_RE = re.compile(r"(?<!\w)v\d+(?:\.\d+){2,}(?!\w)", re.IGNORECASE)
+_BARE_VERSION_RE = re.compile(r"(?<![\w.])\d+(?:\.\d+){2,}(?![\w.])")
 _DATE_DMY_RE = re.compile(
     r"(?<!\d)(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)"
 )
@@ -164,6 +165,9 @@ _ISO_DATE_CANDIDATE_RE = re.compile(
 _TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
 _SPANISH_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
+)
+_CZECH_PLAIN_NUMBER_RE = re.compile(
+    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
 )
 
 
@@ -196,6 +200,7 @@ def _protect(text: str) -> _ProtectedText:
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
+    protected = _BARE_VERSION_RE.sub(replace, protected)
 
     def invalid_date(match: re.Match[str]) -> str:
         try:
@@ -413,6 +418,14 @@ def normalize_numbers(text: str, *, language: str) -> str:
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     base = _base_language(language)
+    if base == "cs":
+        # Czech has a reviewed semantic grammar in the structured stage. Keep
+        # this public convenience API on that same engine rather than allowing
+        # its older generic date/currency morphology to drift independently.
+        from .structured import normalize_structured
+
+        structured = normalize_structured(text, language=language)
+        return normalize_plain_numbers(structured.text, language=language)
     protected = _protect(text)
     result = protected.text
     transformations: tuple[Callable[[str, str], str], ...] = (
@@ -486,11 +499,43 @@ def _normalize_comma_decimal_plain_numbers(
     ).restore()
 
 
+def _normalize_czech_plain_numbers(text: str) -> str:
+    """Verbalize Czech ordinary numbers without consuming structured values."""
+    from abbr2words import iter_unit_matches
+
+    protected = _protect_plain_numbers(text)
+    values = list(protected.values)
+    result = protected.text
+    occupied: list[tuple[int, int]] = []
+    unit_matches = tuple(iter_unit_matches(result, "cs"))
+    for match in reversed(unit_matches):
+        if any(match.start < end and start < match.end for start, end in occupied):
+            continue
+        index = len(values)
+        values.append(result[match.start : match.end])
+        placeholder = chr(protected.placeholder_start + index)
+        result = result[: match.start] + placeholder + result[match.end :]
+        occupied.append((match.start, match.end))
+
+    from .locales.cs import number_text
+
+    def replace(match: re.Match[str]) -> str:
+        return number_text(match.group(0))
+
+    return _ProtectedText(
+        _CZECH_PLAIN_NUMBER_RE.sub(replace, result),
+        tuple(values),
+        protected.placeholder_start,
+    ).restore()
+
+
 def normalize_plain_numbers(text: str, *, language: str) -> str:
     """Verbalize only ordinary numbers, preserving all structured candidates."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     base = _base_language(language)
+    if base == "cs":
+        return _normalize_czech_plain_numbers(text)
     if base in {"es", "it", "pt"}:
         number_language = language
         if base == "pt":

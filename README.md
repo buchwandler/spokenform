@@ -67,7 +67,7 @@ Use `prepare_for_kokorog2p(text, language=...)` for one explicitly selected
 language run. The adapter preserves caller-owned run whitespace and protected
 overrides, emits exact source-coordinate replacements, and leaves tokenization,
 G2P, phonemization, and model punctuation to kokorog2p. German, French, Spanish,
-Italian, and Portuguese are parity-gated semantic migration targets; Czech and
+Italian, Portuguese, and Czech are parity-gated semantic migration targets;
 English number categories remain caller-managed.
 
 German quantity symbols are recognized by `abbr2words.iter_unit_matches()`.
@@ -81,7 +81,9 @@ Spanish `18:20`-style time expressions remain caller-managed. Italian realizes
 reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
 Italian colon times remain caller-managed. Portuguese realizes reviewed dates,
 quantities, temperatures, currencies, and ordinary numbers; Portuguese colon
-times remain caller-managed. Neither locale copies raw symbol inventories or
+times remain caller-managed. Czech realizes reviewed dates, ordinary numbers,
+quantities, temperatures, currencies, and canonical extended units; Czech colon
+times remain caller-managed. No locale copies raw symbol inventories or
 downstream tokenizer/phoneme rules.
 
 ## Language boundary
@@ -258,7 +260,8 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
   currencies, and ordinary numbers; time expressions remain caller-managed.
 - Italian parity ownership covers reviewed dates, quantities, temperatures,
   currencies, and ordinary numbers; colon times remain caller-managed.
-- Czech and English remain caller-managed for number categories.
+- Czech owns reviewed structured and plain number categories; English remains
+  caller-managed. Czech colon-time candidates remain caller-managed.
 - `abbr2words` currently exposes final expanded text rather than semantic replacement objects, so stage edits are reconstructed deterministically from diffs.
 - Trained spaCy pipelines must be installed and version-compatible with the spaCy runtime.
 
