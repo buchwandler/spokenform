@@ -1,3 +1,7 @@
+[![PyPI - Version](https://img.shields.io/pypi/v/spokenform)](https://pypi.org/project/spokenform/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/spokenform)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/spokenform)
+
 # spokenform
 
 `spokenform` converts plain written text in one selected language into reviewable
