@@ -10,6 +10,14 @@ except (ImportError, AttributeError):  # source tree before setuptools_scm gener
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
 from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
 from .config import NumberPolicy, PreparationConfig, number_policy_for_language
+from .language import (
+    SUPPORTED_BASE_LANGUAGES,
+    base_language,
+    normalize_language,
+    resolve_abbr2words_language,
+    resolve_num2words_language,
+    supported_languages,
+)
 from .mapping import (
     OffsetMap,
     Replacement,
@@ -34,6 +42,12 @@ __all__ = [
     "PreparationConfig",
     "NumberPolicy",
     "number_policy_for_language",
+    "SUPPORTED_BASE_LANGUAGES",
+    "normalize_language",
+    "base_language",
+    "supported_languages",
+    "resolve_num2words_language",
+    "resolve_abbr2words_language",
     "MappedEdit",
     "OffsetMap",
     "PreparedText",

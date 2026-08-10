@@ -17,6 +17,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..language import normalize_language, resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -96,8 +97,10 @@ _MONTHS = (
 
 
 def _number_language(language: str) -> str:
-    normalized = language.strip().lower().replace("_", "-")
-    return "pt_BR" if normalized in {"pt", "pt-br"} else "pt"
+    normalized = normalize_language(language)
+    if normalized == "pt":
+        return resolve_num2words_language("pt_BR")
+    return resolve_num2words_language(normalized)
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
@@ -242,7 +245,9 @@ def iter_replacements(
                     "pt.date",
                 )
 
-    for match in iter_unit_matches(text, "pt", protected_spans=protected):
+    for match in iter_unit_matches(
+        text, resolve_abbr2words_language(language), protected_spans=protected
+    ):
         replacement = _quantity_text(match, text, language=language)
         add(
             match.start,

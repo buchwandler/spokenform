@@ -17,6 +17,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -106,8 +107,14 @@ _MONTHS = (
 )
 
 
-def _spell(value: int | Decimal, *, ordinal: bool = False) -> str:
-    return str(num2words(value, lang="fr", to="ordinal" if ordinal else "cardinal"))
+def _spell(value: int | Decimal, language: str = "fr", *, ordinal: bool = False) -> str:
+    return str(
+        num2words(
+            value,
+            lang=resolve_num2words_language(language),
+            to="ordinal" if ordinal else "cardinal",
+        )
+    )
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
@@ -125,11 +132,11 @@ def _parts(raw: str) -> tuple[bool, int, str | None]:
     return negative, int(integer), fraction
 
 
-def _number_text(raw: str) -> str:
+def _number_text(raw: str, language: str = "fr") -> str:
     negative, integer, fraction = _parts(raw)
-    result = _spell(integer)
+    result = _spell(integer, language)
     if fraction is not None:
-        result += " virgule " + " ".join(_spell(int(digit)) for digit in fraction)
+        result += " virgule " + " ".join(_spell(int(digit), language) for digit in fraction)
     return f"moins {result}" if negative else result
 
 
@@ -152,17 +159,17 @@ def _valid_date(day: int, month: int, year: int) -> bool:
     return True
 
 
-def _date_text(day: int, month: int, year: int) -> str:
-    day_text = "premier" if day == 1 else _spell(day)
-    return f"{day_text} {_MONTHS[month - 1]} {_spell(year)}"
+def _date_text(day: int, month: int, year: int, language: str = "fr") -> str:
+    day_text = "premier" if day == 1 else _spell(day, language)
+    return f"{day_text} {_MONTHS[month - 1]} {_spell(year, language)}"
 
 
-def _time_text(hour: int, minute: int) -> str:
-    hour_text = "une heure" if hour == 1 else f"{_spell(hour)} heures"
-    return hour_text if minute == 0 else f"{hour_text} {_spell(minute)}"
+def _time_text(hour: int, minute: int, language: str = "fr") -> str:
+    hour_text = "une heure" if hour == 1 else f"{_spell(hour, language)} heures"
+    return hour_text if minute == 0 else f"{hour_text} {_spell(minute, language)}"
 
 
-def _ordinal_text(value: int, suffix: str) -> str:
+def _ordinal_text(value: int, suffix: str, language: str = "fr") -> str:
     suffix = suffix.casefold()
     if value == 1 and suffix in {"ère", "re"}:
         return "première"
@@ -172,34 +179,34 @@ def _ordinal_text(value: int, suffix: str) -> str:
         return "second"
     if value == 2 and suffix == "nde":
         return "seconde"
-    return _spell(value, ordinal=True)
+    return _spell(value, language, ordinal=True)
 
 
 def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
 
 
-def _quantity_text(match: UnitMatch, text: str) -> str | None:
+def _quantity_text(match: UnitMatch, text: str, language: str = "fr") -> str | None:
     canonical_id = match.canonical_id or ""
     if canonical_id.startswith("currency-"):
-        return _currency_text(match.value, canonical_id)
+        return _currency_text(match.value, canonical_id, language)
     grammar = QUANTITY_GRAMMAR.get(canonical_id)
     if canonical_id == "temperature-celsius" or canonical_id == "temperature-fahrenheit":
         unit = "Celsius" if canonical_id.endswith("celsius") else "Fahrenheit"
         value = _decimal(match.value)
         noun = f"degré {unit}" if value == 1 else f"degrés {unit}"
-        return f"{_number_text(match.value)} {noun}"
+        return f"{_number_text(match.value, language)} {noun}"
     if grammar is None:
         return None
     value = _decimal(match.value)
     noun = grammar.singular if value == 1 else grammar.plural
-    result = f"{_number_text(match.value)} {noun}"
+    result = f"{_number_text(match.value, language)} {noun}"
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
         result += "."
     return result
 
 
-def _currency_text(raw: str, canonical_id: str) -> str:
+def _currency_text(raw: str, canonical_id: str, language: str = "fr") -> str:
     negative, integer, fraction = _parts(raw)
     major_names = {
         "currency-euro": ("euro", "euros", "centime", "centimes"),
@@ -210,12 +217,12 @@ def _currency_text(raw: str, canonical_id: str) -> str:
         canonical_id, (canonical_id, canonical_id, "centime", "centimes")
     )
     major = singular if integer == 1 else plural
-    result = f"{_spell(integer)} {major}"
+    result = f"{_spell(integer, language)} {major}"
     if fraction is not None:
         minor = int((fraction + "00")[:2])
         if minor:
             minor_name = minor_singular if minor == 1 else minor_plural
-            result += f" {_spell(minor)} {minor_name}"
+            result += f" {_spell(minor, language)} {minor_name}"
     return f"moins {result}" if negative else result
 
 
@@ -224,7 +231,10 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
 
 
 def iter_replacements(
-    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+    text: str,
+    *,
+    language: str = "fr",
+    protected_ranges: Iterable[tuple[int, int]] = (),
 ) -> tuple[Replacement, ...]:
     """Return French structured candidates before shared conflict resolution."""
     protected = tuple(protected_ranges)
@@ -238,24 +248,26 @@ def iter_replacements(
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year), "fr.date")
+                add(match.start(), match.end(), _date_text(day, month, year, language), "fr.date")
     for match in _TIME_H.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"] or 0)
         if hour <= 23 and minute <= 59:
-            add(match.start(), match.end(), _time_text(hour, minute), "fr.time")
+            add(match.start(), match.end(), _time_text(hour, minute, language), "fr.time")
     for match in _TIME_COLON.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         if hour <= 23 and minute <= 59:
-            add(match.start(), match.end(), _time_text(hour, minute), "fr.time")
+            add(match.start(), match.end(), _time_text(hour, minute, language), "fr.time")
     for match in _ORDINAL.finditer(text):
         add(
             match.start(),
             match.end(),
-            _ordinal_text(int(match["number"]), match["suffix"]),
+            _ordinal_text(int(match["number"]), match["suffix"], language),
             "fr.ordinal",
         )
-    for match in iter_unit_matches(text, "fr", protected_spans=protected):
-        replacement = _quantity_text(match, text)
+    for match in iter_unit_matches(
+        text, resolve_abbr2words_language(language), protected_spans=protected
+    ):
+        replacement = _quantity_text(match, text, language)
         add(
             match.start,
             match.end,
@@ -268,7 +280,7 @@ def iter_replacements(
     for match in _PLAIN_NUMBER.finditer(text):
         if any(left <= match.start() and match.end() <= right for left, right in excluded):
             continue
-        add(match.start(), match.end(), _number_text(match["number"]), "fr.number")
+        add(match.start(), match.end(), _number_text(match["number"], language), "fr.number")
     return tuple(candidates)
 
 

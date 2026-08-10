@@ -11,16 +11,14 @@ from typing import Final
 
 from num2words import num2words
 
-_SUPPORTED: Final[tuple[str, ...]] = ("cs", "de", "en", "es", "fr", "it", "pt")
-_NUM2WORDS_LANG: Final[dict[str, str]] = {
-    "cs": "cs",
-    "de": "de",
-    "en": "en",
-    "es": "es",
-    "fr": "fr",
-    "it": "it",
-    "pt": "pt",
-}
+from .language import (
+    SUPPORTED_BASE_LANGUAGES,
+    base_language,
+    normalize_language,
+    resolve_abbr2words_language,
+    resolve_num2words_language,
+)
+
 _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
@@ -224,20 +222,21 @@ def _protect(text: str) -> _ProtectedText:
 
 
 def _base_language(language: str) -> str:
-    base = language.strip().lower().replace("_", "-").split("-", 1)[0]
-    if base not in _SUPPORTED:
-        supported = ", ".join(_SUPPORTED)
+    base = base_language(language)
+    if base not in SUPPORTED_BASE_LANGUAGES:
+        supported = ", ".join(SUPPORTED_BASE_LANGUAGES)
         raise ValueError(f"Unsupported language {language!r}. Supported languages: {supported}")
     return base
 
 
 def _spell(value: int | Decimal, language: str, *, ordinal: bool = False) -> str:
     target = "ordinal" if ordinal else "cardinal"
-    return str(num2words(value, lang=_NUM2WORDS_LANG[language], to=target))
+    return str(num2words(value, lang=resolve_num2words_language(language), to=target))
 
 
 def _year_text(year: int, language: str) -> str:
-    if language == "de" and _GERMAN_YEAR_POLICY == "century_for_1100_1999" and 1100 <= year < 2000:
+    base = base_language(language)
+    if base == "de" and _GERMAN_YEAR_POLICY == "century_for_1100_1999" and 1100 <= year < 2000:
         century, remainder = divmod(year, 100)
         prefix = f"{_spell(century, language)}hundert"
         return prefix if remainder == 0 else f"{prefix}{_spell(remainder, language)}"
@@ -245,6 +244,7 @@ def _year_text(year: int, language: str) -> str:
 
 
 def _decimal_value(raw: str, language: str) -> Decimal:
+    language = base_language(language)
     normalized = raw.replace("−", "-")
     if language in _COMMA_DECIMAL:
         if "," in normalized:
@@ -270,32 +270,34 @@ def _date_text(
     *,
     german_dative: bool = False,
 ) -> str:
-    month_name = _MONTHS[language][month - 1]
-    day_text = _spell(day, language, ordinal=language in {"de", "en"})
+    base = base_language(language)
+    month_name = _MONTHS[base][month - 1]
+    day_text = _spell(day, language, ordinal=base in {"de", "en"})
     year_text = _year_text(year, language)
-    if language == "de":
+    if base == "de":
         if german_dative:
             day_text = day_text if day_text.endswith("n") else f"{day_text}n"
         else:
             day_text = day_text if day_text.endswith("r") else f"{day_text}r"
         return f"{day_text} {month_name} {year_text}"
-    if language == "en":
+    if base == "en":
         return f"{month_name} {day_text}, {year_text}"
-    if language in {"es", "pt"}:
+    if base in {"es", "pt"}:
         return f"{_spell(day, language)} de {month_name} de {year_text}"
-    if language == "fr":
+    if base == "fr":
         return f"{_spell(day, language)} {month_name} {year_text}"
     return f"{day_text} {month_name} {year_text}"
 
 
 def _replace_dates(text: str, language: str) -> str:
+    base = base_language(language)
     def replacement(match: re.Match[str]) -> str:
         try:
             date(int(match.group("year")), int(match.group("month")), int(match.group("day")))
         except ValueError:
             return match.group(0)
         prefix = match.string[max(0, match.start() - 12) : match.start()]
-        german_dative = language == "de" and bool(
+        german_dative = base == "de" and bool(
             re.search(r"\b(?:am|zum|vom)\s*$", prefix, re.IGNORECASE)
         )
         return _date_text(
@@ -310,15 +312,16 @@ def _replace_dates(text: str, language: str) -> str:
 
 
 def _replace_times(text: str, language: str) -> str:
+    base = base_language(language)
     def replace(match: re.Match[str]) -> str:
         hour = int(match.group("hour"))
         minute = int(match.group("minute"))
         hour_text = _spell(hour, language)
         if minute == 0:
-            if language == "de":
+            if base == "de":
                 return f"{hour_text} Uhr"
             return hour_text
-        return f"{hour_text}{_TIME_JOINERS[language]}{_spell(minute, language)}"
+        return f"{hour_text}{_TIME_JOINERS[base]}{_spell(minute, language)}"
 
     return _TIME_RE.sub(replace, text)
 
@@ -335,13 +338,13 @@ def _replace_currencies(text: str, language: str) -> str:
             return str(
                 num2words(
                     value,
-                    lang=_NUM2WORDS_LANG[language],
+                    lang=resolve_num2words_language(language),
                     to="currency",
                     currency=currency,
                 )
             )
         except (NotImplementedError, TypeError, ValueError):
-            if language == "de" and value >= 0:
+            if base_language(language) == "de" and value >= 0:
                 major = int(value)
                 cents = int((value - major) * 100)
                 labels = {
@@ -360,7 +363,7 @@ def _replace_currencies(text: str, language: str) -> str:
 
 
 def _replace_years(text: str, language: str) -> str:
-    if language not in _SUPPORTED:
+    if base_language(language) not in SUPPORTED_BASE_LANGUAGES:
         return text
     pattern = re.compile(r"(?<![\w.])(?P<year>\d{4})(?![\w.])")
 
@@ -372,7 +375,7 @@ def _replace_years(text: str, language: str) -> str:
 
 
 def _replace_ordinals(text: str, language: str) -> str:
-    if language not in {"cs", "de", "en"}:
+    if base_language(language) not in {"cs", "de", "en"}:
         return text
 
     def replace(match: re.Match[str]) -> str:
@@ -382,11 +385,12 @@ def _replace_ordinals(text: str, language: str) -> str:
 
 
 def _replace_numbers(text: str, language: str) -> str:
-    pattern = _GERMAN_NUMBER_RE if language == "de" else _NUMBER_RE
+    base = base_language(language)
+    pattern = _GERMAN_NUMBER_RE if base == "de" else _NUMBER_RE
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)
-        if language == "de":
+        if base == "de":
             unsigned = raw.lstrip("+−-")
             negative = raw.startswith(("-", "−"))
             if unsigned.startswith((".", ",")):
@@ -404,8 +408,8 @@ def _replace_numbers(text: str, language: str) -> str:
                 )
             return f"minus {spoken}" if negative else spoken
         value = _decimal_value(raw, language)
-        if language == "en" and "." in raw:
-            return _english_plain_number_text(raw)
+        if base == "en" and "." in raw:
+            return _english_plain_number_text(raw, language)
         if value == value.to_integral_value():
             return _spell(int(value), language)
         return _spell(value, language)
@@ -422,6 +426,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
+    language = normalize_language(language)
     base = _base_language(language)
     if base == "cs":
         # Czech has a reviewed semantic grammar in the structured stage. Keep
@@ -490,10 +495,13 @@ def _normalize_comma_decimal_plain_numbers(
             integer, fraction = unsigned.split(",", 1)
         else:
             integer, fraction = re.sub(r"[.]", "", unsigned), None
-        result = str(num2words(int(integer), lang=language))
+        result = str(num2words(int(integer), lang=resolve_num2words_language(language)))
         if fraction is not None:
             result += f" {decimal_word} " + " ".join(
-                str(num2words(int(digit), lang=language)) for digit in fraction
+                str(
+                    num2words(int(digit), lang=resolve_num2words_language(language))
+                )
+                for digit in fraction
             )
         return f"{negative_word} {result}" if negative else result
 
@@ -504,7 +512,7 @@ def _normalize_comma_decimal_plain_numbers(
     ).restore()
 
 
-def _normalize_czech_plain_numbers(text: str) -> str:
+def _normalize_czech_plain_numbers(text: str, language: str = "cs") -> str:
     """Verbalize Czech ordinary numbers without consuming structured values."""
     from abbr2words import iter_unit_matches
 
@@ -512,7 +520,7 @@ def _normalize_czech_plain_numbers(text: str) -> str:
     values = list(protected.values)
     result = protected.text
     occupied: list[tuple[int, int]] = []
-    unit_matches = tuple(iter_unit_matches(result, "cs"))
+    unit_matches = tuple(iter_unit_matches(result, resolve_abbr2words_language(language)))
     for match in reversed(unit_matches):
         if any(match.start < end and start < match.end for start, end in occupied):
             continue
@@ -525,7 +533,7 @@ def _normalize_czech_plain_numbers(text: str) -> str:
     from .locales.cs import number_text
 
     def replace(match: re.Match[str]) -> str:
-        return number_text(match.group(0))
+        return number_text(match.group(0), language=language)
 
     return _ProtectedText(
         _CZECH_PLAIN_NUMBER_RE.sub(replace, result),
@@ -534,12 +542,12 @@ def _normalize_czech_plain_numbers(text: str) -> str:
     ).restore()
 
 
-def _english_spell(value: int) -> str:
+def _english_spell(value: int, language: str = "en") -> str:
     """Spell a safe English cardinal without punctuation or hyphens."""
-    return str(num2words(value, lang="en")).replace(",", "").replace("-", " ")
+    return str(num2words(value, lang=resolve_num2words_language(language))).replace(",", "").replace("-", " ")
 
 
-def _english_plain_number_text(raw: str) -> str:
+def _english_plain_number_text(raw: str, language: str = "en") -> str:
     """Render one reviewed English ordinary number, preserving fraction digits."""
     normalized = raw.replace("−", "-")
     negative = normalized.startswith("-")
@@ -547,14 +555,14 @@ def _english_plain_number_text(raw: str) -> str:
     unsigned = normalized.lstrip("+-").replace(",", "")
     if unsigned.startswith("."):
         integer, fraction = "", unsigned[1:]
-        result = "point " + " ".join(_english_spell(int(digit)) for digit in fraction)
+        result = "point " + " ".join(_english_spell(int(digit), language) for digit in fraction)
     elif "." in unsigned:
         integer, fraction = unsigned.split(".", 1)
-        result = f"{_english_spell(int(integer))} point " + " ".join(
-            _english_spell(int(digit)) for digit in fraction
+        result = f"{_english_spell(int(integer), language)} point " + " ".join(
+            _english_spell(int(digit), language) for digit in fraction
         )
     else:
-        result = _english_spell(int(unsigned))
+        result = _english_spell(int(unsigned), language)
     if negative:
         return f"minus {result}"
     if positive:
@@ -562,14 +570,16 @@ def _english_plain_number_text(raw: str) -> str:
     return result
 
 
-def _protect_english_units(protected: _ProtectedText) -> _ProtectedText:
+def _protect_english_units(protected: _ProtectedText, language: str = "en") -> _ProtectedText:
     """Reserve every recognized unit so unknown/future IDs fail closed."""
     from abbr2words import iter_unit_matches
 
     values = list(protected.values)
     result = protected.text
     occupied: list[tuple[int, int]] = []
-    for match in reversed(tuple(iter_unit_matches(result, "en"))):
+    for match in reversed(
+        tuple(iter_unit_matches(result, resolve_abbr2words_language(language)))
+    ):
         if any(match.start < end and start < match.end for start, end in occupied):
             continue
         index = len(values)
@@ -580,7 +590,7 @@ def _protect_english_units(protected: _ProtectedText) -> _ProtectedText:
     return _ProtectedText(result, tuple(values), protected.placeholder_start)
 
 
-def _normalize_english_plain_numbers(text: str) -> str:
+def _normalize_english_plain_numbers(text: str, language: str = "en") -> str:
     """Verbalize only low-risk English cardinals and decimals.
 
     Four-digit and longer ungrouped digit strings are deliberately excluded:
@@ -588,10 +598,10 @@ def _normalize_english_plain_numbers(text: str) -> str:
     Dates, times, versions, URLs, emails, and recognized units are protected
     atomically before this pass.
     """
-    protected = _protect_english_units(_protect_plain_numbers(text))
+    protected = _protect_english_units(_protect_plain_numbers(text), language)
 
     def replace(match: re.Match[str]) -> str:
-        return _english_plain_number_text(match.group(0))
+        return _english_plain_number_text(match.group(0), language)
 
     return _ProtectedText(
         _ENGLISH_PLAIN_NUMBER_RE.sub(replace, protected.text),
@@ -604,13 +614,12 @@ def normalize_plain_numbers(text: str, *, language: str) -> str:
     """Verbalize only ordinary numbers, preserving all structured candidates."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
+    language = normalize_language(language)
     base = _base_language(language)
     if base == "cs":
-        return _normalize_czech_plain_numbers(text)
+        return _normalize_czech_plain_numbers(text, language)
     if base in {"es", "it", "pt"}:
         number_language = language
-        if base == "pt":
-            number_language = "pt_BR" if language in {"pt", "pt-br"} else "pt"
         return _normalize_comma_decimal_plain_numbers(
             text,
             language=number_language,
@@ -618,5 +627,5 @@ def normalize_plain_numbers(text: str, *, language: str) -> str:
             negative_word={"es": "menos", "it": "meno", "pt": "menos"}[base],
         )
     if base == "en":
-        return _normalize_english_plain_numbers(text)
-    return normalize_numbers(text, language=base)
+        return _normalize_english_plain_numbers(text, language)
+    return normalize_numbers(text, language=language)

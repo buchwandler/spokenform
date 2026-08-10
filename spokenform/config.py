@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+from .language import base_language, normalize_language
+
 
 class NumberPolicy(str, Enum):
     """Ownership policy for numeric normalization."""
@@ -17,7 +19,7 @@ class NumberPolicy(str, Enum):
 
 def number_policy_for_language(language: str) -> NumberPolicy:
     """Return the initial kokorog2p policy for a normalized language code."""
-    base = language.strip().lower().replace("_", "-").split("-", 1)[0]
+    base = base_language(language)
     if base == "de":
         return NumberPolicy.STRUCTURED_AND_PLAIN
     if base == "en":
@@ -58,6 +60,7 @@ class PreparationConfig:
             raise TypeError("language must be a string")
         if not self.language.strip():
             raise ValueError("language must not be empty")
+        object.__setattr__(self, "language", normalize_language(self.language))
         if self.use_spacy is not None and not isinstance(self.use_spacy, bool):
             raise TypeError("use_spacy must be a bool or None")
         if self.spacy_model is not None:

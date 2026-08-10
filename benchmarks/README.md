@@ -1,0 +1,18 @@
+# PolyNorm benchmark
+
+`python -m benchmarks.polynorm --accept-license` runs the diagnostic adapter for
+the five locales shared by PolyNorm-Bench and Spokenform. The upstream data is
+licensed CC BY-NC-ND 4.0, so downloading requires the explicit
+`--accept-license` flag. Data is fetched from the pinned upstream commit and
+stored under `.cache/polynorm-bench/<commit>/`; it is never packaged or
+committed.
+
+Use `--offline` after the cache has been populated. The adapter also supports
+`--locale`, `--category`, `--case`, `--limit`, `--refresh`, `--download-only`,
+and `--show-failures all`. Reports are written to
+`benchmark-results/polynorm/<run-id>/`. `summary.json` contains metrics and
+metadata only; the JSONL and Markdown failure reports contain source text and
+remain local.
+
+PolyNorm is a discovery tool, not a normal CI or release gate. The benchmark
+does not make unsupported PolyNorm locales part of Spokenform's public API.

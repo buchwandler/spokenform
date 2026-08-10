@@ -7,7 +7,7 @@ import unicodedata
 from collections.abc import Iterable
 from typing import cast
 
-from abbr2words import abbr2words_with_replacements, iter_unit_matches, normalize_language
+from abbr2words import abbr2words_with_replacements, iter_unit_matches
 
 from .annotations import (
     _SpacyPipeline,
@@ -16,6 +16,7 @@ from .annotations import (
     validate_annotations,
 )
 from .config import NumberPolicy, PreparationConfig
+from .language import normalize_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
     Replacement,
@@ -149,7 +150,6 @@ def prepare(
         )
 
     clean_text = text
-    requested_language = language.strip().lower().replace("_", "-")
     language_code = normalize_language(language)
     structured_numbers_enabled, plain_numbers_enabled, policy_warnings = _resolve_number_options(
         language_code,
@@ -210,7 +210,7 @@ def prepare(
     if structured_numbers_enabled:
         structured = normalize_structured(
             protected.restore(current),
-            language=requested_language,
+            language=language_code,
             protected_ranges=map_internal_protected_spans_to_visible(
                 current,
                 protected.values,
@@ -253,7 +253,7 @@ def prepare(
         )
         abbreviation_result = abbr2words_with_replacements(
             protected.restore(current),
-            lang=language_code,
+            lang=resolve_abbr2words_language(language_code),
             context=context,
             annotations=to_abbr2words_annotations(visible_annotations),
             protected_spans=map_internal_protected_spans_to_visible(
@@ -293,7 +293,7 @@ def prepare(
             stages,
             "numbers",
             current,
-            lambda value: normalize_plain_numbers(value, language=requested_language),
+            lambda value: normalize_plain_numbers(value, language=language_code),
             restore=protected.restore,
         )
         number_stage = stages[-1]
@@ -396,7 +396,7 @@ def _expand_partial_structured_protection(
     if not spans:
         return spans
     ranges = [(span.start, span.end, span.kind) for span in spans]
-    for match in iter_unit_matches(text, normalize_language(language)):
+    for match in iter_unit_matches(text, resolve_abbr2words_language(language)):
         for index, (start, end, kind) in enumerate(ranges):
             if start < match.end and match.start < end:
                 ranges[index] = (min(start, match.start), max(end, match.end), kind)

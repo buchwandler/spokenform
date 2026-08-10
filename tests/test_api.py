@@ -56,6 +56,23 @@ def test_language_is_explicit_and_source_is_not_parsed_as_markup() -> None:
     assert "semantic_spans" not in result.to_dict()
 
 
+@pytest.mark.parametrize("language", ["en_GB", "en-gb", "EN-gb"])
+def test_prepared_text_preserves_normalized_regional_language(language: str) -> None:
+    result = prepare("2 tests", language=language, use_spacy=False)
+
+    assert result.language == "en_GB"
+    assert result.spoken_text == "two tests"
+    assert result.to_dict()["language"] == "en_GB"
+    assert result.to_adapter_dict()["language"] == "en_GB"
+
+
+def test_regional_language_uses_base_spokenform_grammar_and_exact_number_dependency() -> None:
+    result = prepare("2026-05-14", language="en_IN", use_spacy=False)
+
+    assert result.language == "en_IN"
+    assert result.spoken_text.startswith("May fourteenth")
+
+
 def test_spacing_is_last_and_reviewable() -> None:
     result = prepare(
         "  Hello\u00a0  world  ",

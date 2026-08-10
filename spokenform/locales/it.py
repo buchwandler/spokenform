@@ -16,6 +16,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -114,18 +115,22 @@ def _decimal(raw: str) -> Decimal:
         raise ValueError(f"Cannot parse Italian number {raw!r}") from exc
 
 
-def _spell(value: int) -> str:
-    return str(num2words(value, lang="it"))
+def _spell(value: int, language: str = "it") -> str:
+    return str(num2words(value, lang=resolve_num2words_language(language)))
 
 
-def _number_text(raw: str, *, singular_article: str | None = None) -> str:
+def _number_text(
+    raw: str, *, singular_article: str | None = None, language: str = "it"
+) -> str:
     negative, integer, fraction = _parts(raw)
     if fraction is None:
-        result = _spell(integer)
+        result = _spell(integer, language)
         if integer == 1 and singular_article is not None:
             result = singular_article
     else:
-        result = f"{_spell(integer)} virgola " + " ".join(_spell(int(digit)) for digit in fraction)
+        result = f"{_spell(integer, language)} virgola " + " ".join(
+            _spell(int(digit), language) for digit in fraction
+        )
     return f"meno {result}" if negative else result
 
 
@@ -137,24 +142,24 @@ def _valid_date(day: int, month: int, year: int) -> bool:
     return True
 
 
-def _date_text(day: int, month: int, year: int) -> str:
-    return f"{_spell(day)} {_MONTHS[month - 1]} {_spell(year)}"
+def _date_text(day: int, month: int, year: int, language: str = "it") -> str:
+    return f"{_spell(day, language)} {_MONTHS[month - 1]} {_spell(year, language)}"
 
 
 def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
 
 
-def _quantity_text(match: UnitMatch, text: str) -> str | None:
+def _quantity_text(match: UnitMatch, text: str, language: str = "it") -> str | None:
     canonical_id = match.canonical_id or ""
     if canonical_id.startswith("currency-"):
-        return _currency_text(match.value, canonical_id)
+        return _currency_text(match.value, canonical_id, language)
     if canonical_id in {"temperature-celsius", "temperature-fahrenheit"}:
         unit = "Celsius" if canonical_id.endswith("celsius") else "Fahrenheit"
         value = _decimal(match.value)
         noun = f"grado {unit}" if abs(value) == 1 else f"gradi {unit}"
         article = "un" if "," not in match.value else None
-        return f"{_number_text(match.value, singular_article=article)} {noun}"
+        return f"{_number_text(match.value, singular_article=article, language=language)} {noun}"
     grammar = QUANTITY_GRAMMAR.get(canonical_id)
     if grammar is None:
         return None
@@ -164,6 +169,7 @@ def _quantity_text(match: UnitMatch, text: str) -> str | None:
     number = _number_text(
         match.value,
         singular_article=grammar.article if singular else None,
+        language=language,
     )
     result = f"{number}{noun}" if singular and grammar.article.endswith("'") else f"{number} {noun}"
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
@@ -171,7 +177,7 @@ def _quantity_text(match: UnitMatch, text: str) -> str | None:
     return result
 
 
-def _currency_text(raw: str, canonical_id: str) -> str:
+def _currency_text(raw: str, canonical_id: str, language: str = "it") -> str:
     negative, integer, fraction = _parts(raw)
     names = {
         "currency-euro": ("euro", "euro", "centesimo", "centesimi"),
@@ -181,13 +187,15 @@ def _currency_text(raw: str, canonical_id: str) -> str:
     singular, plural, minor_singular, minor_plural = names[canonical_id]
     major = singular if integer == 1 else plural
     major_raw = f"{'-' if negative else ''}{integer}"
-    number = _number_text(major_raw, singular_article="un" if integer == 1 else None)
+    number = _number_text(
+        major_raw, singular_article="un" if integer == 1 else None, language=language
+    )
     result = f"{number} {major}"
     if fraction is not None:
         minor_value = int((fraction + "00")[:2])
         if minor_value:
             minor = minor_singular if minor_value == 1 else minor_plural
-            minor_number = "un" if minor_value == 1 else _spell(minor_value)
+            minor_number = "un" if minor_value == 1 else _spell(minor_value, language)
             result += f" e {minor_number} {minor}"
     return result
 
@@ -197,7 +205,10 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
 
 
 def iter_replacements(
-    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+    text: str,
+    *,
+    language: str = "it",
+    protected_ranges: Iterable[tuple[int, int]] = (),
 ) -> tuple[Replacement, ...]:
     """Return exact Italian structured and semantic replacement candidates."""
     protected = tuple(protected_ranges)
@@ -211,10 +222,12 @@ def iter_replacements(
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if 1 <= month <= 12 and _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year), "it.date")
+                add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
 
-    for match in iter_unit_matches(text, "it", protected_spans=protected):
-        replacement = _quantity_text(match, text)
+    for match in iter_unit_matches(
+        text, resolve_abbr2words_language(language), protected_spans=protected
+    ):
+        replacement = _quantity_text(match, text, language)
         add(
             match.start,
             match.end,

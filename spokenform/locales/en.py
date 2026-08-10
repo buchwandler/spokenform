@@ -17,6 +17,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -172,8 +173,14 @@ _MONTHS = (
 )
 
 
-def _spell(value: int, *, ordinal: bool = False) -> str:
-    result = str(num2words(value, lang="en", to="ordinal" if ordinal else "cardinal"))
+def _spell(value: int, language: str = "en", *, ordinal: bool = False) -> str:
+    result = str(
+        num2words(
+            value,
+            lang=resolve_num2words_language(language),
+            to="ordinal" if ordinal else "cardinal",
+        )
+    )
     return result.replace(",", "").replace("-", " ")
 
 
@@ -191,12 +198,14 @@ def _parts(raw: str) -> tuple[bool, bool, int, str | None]:
     return negative, positive, int(integer or "0"), fraction
 
 
-def _number_text(raw: str) -> str:
+def _number_text(raw: str, language: str = "en") -> str:
     negative, positive, integer, fraction = _parts(raw)
     if fraction is None:
-        result = _spell(integer)
+        result = _spell(integer, language)
     else:
-        result = f"{_spell(integer)} point " + " ".join(_spell(int(digit)) for digit in fraction)
+        result = f"{_spell(integer, language)} point " + " ".join(
+            _spell(int(digit), language) for digit in fraction
+        )
     if negative:
         return f"minus {result}"
     if positive:
@@ -223,9 +232,10 @@ def _valid_date(day: int, month: int, year: int) -> bool:
     return True
 
 
-def _date_text(day: int, month: int, year: int) -> str:
-    day_text = str(num2words(day, lang="en", to="ordinal"))
-    year_text = str(num2words(year, lang="en"))
+def _date_text(day: int, month: int, year: int, language: str = "en") -> str:
+    dependency_language = resolve_num2words_language(language)
+    day_text = str(num2words(day, lang=dependency_language, to="ordinal"))
+    year_text = str(num2words(year, lang=dependency_language))
     return f"{_MONTHS[month - 1]} {day_text}, {year_text}"
 
 
@@ -233,7 +243,7 @@ def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
 
 
-def _quantity_text(match: UnitMatch, text: str) -> str | None:
+def _quantity_text(match: UnitMatch, text: str, language: str = "en") -> str | None:
     canonical_id = match.canonical_id or ""
     grammar = QUANTITY_GRAMMAR.get(canonical_id)
     if grammar is None:
@@ -243,7 +253,7 @@ def _quantity_text(match: UnitMatch, text: str) -> str | None:
     except ValueError:
         return None
     noun = grammar.singular if abs(value) == 1 else grammar.plural
-    result = f"{_number_text(match.value)} {noun}"
+    result = f"{_number_text(match.value, language)} {noun}"
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
         result += "."
     return result
@@ -319,12 +329,12 @@ def _is_version_decimal_context(text: str, start: int) -> bool:
     )
 
 
-def _version_decimal_text(raw: str) -> str:
+def _version_decimal_text(raw: str, language: str = "en") -> str:
     """Render a reviewed ``N.0`` label with release-style ``point oh`` speech."""
     negative, positive, integer, fraction = _parts(raw)
     if fraction != "0":
         raise ValueError(f"Expected a single fractional zero, got {raw!r}")
-    result = f"{_spell(integer)} point oh"
+    result = f"{_spell(integer, language)} point oh"
     if negative:
         return f"minus {result}"
     if positive:
@@ -333,7 +343,10 @@ def _version_decimal_text(raw: str) -> str:
 
 
 def iter_replacements(
-    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+    text: str,
+    *,
+    language: str = "en",
+    protected_ranges: Iterable[tuple[int, int]] = (),
 ) -> tuple[Replacement, ...]:
     """Return exact English structured semantic replacements."""
     protected = tuple(protected_ranges)
@@ -347,19 +360,19 @@ def iter_replacements(
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year), "en.date")
+                add(match.start(), match.end(), _date_text(day, month, year, language), "en.date")
 
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         if hour > 23 or minute > 59:
             continue
-        hour_text = _spell(hour)
+        hour_text = _spell(hour, language)
         if minute == 0:
             value = f"{hour_text} o'clock"
         elif minute < 10:
-            value = f"{hour_text} oh {_spell(minute)}"
+            value = f"{hour_text} oh {_spell(minute, language)}"
         else:
-            value = f"{hour_text} {_spell(minute)}"
+            value = f"{hour_text} {_spell(minute, language)}"
         add(match.start(), match.end(), value, "en.time")
 
     plural_tens_spans: list[tuple[int, int]] = []
@@ -372,16 +385,22 @@ def iter_replacements(
         plural_tens_spans.append((start, end))
         add(start, end, _PLURAL_TENS_WORDS[int(match["value"])], "en.plural_tens")
 
-    quantity_matches = tuple(iter_unit_matches(text, "en", protected_spans=protected))
+    dependency_language = resolve_abbr2words_language(language)
+    quantity_matches = tuple(iter_unit_matches(text, dependency_language, protected_spans=protected))
     quantity_spans = tuple((match.start, match.end) for match in quantity_matches)
     for match in _VERSION_DECIMAL.finditer(text):
         start, end = match.span()
         if _is_version_decimal_context(text, start) and not _overlaps(start, end, quantity_spans):
-            add(start, end, _version_decimal_text(match.group(0)), "en.version_decimal")
+            add(
+                start,
+                end,
+                _version_decimal_text(match.group(0), language),
+                "en.version_decimal",
+            )
 
     unit_protected = protected + tuple(plural_tens_spans)
-    for match in iter_unit_matches(text, "en", protected_spans=unit_protected):
-        replacement = _quantity_text(match, text)
+    for match in iter_unit_matches(text, dependency_language, protected_spans=unit_protected):
+        replacement = _quantity_text(match, text, language)
         add(
             match.start,
             match.end,

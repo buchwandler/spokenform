@@ -43,6 +43,8 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.cache/polynorm-bench/
+benchmark-results/
 nosetests.xml
 coverage.xml
 *.cover

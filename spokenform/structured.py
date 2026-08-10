@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
 
 
@@ -17,10 +18,6 @@ class StageResult:
     reserved: tuple[tuple[int, int], ...] = ()
 
 
-def _base_language(language: str) -> str:
-    return language.strip().lower().replace("_", "-").split("-", 1)[0]
-
-
 def iter_structured_replacements(
     text: str,
     *,
@@ -31,28 +28,29 @@ def iter_structured_replacements(
     if not isinstance(text, str):
         raise TypeError("text must be a string")
 
-    base = _base_language(language)
+    language = normalize_language(language)
+    base = base_language(language)
     protected = tuple(protected_ranges)
     if base == "en":
         from .locales.en import iter_replacements
 
-        candidates = iter_replacements(text, protected_ranges=protected)
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
     elif base == "de":
         from .locales.de import iter_replacements
 
-        candidates = iter_replacements(text, protected_ranges=protected)
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
     elif base == "fr":
         from .locales.fr import iter_replacements
 
-        candidates = iter_replacements(text, protected_ranges=protected)
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
     elif base == "es":
         from .locales.es import iter_replacements
 
-        candidates = iter_replacements(text, protected_ranges=protected)
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
     elif base == "it":
         from .locales.it import iter_replacements
 
-        candidates = iter_replacements(text, protected_ranges=protected)
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
     elif base == "pt":
         from .locales.pt import iter_replacements as iter_portuguese_replacements
 
@@ -62,7 +60,7 @@ def iter_structured_replacements(
     elif base == "cs":
         from .locales.cs import iter_replacements
 
-        candidates = iter_replacements(text, protected_ranges=protected)
+        candidates = iter_replacements(text, language=language, protected_ranges=protected)
     else:
         return ()
     return resolve_replacements(candidates, source_length=len(text))

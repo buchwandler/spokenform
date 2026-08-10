@@ -16,6 +16,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -189,12 +190,12 @@ def _decimal(raw: str) -> Decimal:
         raise ValueError(f"Cannot parse Czech number {raw!r}") from exc
 
 
-def _spell(value: int) -> str:
-    return str(num2words(value, lang="cs"))
+def _spell(value: int, language: str = "cs") -> str:
+    return str(num2words(value, lang=resolve_num2words_language(language)))
 
 
-def _gendered_cardinal(value: int, gender: str | None) -> str:
-    result = _spell(value)
+def _gendered_cardinal(value: int, gender: str | None, language: str = "cs") -> str:
+    result = _spell(value, language)
     if gender is None:
         return result
     # Compound counted phrases commonly use genitive plural from five onward,
@@ -212,13 +213,15 @@ def _gendered_cardinal(value: int, gender: str | None) -> str:
     return result
 
 
-def number_text(raw: str, *, gender: str | None = None) -> str:
+def number_text(raw: str, *, gender: str | None = None, language: str = "cs") -> str:
     """Return reviewed Czech cardinal wording, preserving comma precision."""
     negative, integer, fraction = _parts(raw)
     if fraction is None:
-        result = _gendered_cardinal(integer, gender)
+        result = _gendered_cardinal(integer, gender, language)
     else:
-        result = f"{_spell(integer)} celá " + " ".join(_spell(int(digit)) for digit in fraction)
+        result = f"{_spell(integer, language)} celá " + " ".join(
+            _spell(int(digit), language) for digit in fraction
+        )
     return f"mínus {result}" if negative else result
 
 
@@ -230,9 +233,9 @@ def _valid_date(day: int, month: int, year: int) -> bool:
     return True
 
 
-def date_text(day: int, month: int, year: int) -> str:
+def date_text(day: int, month: int, year: int, language: str = "cs") -> str:
     """Return the Czech genitive day/month form used in spoken dates."""
-    return f"{_DAY_GENITIVE[day - 1]} {_MONTHS[month - 1]} {_spell(year)}"
+    return f"{_DAY_GENITIVE[day - 1]} {_MONTHS[month - 1]} {_spell(year, language)}"
 
 
 def _terminal_dot(text: str, end: int) -> bool:
@@ -261,7 +264,7 @@ _CURRENCY_GRAMMAR = {
 }
 
 
-def _currency_text(raw: str, canonical_id: str) -> str | None:
+def _currency_text(raw: str, canonical_id: str, language: str = "cs") -> str | None:
     grammar = _CURRENCY_GRAMMAR.get(canonical_id)
     if grammar is None:
         return None
@@ -269,7 +272,7 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
     major_one, major_few, major_many, gender = grammar[0]
     major_noun = major_one if integer == 1 else major_few if integer in {2, 3, 4} else major_many
     major_raw = f"{'-' if negative else ''}{integer}"
-    result = f"{number_text(major_raw, gender=gender)} {major_noun}"
+    result = f"{number_text(major_raw, gender=gender, language=language)} {major_noun}"
     if fraction is not None:
         minor_value = int((fraction + "00")[:2])
         if minor_value:
@@ -281,14 +284,14 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
                 if minor_value in {2, 3, 4}
                 else minor_many
             )
-            result += f" a {_spell(minor_value)} {minor_noun}"
+            result += f" a {_spell(minor_value, language)} {minor_noun}"
     return result
 
 
-def _quantity_text(match: UnitMatch, text: str) -> str | None:
+def _quantity_text(match: UnitMatch, text: str, language: str = "cs") -> str | None:
     canonical_id = match.canonical_id or ""
     if match.category == "currency":
-        return _currency_text(match.value, canonical_id)
+        return _currency_text(match.value, canonical_id, language)
     if canonical_id in {"temperature-celsius", "temperature-fahrenheit"}:
         unit = "Celsia" if canonical_id.endswith("celsius") else "Fahrenheita"
         value = _decimal(match.value)
@@ -299,14 +302,14 @@ def _quantity_text(match: UnitMatch, text: str) -> str | None:
             noun = f"stupeň {unit}"
         else:
             noun = f"stupně {unit}"
-        return f"{number_text(match.value, gender='m')} {noun}"
+        return f"{number_text(match.value, gender='m', language=language)} {noun}"
     grammar = QUANTITY_GRAMMAR.get(canonical_id)
     if grammar is None:
         return None
     negative, integer, fraction = _parts(match.value)
     value = Decimal(f"{'-' if negative else ''}{integer}" + (f".{fraction}" if fraction else ""))
     noun = _quantity_noun(grammar, value, fraction)
-    result = number_text(match.value, gender=grammar.gender)
+    result = number_text(match.value, gender=grammar.gender, language=language)
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
         noun += "."
     return f"{result} {noun}"
@@ -317,7 +320,10 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
 
 
 def iter_replacements(
-    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+    text: str,
+    *,
+    language: str = "cs",
+    protected_ranges: Iterable[tuple[int, int]] = (),
 ) -> tuple[Replacement, ...]:
     """Return Czech structured candidates before shared conflict resolution."""
     protected = tuple(protected_ranges)
@@ -331,10 +337,12 @@ def iter_replacements(
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):
-                add(match.start(), match.end(), date_text(day, month, year), "cs.date")
+                add(match.start(), match.end(), date_text(day, month, year, language), "cs.date")
 
-    for match in iter_unit_matches(text, "cs", protected_spans=protected):
-        replacement = _quantity_text(match, text)
+    for match in iter_unit_matches(
+        text, resolve_abbr2words_language(language), protected_spans=protected
+    ):
+        replacement = _quantity_text(match, text, language)
         add(
             match.start,
             match.end,

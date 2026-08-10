@@ -11,6 +11,7 @@ from decimal import Decimal
 from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
+from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
 
@@ -131,10 +132,10 @@ _MONTHS = {
 }
 
 
-def _spell(value: int | Decimal) -> str:
+def _spell(value: int | Decimal, language: str = "de") -> str:
     from num2words import num2words
 
-    return str(num2words(value, lang="de"))
+    return str(num2words(value, lang=resolve_num2words_language(language)))
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
@@ -152,27 +153,29 @@ def _parts(raw: str) -> tuple[bool, int, str | None]:
     return negative, int(integer), fraction
 
 
-def _number(raw: str, *, one: str | None = None) -> str:
+def _number(raw: str, *, one: str | None = None, language: str = "de") -> str:
     negative, integer, fraction = _parts(raw)
     if fraction is None:
-        result = one if integer == 1 and one else _spell(integer)
+        result = one if integer == 1 and one else _spell(integer, language)
     else:
-        result = f"{_spell(integer)} Komma " + " ".join(_spell(int(digit)) for digit in fraction)
+        result = f"{_spell(integer, language)} Komma " + " ".join(
+            _spell(int(digit), language) for digit in fraction
+        )
     return f"minus {result}" if negative else result
 
 
-def _year(value: int) -> str:
+def _year(value: int, language: str = "de") -> str:
     if 1100 <= value < 2000:
         century, remainder = divmod(value, 100)
-        prefix = f"{_spell(century)}hundert"
-        return prefix if remainder == 0 else prefix + _spell(remainder)
-    return _spell(value)
+        prefix = f"{_spell(century, language)}hundert"
+        return prefix if remainder == 0 else prefix + _spell(remainder, language)
+    return _spell(value, language)
 
 
-def _ordinal(value: int, ending: str) -> str:
+def _ordinal(value: int, ending: str, language: str = "de") -> str:
     from num2words import num2words
 
-    word = str(num2words(value, lang="de", to="ordinal"))
+    word = str(num2words(value, lang=resolve_num2words_language(language), to="ordinal"))
     if ending == "er" and word.endswith("e"):
         return word[:-1] + "er"
     if ending == "e":
@@ -205,7 +208,7 @@ def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
 
 
-def _quantity(match: UnitMatch, text: str) -> str | None:
+def _quantity(match: UnitMatch, text: str, language: str = "de") -> str | None:
     grammar = QUANTITY_GRAMMAR.get(match.canonical_id or "")
     if grammar is None:
         return None
@@ -216,7 +219,7 @@ def _quantity(match: UnitMatch, text: str) -> str | None:
         else f"{'-' if negative else ''}{integer}"
     )
     noun = grammar.singular if value == 1 else grammar.plural
-    number = _number(match.value)
+    number = _number(match.value, language=language)
     if value == 1:
         number = "eine" if grammar.gender == "f" else "ein"
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
@@ -224,8 +227,8 @@ def _quantity(match: UnitMatch, text: str) -> str | None:
     return f"{number} {noun}"
 
 
-def _currency_id(symbol: str) -> str | None:
-    for match in iter_unit_matches(f"1 {symbol}", "de"):
+def _currency_id(symbol: str, language: str = "de") -> str | None:
+    for match in iter_unit_matches(f"1 {symbol}", resolve_abbr2words_language(language)):
         if match.category == "currency":
             return match.canonical_id
     return None
@@ -240,13 +243,13 @@ def _currency_name(canonical_id: str) -> str:
     }.get(canonical_id, "")
 
 
-def _currency(raw: str, canonical_id: str) -> str:
+def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
     negative, integer, fraction = _parts(raw)
-    result = f"{'ein' if integer == 1 else _spell(integer)} {_currency_name(canonical_id)}"
+    result = f"{'ein' if integer == 1 else _spell(integer, language)} {_currency_name(canonical_id)}"
     if fraction:
         cents = int((fraction + "00")[:2])
         if cents:
-            result += f" {_spell(cents)} Cent"
+            result += f" {_spell(cents, language)} Cent"
     return f"minus {result}" if negative else result
 
 
@@ -255,7 +258,10 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
 
 
 def iter_replacements(
-    text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
+    text: str,
+    *,
+    language: str = "de",
+    protected_ranges: Iterable[tuple[int, int]] = (),
 ) -> tuple[Replacement, ...]:
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
@@ -273,7 +279,7 @@ def iter_replacements(
             month_name = next(name for number, name in _MONTHS.values() if number == month)
             add(
                 match,
-                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e')} {month_name} {_year(date_year)}",
+                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_name} {_year(date_year, language)}",
                 "de.date",
             )
     for match in _TEXT_DATE.finditer(text):
@@ -285,36 +291,38 @@ def iter_replacements(
             else (2000 + int(year_raw) if year_raw else None)
         )
         if text_year is None or _valid(day, month, text_year):
-            value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e')} {month_name}"
-            add(match, f"{value} {_year(text_year)}" if text_year else value, "de.text-date")
+            value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e', language)} {month_name}"
+            add(match, f"{value} {_year(text_year, language)}" if text_year else value, "de.text-date")
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         value = (
-            f"{'ein' if hour == 1 else _spell(hour)} Uhr"
+            f"{'ein' if hour == 1 else _spell(hour, language)} Uhr"
             if minute == 0
-            else f"{'ein' if hour == 1 else _spell(hour)} Uhr {_spell(minute)}"
+            else f"{'ein' if hour == 1 else _spell(hour, language)} Uhr {_spell(minute, language)}"
         )
         add(match, value, "de.time")
     for pattern in (_CURRENCY_PREFIX, _CURRENCY_SUFFIX):
         for match in pattern.finditer(text):
-            canonical_id = _currency_id(match["symbol"])
+            canonical_id = _currency_id(match["symbol"], language)
             if canonical_id:
-                add(match, _currency(match["number"], canonical_id), "de.currency")
+                add(match, _currency(match["number"], canonical_id, language), "de.currency")
     for match in _TEMPERATURE.finditer(text):
         unit = match["unit"].lower().replace("°", "")
         add(
             match,
-            f"{_number(match['number'])} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}",
+            f"{_number(match['number'], language=language)} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}",
             "de.temperature",
         )
-    for match in iter_unit_matches(text, "de", protected_spans=protected):
+    for match in iter_unit_matches(
+        text, resolve_abbr2words_language(language), protected_spans=protected
+    ):
         if match.category == "currency" or (match.start and text[match.start - 1] in ".,"):
             continue
         if match.category == "magnitude":
             tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[match.end :])
-            canonical_id = _currency_id(tail["symbol"]) if tail else None
+            canonical_id = _currency_id(tail["symbol"], language) if tail else None
             if tail and canonical_id:
-                base = _quantity(match, text)
+                base = _quantity(match, text, language)
                 if base and not _overlaps(match.start, match.end + tail.end(), protected):
                     candidates.append(
                         Replacement(
@@ -328,7 +336,7 @@ def iter_replacements(
                     )
                 continue
         if not _overlaps(match.start, match.end, protected):
-            replacement = _quantity(match, text)
+            replacement = _quantity(match, text, language)
             if replacement:
                 candidates.append(
                     Replacement(
