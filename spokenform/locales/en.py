@@ -100,6 +100,9 @@ _DATE_ISO = re.compile(
 )
 _TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
 _PLURAL_TENS = re.compile(r"(?<!\w)(?P<value>[2-9]0)(?P<suffix>s)(?!\w)", re.IGNORECASE)
+_VERSION_DECIMAL = re.compile(
+    r"(?<![\w.])(?P<integer>\d+)\.0(?!\w|\.\d)",
+)
 _PLURAL_TENS_WORDS = {
     20: "twenties",
     30: "thirties",
@@ -110,6 +113,49 @@ _PLURAL_TENS_WORDS = {
     80: "eighties",
     90: "nineties",
 }
+_VERSION_LABEL_WORDS = frozenset(
+    {
+        "version",
+        "release",
+        "revision",
+        "rev",
+        "model",
+        "edition",
+        "generation",
+        "gen",
+    }
+)
+_VERSION_PRODUCT_WORDS = frozenset(
+    {
+        "bot",
+        "api",
+        "app",
+        "software",
+        "firmware",
+        "protocol",
+        "platform",
+        "engine",
+        "system",
+        "web",
+    }
+)
+_VERSION_COMMON_WORDS = frozenset(
+    {
+        "a",
+        "an",
+        "our",
+        "their",
+        "the",
+        "this",
+        "that",
+        "your",
+        "my",
+        "his",
+        "her",
+        "its",
+        "we",
+    }
+)
 _MONTHS = (
     "January",
     "February",
@@ -256,6 +302,36 @@ def _is_plural_tens_context(text: str, start: int) -> bool:
     )
 
 
+def _is_version_decimal_context(text: str, start: int) -> bool:
+    """Return whether a single-dot decimal is a reviewed product label."""
+    left = text[max(0, start - 64) : start]
+    label_match = re.search(r"\b([A-Za-z]+)\s+$", left)
+    if label_match is None:
+        return False
+    token = label_match.group(1)
+    lowered = token.casefold()
+    if lowered in _VERSION_LABEL_WORDS or lowered in _VERSION_PRODUCT_WORDS:
+        return True
+    if lowered in _VERSION_COMMON_WORDS:
+        return False
+    return (token.isupper() and len(token) >= 2) or (
+        token[0].isupper() and any(character.islower() for character in token[1:])
+    )
+
+
+def _version_decimal_text(raw: str) -> str:
+    """Render a reviewed ``N.0`` label with release-style ``point oh`` speech."""
+    negative, positive, integer, fraction = _parts(raw)
+    if fraction != "0":
+        raise ValueError(f"Expected a single fractional zero, got {raw!r}")
+    result = f"{_spell(integer)} point oh"
+    if negative:
+        return f"minus {result}"
+    if positive:
+        return f"plus {result}"
+    return result
+
+
 def iter_replacements(
     text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
 ) -> tuple[Replacement, ...]:
@@ -295,6 +371,13 @@ def iter_replacements(
             continue
         plural_tens_spans.append((start, end))
         add(start, end, _PLURAL_TENS_WORDS[int(match["value"])], "en.plural_tens")
+
+    quantity_matches = tuple(iter_unit_matches(text, "en", protected_spans=protected))
+    quantity_spans = tuple((match.start, match.end) for match in quantity_matches)
+    for match in _VERSION_DECIMAL.finditer(text):
+        start, end = match.span()
+        if _is_version_decimal_context(text, start) and not _overlaps(start, end, quantity_spans):
+            add(start, end, _version_decimal_text(match.group(0)), "en.version_decimal")
 
     unit_protected = protected + tuple(plural_tens_spans)
     for match in iter_unit_matches(text, "en", protected_spans=unit_protected):

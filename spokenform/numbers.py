@@ -152,7 +152,7 @@ _CURRENCY_SUFFIX_RE = re.compile(
     re.IGNORECASE,
 )
 _ORDINAL_RE = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÀ-ž])")
-_NUMBER_RE = re.compile(r"(?<![\w.])[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?![\w.])")
+_NUMBER_RE = re.compile(r"(?<![\w.])[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?!\w|\.\d)")
 _GERMAN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?|[.,]\d+)(?![\w.])"
 )
@@ -170,7 +170,7 @@ _CZECH_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
 )
 _ENGLISH_PLAIN_NUMBER_RE = re.compile(
-    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:,\d{3})+|\d{1,3})(?:\.\d+)?|\.\d+)(?![\w.])"
+    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:,\d{3})+|\d{1,3})(?:\.\d+)?|\.\d+)(?!\w|\.\d)"
 )
 
 
@@ -404,6 +404,8 @@ def _replace_numbers(text: str, language: str) -> str:
                 )
             return f"minus {spoken}" if negative else spoken
         value = _decimal_value(raw, language)
+        if language == "en" and "." in raw:
+            return _english_plain_number_text(raw)
         if value == value.to_integral_value():
             return _spell(int(value), language)
         return _spell(value, language)

@@ -73,6 +73,83 @@ def test_structured_rules_and_source_mapping_are_exact() -> None:
     assert "".join(rebuilt) == result.spoken_text
 
 
+def test_english_contextual_dot_zero_version_label_uses_oh() -> None:
+    source = "We had built bot 2.0."
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == "We had built bot two point oh."
+    assert len(result.source_replacements) == 1
+    replacement = result.source_replacements[0]
+    start = source.index("2.0")
+    assert (replacement.source_start, replacement.source_end) == (start, start + 3)
+    assert replacement.source == "2.0"
+    assert replacement.replacement == "two point oh"
+    assert replacement.kind == "structured"
+    assert replacement.rule == "en.version_decimal"
+    assert source[replacement.source_end :] == "."
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("Version 2.0.", "Version two point oh."),
+        ("release 3.0", "release three point oh"),
+        ("API 2.0", "API two point oh"),
+        ("bot 2.0", "bot two point oh"),
+        ("Acme 2.0", "Acme two point oh"),
+    ],
+)
+def test_english_contextual_version_labels_use_release_style_zero(source: str, spoken: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == spoken
+    assert [(item.source, item.rule) for item in result.source_replacements] == [
+        (source.split()[-1].rstrip("."), "en.version_decimal")
+    ]
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("The value is 2.0.", "The value is two point zero."),
+        ("The score is 2.0.", "The score is two point zero."),
+        ("It measured 2.0 kg.", "It measured two point zero kilograms."),
+        ("Wait .02 seconds.", "Wait point zero two seconds."),
+        ("The ratio is 2.05.", "The ratio is two point zero five."),
+    ],
+)
+def test_english_decimal_contrasts_keep_ordinary_zero_wording(source: str, spoken: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == spoken
+    assert not any(item.rule == "en.version_decimal" for item in result.source_replacements)
+
+
+def test_english_version_context_defers_to_quantity_grammar() -> None:
+    source = "It measured 2.0 kg."
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == "It measured two point zero kilograms."
+    assert [(item.source, item.rule, item.kind) for item in result.source_replacements] == [
+        ("2.0 kg", "en.quantity", "structured")
+    ]
+
+
+def test_english_version_rule_respects_protected_spans_and_is_idempotent() -> None:
+    source = "Keep Acme 2.0 exactly."
+    start = source.index("2.0")
+    protected = prepare(
+        source,
+        language="en",
+        use_spacy=False,
+        protected_spans=[ProtectedSpan(start, start + 3, kind="literal")],
+    )
+    assert protected.spoken_text == source
+    assert not protected.source_replacements
+
+    first = prepare("We had built bot 2.0.", language="en", use_spacy=False)
+    second = prepare(first.spoken_text, language="en", use_spacy=False)
+    assert second.spoken_text == first.spoken_text
+
+
 def test_high_plural_tens_are_not_seconds() -> None:
     source = "There was a chance in the high 70s that they knew."
     result = prepare(source, language="en", use_spacy=False)
@@ -84,10 +161,7 @@ def test_high_plural_tens_are_not_seconds() -> None:
     assert replacement.source == "70s"
     assert replacement.replacement == "seventies"
     assert source[replacement.source_start : replacement.source_end] == "70s"
-    assert (
-        result.spoken_text[replacement.output_start : replacement.output_end]
-        == "seventies"
-    )
+    assert result.spoken_text[replacement.output_start : replacement.output_end] == "seventies"
     assert result.map_source_span(replacement.source_start, replacement.source_end) == (
         replacement.output_start,
         replacement.output_end,
@@ -178,7 +252,9 @@ def test_plural_tens_is_idempotent_and_four_digit_decades_remain_out_of_scope() 
 
     decade = prepare("the 1970s", language="en", use_spacy=False)
     assert not any(item.rule == "en.plural_tens" for item in decade.source_replacements)
-    assert any(item.source == "1970s" and item.rule == "en.quantity" for item in decade.source_replacements)
+    assert any(
+        item.source == "1970s" and item.rule == "en.quantity" for item in decade.source_replacements
+    )
 
 
 @pytest.mark.parametrize(

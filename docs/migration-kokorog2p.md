@@ -28,23 +28,26 @@ are part of the base package and are exercised by the same gate.
 | Language | Suitable for spokenform                                                                      | Keep downstream                                                                                                          | Status                                                                    |
 | -------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- |
 | cs       | reviewed dates, ordinary numbers, quantities, temperatures, currencies, canonical units      | G2P/lexicon behavior; colon times                                                                                        | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed                 |
-| en       | dates, validated clock times, currencies, reviewed quantities, safe ordinary written numbers | phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, G2P decisions | active adapter / parity-gated; downstream-only categories remain explicit |
+| en       | dates, validated clock times, currencies, reviewed quantities, safe ordinary written numbers, contextual single-dot release labels | phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and arbitrary multi-dot sequences, numeric suffixes, G2P decisions | active adapter / parity-gated; downstream-only categories remain explicit |
 | es       | reviewed dates, ordinary numbers, currencies, units, temperatures                            | G2P/tokenizer typography; time expressions                                                                               | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed                 |
 | fr       | dates, times, numbers, ordinals, currencies, temperatures, units, exact maps                 | G2P/tokenizer typography, lexicon, phonemes                                                                              | parity-gated; `STRUCTURED_AND_PLAIN`                                      |
 | it       | reviewed dates, ordinary numbers, currencies, units, temperatures                            | G2P/tokenizer typography; colon-time ownership                                                                           | parity-gated; `STRUCTURED_AND_PLAIN`; colon times caller-managed          |
 | pt       | reviewed dates, ordinary numbers, currencies, units, temperatures                            | G2P/tokenizer typography; colon-time expressions                                                                         | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed                 |
 
 English's safe plain-number pass intentionally handles only ordinary short or
-grouped cardinals and exact decimal digits. Four-digit and longer ungrouped
+grouped cardinals and exact decimal digits. A separate reviewed structured rule
+handles contextual single-dot release labels such as `bot 2.0` and renders the
+fractional zero as `oh`; it does not change ordinary decimal wording. Quantity
+matches take precedence over that contextual rule. Four-digit and longer ungrouped
 digit strings remain raw so years, identifiers, and sequence-like values reach
 kokorog2p's `NumberConverter` and related heuristics. A structured candidate
 with unsupported fractional currency precision also remains unchanged.
 
 English is active on the kokorog2p spokenform adapter for reviewed structured
-semantics and safe ordinary-number categories. Phoneme-sensitive years, suffix
-ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, and
-G2P decisions remain downstream in kokorog2p; the adapter does not claim those
-categories.
+semantics, contextual single-dot release labels, and safe ordinary-number
+categories. Phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID
+and arbitrary multi-dot sequences, numeric suffixes, and G2P decisions remain
+downstream in kokorog2p; the adapter does not claim those categories.
 
 This audit intentionally does not port language detection, markup parsing, mixed
 language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model

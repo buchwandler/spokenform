@@ -16,9 +16,12 @@
 - English, German, French, Spanish, Italian, Portuguese, and Czech have parity-gated
   structured ownership. Spanish, Italian, Portuguese, and Czech time
   expressions remain caller-managed because no reviewed time ownership contract
-  is included. English intentionally reserves years, suffix ordinals, Roman
-  numerals, phone/ID sequences, dotted versions, numeric suffixes, and
-  phoneme-sensitive helpers for kokorog2p.
+  is included. English owns a conservative contextual single-dot release-label
+  rule (`bot 2.0` -> `bot two point oh`) in addition to ordinary decimals. It
+  does not apply `oh` globally: ordinary decimal zeros remain digit-wise,
+  quantities take precedence, and years, suffix ordinals, Roman numerals,
+  phone/ID sequences, arbitrary multi-dot versions, numeric suffixes, and
+  phoneme-sensitive helpers remain reserved for kokorog2p.
 - French decimal money is decomposed deterministically into major and minor
   units; reviewed fixtures define spelling and preserve written fractional
   precision rather than delegating to a third-party currency string.
@@ -38,9 +41,10 @@ have text, source mapping, downstream token/phoneme, protection, and
 released-stack fixtures. Spanish, Italian, Portuguese, and Czech time remain
 caller-managed. Czech and English semantic number categories are owned by
 spokenform, and English is active on the kokorog2p spokenform adapter for
-reviewed structured semantics and safe ordinary-number categories. English
-phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted
-sequences, numeric suffixes, and G2P decisions remain downstream-owned. Unsupported
+reviewed structured semantics, contextual single-dot release labels, and safe
+ordinary-number categories. English phoneme-sensitive years, suffix ordinals,
+Roman numerals, phone/ID and arbitrary multi-dot sequences, numeric suffixes, and
+G2P decisions remain downstream-owned. Unsupported
 language categories use an explicit
 `NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
 

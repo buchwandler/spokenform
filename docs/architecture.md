@@ -51,10 +51,12 @@ currencies, and ordinary numbers; Portuguese colon times remain caller-managed.
 Czech owns reviewed dates, quantities, temperatures, currencies, ordinary numbers,
 and canonical extended units; Czech colon times remain caller-managed. English
 owns reviewed dates, validated clock times, canonical quantities and currencies,
-and a conservative ordinary-number pass. English deliberately leaves years,
-suffix ordinals, Roman numerals, phone/ID sequences, dotted versions, numeric
-suffixes, and phoneme-sensitive helpers downstream. G2P typography and phonemes
-stay downstream.
+a conservative ordinary-number pass, and reviewed contextual single-dot release
+labels such as `bot 2.0`. That label rule uses `point oh` only in the reviewed
+version context; ordinary decimals retain digit-wise zero wording. English
+deliberately leaves years, suffix ordinals, Roman numerals, phone/ID sequences,
+arbitrary multi-dot versions/IDs, numeric suffixes, and phoneme-sensitive helpers
+downstream. G2P typography and phonemes stay downstream.
 
 French is promoted to `NumberPolicy.STRUCTURED_AND_PLAIN` only after its parity
 corpus and real downstream gate pass. Every locale replacement retains exact
@@ -78,8 +80,9 @@ canonical structured values; Czech colon times remain caller-managed. English is
 promoted to the same policy after its parity corpus and real `kokorog2p` English
 gate pass; its plain-number stage protects reviewed date/time candidates, URLs,
 e-mail addresses, semantic versions, canonical unit candidates, and ambiguous
-long digit strings. All reviewed quantity and currency symbols continue to come
-from `abbr2words`.
+long digit strings. Its structured single-dot release-label rule is contextual
+and yields to recognized quantity spans. All reviewed quantity and currency
+symbols continue to come from `abbr2words`.
 
 `prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
 preserves run boundaries, honors protected spans fail-closed, and does not perform
@@ -87,6 +90,7 @@ language detection, tokenization, G2P, or model-punctuation rewriting.
 
 The downstream migration set currently includes `cs`, `de`, `fr`, `es`, `it`,
 `pt`, and `en`. English is active on the kokorog2p spokenform adapter for
-reviewed structured semantics and safe ordinary-number categories. Years,
-suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes,
-and G2P decisions remain downstream-owned.
+reviewed structured semantics, contextual single-dot release labels, and safe
+ordinary-number categories. Years, suffix ordinals, Roman numerals, phone/ID and
+arbitrary multi-dot sequences, numeric suffixes, and G2P decisions remain
+downstream-owned.
