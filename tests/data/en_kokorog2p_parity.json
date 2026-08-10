@@ -255,5 +255,11 @@
     "source": "2026-05-14",
     "spoken": "May fourteenth, two thousand and twenty-six",
     "rule": "en.date"
+  },
+  {
+    "id": "plural_tens_high_range",
+    "source": "There was a chance in the high 70s that they knew.",
+    "spoken": "There was a chance in the high seventies that they knew.",
+    "rule": "en.plural_tens"
   }
 ]

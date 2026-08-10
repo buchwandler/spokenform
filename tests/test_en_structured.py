@@ -73,6 +73,114 @@ def test_structured_rules_and_source_mapping_are_exact() -> None:
     assert "".join(rebuilt) == result.spoken_text
 
 
+def test_high_plural_tens_are_not_seconds() -> None:
+    source = "There was a chance in the high 70s that they knew."
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == "There was a chance in the high seventies that they knew."
+    replacements = [item for item in result.source_replacements if item.rule == "en.plural_tens"]
+    assert len(replacements) == 1
+    replacement = replacements[0]
+    assert replacement.source == "70s"
+    assert replacement.replacement == "seventies"
+    assert source[replacement.source_start : replacement.source_end] == "70s"
+    assert (
+        result.spoken_text[replacement.output_start : replacement.output_end]
+        == "seventies"
+    )
+    assert result.map_source_span(replacement.source_start, replacement.source_end) == (
+        replacement.output_start,
+        replacement.output_end,
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("high 70s", "high seventies"),
+        ("low 80s", "low eighties"),
+        ("mid 60s", "mid sixties"),
+        ("upper 90s", "upper nineties"),
+        ("lower 40s", "lower forties"),
+        ("early 50s", "early fifties"),
+        ("late 30s", "late thirties"),
+    ],
+)
+def test_plural_tens_range_modifiers(source: str, spoken: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == spoken
+    assert [(item.source, item.replacement, item.rule) for item in result.source_replacements] == [
+        (source.split()[-1], spoken.split()[-1], "en.plural_tens")
+    ]
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("He was in his 70s.", "He was in his seventies."),
+        ("Music from the 80s was playing.", "Music from the eighties was playing."),
+        ("During the 90s it changed.", "During the nineties it changed."),
+    ],
+)
+def test_plural_tens_age_and_era_contexts(source: str, spoken: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == spoken
+    assert any(item.rule == "en.plural_tens" for item in result.source_replacements)
+
+
+@pytest.mark.parametrize(
+    ("source", "spoken"),
+    [
+        ("It took 70s.", "It took seventy seconds."),
+        ("Wait 5s.", "Wait five seconds."),
+        ("The timeout is 30s.", "The timeout is thirty seconds."),
+        ("Pause for 20s.", "Pause for twenty seconds."),
+        ("Wait 70 s.", "Wait seventy seconds."),
+        ("Wait 70 sec.", "Wait seventy seconds."),
+        ("Wait 15s.", "Wait fifteen seconds."),
+        ("Wait 25s.", "Wait twenty five seconds."),
+        ("Wait 75s.", "Wait seventy five seconds."),
+    ],
+)
+def test_plural_tens_context_does_not_change_duration_candidates(source: str, spoken: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == spoken
+    assert any(item.rule == "en.quantity" for item in result.source_replacements)
+    assert not any(item.rule == "en.plural_tens" for item in result.source_replacements)
+
+
+@pytest.mark.parametrize("language", ["en", "en-us", "en-gb"])
+def test_plural_tens_aliases_agree(language: str) -> None:
+    source = "There was a chance in the high 70s that they knew."
+    result = prepare(source, language=language, use_spacy=False)
+    assert result.spoken_text == "There was a chance in the high seventies that they knew."
+    assert any(item.rule == "en.plural_tens" for item in result.source_replacements)
+
+
+def test_plural_tens_respects_protected_spans() -> None:
+    source = "Keep high 70s exactly."
+    start = source.index("70s")
+    result = prepare(
+        source,
+        language="en",
+        use_spacy=False,
+        protected_spans=[ProtectedSpan(start, start + len("70s"), kind="literal")],
+    )
+    assert result.spoken_text == source
+    assert not result.source_replacements
+
+
+def test_plural_tens_is_idempotent_and_four_digit_decades_remain_out_of_scope() -> None:
+    source = "There was a chance in the high 70s that they knew."
+    first = prepare(source, language="en", use_spacy=False)
+    second = prepare(first.spoken_text, language="en", use_spacy=False)
+    assert second.spoken_text == first.spoken_text
+
+    decade = prepare("the 1970s", language="en", use_spacy=False)
+    assert not any(item.rule == "en.plural_tens" for item in decade.source_replacements)
+    assert any(item.source == "1970s" and item.rule == "en.quantity" for item in decade.source_replacements)
+
+
 @pytest.mark.parametrize(
     ("source", "spoken"),
     [

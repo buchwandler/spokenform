@@ -99,6 +99,17 @@ _DATE_ISO = re.compile(
     r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
 )
 _TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
+_PLURAL_TENS = re.compile(r"(?<!\w)(?P<value>[2-9]0)(?P<suffix>s)(?!\w)", re.IGNORECASE)
+_PLURAL_TENS_WORDS = {
+    20: "twenties",
+    30: "thirties",
+    40: "forties",
+    50: "fifties",
+    60: "sixties",
+    70: "seventies",
+    80: "eighties",
+    90: "nineties",
+}
 _MONTHS = (
     "January",
     "February",
@@ -226,6 +237,25 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
     return any(start < right and left < end for left, right in protected)
 
 
+def _is_plural_tens_context(text: str, start: int) -> bool:
+    """Return whether a round-tens suffix is used as a plural marker."""
+    left = text[max(0, start - 48) : start]
+    if re.search(
+        r"\b(?:high|low|mid|upper|lower|early|late)\s+$",
+        left,
+        re.IGNORECASE,
+    ):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:in|from|during|throughout)\s+"
+            r"(?:the|his|her|their|my|your|our)\s+$",
+            left,
+            re.IGNORECASE,
+        )
+    )
+
+
 def iter_replacements(
     text: str, *, protected_ranges: Iterable[tuple[int, int]] = ()
 ) -> tuple[Replacement, ...]:
@@ -256,7 +286,18 @@ def iter_replacements(
             value = f"{hour_text} {_spell(minute)}"
         add(match.start(), match.end(), value, "en.time")
 
-    for match in iter_unit_matches(text, "en", protected_spans=protected):
+    plural_tens_spans: list[tuple[int, int]] = []
+    for match in _PLURAL_TENS.finditer(text):
+        if not _is_plural_tens_context(text, match.start()):
+            continue
+        start, end = match.span()
+        if _overlaps(start, end, protected):
+            continue
+        plural_tens_spans.append((start, end))
+        add(start, end, _PLURAL_TENS_WORDS[int(match["value"])], "en.plural_tens")
+
+    unit_protected = protected + tuple(plural_tens_spans)
+    for match in iter_unit_matches(text, "en", protected_spans=unit_protected):
         replacement = _quantity_text(match, text)
         add(
             match.start,

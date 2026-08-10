@@ -101,3 +101,16 @@ def test_english_adapter_preserves_migrated_and_reserved_ownership() -> None:
     assert "1st" in result.spoken_text and "1.02.3" in result.spoken_text
     assert _phonemize(tokens) == [token.casefold() for token in tokens]
     assert "\ue000" not in result.spoken_text
+
+
+def test_english_adapter_disambiguates_high_plural_tens() -> None:
+    source = "There was a chance in the high 70s that they knew."
+    result = prepare_for_kokorog2p(source, "en")
+
+    assert result.spoken_text == "There was a chance in the high seventies that they knew."
+    assert any(
+        item.source == "70s"
+        and item.replacement == "seventies"
+        and item.rule == "en.plural_tens"
+        for item in result.source_replacements
+    )
