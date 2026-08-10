@@ -17,6 +17,8 @@ from spokenform import iter_structured_replacements
         ("es", "€", "currency-euro"),
         ("it", "€", "currency-euro"),
         ("pt", "€", "currency-euro"),
+        ("de", "m³", "volume-cubic-meter"),
+        ("de", "km/h", "speed-kilometer-per-hour"),
     ],
 )
 def test_migrated_locale_uses_canonical_abbr2words_identity(

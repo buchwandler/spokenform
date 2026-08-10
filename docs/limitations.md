@@ -37,8 +37,10 @@ parity contract; French, Spanish, Italian, and Portuguese now
 have text, source mapping, downstream token/phoneme, protection, and
 released-stack fixtures. Spanish, Italian, Portuguese, and Czech time remain
 caller-managed. Czech and English semantic number categories are owned by
-spokenform. The current kokorog2p semantic migration set excludes English, so
-its downstream adapter retains context-sensitive numeric categories. Unsupported
+spokenform, and English is active on the kokorog2p spokenform adapter for
+reviewed structured semantics and safe ordinary-number categories. English
+phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted
+sequences, numeric suffixes, and G2P decisions remain downstream-owned. Unsupported
 language categories use an explicit
 `NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
 

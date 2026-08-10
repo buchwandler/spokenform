@@ -71,8 +71,11 @@ Use `prepare_for_kokorog2p(text, language=...)` for one explicitly selected
 language run. The adapter preserves caller-owned run whitespace and protected
 overrides, emits exact source-coordinate replacements, and leaves tokenization,
 G2P, phonemization, and model punctuation to kokorog2p. German, French, Spanish,
-Italian, Portuguese, and Czech are parity-gated semantic migration targets;
-English number categories remain caller-managed.
+Italian, Portuguese, Czech, and English are parity-gated semantic migration
+targets. English is active on the kokorog2p spokenform adapter for reviewed
+structured semantics and safe ordinary-number categories; phoneme-sensitive
+years, suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric
+suffixes, and G2P decisions remain downstream in kokorog2p.
 
 German quantity symbols are recognized by `abbr2words.iter_unit_matches()`.
 spokenform owns only the canonical German grammar that realizes those matches,
@@ -264,8 +267,10 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
   currencies, and ordinary numbers; time expressions remain caller-managed.
 - Italian parity ownership covers reviewed dates, quantities, temperatures,
   currencies, and ordinary numbers; colon times remain caller-managed.
-- Czech owns reviewed structured and plain number categories; English remains
-  caller-managed. Czech colon-time candidates remain caller-managed.
+- Czech and English own reviewed structured and safe plain-number categories;
+  Czech colon-time candidates remain caller-managed. English years, suffix
+  ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes,
+  and G2P decisions remain downstream in kokorog2p.
 - `abbr2words` currently exposes final expanded text rather than semantic replacement objects, so stage edits are reconstructed deterministically from diffs.
 - Trained spaCy pipelines must be installed and version-compatible with the spaCy runtime.
 

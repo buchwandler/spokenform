@@ -105,6 +105,71 @@ def test_real_german_downstream_contract() -> None:
     assert not prepared.warnings
 
 
+def test_real_german_extended_quantity_public_path_matches_semantic_expectation() -> None:
+    cases = (
+        ("1 mm²", "ein Quadratmillimeter"),
+        ("2 mm²", "zwei Quadratmillimeter"),
+        ("1 cm²", "ein Quadratzentimeter"),
+        ("2 cm²", "zwei Quadratzentimeter"),
+        ("1 m²", "ein Quadratmeter"),
+        ("2 m²", "zwei Quadratmeter"),
+        ("1 km²", "ein Quadratkilometer"),
+        ("2 km²", "zwei Quadratkilometer"),
+        ("1 ha", "ein Hektar"),
+        ("2 ha", "zwei Hektar"),
+        ("1 mm³", "ein Kubikmillimeter"),
+        ("2 mm³", "zwei Kubikmillimeter"),
+        ("1 cm³", "ein Kubikzentimeter"),
+        ("2 cm³", "zwei Kubikzentimeter"),
+        ("1 m³", "ein Kubikmeter"),
+        ("2 m³", "zwei Kubikmeter"),
+        ("1 m/s", "ein Meter pro Sekunde"),
+        ("2 m/s", "zwei Meter pro Sekunde"),
+        ("1 km/h", "ein Kilometer pro Stunde"),
+        ("2 km/h", "zwei Kilometer pro Stunde"),
+        ("1 m2", "ein Quadratmeter"),
+        ("1 m3", "ein Kubikmeter"),
+        ("1 cm2", "ein Quadratzentimeter"),
+        ("1 cm3", "ein Kubikzentimeter"),
+    )
+    g2p = _real_g2p()
+    for source, expected in cases:
+        prepared = prepare_for_kokorog2p(source, "de")
+        assert prepared.spoken_text == expected, source
+        assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
+            (source, expected)
+        ]
+        tokens = g2p(prepared.spoken_text)
+        assert tokens, source
+        assert all(token.phonemes for token in tokens), source
+        assert all(
+            prepared.spoken_text[token._["char_start"] : token._["char_end"]] == token.text
+            for token in tokens
+        )
+        assert not prepared.warnings
+
+
+def test_real_german_extended_quantity_protected_span_remains_fail_closed() -> None:
+    source = "1 m³, then 2 m³."
+    first_end = len("1 m³")
+    prepared = prepare_for_kokorog2p(
+        source,
+        "de",
+        protected_spans=[ProtectedSpan(0, first_end, kind="g2p-override")],
+    )
+
+    assert prepared.spoken_text == "1 m³, then zwei Kubikmeter."
+    assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
+        ("2 m³", "zwei Kubikmeter")
+    ]
+    output_start, output_end = prepared.map_source_span(0, first_end)
+    assert prepared.spoken_text[output_start:output_end] == "1 m³"
+    tokens = _real_g2p()(prepared.spoken_text)
+    assert tokens
+    assert all(token.phonemes for token in tokens)
+    assert not prepared.warnings
+
+
 def test_real_downstream_protected_override_coordinates() -> None:
     source = "Override 2 kg; normalize 3 kg."
     start = source.index("2 kg")

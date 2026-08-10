@@ -33,8 +33,32 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "length-centimeter": QuantityGrammar("length-centimeter", "m", "Zentimeter", "Zentimeter"),
     "length-meter": QuantityGrammar("length-meter", "m", "Meter", "Meter"),
     "length-kilometer": QuantityGrammar("length-kilometer", "m", "Kilometer", "Kilometer"),
+    "area-square-millimeter": QuantityGrammar(
+        "area-square-millimeter", "m", "Quadratmillimeter", "Quadratmillimeter"
+    ),
+    "area-square-centimeter": QuantityGrammar(
+        "area-square-centimeter", "m", "Quadratzentimeter", "Quadratzentimeter"
+    ),
+    "area-square-meter": QuantityGrammar("area-square-meter", "m", "Quadratmeter", "Quadratmeter"),
+    "area-square-kilometer": QuantityGrammar(
+        "area-square-kilometer", "m", "Quadratkilometer", "Quadratkilometer"
+    ),
+    "area-hectare": QuantityGrammar("area-hectare", "m", "Hektar", "Hektar"),
     "volume-milliliter": QuantityGrammar("volume-milliliter", "m", "Milliliter", "Milliliter"),
     "volume-liter": QuantityGrammar("volume-liter", "m", "Liter", "Liter"),
+    "volume-cubic-millimeter": QuantityGrammar(
+        "volume-cubic-millimeter", "m", "Kubikmillimeter", "Kubikmillimeter"
+    ),
+    "volume-cubic-centimeter": QuantityGrammar(
+        "volume-cubic-centimeter", "m", "Kubikzentimeter", "Kubikzentimeter"
+    ),
+    "volume-cubic-meter": QuantityGrammar("volume-cubic-meter", "m", "Kubikmeter", "Kubikmeter"),
+    "speed-meter-per-second": QuantityGrammar(
+        "speed-meter-per-second", "m", "Meter pro Sekunde", "Meter pro Sekunde"
+    ),
+    "speed-kilometer-per-hour": QuantityGrammar(
+        "speed-kilometer-per-hour", "m", "Kilometer pro Stunde", "Kilometer pro Stunde"
+    ),
     "mass-microgram": QuantityGrammar("mass-microgram", "m", "Mikrogramm", "Mikrogramm"),
     "mass-milligram": QuantityGrammar("mass-milligram", "n", "Milligramm", "Milligramm"),
     "mass-gram": QuantityGrammar("mass-gram", "n", "Gramm", "Gramm"),

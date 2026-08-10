@@ -122,3 +122,37 @@ def test_french_partial_quantity_protection_expands_to_complete_candidate() -> N
     start = source.index("2 kg") + 2
     result = prepare(source, language="fr", use_spacy=False, protected_spans=[(start, start + 2)])
     assert result.spoken_text == "2 kg et trois kilogrammes"
+
+
+def test_german_protected_extended_quantity_allows_adjacent_quantity() -> None:
+    source = "1 m³, then 2 m³."
+    first_end = len("1 m³")
+    result = prepare(
+        source,
+        language="de",
+        use_spacy=False,
+        protected_spans=[ProtectedSpan(0, first_end, kind="g2p-override")],
+    )
+
+    assert result.spoken_text == "1 m³, then zwei Kubikmeter."
+    assert [
+        (item.source_start, item.source_end, item.source, item.replacement)
+        for item in result.source_replacements
+    ] == [(11, 15, "2 m³", "zwei Kubikmeter")]
+    assert result.source_text[4] == ","
+    assert result.spoken_text[4] == ","
+    assert result.map_source_span(4, 5) == (4, 5)
+
+
+def test_german_partial_extended_quantity_protection_expands_to_candidate() -> None:
+    source = "1 m³, then 2 m³."
+    result = prepare(
+        source,
+        language="de",
+        use_spacy=False,
+        protected_spans=[(source.index("1 m³") + 2, source.index("1 m³") + 3)],
+    )
+
+    assert result.spoken_text == "1 m³, then zwei Kubikmeter."
+    assert result.spoken_text.startswith("1 m³,")
+    assert result.spoken_text.endswith("zwei Kubikmeter.")

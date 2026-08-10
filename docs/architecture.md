@@ -86,6 +86,7 @@ preserves run boundaries, honors protected spans fail-closed, and does not perfo
 language detection, tokenization, G2P, or model-punctuation rewriting.
 
 The downstream migration set currently includes `cs`, `de`, `fr`, `es`, `it`,
-and `pt`. English has a supported structured `spokenform` API profile and
-parity fixtures, but the kokorog2p adapter has not migrated English semantic
-ownership; that decision remains explicit and downstream-managed.
+`pt`, and `en`. English is active on the kokorog2p spokenform adapter for
+reviewed structured semantics and safe ordinary-number categories. Years,
+suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes,
+and G2P decisions remain downstream-owned.

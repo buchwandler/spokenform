@@ -7,8 +7,8 @@ the public span helpers to remap boundaries, and inspect `warnings` before passi
 the result to a G2P tokenizer. The adapter projection is available through
 `PreparedText.to_adapter_dict()`.
 
-The English spokenform API contract and the German, French, Spanish, Italian,
-and Portuguese downstream migration contracts are tested at three boundaries: spoken text,
+The English, German, French, Spanish, Italian, Portuguese, and Czech downstream
+migration contracts are tested at three boundaries: spoken text,
 source replacement/offset provenance, and a downstream-style token/phoneme
 fixture. spokenform does not own tokenization, lexicon lookup, phonemization,
 quote/dash typography, or model punctuation. A downstream adapter should run a
@@ -28,7 +28,7 @@ are part of the base package and are exercised by the same gate.
 | Language | Suitable for spokenform                                                                                           | Keep downstream                                                                                                                                                                        | Status                                                           |
 | -------- | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | cs       | reviewed dates, ordinary numbers, quantities, temperatures, currencies, canonical units                           | G2P/lexicon behavior; colon times                                                                                                                                                      | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed        |
-| en       | dates, validated clock times, currencies, reviewed quantities, safe ordinary written numbers when called directly | phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, G2P decisions | adapter-ready / parity-gated; downstream activation remains a kokorog2p decision |
+| en       | dates, validated clock times, currencies, reviewed quantities, safe ordinary written numbers | phoneme-sensitive years, suffix ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, G2P decisions | active adapter / parity-gated; downstream-only categories remain explicit |
 | es       | reviewed dates, ordinary numbers, currencies, units, temperatures                                                 | G2P/tokenizer typography; time expressions                                                                                                                                             | parity-gated; `STRUCTURED_AND_PLAIN`; time caller-managed        |
 | fr       | dates, times, numbers, ordinals, currencies, temperatures, units, exact maps                                      | G2P/tokenizer typography, lexicon, phonemes                                                                                                                                            | parity-gated; `STRUCTURED_AND_PLAIN`                             |
 | it       | reviewed dates, ordinary numbers, currencies, units, temperatures                                                 | G2P/tokenizer typography; colon-time ownership                                                                                                                                         | parity-gated; `STRUCTURED_AND_PLAIN`; colon times caller-managed |
@@ -40,11 +40,11 @@ digit strings remain raw so years, identifiers, and sequence-like values reach
 kokorog2p's `NumberConverter` and related heuristics. A structured candidate
 with unsupported fractional currency precision also remains unchanged.
 
-English is adapter-ready and parity-gated for a future downstream handoff.
-Whether kokorog2p enables that path is a decision for kokorog2p and is
-intentionally not represented here as a live release-state tracker. English
-activation requires an explicit downstream parity decision and must not be
-inferred from spokenform API tests alone.
+English is active on the kokorog2p spokenform adapter for reviewed structured
+semantics and safe ordinary-number categories. Phoneme-sensitive years, suffix
+ordinals, Roman numerals, phone/ID and dotted sequences, numeric suffixes, and
+G2P decisions remain downstream in kokorog2p; the adapter does not claim those
+categories.
 
 This audit intentionally does not port language detection, markup parsing, mixed
 language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model

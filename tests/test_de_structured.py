@@ -32,6 +32,99 @@ def test_german_quantity_inventory_and_grammar() -> None:
         assert prepare(source, language="de", use_spacy=False).spoken_text == expected
 
 
+def test_german_extended_quantity_inventory_and_aliases() -> None:
+    cases = {
+        "1 mm²": "ein Quadratmillimeter",
+        "2 mm²": "zwei Quadratmillimeter",
+        "1 cm²": "ein Quadratzentimeter",
+        "2 cm²": "zwei Quadratzentimeter",
+        "1 m²": "ein Quadratmeter",
+        "2 m²": "zwei Quadratmeter",
+        "1 km²": "ein Quadratkilometer",
+        "2 km²": "zwei Quadratkilometer",
+        "1 ha": "ein Hektar",
+        "2 ha": "zwei Hektar",
+        "1 mm³": "ein Kubikmillimeter",
+        "2 mm³": "zwei Kubikmillimeter",
+        "1 cm³": "ein Kubikzentimeter",
+        "2 cm³": "zwei Kubikzentimeter",
+        "1 m³": "ein Kubikmeter",
+        "2 m³": "zwei Kubikmeter",
+        "1 m/s": "ein Meter pro Sekunde",
+        "2 m/s": "zwei Meter pro Sekunde",
+        "1 km/h": "ein Kilometer pro Stunde",
+        "2 km/h": "zwei Kilometer pro Stunde",
+        "m2": "m2",
+        "m3": "m3",
+        "cm2": "cm2",
+        "cm3": "cm3",
+        "1 m2": "ein Quadratmeter",
+        "1 m3": "ein Kubikmeter",
+        "1 cm2": "ein Quadratzentimeter",
+        "1 cm3": "ein Kubikzentimeter",
+    }
+    for source, expected in cases.items():
+        assert prepare(source, language="de", use_spacy=False).spoken_text == expected, source
+
+
+def test_german_extended_quantity_near_misses_are_not_rewritten_as_units() -> None:
+    cases = {
+        "m³": "m³",
+        "1 m³x": "eins m³x",
+        "1 m ³": "ein Meter ³",
+        "foo 1 km/hbar": "foo eins km/hbar",
+        "1 mm²x": "eins mm²x",
+    }
+    for source, expected in cases.items():
+        result = prepare(source, language="de", use_spacy=False)
+        assert result.spoken_text == expected, source
+        assert "Quadrat" not in result.spoken_text
+        assert "Kubik" not in result.spoken_text
+        assert "pro Stunde" not in result.spoken_text
+
+
+def test_german_extended_quantity_source_replacements_and_composed_map() -> None:
+    source = "1 m³ plus 1 m³"
+    result = prepare(source, language="de", use_spacy=False)
+
+    assert result.spoken_text == "ein Kubikmeter plus ein Kubikmeter"
+    assert [
+        (item.source_start, item.source_end, item.source, item.replacement, item.rule)
+        for item in result.source_replacements
+    ] == [
+        (0, 4, "1 m³", "ein Kubikmeter", "de.quantity"),
+        (10, 14, "1 m³", "ein Kubikmeter", "de.quantity"),
+    ]
+    assert all(
+        left.source_end <= right.source_start
+        for left, right in zip(
+            result.source_replacements, result.source_replacements[1:], strict=False
+        )
+    )
+    for item in result.source_replacements:
+        assert source[item.source_start : item.source_end] == item.source
+        assert result.spoken_text[item.output_start : item.output_end] == item.replacement
+        assert result.offset_map is not None
+        assert result.offset_map.map_source_span(item.source_start, item.source_end) == (
+            item.output_start,
+            item.output_end,
+        )
+
+    source = "1 m³ then 1 km/h"
+    result = prepare(source, language="de", use_spacy=False)
+    assert result.spoken_text == "ein Kubikmeter then ein Kilometer pro Stunde"
+    assert [
+        (item.source_start, item.source_end, item.source, item.replacement)
+        for item in result.source_replacements
+    ] == [
+        (0, 4, "1 m³", "ein Kubikmeter"),
+        (10, 16, "1 km/h", "ein Kilometer pro Stunde"),
+    ]
+    assert result.offset_map is not None
+    assert result.offset_map.map_source_span(0, 4) == (0, 14)
+    assert result.offset_map.map_source_span(10, 16) == (20, 44)
+
+
 def test_german_structured_values_and_invalid_candidates() -> None:
     cases = {
         "03.01.2026": "dritte Januar zweitausendsechsundzwanzig",
