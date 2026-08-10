@@ -7,17 +7,18 @@ versioning:
 entry_id: entry-0001
 release_version: 0.2.3
 kind: fixed
-summary: Fixed German extended quantity realization for square, cubic, hectare, and
+summary:
+  Fixed German extended quantity realization for square, cubic, hectare, and
   speed units with source-aligned mappings
 status: accepted
 audience: null
 scopes: []
 source_refs:
-- tl:task-0016
+  - tl:task-0016
 paths:
-- spokenform/locales/de.py
-- tests/test_de_structured.py
-- tests/data/de_kokorog2p_parity.json
+  - spokenform/locales/de.py
+  - tests/test_de_structured.py
+  - tests/data/de_kokorog2p_parity.json
 issues: []
 prs: []
 sources: []

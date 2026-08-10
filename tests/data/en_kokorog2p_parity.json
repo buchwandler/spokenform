@@ -47,11 +47,19 @@
     "spoken": "At twenty three fifty nine.",
     "rule": "en.time"
   },
-  { "id": "time-embedded-alphanumeric", "source": "abc3:00xyz", "spoken": "abc3:00xyz" },
+  {
+    "id": "time-embedded-alphanumeric",
+    "source": "abc3:00xyz",
+    "spoken": "abc3:00xyz"
+  },
   { "id": "time-letter-prefix", "source": "x3:00", "spoken": "x3:00" },
   { "id": "time-letter-suffix", "source": "3:00x", "spoken": "3:00x" },
   { "id": "time-version-like", "source": "v3:00beta", "spoken": "v3:00beta" },
-  { "id": "time-identifier-like", "source": "id3:00_value", "spoken": "id3:00_value" },
+  {
+    "id": "time-identifier-like",
+    "source": "id3:00_value",
+    "spoken": "id3:00_value"
+  },
   { "id": "invalid-time-hour", "source": "24:00", "spoken": "24:00" },
   { "id": "invalid-time-minute", "source": "12:99", "spoken": "12:99" },
   {

@@ -7,18 +7,19 @@ versioning:
 entry_id: entry-0003
 release_version: 0.2.3
 kind: quality
-summary: Added a real run-level German kokorog2p gate for extended quantity parity
+summary:
+  Added a real run-level German kokorog2p gate for extended quantity parity
   and protected-span behavior
 status: accepted
 audience: null
 scopes: []
 source_refs: []
 paths:
-- tests/test_real_kokorog2p_integration.py
+  - tests/test_real_kokorog2p_integration.py
 issues: []
 prs: []
 sources:
-- tl:task-0016
+  - tl:task-0016
 contributors: []
 breaking: false
 internal: false

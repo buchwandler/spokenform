@@ -218,28 +218,116 @@
     "input": "1.000,50 kg",
     "expected": "eintausend Komma fünf null Kilogramm"
   },
-  { "name": "square millimeter singular", "input": "1 mm²", "expected": "ein Quadratmillimeter" },
-  { "name": "square millimeter plural", "input": "2 mm²", "expected": "zwei Quadratmillimeter" },
-  { "name": "square centimeter singular", "input": "1 cm²", "expected": "ein Quadratzentimeter" },
-  { "name": "square centimeter plural", "input": "2 cm²", "expected": "zwei Quadratzentimeter" },
-  { "name": "square meter singular", "input": "1 m²", "expected": "ein Quadratmeter" },
-  { "name": "square meter plural", "input": "2 m²", "expected": "zwei Quadratmeter" },
-  { "name": "square kilometer singular", "input": "1 km²", "expected": "ein Quadratkilometer" },
-  { "name": "square kilometer plural", "input": "2 km²", "expected": "zwei Quadratkilometer" },
+  {
+    "name": "square millimeter singular",
+    "input": "1 mm²",
+    "expected": "ein Quadratmillimeter"
+  },
+  {
+    "name": "square millimeter plural",
+    "input": "2 mm²",
+    "expected": "zwei Quadratmillimeter"
+  },
+  {
+    "name": "square centimeter singular",
+    "input": "1 cm²",
+    "expected": "ein Quadratzentimeter"
+  },
+  {
+    "name": "square centimeter plural",
+    "input": "2 cm²",
+    "expected": "zwei Quadratzentimeter"
+  },
+  {
+    "name": "square meter singular",
+    "input": "1 m²",
+    "expected": "ein Quadratmeter"
+  },
+  {
+    "name": "square meter plural",
+    "input": "2 m²",
+    "expected": "zwei Quadratmeter"
+  },
+  {
+    "name": "square kilometer singular",
+    "input": "1 km²",
+    "expected": "ein Quadratkilometer"
+  },
+  {
+    "name": "square kilometer plural",
+    "input": "2 km²",
+    "expected": "zwei Quadratkilometer"
+  },
   { "name": "hectare singular", "input": "1 ha", "expected": "ein Hektar" },
   { "name": "hectare plural", "input": "2 ha", "expected": "zwei Hektar" },
-  { "name": "cubic millimeter singular", "input": "1 mm³", "expected": "ein Kubikmillimeter" },
-  { "name": "cubic millimeter plural", "input": "2 mm³", "expected": "zwei Kubikmillimeter" },
-  { "name": "cubic centimeter singular", "input": "1 cm³", "expected": "ein Kubikzentimeter" },
-  { "name": "cubic centimeter plural", "input": "2 cm³", "expected": "zwei Kubikzentimeter" },
-  { "name": "cubic meter singular", "input": "1 m³", "expected": "ein Kubikmeter" },
-  { "name": "cubic meter plural", "input": "2 m³", "expected": "zwei Kubikmeter" },
-  { "name": "meter per second singular", "input": "1 m/s", "expected": "ein Meter pro Sekunde" },
-  { "name": "meter per second plural", "input": "2 m/s", "expected": "zwei Meter pro Sekunde" },
-  { "name": "kilometer per hour singular", "input": "1 km/h", "expected": "ein Kilometer pro Stunde" },
-  { "name": "kilometer per hour plural", "input": "2 km/h", "expected": "zwei Kilometer pro Stunde" },
-  { "name": "ASCII square meter alias", "input": "1 m2", "expected": "ein Quadratmeter" },
-  { "name": "ASCII cubic meter alias", "input": "1 m3", "expected": "ein Kubikmeter" },
-  { "name": "ASCII square centimeter alias", "input": "1 cm2", "expected": "ein Quadratzentimeter" },
-  { "name": "ASCII cubic centimeter alias", "input": "1 cm3", "expected": "ein Kubikzentimeter" }
+  {
+    "name": "cubic millimeter singular",
+    "input": "1 mm³",
+    "expected": "ein Kubikmillimeter"
+  },
+  {
+    "name": "cubic millimeter plural",
+    "input": "2 mm³",
+    "expected": "zwei Kubikmillimeter"
+  },
+  {
+    "name": "cubic centimeter singular",
+    "input": "1 cm³",
+    "expected": "ein Kubikzentimeter"
+  },
+  {
+    "name": "cubic centimeter plural",
+    "input": "2 cm³",
+    "expected": "zwei Kubikzentimeter"
+  },
+  {
+    "name": "cubic meter singular",
+    "input": "1 m³",
+    "expected": "ein Kubikmeter"
+  },
+  {
+    "name": "cubic meter plural",
+    "input": "2 m³",
+    "expected": "zwei Kubikmeter"
+  },
+  {
+    "name": "meter per second singular",
+    "input": "1 m/s",
+    "expected": "ein Meter pro Sekunde"
+  },
+  {
+    "name": "meter per second plural",
+    "input": "2 m/s",
+    "expected": "zwei Meter pro Sekunde"
+  },
+  {
+    "name": "kilometer per hour singular",
+    "input": "1 km/h",
+    "expected": "ein Kilometer pro Stunde"
+  },
+  {
+    "name": "kilometer per hour plural",
+    "input": "2 km/h",
+    "expected": "zwei Kilometer pro Stunde"
+  },
+  {
+    "name": "ASCII square meter alias",
+    "input": "1 m2",
+    "expected": "ein Quadratmeter"
+  },
+  {
+    "name": "ASCII cubic meter alias",
+    "input": "1 m3",
+    "expected": "ein Kubikmeter"
+  },
+  {
+    "name": "ASCII square centimeter alias",
+    "input": "1 cm2",
+    "expected": "ein Quadratzentimeter"
+  },
+  {
+    "name": "ASCII cubic centimeter alias",
+    "input": "1 cm3",
+    "expected": "ein Kubikzentimeter"
+  }
 ]
