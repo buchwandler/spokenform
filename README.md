@@ -1,6 +1,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/spokenform)](https://pypi.org/project/spokenform/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/spokenform)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/spokenform)
+[![codecov](https://codecov.io/gh/buchwandler/spokenform/graph/badge.svg?token=FeOQeR94qo)](https://codecov.io/gh/buchwandler/spokenform)
 
 # spokenform
 
