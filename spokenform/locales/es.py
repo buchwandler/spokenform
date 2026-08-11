@@ -104,6 +104,10 @@ _TIME_COLON = re.compile(
     r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?:\s*(?P<period>a\.?\s*m\.?|p\.?\s*m\.?))?(?!\w)",
     re.IGNORECASE,
 )
+_TIME_HOURS = re.compile(
+    r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)\s*(?:hrs?\.?|horas?)(?!\w)",
+    re.IGNORECASE,
+)
 _MONTHS = (
     "enero",
     "febrero",
@@ -265,7 +269,6 @@ def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
         "currency-japanese-yen": ("yen", "yenes", None, None),
         "currency-indian-rupee": ("rupia", "rupias", "paisa", "paise"),
         "currency-south-korean-won": ("won", "wones", None, None),
-        "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
     }
     if canonical_id == "currency-us-dollar" and language.casefold().replace("-", "_") == "es_mx":
         names[canonical_id] = ("dólar estadounidense", "dólares estadounidenses", "centavo", "centavos")
@@ -337,13 +340,16 @@ def iter_replacements(
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "es.date")
 
-    for match in _TIME_COLON.finditer(text):
-        add(
-            match.start(),
-            match.end(),
-            _time_text(int(match["hour"]), int(match["minute"]), match["period"], language),
-            "es.time",
-        )
+    for pattern in (_TIME_HOURS, _TIME_COLON):
+        for match in pattern.finditer(text):
+            add(
+                match.start(),
+                match.end(),
+                _time_text(int(match["hour"]), int(match["minute"]), match["period"], language)
+                if "period" in match.groupdict()
+                else _time_text(int(match["hour"]), int(match["minute"]), None, language),
+                "es.time",
+            )
 
     for match in _ORDINAL_SYMBOL.finditer(text):
         value = _ordinal_text(int(match["number"]), match["suffix"], language)

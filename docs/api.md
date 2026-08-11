@@ -17,7 +17,9 @@
 `normalize_unicode`, `strip_outer_whitespace`, `collapse_horizontal_whitespace`,
 `normalize_line_whitespace`, and `collapse_blank_lines` are independent policy
 controls. `normalize_whitespace=False` remains the compatibility switch for
-skipping the whitespace stage entirely.
+skipping the whitespace stage entirely. `normalize_literals=True` opts into
+high-confidence URL, e-mail, semantic-version, and contextual Roman rendering;
+caller-protected spans always take precedence.
 
 ```{autoclass} spokenform.PreparationConfig
 :members:

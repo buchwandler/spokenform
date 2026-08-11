@@ -17,6 +17,7 @@ from statistics import mean, median
 from typing import Any
 
 from spokenform import PreparedText, prepare
+from spokenform.sequences import render_letters
 
 from .polynorm_data import (
     POLYNORM_COMMIT,
@@ -162,6 +163,21 @@ def speech_key(text: str) -> tuple[str, ...]:
     return tuple(" ".join("".join(characters).split()).split())
 
 
+def speech_key_equivalent(text: str, *, language: str = "en") -> tuple[str, ...]:
+    """Return a diagnostic key equating localized spelled-letter names.
+
+    This is deliberately parallel to, never a replacement for, ``speech_key``.
+    Only tokens that are exact localized names for one ASCII grapheme are
+    folded, so normal words remain untouched.
+    """
+    reverse: dict[str, str] = {}
+    for character in "abcdefghijklmnopqrstuvwxyz":
+        rendered = speech_key(render_letters(character, language=language))
+        if len(rendered) == 1:
+            reverse.setdefault(rendered[0], character)
+    return tuple(reverse.get(token, token) for token in speech_key(text))
+
+
 def word_error_rate(reference: Iterable[str], hypothesis: Iterable[str]) -> float:
     """Return word-level Levenshtein error rate without a benchmark dependency."""
     reference_words = tuple(reference)
@@ -187,6 +203,9 @@ def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:
     count = len(results)
     literal_exact_count = sum(bool(item["literal_exact"]) for item in results)
     speech_exact_count = sum(bool(item["speech_exact"]) for item in results)
+    equivalent_count = sum(bool(item.get("speech_exact_equivalent", item["speech_exact"])) for item in results)
+    presentation_only_count = sum(bool(item.get("presentation_only")) for item in results)
+    semantic_failure_count = sum(bool(item.get("semantic_failure")) for item in results)
     unchanged_count = sum(bool(item["unchanged"]) for item in results)
     error_count = sum(bool(item["error"]) for item in results)
     wers = [float(item["speech_wer"]) for item in results if not item["error"]]
@@ -196,6 +215,10 @@ def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:
         "literal_exact_rate": literal_exact_count / count if count else 0.0,
         "speech_exact_count": speech_exact_count,
         "speech_exact_rate": speech_exact_count / count if count else 0.0,
+        "speech_exact_equivalent_count": equivalent_count,
+        "speech_exact_equivalent_rate": equivalent_count / count if count else 0.0,
+        "presentation_only_count": presentation_only_count,
+        "semantic_failure_count": semantic_failure_count,
         "mean_speech_wer": mean(wers) if wers else 0.0,
         "median_speech_wer": median(wers) if wers else 0.0,
         "unchanged_count": unchanged_count,
@@ -244,6 +267,11 @@ def evaluate_cases(
             error = f"{type(exc).__name__}: {exc}"
         literal_exact = not error and literal_key(actual) == literal_key(case.normalized_text)
         speech_exact = not error and speech_key(actual) == speech_key(case.normalized_text)
+        equivalent_actual = speech_key_equivalent(actual, language=language)
+        equivalent_expected = speech_key_equivalent(case.normalized_text, language=language)
+        speech_exact_equivalent = not error and equivalent_actual == equivalent_expected
+        presentation_only = bool(not error and not speech_exact and speech_exact_equivalent)
+        semantic_failure = bool(not error and not speech_exact_equivalent)
         speech_wer = (
             word_error_rate(speech_key(case.normalized_text), speech_key(actual)) if not error else 0.0
         )
@@ -258,6 +286,10 @@ def evaluate_cases(
             "quarantine": quarantine,
             "literal_exact": literal_exact,
             "speech_exact": speech_exact,
+            "speech_exact_raw": speech_exact,
+            "speech_exact_equivalent": speech_exact_equivalent,
+            "presentation_only": presentation_only,
+            "semantic_failure": semantic_failure,
             "speech_wer": speech_wer,
             "unchanged": actual == case.original_text if not error else False,
             "error": error,
@@ -387,5 +419,6 @@ __all__ = [
     "evaluate_cases",
     "literal_key",
     "speech_key",
+    "speech_key_equivalent",
     "word_error_rate",
 ]

@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
@@ -7,6 +8,7 @@ from benchmarks.polynorm_eval import (
     evaluate_cases,
     literal_key,
     speech_key,
+    speech_key_equivalent,
     word_error_rate,
 )
 from spokenform import prepare
@@ -17,6 +19,22 @@ def test_comparison_normalization_keeps_semantic_symbols() -> None:
     assert speech_key("Pay $5.") != speech_key("Pay five.")
     assert speech_key("Hello, world!") == speech_key("Hello world")
     assert word_error_rate(("one", "two"), ("one", "three")) == 0.5
+    assert speech_key_equivalent("i ese be ene", language="es") == ("i", "s", "b", "n")
+
+
+def test_evaluation_separates_raw_presentation_and_semantic_diagnostics() -> None:
+    case = PolyNormCase("es-MX", "1", "Initialism or Acronym", "ISBN", "I S B N")
+
+    def prepare_case(text: str, **kwargs):
+        return SimpleNamespace(spoken_text="i ese be ene", warnings=(), stages=(), mapped_edits=())
+
+    summary, failures = evaluate_cases((case,), prepare_fn=prepare_case)
+    assert summary["speech_exact_rate"] == 0.0
+    assert summary["speech_exact_equivalent_rate"] == 1.0
+    assert summary["presentation_only_count"] == 1
+    assert summary["semantic_failure_count"] == 0
+    assert failures[0]["speech_exact_raw"] is False
+    assert failures[0]["speech_exact_equivalent"] is True
 
 
 def test_evaluation_aggregates_and_continues_after_exception() -> None:

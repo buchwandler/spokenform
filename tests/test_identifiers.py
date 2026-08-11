@@ -6,7 +6,10 @@ def test_isbn_validation_and_typed_rendering() -> None:
     assert result.spoken_text == "i s b n nine seven eight zero three zero six four zero six one five seven"
     assert any(item.rule == "sequence.isbn" for item in result.source_replacements)
     invalid = prepare("ISBN 978-0-306-40615-8", language="en", use_spacy=False)
-    assert not any(item.rule == "sequence.isbn" for item in invalid.source_replacements)
+    assert any(item.rule == "sequence.isbn" for item in invalid.source_replacements)
+    labeled = prepare("ISBN-10 0-306-40615-2", language="en", use_spacy=False)
+    assert labeled.spoken_text.startswith("i s b n ten")
+    assert any(item.rule == "sequence.isbn" for item in labeled.source_replacements)
 
 
 def test_formula_codes_legal_references_and_scores_use_typed_renderers() -> None:

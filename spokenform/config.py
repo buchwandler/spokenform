@@ -42,6 +42,7 @@ class PreparationConfig:
     spacy_model: str | None = None
     expand_abbreviations: bool = True
     expand_structured: bool = True
+    normalize_literals: bool = False
     expand_numbers: bool = True
     normalize_whitespace: bool = True
     normalize_unicode: bool = True
@@ -73,6 +74,7 @@ class PreparationConfig:
         for name in (
             "expand_abbreviations",
             "expand_structured",
+            "normalize_literals",
             "expand_numbers",
             "normalize_whitespace",
             "normalize_unicode",

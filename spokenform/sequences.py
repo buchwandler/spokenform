@@ -191,14 +191,26 @@ def render_sequence(
 
         return str(num2words(int(normalized), lang=language.split("_")[0]))
     rendered: list[str] = []
-    for character in normalized:
+    index = 0
+    while index < len(normalized):
+        character = normalized[index]
         if character.isdigit():
             rendered.append(render_digits(character, language=language))
         elif character.isalpha() and policy is not None and policy.alpha_mode == "lexical":
+            end = index + 1
+            while end < len(normalized) and normalized[end].isalpha():
+                end += 1
+            rendered.append(normalized[index:end])
+            index = end - 1
+        elif character.isalpha() and policy is not None and policy.alpha_mode == "grapheme_spaced":
+            # Grapheme spacing is deliberately different from localized
+            # letter names: preserve the source character and only add the
+            # requested boundary between graphemes.
             rendered.append(character)
         elif character.isalpha():
             rendered.append(render_letters(character, language=language))
         elif character.isspace():
+            index += 1
             continue
         else:
             name = names.get(character)
@@ -210,6 +222,7 @@ def render_sequence(
                 continue
             else:
                 rendered.append(character)
+        index += 1
     return " ".join(rendered)
 
 

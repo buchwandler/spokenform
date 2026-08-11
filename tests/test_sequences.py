@@ -18,11 +18,32 @@ def test_mixed_identifier_rendering_is_total(language: str) -> None:
     assert rendered
 
 
+def test_sequence_renderer_advances_past_whitespace() -> None:
+    assert render_sequence("A B", language="de") == "A B"
+
+
+def test_german_legal_reference_with_whitespace_completes() -> None:
+    result = prepare("Nach Art. 1 Abs. 1 GG.", language="de_DE", use_spacy=False)
+    assert result.spoken_text == "Nach A R T Punkt eins A B S Punkt eins G G."
+
+
 def test_sequence_policy_can_keep_alpha_runs_lexical() -> None:
     policy = SequenceRenderPolicy(alpha_mode="lexical", digit_mode="digitwise")
     assert render_sequence("TravelTips_2024", language="en", policy=policy) == (
-        "T r a v e l T i p s underscore two zero two four"
+        "TravelTips underscore two zero two four"
     )
+
+
+def test_sequence_alpha_modes_are_distinct() -> None:
+    assert render_sequence(
+        "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="lexical")
+    ) == "ISBN"
+    assert render_sequence(
+        "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="grapheme_spaced")
+    ) == "I S B N"
+    assert render_sequence(
+        "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="spoken_letter_names")
+    ) == "i ese be ene"
 
 
 def test_hashtag_and_mention_rendering_is_lexical() -> None:
@@ -78,3 +99,27 @@ def test_fraction_and_acronym_policies_are_high_confidence_only() -> None:
     )
     protected = prepare("https://example.org/v1.2.3", language="en", use_spacy=False)
     assert protected.spoken_text == "https://example.org/v1.2.3"
+
+
+@pytest.mark.parametrize(
+    ("language", "source", "expected"),
+    [
+        ("en", "1/2", "one half"),
+        ("de", "3/7", "drei Siebtel"),
+        ("es", "1 1/2", "uno y un medio"),
+        ("fr", "3/7", "trois septièmes"),
+        ("it", "1½", "uno e un mezzo"),
+    ],
+)
+def test_slash_and_mixed_fractions_are_semantic(language: str, source: str, expected: str) -> None:
+    result = prepare(source, language=language, use_spacy=False)
+    assert result.spoken_text == expected
+    assert any(item.rule == "sequence.fraction" for item in result.source_replacements)
+
+
+def test_fraction_does_not_claim_url_or_full_date_shape() -> None:
+    url = prepare("https://example.org/1/2", language="en", use_spacy=False)
+    assert url.spoken_text == "https://example.org/1/2"
+    date = prepare("2025/03/15", language="en", use_spacy=False)
+    assert not any(item.rule == "sequence.fraction" for item in date.source_replacements)
+    assert not any(item.rule == "sequence.phone" for item in date.source_replacements)

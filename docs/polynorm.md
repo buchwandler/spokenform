@@ -37,10 +37,12 @@ Cached JSONL data and the upstream license live under
 `benchmark-results/polynorm/<run-id>/`; only metrics and metadata are intended
 for summary consumption, while text-bearing failure reports are local. The
 benchmark records dataset/source/dependency environment fingerprints, literal
-exactness, punctuation-aware speech exactness, word error rate, unchanged cases,
-exceptions, residual source-symbol counts, locale/category/ownership
+exactness, raw speech exactness, locale-aware speech-equivalent exactness,
+presentation-only disagreements, semantic failures, word error rate, unchanged
+cases, exceptions, residual source-symbol counts, locale/category/ownership
 aggregates, locale × canonical-category metrics, and per-failure changed
-stages/source rules. It continues after mismatches and individual runtime
+stages/source rules. Raw speech exactness remains the PolyNorm-comparable metric;
+equivalent speech is a parallel diagnostic. It continues after mismatches and individual runtime
 exceptions and does not add a score threshold to normal CI. Questionable
 upstream rows remain visible with quarantine reasons and are excluded only
 from reviewed metrics.
@@ -60,6 +62,7 @@ percentages and compound units, canonical currency and exchange-rate syntax,
 addresses, locale phone grouping, ISBNs, typed identifiers/VINs, chemical
 formula symbols, legal references, sports scores, fractions, and locale
 ordinal symbols. Structured output remains reserved from abbreviation and
-plain-number stages. URLs, email addresses, versions, and unsupported
-mathematical, musical, and biological categories retain their
-protected/default ownership policy.
+plain-number stages. URLs, e-mail addresses, versions, and contextual Roman
+numerals can be promoted with `normalize_literals=True`; caller-protected spans
+remain unchanged. Math, music, and biology use conservative context/shape
+grammars rather than corpus-specific branches.

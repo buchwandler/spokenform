@@ -121,6 +121,9 @@ _DATE_DMY = re.compile(
 _DATE_ISO = re.compile(
     r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
 )
+_DATE_ISO_SLASH = re.compile(
+    r"(?<![\w.])(?P<year>\d{4})/(?P<month>0?[1-9]|1[0-2])/(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
+)
 _DATE_MDY = re.compile(
     r"(?<![\w.])(?P<month>0?[1-9]|1[0-2])[/.-](?P<day>0?[1-9]|[12]\d|3[01])[/.-](?P<year>\d{2,4})(?!\d)"
 )
@@ -266,7 +269,12 @@ def _valid_date(day: int, month: int, year: int) -> bool:
 def _date_text(day: int, month: int, year: int, language: str = "en") -> str:
     dependency_language = resolve_num2words_language(language)
     day_text = str(num2words(day, lang=dependency_language, to="ordinal"))
-    year_text = str(num2words(year, lang=dependency_language))
+    if 1900 <= year < 2000:
+        century, remainder = divmod(year, 100)
+        prefix = str(num2words(century, lang=dependency_language))
+        year_text = prefix if remainder == 0 else f"{prefix} {'oh ' if remainder < 10 else ''}{num2words(remainder, lang=dependency_language)}"
+    else:
+        year_text = str(num2words(year, lang=dependency_language))
     return f"{_MONTHS[month - 1]} {day_text}, {year_text}"
 
 
@@ -450,7 +458,7 @@ def iter_replacements(
                 "en.ordinal",
             )
 
-    for pattern in (_DATE_DMY, _DATE_ISO):
+    for pattern in (_DATE_DMY, _DATE_ISO, _DATE_ISO_SLASH):
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):

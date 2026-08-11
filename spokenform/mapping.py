@@ -407,15 +407,15 @@ def resolve_replacements(
 def _replacement_priority(replacement: Replacement) -> int:
     """Return the documented semantic precedence for candidate conflicts."""
     rule = replacement.rule or ""
-    if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn", "sequence.exchange-rate"}:
+    if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn", "sequence.exchange-rate", "sequence.url", "sequence.email"}:
         return 100
-    if rule in {"sequence.coordinate", "sequence.formula", "sequence.compound-unit", "sequence.percent", "sequence.currency", "sequence.currency-magnitude"}:
+    if rule in {"sequence.coordinate", "sequence.formula", "sequence.compound-unit", "sequence.percent", "sequence.currency", "sequence.currency-magnitude", "sequence.biology"}:
         return 90
     if rule in {"sequence.legal", "sequence.sports", "sequence.address"}:
         return 80
     if rule.endswith(".date-range") or rule.endswith(".time-range"):
         return 75
-    if rule.endswith(".date") or rule.endswith(".time"):
+    if rule.endswith(".date") or rule.endswith(".time") or rule == "sequence.roman":
         return 70
     if rule in {"sequence.fraction", "sequence.phone", "sequence.version", "sequence.hashtag", "sequence.mention"}:
         return 60
@@ -423,8 +423,10 @@ def _replacement_priority(replacement: Replacement) -> int:
         return 50
     if rule in {"sequence.acronym", "sequence.ticker"}:
         return 40
-    if rule in {"sequence.product", "sequence.plate"}:
+    if rule in {"sequence.product", "sequence.plate", "sequence.music"}:
         return 60
+    if rule == "sequence.math":
+        return 65
     return 0
 
 
@@ -442,11 +444,29 @@ def convert_abbr_replacements(
     """
     converted: list[Replacement] = []
     for item in replacements:
+        text = str(item.text)
+        abbreviation = getattr(item, "abbreviation", None)
+        # The abbreviation marker is consumed by the source span. Do not
+        # duplicate it in generated speech when abbr2words includes the
+        # marker in its expansion text.
+        if (
+            getattr(item, "kind", None) == "abbreviation"
+            and isinstance(abbreviation, str)
+            and abbreviation.endswith(".")
+            and text.endswith(".")
+        ):
+            text = text[:-1]
+        if getattr(item, "kind", None) == "abbreviation" and isinstance(abbreviation, str):
+            base = (language or "").replace("-", "_").split("_", 1)[0].casefold()
+            if base in {"es", "it"} and abbreviation[:1].isupper() and text[:1].islower():
+                text = text[:1].upper() + text[1:]
+            elif base == "fr" and abbreviation.casefold() == "m." and text[:1].isupper():
+                text = text[:1].lower() + text[1:]
         converted.append(
             Replacement(
                 start=int(item.start),
                 end=int(item.end),
-                text=str(item.text),
+                text=text,
                 kind=str(getattr(item, "kind", "abbreviation")),
                 language=getattr(item, "language", None) or language,
                 rule=getattr(item, "rule", None) or getattr(item, "source", None),

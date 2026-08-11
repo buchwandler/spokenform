@@ -114,6 +114,7 @@ _ORDINAL_SYMBOL = re.compile(
     r"(?<![\w.])(?P<number>\d+)(?:\.?[ºª°])(?!\s*[CF]\b)(?!\w)", re.IGNORECASE
 )
 _TIME_COLON = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?!\w)")
+_TIME_DOTTED = re.compile(r"(?<!\w)(?P<hour>\d{1,2})\.(?P<minute>[0-5]\d)(?!\w)")
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
@@ -273,13 +274,16 @@ def iter_replacements(
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
 
-    for match in _TIME_COLON.finditer(text):
-        add(
-            match.start(),
-            match.end(),
-            _time_text(int(match["hour"]), int(match["minute"]), language),
-            "it.time",
-        )
+    for pattern in (_TIME_COLON, _TIME_DOTTED):
+        for match in pattern.finditer(text):
+            if int(match["hour"]) > 23 or int(match["minute"]) > 59:
+                continue
+            add(
+                match.start(),
+                match.end(),
+                _time_text(int(match["hour"]), int(match["minute"]), language),
+                "it.time",
+            )
 
     for match in _ORDINAL_SYMBOL.finditer(text):
         value = str(num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal"))

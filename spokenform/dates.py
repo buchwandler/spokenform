@@ -16,6 +16,16 @@ class ParsedDate:
     year: int | None = None
     year_digits: int | None = None
 
+    @property
+    def source_year_digits(self) -> int | None:
+        """Number of year digits present in the source lexeme."""
+        return self.year_digits
+
+    @property
+    def normalized_year_value(self) -> int | None:
+        """Expanded year value used only when the selected policy needs it."""
+        return self.year
+
     def valid(self) -> bool:
         if self.year is None:
             return 1 <= self.day <= 31 and 1 <= self.month <= 12
@@ -46,6 +56,14 @@ class DateCandidate:
     source_order: Literal["mdy", "dmy", "ymd"]
     separator: str | None
     year_was_apostrophe: bool = False
+
+    @property
+    def source_year_digits(self) -> int | None:
+        return self.year_digits
+
+    @property
+    def normalized_year_value(self) -> int | None:
+        return self.year
 
 
 def expand_year(raw: str, *, pivot: int = 68) -> tuple[int, int]:

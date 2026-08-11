@@ -112,9 +112,10 @@ def parse_numeric_lexeme(
             head, tail = unsigned.split(separator, 1)
             if not head or not tail:
                 return None
-            if len(tail) in {1, 2} and (
-                separator == default_decimal or context in _STRONG_DECIMAL_CONTEXTS
-            ):
+            if len(tail) in {1, 2}:
+                # A short terminal group is strong decimal evidence even
+                # when the source uses the non-preferred locale separator
+                # (for example ``1.5`` in Spanish or Italian).
                 decimal_separator = separator
             elif len(tail) == 3:
                 if context == "currency" and separator == default_decimal and base == "en":

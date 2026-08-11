@@ -13,10 +13,14 @@ from num2words import num2words
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import parse_numeric_lexeme
-from ..sequences import render_letters, render_sequence, vocabulary
+from ..sequences import SequenceRenderPolicy, render_letters, render_sequence, vocabulary
 
 _FRACTION_CHARS = "½⅓⅔¼¾⅛⅜⅝⅞"
 _FRACTION_RE = re.compile(rf"(?<!\w)(?P<whole>\d+)?(?P<fraction>[{_FRACTION_CHARS}])(?!\w)")
+_SLASH_FRACTION_RE = re.compile(
+    r"(?<![\w/])(?P<whole>\d+)\s+(?P<numerator>\d+)\s*/\s*(?P<denominator>\d+)(?![\w/])|"
+    r"(?<![\w/])(?P<numerator_only>\d+)\s*/\s*(?P<denominator_only>\d+)(?![\w/])"
+)
 _COORDINATE_RE = re.compile(
     r"(?<!\w)(?P<value>[+-]?\d+(?:[.,]\d+)?)\s*°(?:\s*(?P<direction>[NSEWO])\b)?(?!\s*[CF]\b)",
     re.IGNORECASE,
@@ -73,6 +77,10 @@ _IBAN_RE = re.compile(
 _PHONE_RE = re.compile(
     r"(?<![\w,.])(?P<value>\+?[0-9][0-9 ()/.\-]{5,}[0-9])(?!\w)"
 )
+_PHONE_BLOCKING_CONTEXT_RE = re.compile(
+    r"(?:isbn(?:-1[03])?|legal|section|article|version|release|serial(?:\s+number)?|sku|model|product(?:\s+code)?)\s*[:#-]?\s*$",
+    re.IGNORECASE,
+)
 _EMERGENCY_RE = re.compile(
     r"\b(?:call|dial|emergency|notruf|emergencia|número\s+de\s+emergencia|urgence|numéro\s+d['’]urgence|emergenza|numero\s+di\s+emergenza)\s+(?P<value>110|112|911|999)\b",
     re.IGNORECASE,
@@ -81,10 +89,33 @@ _VERSION_CONTEXT_RE = re.compile(
     r"(?P<label>\b(?:version|release|ver\.?|build)\s*[=:]?\s*)(?P<value>v?\d+(?:\.\d+){2,}(?:[a-z]+\d*)?)",
     re.IGNORECASE,
 )
+_VERSION_RE = re.compile(
+    r"(?<!\w)(?P<value>v\d+(?:\.\d+){1,}(?:-[A-Za-z0-9]+)?)(?!\w)",
+    re.IGNORECASE,
+)
+_URL_RE = re.compile(r"(?<!\w)(?:https?://|www\.)[^\s<>]+", re.IGNORECASE)
+_EMAIL_RE = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
+_ROMAN_CONTEXT_RE = re.compile(
+    r"(?P<context>\b(?:chapter|volume|part|section|century|king|queen|pope|kapitel|band|teil|abschnitt|siglo|capítulo|chapitre|capitolo)\s+)"
+    r"(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])",
+    re.IGNORECASE,
+)
 _HASHTAG_RE = re.compile(r"(?<!\w)#(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?)", re.UNICODE)
 _MENTION_RE = re.compile(r"(?<!\w)@(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?)", re.UNICODE)
 _FORMULA_RE = re.compile(
     r"(?<!\w)(?P<value>(?:(?:[A-Z][a-z]?)+|\((?:[A-Z][a-z]?)+\)[0-9₀-₉]+|[A-Z][a-z]?[0-9₀-₉]+)+)(?!\w)"
+)
+_MATH_RE = re.compile(
+    r"(?<!\w)(?P<value>(?:[A-Za-z]|\d+(?:\.\d+)?)\s*(?:[+−*=×÷<>^\-])\s*"
+    r"(?:[A-Za-z]|\d+(?:\.\d+)?)(?:\s*(?:[+−*=×÷<>^\-])\s*(?:[A-Za-z]|\d+(?:\.\d+)?))*)(?!\w)"
+)
+_MUSIC_CONTEXT_RE = re.compile(
+    r"\b(?:chord|note|key|tonality|akkord|note|nota|accord|accordo)\s+"
+    r"(?P<value>[A-Ga-g](?:[#b♯♭])?(?:m|maj|min|dim|sus)?\d*)(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+_BIOLOGY_RE = re.compile(
+    r"(?<!\w)(?P<value>[A-Z]\.\s*[a-z][a-z-]+(?:\s+(?:strain|subsp\.)\s*[A-Za-z0-9-]+)?)(?!\w)"
 )
 _ACRONYM_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{2,8})(?!\w)")
 _TICKER_RE = re.compile(r"(?<!\w)\$(?P<value>[A-Z]{1,5})(?!\w)")
@@ -111,6 +142,10 @@ _LEGAL_IT_RE = re.compile(
 _LEGAL_FR_RE = re.compile(
     r"(?<!\w)(?P<value>(?:décret|decret)\s+n[°o]?\s*\d{4}-\d+)(?!\w)", re.IGNORECASE
 )
+_LEGAL_LABEL_RE = re.compile(
+    r"(?<!\w)(?P<value>(?:section|sec\.?|article|art\.?|chapter|chap\.)\s*\d+(?:\s+(?:subsection|paragraph|para\.?|§)\s*\d+)?)(?!\w)",
+    re.IGNORECASE,
+)
 _SPORTS_RE = re.compile(
     r"(?P<context>\b(?:score|final|match|game|football|basketball|handball|volleyball|set|satz|marcador|punteggio|ergebnis|résultat|resultado|ganó|gagné|vinto)\b[^\d]{0,32})"
     r"(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2}|\d{1,2}\s+(?:a|to|à)\s+\d{1,2})",
@@ -133,13 +168,13 @@ _LEADING_ADDRESS_RE = re.compile(
     r"(?<!\w)(?P<number>\d{1,5})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÀ-Ý][\wÀ-ÿ.-]*(?:\s+[A-ZÀ-Ý][\wÀ-ÿ.-]*){0,3})(?!\w)",
 )
 _ADDRESS_COMPONENT_RE = re.compile(
-    r"(?P<label>Apt\.?|Apartment|Suite|Piso|Departamento|Interior|Local|Unité|Appartement)\s*#?\s*(?P<number>\d+[A-Za-z]?)",
+    r"(?P<label>Apt\.?|Apartment|Suite|Piso|Departamento|Interior|Local|Unité|Appartement|Tor|Einheit)\s*#?\s*(?P<number>\d+[A-Za-z]?)",
     re.IGNORECASE,
 )
 _POSTBOX_RE = re.compile(r"\b(?P<label>Postfach|P\.O\.\s*Box)\s+(?P<number>\d{1,6})\b", re.IGNORECASE)
 _FLOOR_RE = re.compile(r"(?<!\w)(?P<number>\d{1,2})\.\s*(?P<label>OG|Stockwerk)\b", re.IGNORECASE)
 _POSTAL_CITY_RE = re.compile(
-    r"(?<!\w)(?P<postal>\d{5})\s+(?P<city>[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ-]+)(?!\w)",
+    r"(?<!\w)(?P<postal>\d{4,5})\s+(?P<city>[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ-]+)(?!\w)",
 )
 
 _FRACTIONS: dict[str, Fraction] = {
@@ -160,12 +195,12 @@ _FRACTION_WORDS = {
     "fr": {Fraction(1, 2): "un demi", Fraction(1, 3): "un tiers", Fraction(2, 3): "deux tiers", Fraction(1, 4): "un quart", Fraction(3, 4): "trois quarts", Fraction(1, 8): "un huitième", Fraction(3, 8): "trois huitièmes", Fraction(5, 8): "cinq huitièmes", Fraction(7, 8): "sept huitièmes"},
     "it": {Fraction(1, 2): "un mezzo", Fraction(1, 3): "un terzo", Fraction(2, 3): "due terzi", Fraction(1, 4): "un quarto", Fraction(3, 4): "tre quarti", Fraction(1, 8): "un ottavo", Fraction(3, 8): "tre ottavi", Fraction(5, 8): "cinque ottavi", Fraction(7, 8): "sette ottavi"},
 }
-_WORD_ACRONYMS = {
-    "NASA": "nasa",
-    "UNO": "uno",
-    "FIFA": "fifa",
-    "UNESCO": "unesco",
-    "NATO": "nato",
+_DENOMINATOR_WORDS = {
+    "en": {2: "half", 3: "third", 4: "quarter", 5: "fifth", 6: "sixth", 7: "seventh", 8: "eighth", 9: "ninth", 10: "tenth", 16: "sixteenth"},
+    "de": {2: "halb", 3: "Drittel", 4: "Viertel", 5: "Fünftel", 6: "Sechstel", 7: "Siebtel", 8: "Achtel", 9: "Neuntel", 10: "Zehntel", 16: "Sechzehntel"},
+    "es": {2: "medio", 3: "tercio", 4: "cuarto", 5: "quinto", 6: "sexto", 7: "séptimo", 8: "octavo", 9: "noveno", 10: "décimo", 16: "dieciseisavo"},
+    "fr": {2: "demi", 3: "tiers", 4: "quart", 5: "cinquième", 6: "sixième", 7: "septième", 8: "huitième", 9: "neuvième", 10: "dixième", 16: "seizième"},
+    "it": {2: "mezzo", 3: "terzo", 4: "quarto", 5: "quinto", 6: "sesto", 7: "settimo", 8: "ottavo", 9: "nono", 10: "decimo", 16: "sedicesimo"},
 }
 _ROMAN_ONLY = re.compile(r"^[IVXLCDM]+$")
 _LEXICAL_UPPERCASE = frozenset({"API", "URL", "ISBN", "CHF", "EUR", "USD", "GBP", "HTTP", "HTTPS"})
@@ -175,19 +210,57 @@ _ELEMENT_SYMBOLS = frozenset(
 
 
 @dataclass(frozen=True, slots=True)
-class AcronymPolicy:
-    """Explicit lexical/initialism/preserve sets for uppercase tokens."""
+class AcronymRenderPolicy:
+    """Locale-specific pronunciation policy for uppercase tokens."""
 
     lexical_words: frozenset[str]
     initialisms: frozenset[str]
     preserve: frozenset[str]
+    default_mode: Literal["lexical", "grapheme_spaced", "spoken_letter_names"] = (
+        "spoken_letter_names"
+    )
 
 
-_ACRONYM_POLICY = AcronymPolicy(
-    lexical_words=frozenset(_WORD_ACRONYMS),
-    initialisms=frozenset({"BND", "FBI", "CIA", "U N", "U S C"}),
-    preserve=_LEXICAL_UPPERCASE,
-)
+_COMMON_LEXICAL_ACRONYMS = frozenset({"NASA", "UNO", "FIFA", "UNESCO", "NATO"})
+_COMMON_INITIALISMS = frozenset({"BND", "FBI", "CIA", "CD", "DVD"})
+_ACRONYM_POLICIES: dict[str, AcronymRenderPolicy] = {
+    "de": AcronymRenderPolicy(
+        lexical_words=_COMMON_LEXICAL_ACRONYMS | {"RAF"},
+        initialisms=_COMMON_INITIALISMS | {"ZDF", "DDR"},
+        preserve=_LEXICAL_UPPERCASE,
+    ),
+    "en": AcronymRenderPolicy(
+        lexical_words=frozenset({"NASA"}),
+        initialisms=_COMMON_INITIALISMS | {"FBI", "CIA"},
+        preserve=_LEXICAL_UPPERCASE,
+    ),
+    "es": AcronymRenderPolicy(
+        lexical_words=_COMMON_LEXICAL_ACRONYMS | {"ONU"},
+        initialisms=_COMMON_INITIALISMS | {"FBI", "CIA"},
+        preserve=_LEXICAL_UPPERCASE,
+    ),
+    "fr": AcronymRenderPolicy(
+        lexical_words=_COMMON_LEXICAL_ACRONYMS | {"ONU", "OTAN", "UNICEF"},
+        initialisms=_COMMON_INITIALISMS | {"PDG", "OMS", "FBI", "SNCF", "CIO", "CNRS", "AFP", "RATP", "GPS"},
+        preserve=_LEXICAL_UPPERCASE,
+    ),
+    "it": AcronymRenderPolicy(
+        lexical_words=frozenset({"ONU", "UE", "CIA", "UNICEF", "IVA"}),
+        initialisms=_COMMON_INITIALISMS | {"USA", "PIL", "FBI", "OMS", "CEO", "ATM", "GPS", "TV", "ADSL", "PC"},
+        preserve=_LEXICAL_UPPERCASE,
+    ),
+}
+for _base in ("pt", "cs"):
+    _ACRONYM_POLICIES[_base] = AcronymRenderPolicy(
+        lexical_words=_COMMON_LEXICAL_ACRONYMS,
+        initialisms=_COMMON_INITIALISMS,
+        preserve=_LEXICAL_UPPERCASE,
+    )
+
+
+def acronym_policy(language: str) -> AcronymRenderPolicy:
+    """Return the maintained uppercase-token policy for a base language."""
+    return _ACRONYM_POLICIES.get(base_language(language), _ACRONYM_POLICIES["en"])
 
 
 @dataclass(frozen=True, slots=True)
@@ -195,6 +268,7 @@ class IsbnRenderPolicy:
     """Locale policy for rendering validated ISBN groups."""
 
     group_mode: Literal["digitwise", "cardinal"]
+    label_mode: Literal["letters", "letters_and_kind"] = "letters"
     separator_word: str | None = None
     speak_group_boundaries: bool = False
 
@@ -235,11 +309,11 @@ _CODE_POLICIES = {
 
 
 _ISBN_POLICIES = {
-    "en": IsbnRenderPolicy("digitwise"),
-    "de": IsbnRenderPolicy("digitwise"),
-    "es": IsbnRenderPolicy("digitwise", speak_group_boundaries=True),
-    "it": IsbnRenderPolicy("digitwise", speak_group_boundaries=True),
-    "fr": IsbnRenderPolicy("cardinal"),
+    "en": IsbnRenderPolicy("digitwise", "letters_and_kind"),
+    "de": IsbnRenderPolicy("digitwise", "letters_and_kind"),
+    "es": IsbnRenderPolicy("digitwise", "letters_and_kind", "grupo", True),
+    "it": IsbnRenderPolicy("digitwise", "letters_and_kind", "gruppo", True),
+    "fr": IsbnRenderPolicy("cardinal", "letters_and_kind", "groupe", True),
 }
 
 
@@ -261,7 +335,52 @@ def _fraction_text(whole: str | None, symbol: str, language: str) -> str:
     fraction_text = _FRACTION_WORDS.get(base, _FRACTION_WORDS["en"]).get(fraction, symbol)
     if whole is None:
         return fraction_text
-    return f"{_cardinal(int(whole), language)} {fraction_text}"
+    connector = {"de": "und", "es": "y", "fr": "et", "it": "e"}.get(
+        base, "and"
+    )
+    return f"{_cardinal(int(whole), language)} {connector} {fraction_text}"
+
+
+def _fraction_word(numerator: int, denominator: int, language: str) -> str:
+    """Render a slash fraction with explicit, locale-aware morphology."""
+    base = base_language(language)
+    words = _DENOMINATOR_WORDS.get(base, _DENOMINATOR_WORDS["en"])
+    denominator_word = words.get(denominator)
+    if denominator_word is None:
+        denominator_word = str(
+            num2words(denominator, lang=resolve_num2words_language(language), to="ordinal")
+        )
+    if base == "de":
+        return f"{_cardinal(numerator, language)} {denominator_word}"
+    if base == "fr":
+        return f"{_cardinal(numerator, language)} {denominator_word}{'s' if numerator != 1 and not denominator_word.endswith('s') else ''}"
+    if base == "es":
+        article = "un" if numerator == 1 else _cardinal(numerator, language)
+        suffix = "s" if numerator != 1 and not denominator_word.endswith("s") else ""
+        return f"{article} {denominator_word}{suffix}"
+    if base == "it":
+        article = "un" if numerator == 1 else _cardinal(numerator, language)
+        suffix = "i" if numerator != 1 and denominator_word.endswith("o") else ""
+        return f"{article} {denominator_word[:-1] + suffix if suffix else denominator_word}"
+    if denominator == 2:
+        denominator_word = "half" if numerator == 1 else "halves"
+    elif numerator != 1:
+        denominator_word += "s" if not denominator_word.endswith("s") else ""
+    return f"{_cardinal(numerator, language)} {denominator_word}"
+
+
+def _slash_fraction_text(whole: str | None, numerator: str, denominator: str, language: str) -> str | None:
+    denominator_value = int(denominator)
+    numerator_value = int(numerator)
+    if denominator_value <= 0 or numerator_value <= 0 or denominator_value > 99:
+        return None
+    fraction = _fraction_word(numerator_value, denominator_value, language)
+    if whole is None:
+        return fraction
+    connector = {"de": "und", "es": "y", "fr": "et", "it": "e"}.get(
+        base_language(language), "and"
+    )
+    return f"{_cardinal(int(whole), language)} {connector} {fraction}"
 
 
 def _coordinate_is_valid(value: str, direction: str | None) -> bool:
@@ -417,6 +536,26 @@ def _phone_is_plausible(value: str) -> bool:
     return len(digits) >= 7 and (value.startswith("+") or bool(re.search(r"[ ()/.-]", value)))
 
 
+def _looks_like_date_shape(value: str) -> bool:
+    return bool(re.fullmatch(r"\d{1,4}[./-]\d{1,2}[./-]\d{1,4}", value.strip()))
+
+
+def _roman_value(value: str) -> int:
+    weights = {"I": 1, "V": 5, "X": 10, "L": 50, "C": 100, "D": 500, "M": 1000}
+    total = 0
+    previous = 0
+    for character in reversed(value.upper()):
+        current = weights[character]
+        total += -current if current < previous else current
+        previous = max(previous, current)
+    return total
+
+
+def _literal_text(value: str, language: str) -> str:
+    """Render URL/e-mail/version punctuation without generic number stages."""
+    return render_sequence(value.rstrip(".,;:!?"), language=language)
+
+
 def _phone_text(value: str, language: str) -> str:
     """Render phone groups without speaking ordinary separator punctuation."""
     groups = tuple(re.findall(r"\d+", value))
@@ -529,13 +668,26 @@ def _formula_is_plausible(value: str) -> bool:
     )
 
 
-def _isbn_is_valid(value: str) -> bool:
+def _isbn_shape_is_valid(value: str) -> bool:
     compact = re.sub(r"[-\s]", "", value).upper()
     if len(compact) == 10 and re.fullmatch(r"\d{9}[\dX]", compact):
-        return sum((10 - index) * (10 if digit == "X" else int(digit)) for index, digit in enumerate(compact)) % 11 == 0
+        return True
     if len(compact) == 13 and compact.isdigit():
-        return sum((1 if index % 2 == 0 else 3) * int(digit) for index, digit in enumerate(compact)) % 10 == 0
+        return True
     return False
+
+
+def _isbn_is_valid(value: str) -> bool:
+    """Return checksum validity for diagnostics, not explicit-label ownership."""
+    compact = re.sub(r"[-\s]", "", value).upper()
+    if not _isbn_shape_is_valid(value):
+        return False
+    if len(compact) == 10:
+        return sum(
+            (10 - index) * (10 if digit == "X" else int(digit))
+            for index, digit in enumerate(compact)
+        ) % 11 == 0
+    return sum((1 if index % 2 == 0 else 3) * int(digit) for index, digit in enumerate(compact)) % 10 == 0
 
 
 def _formula_text(value: str, language: str) -> str:
@@ -551,6 +703,52 @@ def _formula_text(value: str, language: str) -> str:
         else:
             parts.extend(character.casefold() for character in token)
     return " ".join(parts)
+
+
+def _math_text(value: str, language: str) -> str:
+    operators = {
+        "+": "plus",
+        "−": "minus",
+        "-": "minus",
+        "*": "times",
+        "×": "times",
+        "÷": "divided by",
+        "=": "equals",
+        "<": "less than",
+        ">": "greater than",
+        "^": "to the power of",
+    }
+    parts: list[str] = []
+    for token in re.findall(r"\d+(?:\.\d+)?|[A-Za-z]+|[+−*=×÷<>^-]", value):
+        if token.isdigit():
+            parts.append(_cardinal(int(token), language))
+        elif re.fullmatch(r"\d+\.\d+", token):
+            parts.append(_decimal_text(token, language, context="math"))
+        elif token.isalpha():
+            parts.append(render_letters(token, language=language))
+        else:
+            parts.append(operators[token])
+    return " ".join(parts)
+
+
+def _music_text(value: str, language: str) -> str:
+    match = re.fullmatch(r"([A-Ga-g])([#b♯♭])?(.*)", value)
+    if match is None:
+        return value
+    note = render_letters(match.group(1), language=language)
+    accidental = {"#": "sharp", "♯": "sharp", "b": "flat", "♭": "flat"}.get(match.group(2), "")
+    suffix = match.group(3)
+    return " ".join(part for part in (note, accidental, suffix) if part)
+
+
+def _biology_text(value: str, language: str) -> str:
+    match = re.fullmatch(r"([A-Z])\.\s*([a-z][a-z-]+)(.*)", value)
+    if match is None:
+        return value
+    suffix = match.group(3).strip()
+    return " ".join(
+        part for part in (render_letters(match.group(1), language=language), match.group(2), suffix) if part
+    )
 
 
 def _code_tokens(value: str) -> tuple[CodeToken, ...]:
@@ -602,10 +800,27 @@ def _isbn_text(value: str, language: str) -> str:
     return " ".join(rendered)
 
 
+def _isbn_label_text(label: str, language: str) -> str:
+    policy = _ISBN_POLICIES.get(base_language(language), _ISBN_POLICIES["en"])
+    match = re.fullmatch(r"ISBN(?:-(10|13))?", label, re.IGNORECASE)
+    if match is None or policy.label_mode == "letters":
+        return render_sequence("ISBN", language=language)
+    kind = match.group(1)
+    if kind is None:
+        return render_sequence("ISBN", language=language)
+    words = {"en": {"10": "ten", "13": "thirteen"}, "de": {"10": "zehn", "13": "dreizehn"}, "es": {"10": "diez", "13": "trece"}, "fr": {"10": "dix", "13": "treize"}, "it": {"10": "dieci", "13": "tredici"}}
+    return f"{render_sequence('ISBN', language=language)} {words.get(base_language(language), words['en'])[kind]}"
+
+
 def _acronym_text(value: str, language: str) -> str:
-    if value in _ACRONYM_POLICY.lexical_words:
-        return _WORD_ACRONYMS[value]
-    return render_sequence(value, language=language)
+    policy = acronym_policy(language)
+    if value in policy.lexical_words:
+        return value.casefold()
+    return render_sequence(
+        value,
+        language=language,
+        policy=SequenceRenderPolicy(alpha_mode=policy.default_mode),
+    )
 
 
 def _score_text(value: str, language: str) -> str:
@@ -619,6 +834,24 @@ def _score_text(value: str, language: str) -> str:
 
 def _legal_text(value: str, language: str) -> str:
     base = base_language(language)
+    label_match = re.fullmatch(
+        r"(section|sec\.?|article|art\.?|chapter|chap\.?)\s*(\d+)(?:\s+(?:subsection|paragraph|para\.?|§)\s*(\d+))?",
+        value,
+        re.IGNORECASE,
+    )
+    if label_match:
+        headings = {
+            "de": {"section": "Abschnitt", "sec": "Abschnitt", "article": "Artikel", "art": "Artikel", "chapter": "Kapitel", "chap": "Kapitel"},
+            "es": {"section": "sección", "sec": "sección", "article": "artículo", "art": "artículo", "chapter": "capítulo", "chap": "capítulo"},
+            "fr": {"section": "section", "sec": "section", "article": "article", "art": "article", "chapter": "chapitre", "chap": "chapitre"},
+            "it": {"section": "sezione", "sec": "sezione", "article": "articolo", "art": "articolo", "chapter": "capitolo", "chap": "capitolo"},
+        }
+        key = label_match.group(1).casefold().rstrip(".")
+        heading = headings.get(base, {}).get(key, key)
+        result = f"{heading} {_cardinal(int(label_match.group(2)), language)}"
+        if label_match.group(3):
+            result += f" {_cardinal(int(label_match.group(3)), language)}"
+        return result
     german_match = re.fullmatch(
         r"§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?\s+([A-ZÄÖÜ]{2,})", value, re.IGNORECASE
     )
@@ -717,11 +950,15 @@ def iter_sequence_replacements(
     *,
     language: str = "en",
     protected_ranges: Iterable[tuple[int, int]] = (),
+    promote_literals: bool = False,
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""
     language = normalize_language(language)
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
+    for pattern, rule in ((_URL_RE, "sequence.url"), (_EMAIL_RE, "sequence.email")):
+        for match in pattern.finditer(text):
+            _add(candidates, match, _literal_text(match.group(0), language), language, rule, protected)
     for match in _EXCHANGE_EQUAL_RE.finditer(text):
         left_code = _CURRENCY_SYMBOL_CODES.get(match["left_currency"], match["left_currency"].upper())
         right_raw = match["right_currency"] or ""
@@ -802,6 +1039,12 @@ def iter_sequence_replacements(
         )
     for match in _FRACTION_RE.finditer(text):
         _add(candidates, match, _fraction_text(match["whole"], match["fraction"], language), language, "sequence.fraction", protected)
+    for match in _SLASH_FRACTION_RE.finditer(text):
+        numerator = match["numerator"] or match["numerator_only"]
+        denominator = match["denominator"] or match["denominator_only"]
+        value = _slash_fraction_text(match["whole"], numerator, denominator, language)
+        if value is not None:
+            _add(candidates, match, value, language, "sequence.fraction", protected)
     for match in _COORDINATE_RE.finditer(text):
         direction = match["direction"]
         if base_language(language) == "it" and direction is None:
@@ -818,8 +1061,8 @@ def iter_sequence_replacements(
                 protected,
             )
     for match in _ISBN_RE.finditer(text):
-        if _isbn_is_valid(match["value"]):
-            label = render_sequence(match["label"], language=language)
+        if _isbn_shape_is_valid(match["value"]):
+            label = _isbn_label_text(match["label"], language)
             _add(candidates, match, f"{label} {_isbn_text(match['value'], language)}", language, "sequence.isbn", protected)
     for match in _UUID_RE.finditer(text):
         _add(candidates, match, _punctuated(match["value"], language), language, "sequence.uuid", protected)
@@ -832,15 +1075,36 @@ def iter_sequence_replacements(
     for match in _IBAN_RE.finditer(text):
         _add(candidates, match, _punctuated(match["value"].replace(" ", ""), language), language, "sequence.iban", protected)
     for match in _PHONE_RE.finditer(text):
-        if _phone_is_plausible(match["value"]):
+        prefix = text[max(0, match.start() - 48) : match.start()]
+        blocked = bool(_PHONE_BLOCKING_CONTEXT_RE.search(prefix))
+        if not blocked and not _looks_like_date_shape(match["value"]) and _phone_is_plausible(match["value"]):
             _add(candidates, match, _phone_text(match["value"], language), language, "sequence.phone", protected)
     for match in _EMERGENCY_RE.finditer(text):
         _add(candidates, match, match.group(0).replace(match["value"], _digitwise(match["value"], language)), language, "sequence.emergency", protected)
     for match in _VERSION_CONTEXT_RE.finditer(text):
         value = match["value"]
         start, end = match.start("value"), match.end("value")
-        if not value.casefold().startswith("v") and _claimed(start, end, protected):
-            candidates.append(Replacement(start, end, _punctuated(value, language), "structured", language, "sequence.version"))
+        if _claimed(start, end, protected) and (promote_literals or not value.casefold().startswith("v")):
+            candidates.append(Replacement(start, end, _literal_text(value, language), "structured", language, "sequence.version"))
+    for match in _VERSION_RE.finditer(text):
+        prefix = text[max(0, match.start() - 32) : match.start()]
+        contextual = bool(re.search(r"\b(?:version|release|ver\.?|build)\s*[=:]?\s*$", prefix, re.IGNORECASE))
+        if promote_literals or not contextual:
+            _add(candidates, match, _literal_text(match["value"], language), language, "sequence.version", protected)
+    for match in _ROMAN_CONTEXT_RE.finditer(text):
+        value = _roman_value(match["value"])
+        context = match["context"].casefold()
+        ordinal = any(word in context for word in ("century", "siglo", "siècle", "secolo", "king", "queen", "pope"))
+        rendered = str(
+            num2words(
+                value,
+                lang=resolve_num2words_language(language),
+                to="ordinal" if ordinal else "cardinal",
+            )
+        )
+        start, end = match.span("value")
+        if _claimed(start, end, protected):
+            candidates.append(Replacement(start, end, rendered, "structured", language, "sequence.roman"))
     for pattern, marker, rule in ((_HASHTAG_RE, "#", "sequence.hashtag"), (_MENTION_RE, "@", "sequence.mention")):
         for match in pattern.finditer(text):
             prefix = text[max(0, match.start() - 32) : match.start()]
@@ -864,6 +1128,16 @@ def iter_sequence_replacements(
                 rule,
                 protected,
             )
+    for match in _MATH_RE.finditer(text):
+        if re.fullmatch(r"\d+(?:\s*-\s*\d+)+", match["value"]):
+            continue
+        _add(candidates, match, _math_text(match["value"], language), language, "sequence.math", protected)
+    for match in _MUSIC_CONTEXT_RE.finditer(text):
+        start, end = match.span("value")
+        if _claimed(start, end, protected):
+            candidates.append(Replacement(start, end, _music_text(match["value"], language), "structured", language, "sequence.music"))
+    for match in _BIOLOGY_RE.finditer(text):
+        _add(candidates, match, _biology_text(match["value"], language), language, "sequence.biology", protected)
     for match in _FORMULA_RE.finditer(text):
         if _formula_is_plausible(match["value"]):
             _add(candidates, match, _formula_text(match["value"], language), language, "sequence.formula", protected)
@@ -901,13 +1175,14 @@ def iter_sequence_replacements(
         _add(candidates, match, _typed_code_text(match["value"], language, category="license"), language, "sequence.plate", protected)
     for match in _ACRONYM_RE.finditer(text):
         value = match["value"]
-        if value in _ACRONYM_POLICY.lexical_words or value in _ACRONYM_POLICY.initialisms or (
-            value not in _ACRONYM_POLICY.preserve
+        policy = acronym_policy(language)
+        if value in policy.lexical_words or value in policy.initialisms or (
+            value not in policy.preserve
             and len(value) <= 6
             and not _ROMAN_ONLY.fullmatch(value)
         ):
             _add(candidates, match, _acronym_text(value, language), language, "sequence.acronym", protected)
-    for pattern in (_LEGAL_RE, _LEGAL_PREFIX_RE, _LEGAL_US_RE, _LEGAL_ES_RE, _LEGAL_IT_RE, _LEGAL_FR_RE):
+    for pattern in (_LEGAL_RE, _LEGAL_PREFIX_RE, _LEGAL_US_RE, _LEGAL_ES_RE, _LEGAL_IT_RE, _LEGAL_FR_RE, _LEGAL_LABEL_RE):
         for match in pattern.finditer(text):
             _add(candidates, match, _legal_text(match["value"], language), language, "sequence.legal", protected)
     for match in _SPORTS_RE.finditer(text):
@@ -934,6 +1209,8 @@ def iter_sequence_replacements(
             "local": "local",
             "unité": "unité",
             "appartement": "appartement",
+            "tor": "Tor",
+            "einheit": "Einheit",
         }
         number = _digitwise(match["number"], language) if base_language(language) in {"en", "fr"} else _cardinal(int(re.sub(r"[A-Za-z]", "", match["number"])), language)
         _add(

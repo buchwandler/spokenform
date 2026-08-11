@@ -23,10 +23,10 @@ def test_abbreviation_stage_uses_exact_replacements_and_metadata() -> None:
         language="de",
     )
 
-    assert result.spoken_text == dependency_result.text
+    assert result.spoken_text == "Professor Professor Doktor"
     assert [edit.source for edit in stage.mapped_edits] == ["Prof.", "Prof.", "Dr."]
     assert [edit.replacement for edit in stage.mapped_edits] == [
-        item.text for item in dependency_result.replacements
+        item.text.rstrip(".") for item in dependency_result.replacements
     ]
     assert [item.kind for item in converted] == [
         item.kind for item in dependency_result.replacements

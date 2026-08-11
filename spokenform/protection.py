@@ -39,13 +39,15 @@ _LITERAL_PATTERNS = (
 
 
 def discover_protected_spans(
-    text: str, *, language: str | None = None
+    text: str, *, language: str | None = None, protect_literals: bool = True
 ) -> tuple[ProtectedSpan, ...]:
     """Find auto-literals that generic stages must not partially rewrite."""
     base = language.replace("-", "_").split("_", 1)[0].casefold() if language else None
     found: list[ProtectedSpan] = []
     occupied: list[tuple[int, int]] = []
     for kind, pattern in _LITERAL_PATTERNS:
+        if not protect_literals:
+            continue
         for match in pattern.finditer(text):
             span = (match.start(), match.end())
             if kind == "version" and (_is_strong_sequence(text) or _is_contextual_version(text, match.start())):

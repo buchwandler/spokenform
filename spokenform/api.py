@@ -88,6 +88,7 @@ def prepare(
     spacy_model: str | None = None,
     expand_abbreviations: bool = True,
     expand_structured: bool = True,
+    normalize_literals: bool = False,
     expand_numbers: bool = True,
     normalize_whitespace: bool = True,
     normalize_unicode: bool = True,
@@ -118,6 +119,7 @@ def prepare(
         spacy_model = config.spacy_model
         expand_abbreviations = config.expand_abbreviations
         expand_structured = config.expand_structured
+        normalize_literals = config.normalize_literals
         expand_numbers = config.expand_numbers
         normalize_whitespace = config.normalize_whitespace
         normalize_unicode = config.normalize_unicode
@@ -137,6 +139,7 @@ def prepare(
             spacy_model=spacy_model,
             expand_abbreviations=expand_abbreviations,
             expand_structured=expand_structured,
+            normalize_literals=normalize_literals,
             expand_numbers=expand_numbers,
             normalize_whitespace=normalize_whitespace,
             normalize_unicode=normalize_unicode,
@@ -165,6 +168,7 @@ def prepare(
         clean_text,
         language=language,
         protected_spans=protected_spans,
+        protect_literals=not normalize_literals,
         strict=strict,
     )
     current_annotations, spacy_warnings = _prepare_annotations(
@@ -219,6 +223,7 @@ def prepare(
                 protected.values,
                 protected.placeholders,
             ),
+            promote_literals=normalize_literals,
         )
         if structured.replacements:
             internal_replacements = map_visible_replacements_to_internal(
@@ -474,6 +479,7 @@ def _prepare_protected_text(
     *,
     language: str,
     protected_spans: Iterable[ProtectedSpan | tuple[int, int]] | None,
+    protect_literals: bool,
     strict: bool,
 ) -> tuple[ProtectedText, tuple[ProtectedSpan, ...], tuple[str, ...]]:
     """Validate, discover, merge, and sentinel-protect source ranges."""
@@ -485,7 +491,9 @@ def _prepare_protected_text(
     supplied_spans = _expand_partial_structured_protection(
         text, language=language, spans=supplied_spans
     )
-    merged: list[ProtectedSpan] = list(discover_protected_spans(text, language=language))
+    merged: list[ProtectedSpan] = list(
+        discover_protected_spans(text, language=language, protect_literals=protect_literals)
+    )
     for candidate in supplied_spans:
         if not any(
             existing.start < candidate.end and candidate.start < existing.end for existing in merged

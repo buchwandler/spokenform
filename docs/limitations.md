@@ -32,14 +32,16 @@
   written fractional digits; reviewed fixtures define major/minor wording and
   Spanish one-ending agreement rather than delegating grammar to `num2words`.
 
-High-confidence structured sequences include Unicode fractions, coordinates,
-ISBNs, UUIDs, IPv4, MAC addresses, IBANs, locale-grouped phones and versions,
-hashtags, mentions, conservative chemical formulas, explicit acronym policy,
-labeled serial/VIN/product codes, legal references, sports scores, and
-address components. Broad natural-language address, legal, mathematical, and
-musical parsing remains outside the core contract. Unlabeled ambiguous
-alphanumeric strings remain unchanged rather than being memorized as product
-codes.
+High-confidence structured sequences include slash and Unicode fractions,
+coordinates, ISBNs, UUIDs, IPv4, MAC addresses, IBANs, locale-grouped phones,
+versions, hashtags, mentions, conservative chemical formulas, explicit acronym
+policies, labeled serial/VIN/product codes, legal references, sports scores,
+address components, operator-shaped math, music-context tokens, and controlled
+genus/species names. URL, e-mail, version, and contextual Roman promotion is
+opt-in through `normalize_literals`; caller protection remains absolute. Broad
+natural-language address, legal, mathematical, musical, and biological parsing
+remains outside the core contract. Unlabeled ambiguous alphanumeric strings
+remain unchanged rather than being memorized as product codes.
 
 # Limitations and readiness gates
 

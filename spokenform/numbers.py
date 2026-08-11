@@ -247,6 +247,14 @@ def _spell(value: int | Decimal, language: str, *, ordinal: bool = False) -> str
 
 def _year_text(year: int, language: str) -> str:
     base = base_language(language)
+    if base == "en" and 1900 <= year < 2000:
+        century, remainder = divmod(year, 100)
+        prefix = _spell(century, language)
+        if remainder == 0:
+            return prefix
+        if remainder < 10:
+            return f"{prefix} oh {_spell(remainder, language)}"
+        return f"{prefix} {_spell(remainder, language)}"
     if base == "de" and _GERMAN_YEAR_POLICY == "century_for_1100_1999" and 1100 <= year < 2000:
         century, remainder = divmod(year, 100)
         prefix = f"{_spell(century, language)}hundert"
@@ -421,6 +429,13 @@ def _replace_numbers(text: str, language: str) -> str:
         value = _decimal_value(raw, language)
         if base == "en" and "." in raw:
             return _english_plain_number_text(raw, language)
+        if base in {"es", "it"} and "." in raw and re.search(r"\.\d{1,2}$", raw):
+            integer, fraction = raw.replace("−", "-").lstrip("+-").split(".", 1)
+            decimal_word = "coma" if base == "es" else "virgola"
+            result = f"{_spell(int(integer or '0'), language)} {decimal_word} " + " ".join(
+                _spell(int(digit), language) for digit in fraction
+            )
+            return f"minus {result}" if raw.startswith(("-", "−")) else result
         if value == value.to_integral_value():
             return _spell(int(value), language)
         return _spell(value, language)

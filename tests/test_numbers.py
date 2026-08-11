@@ -48,3 +48,8 @@ def test_multi_dot_versions_are_not_partially_normalized(source: str) -> None:
 
 def test_french_decimal_digits_keep_fractional_zero() -> None:
     assert normalize_numbers("0,02", language="fr") == "zéro virgule zéro deux"
+
+
+def test_spanish_and_italian_dot_decimals_use_fractional_digit_policy() -> None:
+    assert normalize_numbers("1.5", language="es") == "uno coma cinco"
+    assert normalize_numbers("1.5", language="it") == "uno virgola cinque"

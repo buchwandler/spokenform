@@ -24,6 +24,7 @@ def iter_structured_replacements(
     *,
     language: str,
     protected_ranges: Iterable[tuple[int, int]] = (),
+    promote_literals: bool = False,
 ) -> tuple[Replacement, ...]:
     """Return exact, non-overlapping semantic replacements for one language."""
     if not isinstance(text, str):
@@ -35,7 +36,7 @@ def iter_structured_replacements(
     from .recognizers import iter_sequence_replacements
 
     shared_candidates = iter_sequence_replacements(
-        text, language=language, protected_ranges=protected
+        text, language=language, protected_ranges=protected, promote_literals=promote_literals
     )
     if base == "en":
         from .locales.en import iter_replacements
@@ -77,10 +78,12 @@ def normalize_structured(
     *,
     language: str,
     protected_ranges: Iterable[tuple[int, int]] = (),
+    promote_literals: bool = False,
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
     replacements = iter_structured_replacements(
         text, language=language, protected_ranges=protected_ranges
+        , promote_literals=promote_literals
     )
     from .mapping import apply_replacements
 

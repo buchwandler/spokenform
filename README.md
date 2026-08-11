@@ -22,6 +22,12 @@ The package provides:
 - conservative protection for URLs, email addresses, and arbitrary multi-dot
   semantic-version/ID sequences.
 
+High-confidence URL, e-mail, semantic-version, and contextual Roman rendering
+is available explicitly with `normalize_literals=True`; caller-protected spans
+remain absolute. Structured fractions, identifiers, operator-shaped math,
+music-context tokens, and controlled biological names use semantic precedence
+and source-aligned mappings.
+
 It intentionally does **not** detect languages, parse or render SSMD, segment mixed
 languages, generate phonemes, or depend on `kokorog2p`.
 

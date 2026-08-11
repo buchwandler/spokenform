@@ -77,3 +77,9 @@ def test_dotted_short_dates_are_not_auto_protected_as_versions() -> None:
     assert prepare("12.10.23", language="fr", use_spacy=False).spoken_text == (
         "douze octobre deux mille vingt-trois"
     )
+
+
+def test_iso_slash_dates_beat_fraction_and_phone_candidates() -> None:
+    result = prepare("2025/03/15", language="en", use_spacy=False)
+    assert result.spoken_text == "March fifteenth, two thousand and twenty-five"
+    assert any(item.rule == "en.date" for item in result.source_replacements)

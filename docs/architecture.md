@@ -5,6 +5,9 @@
 1. validate the selected language and protected ranges;
 2. discover caller-protected ranges and auto-detected literals such as URLs,
    email addresses, and (when not claimed semantically) semantic versions;
+   `normalize_literals=True` opts high-confidence URL, e-mail, version, and
+   contextual Roman rendering into structured ownership while caller spans
+   remain absolute;
 3. obtain or validate optional lexical annotations;
 4. replace protected ranges with internal sentinels and remap annotation offsets;
 5. normalize Unicode independently when enabled;
@@ -104,7 +107,9 @@ against partial generic rewrites; a complete semantic recognizer may claim an
 auto-literal before it is reserved. Candidate conflict resolution gives priority
 to canonical identifiers, then coordinates and formulas, contextual legal,
 sports, and address forms, dates and times, contextual sequences,
-quantities/currencies/temperatures, and generic acronym/product candidates.
+quantities/currencies/temperatures, specialist music/math forms, and generic
+acronym/product candidates. Fractions and date/phone ambiguity are resolved by
+semantic candidate priority rather than regex iteration order.
 Unclaimed or ambiguous forms remain opaque. Every selected candidate is still an
 exact `Replacement`, so precedence does not weaken source/output mapping or
 protected-span behavior.
