@@ -46,9 +46,7 @@ def test_pinned_cache_loads_and_filters_cases(tmp_path) -> None:
     cases = load_cases(("en-US",), cache_dir=tmp_path, category="date")
 
     assert POLYNORM_COMMIT in str(data_path("en-US", tmp_path))
-    assert cases == (
-        PolyNormCase("en-US", "1", "Date", "2", "two"),
-    )
+    assert cases == (PolyNormCase("en-US", "1", "Date", "2", "two"),)
 
 
 def test_selected_locales_rejects_non_overlap() -> None:

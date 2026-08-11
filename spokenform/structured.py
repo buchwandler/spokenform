@@ -82,8 +82,10 @@ def normalize_structured(
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
     replacements = iter_structured_replacements(
-        text, language=language, protected_ranges=protected_ranges
-        , promote_literals=promote_literals
+        text,
+        language=language,
+        protected_ranges=protected_ranges,
+        promote_literals=promote_literals,
     )
     from .mapping import apply_replacements
 

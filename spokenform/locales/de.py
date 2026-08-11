@@ -94,21 +94,43 @@ QUANTITY_GRAMMAR.update(
         "data-kilobyte": QuantityGrammar("data-kilobyte", "m", "Kilobyte", "Kilobyte"),
         "data-megabyte": QuantityGrammar("data-megabyte", "m", "Megabyte", "Megabyte"),
         "data-gigabyte": QuantityGrammar("data-gigabyte", "m", "Gigabyte", "Gigabyte"),
-        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "m", "Kubikmeter pro Sekunde", "Kubikmeter pro Sekunde"),
-        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "m", "Liter pro hundert Kilometer", "Liter pro hundert Kilometer"),
-        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "f", "Atmosphäre", "Atmosphären"),
-        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "m", "Kilopascal", "Kilopascal"),
+        "flow-cubic-meter-per-second": QuantityGrammar(
+            "flow-cubic-meter-per-second", "m", "Kubikmeter pro Sekunde", "Kubikmeter pro Sekunde"
+        ),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar(
+            "fuel-consumption-liter-per-100-kilometer",
+            "m",
+            "Liter pro hundert Kilometer",
+            "Liter pro hundert Kilometer",
+        ),
+        "pressure-atmosphere": QuantityGrammar(
+            "pressure-atmosphere", "f", "Atmosphäre", "Atmosphären"
+        ),
+        "pressure-kilopascal": QuantityGrammar(
+            "pressure-kilopascal", "m", "Kilopascal", "Kilopascal"
+        ),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "m", "Pascal", "Pascal"),
-        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "m", "Meile pro Stunde", "Meilen pro Stunde"),
-        "temperature-celsius": QuantityGrammar("temperature-celsius", "n", "Grad Celsius", "Grad Celsius"),
-        "temperature-fahrenheit": QuantityGrammar("temperature-fahrenheit", "n", "Grad Fahrenheit", "Grad Fahrenheit"),
+        "speed-mile-per-hour": QuantityGrammar(
+            "speed-mile-per-hour", "m", "Meile pro Stunde", "Meilen pro Stunde"
+        ),
+        "temperature-celsius": QuantityGrammar(
+            "temperature-celsius", "n", "Grad Celsius", "Grad Celsius"
+        ),
+        "temperature-fahrenheit": QuantityGrammar(
+            "temperature-fahrenheit", "n", "Grad Fahrenheit", "Grad Fahrenheit"
+        ),
         "power-kilowatt": QuantityGrammar("power-kilowatt", "m", "Kilowatt", "Kilowatt"),
         "energy-joule": QuantityGrammar("energy-joule", "m", "Joule", "Joule"),
         "length-nanometer": QuantityGrammar("length-nanometer", "m", "Nanometer", "Nanometer"),
         "current-ampere": QuantityGrammar("current-ampere", "n", "Ampere", "Ampere"),
         "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "m", "Lumen", "Lumen"),
         "force-newton": QuantityGrammar("force-newton", "m", "Newton", "Newton"),
-        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "m", "Millimeter Quecksilbersäule", "Millimeter Quecksilbersäule"),
+        "pressure-millimeter-mercury": QuantityGrammar(
+            "pressure-millimeter-mercury",
+            "m",
+            "Millimeter Quecksilbersäule",
+            "Millimeter Quecksilbersäule",
+        ),
         "amount-mole": QuantityGrammar("amount-mole", "n", "Mol", "Mol"),
         "concentration-molar": QuantityGrammar("concentration-molar", "n", "molar", "molar"),
         "customary-pound": QuantityGrammar("customary-pound", "n", "Pfund", "Pfund"),
@@ -133,7 +155,9 @@ _HYPHEN_DATE = re.compile(
     r"(?P<day>0?[1-9]|[12]\d|3[01])-(?P<month>\d{1,2}|Jan(?:uar)?\.?|Feb(?:ruar)?\.?|März?\.?|Apr(?:il)?\.?|Mai|Jun(?:i)?\.?|Jul(?:i)?\.?|Aug(?:ust)?\.?|Sep(?:t(?:ember)?)?\.?|Okt(?:ober)?\.?|Nov(?:ember)?\.?|Dez(?:ember)?\.?)-(?P<year>\d{2,4})",
     re.IGNORECASE,
 )
-_DAY_MONTH = re.compile(r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])\.(?P<month>0?[1-9]|1[0-2])\.(?!\d)")
+_DAY_MONTH = re.compile(
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])\.(?P<month>0?[1-9]|1[0-2])\.(?!\d)"
+)
 _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
 _TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
 _TIME_RANGE = re.compile(
@@ -300,7 +324,9 @@ def _currency_name(canonical_id: str) -> str:
 
 def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
     negative, integer, fraction = _parts(raw)
-    result = f"{'ein' if integer == 1 else _spell(integer, language)} {_currency_name(canonical_id)}"
+    result = (
+        f"{'ein' if integer == 1 else _spell(integer, language)} {_currency_name(canonical_id)}"
+    )
     if fraction:
         cents = int((fraction + "00")[:2])
         if cents:
@@ -331,8 +357,10 @@ def iter_replacements(
         day, month, year_raw = int(match["day"]), int(match["month"]), match["year"]
         separator = "." if "." in match.group(0) else "/"
         year_digits = len(year_raw)
-        date_year = int(year_raw) if len(year_raw) == 4 else (
-            int(year_raw) if separator == "." else 2000 + int(year_raw)
+        date_year = (
+            int(year_raw)
+            if len(year_raw) == 4
+            else (int(year_raw) if separator == "." else 2000 + int(year_raw))
         )
         if _valid(day, month, date_year):
             month_name = next(name for number, name in _MONTHS.values() if number == month)
@@ -377,10 +405,19 @@ def iter_replacements(
         range_year: int | None = None
         if match["year"]:
             range_year, _ = expand_year(match["year"])
-        if not range_year or (_valid(int(match["start"]), month, range_year) and _valid(int(match["end"]), month, range_year)):
+        if not range_year or (
+            _valid(int(match["start"]), month, range_year)
+            and _valid(int(match["end"]), month, range_year)
+        ):
             ending = _ending(text, match.start())
             value = f"{_ordinal(int(match['start']), ending, language)} bis {_ordinal(int(match['end']), ending, language)} {month_name}"
-            add(match, f"{value} {_year(range_year, language, year_digits=len(match['year']) if match['year'] else None)}" if range_year else value, "de.date-range")
+            add(
+                match,
+                f"{value} {_year(range_year, language, year_digits=len(match['year']) if match['year'] else None)}"
+                if range_year
+                else value,
+                "de.date-range",
+            )
     for match in _APOSTROPHE_YEAR.finditer(text):
         year, year_digits = expand_year(match["year"])
         add(match, _year(year, language, year_digits=year_digits), "de.short-year")
@@ -394,7 +431,13 @@ def iter_replacements(
         )
         if text_year is None or _valid(day, month, text_year):
             value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'er', language)} {month_name}"
-            add(match, f"{value} {_year(text_year, language, year_digits=len(year_raw) if year_raw else None)}" if text_year else value, "de.text-date")
+            add(
+                match,
+                f"{value} {_year(text_year, language, year_digits=len(year_raw) if year_raw else None)}"
+                if text_year
+                else value,
+                "de.text-date",
+            )
     for match in _TIME_RANGE.finditer(text):
         start_hour = int(match["start_hour"] or match["start_hour_bis"])
         start_minute = int(match["start_minute"] or match["start_minute_bis"])
@@ -406,11 +449,11 @@ def iter_replacements(
             value = f"{start} bis {end} Uhr"
         else:
             start_value = (
-                start
-                if start_minute == 0
-                else f"{start} Uhr {_spell(start_minute, language)}"
+                start if start_minute == 0 else f"{start} Uhr {_spell(start_minute, language)}"
             )
-            end_value = f"{end} Uhr" if end_minute == 0 else f"{end} Uhr {_spell(end_minute, language)}"
+            end_value = (
+                f"{end} Uhr" if end_minute == 0 else f"{end} Uhr {_spell(end_minute, language)}"
+            )
             value = f"{start_value} bis {end_value}"
         add(match, value, "de.time-range")
     for match in _TIME.finditer(text):

@@ -7,14 +7,15 @@ versioning:
 entry_id: entry-0004
 release_version: 0.2.4
 kind: docs
-summary: Documented ownership boundaries, literal policy, benchmark diagnostics, and
+summary:
+  Documented ownership boundaries, literal policy, benchmark diagnostics, and
   dependency requirements
 status: accepted
 audience: null
 scopes: []
 source_refs: []
 paths:
-- docs
+  - docs
 issues: []
 prs: []
 sources: []

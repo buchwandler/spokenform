@@ -51,14 +51,38 @@ _CATEGORY_ALIASES = {
 # These are local annotations about benchmark quality/ownership.  They are
 # deliberately separate from the upstream corpus and never rewrite its text.
 POLYNORM_QUARANTINE: dict[str, dict[str, str]] = {
-    "es-MX:86": {"reason": "Expected decimal spelling is inconsistent.", "classification": "questionable"},
-    "es-MX:249": {"reason": "Expected text is unrelated to the source e-mail.", "classification": "malformed_ground_truth"},
-    "es-MX:274": {"reason": "Expected hashtag marker contains a likely spelling error.", "classification": "questionable"},
-    "fr-FR:208": {"reason": "Source contains alternatives/commentary rather than one normalization pair.", "classification": "malformed_ground_truth"},
-    "fr-FR:310": {"reason": "Expected text is an instruction rather than normalized source text.", "classification": "malformed_ground_truth"},
-    "fr-FR:316": {"reason": "Expected text is an instruction rather than normalized source text.", "classification": "malformed_ground_truth"},
-    "de-DE:161": {"reason": "Expected text uses an inconsistent English punctuation word.", "classification": "questionable"},
-    "de-DE:412": {"reason": "Expected coordinate appears to omit the hundred component.", "classification": "questionable"},
+    "es-MX:86": {
+        "reason": "Expected decimal spelling is inconsistent.",
+        "classification": "questionable",
+    },
+    "es-MX:249": {
+        "reason": "Expected text is unrelated to the source e-mail.",
+        "classification": "malformed_ground_truth",
+    },
+    "es-MX:274": {
+        "reason": "Expected hashtag marker contains a likely spelling error.",
+        "classification": "questionable",
+    },
+    "fr-FR:208": {
+        "reason": "Source contains alternatives/commentary rather than one normalization pair.",
+        "classification": "malformed_ground_truth",
+    },
+    "fr-FR:310": {
+        "reason": "Expected text is an instruction rather than normalized source text.",
+        "classification": "malformed_ground_truth",
+    },
+    "fr-FR:316": {
+        "reason": "Expected text is an instruction rather than normalized source text.",
+        "classification": "malformed_ground_truth",
+    },
+    "de-DE:161": {
+        "reason": "Expected text uses an inconsistent English punctuation word.",
+        "classification": "questionable",
+    },
+    "de-DE:412": {
+        "reason": "Expected coordinate appears to omit the hundred component.",
+        "classification": "questionable",
+    },
 }
 
 _OWNERSHIP: dict[str, str] = {
@@ -222,7 +246,9 @@ def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:
     count = len(results)
     literal_exact_count = sum(bool(item["literal_exact"]) for item in results)
     speech_exact_count = sum(bool(item["speech_exact"]) for item in results)
-    equivalent_count = sum(bool(item.get("speech_exact_equivalent", item["speech_exact"])) for item in results)
+    equivalent_count = sum(
+        bool(item.get("speech_exact_equivalent", item["speech_exact"])) for item in results
+    )
     presentation_only_count = sum(bool(item.get("presentation_only")) for item in results)
     semantic_failure_count = sum(bool(item.get("semantic_failure")) for item in results)
     unchanged_count = sum(bool(item["unchanged"]) for item in results)
@@ -259,9 +285,7 @@ def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> di
     mapped_edits = tuple(getattr(result, "mapped_edits", ()) or ())
     source_replacements = tuple(getattr(result, "source_replacements", ()) or ())
     candidates = [
-        edit
-        for edit in (*source_replacements, *mapped_edits)
-        if getattr(edit, "rule", None)
+        edit for edit in (*source_replacements, *mapped_edits) if getattr(edit, "rule", None)
     ]
     candidates.sort(
         key=lambda edit: (
@@ -316,7 +340,9 @@ def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> di
 
     return {
         "primary_rule": primary_rule,
-        "claim_owner": ownership if primary_rule else ("protection" if protected_spans else "unclaimed"),
+        "claim_owner": ownership
+        if primary_rule
+        else ("protection" if protected_spans else "unclaimed"),
         "failure_phase": failure_phase,
         "winning_span": winning_span,
         "protected_reason": protected_reason,
@@ -375,9 +401,7 @@ def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     protected = grouped_ownership.get("protected", [])
     safety = {
         "protected_cases": len(protected),
-        "protected_mutation_count": sum(
-            bool(row.get("protected_mutation")) for row in protected
-        ),
+        "protected_mutation_count": sum(bool(row.get("protected_mutation")) for row in protected),
         "protected_unchanged_rate": (
             1.0 - sum(bool(row.get("protected_mutation")) for row in protected) / len(protected)
             if protected
@@ -422,9 +446,7 @@ def evaluate_cases(
             actual = result.spoken_text
             warnings = list(result.warnings)
             changed_stages = tuple(stage.name for stage in result.stages if stage.changed)
-            source_rules = tuple(
-                sorted({edit.rule for edit in result.mapped_edits if edit.rule})
-            )
+            source_rules = tuple(sorted({edit.rule for edit in result.mapped_edits if edit.rule}))
             structured_claimed = any(edit.stage == "structured" for edit in result.mapped_edits)
         except Exception as exc:  # benchmark discovery must continue per case
             error = f"{type(exc).__name__}: {exc}"
@@ -436,7 +458,9 @@ def evaluate_cases(
         presentation_only = bool(not error and not speech_exact and speech_exact_equivalent)
         semantic_failure = bool(not error and not speech_exact_equivalent)
         speech_wer = (
-            word_error_rate(speech_key(case.normalized_text), speech_key(actual)) if not error else 0.0
+            word_error_rate(speech_key(case.normalized_text), speech_key(actual))
+            if not error
+            else 0.0
         )
         provenance = _provenance_diagnostics(result, ownership=ownership, language=language)
         if error:

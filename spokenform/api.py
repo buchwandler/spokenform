@@ -270,7 +270,8 @@ def prepare(
                 current,
                 protected.values,
                 protected.placeholders,
-            ) + tuple((item.start, item.end) for item in reserved_spans),
+            )
+            + tuple((item.start, item.end) for item in reserved_spans),
         )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,

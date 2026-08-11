@@ -3,7 +3,10 @@ from spokenform import prepare
 
 def test_isbn_validation_and_typed_rendering() -> None:
     result = prepare("ISBN 978-0-306-40615-7", language="en", use_spacy=False)
-    assert result.spoken_text == "I S B N nine seven eight zero three zero six four zero six one five seven"
+    assert (
+        result.spoken_text
+        == "I S B N nine seven eight zero three zero six four zero six one five seven"
+    )
     assert any(item.rule == "sequence.isbn" for item in result.source_replacements)
     invalid = prepare("ISBN 978-0-306-40615-8", language="en", use_spacy=False)
     assert any(item.rule == "sequence.isbn" for item in invalid.source_replacements)
@@ -33,18 +36,14 @@ def test_formula_codes_legal_references_and_scores_use_typed_renderers() -> None
     assert prepare("§ 12 BGB", language="de", use_spacy=False).spoken_text == (
         "Paragraf zwölf B G B"
     )
-    assert prepare("Final 2:1", language="en", use_spacy=False).spoken_text == (
-        "Final two to one"
-    )
+    assert prepare("Final 2:1", language="en", use_spacy=False).spoken_text == ("Final two to one")
 
 
 def test_typed_code_profiles_and_coordinate_directions_are_contextual() -> None:
     assert prepare("serial number: AB-123", language="en", use_spacy=False).spoken_text == (
         "serial number A B one two three"
     )
-    assert prepare("Model E46", language="en", use_spacy=False).spoken_text == (
-        "model E forty-six"
-    )
+    assert prepare("Model E46", language="en", use_spacy=False).spoken_text == ("model E forty-six")
     assert prepare("12,3456° O", language="es", use_spacy=False).spoken_text == (
         "doce coma tres cuatro cinco seis grados oeste"
     )

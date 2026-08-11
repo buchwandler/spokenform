@@ -64,7 +64,9 @@ class NumericSpeechPolicy:
 
 
 _NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
-    "en_US": NumericSpeechPolicy("point", "digitwise", omit_cardinal_conjunction=True, year_mode="locale"),
+    "en_US": NumericSpeechPolicy(
+        "point", "digitwise", omit_cardinal_conjunction=True, year_mode="locale"
+    ),
     "de_DE": NumericSpeechPolicy("Komma", "digitwise", year_mode="split_hundreds"),
     "es_MX": NumericSpeechPolicy("punto", "two_digit_cardinal"),
     "fr_FR": NumericSpeechPolicy("virgule", "two_digit_cardinal"),
@@ -148,9 +150,7 @@ def _separator_positions(value: str, separator: str) -> list[int]:
 
 def _grouping_is_valid(value: str, separator: str) -> bool:
     groups = value.split(separator)
-    return len(groups) > 1 and bool(groups[0]) and all(
-        len(group) == 3 for group in groups[1:]
-    )
+    return len(groups) > 1 and bool(groups[0]) and all(len(group) == 3 for group in groups[1:])
 
 
 def _clean_grouping(value: str) -> str:
@@ -219,7 +219,10 @@ def parse_numeric_lexeme(
             if not tail:
                 return None
             if not head:
-                if separator not in (policy.decimal_separator, *policy.alternate_decimal_separators):
+                if separator not in (
+                    policy.decimal_separator,
+                    *policy.alternate_decimal_separators,
+                ):
                     return None
                 decimal_separator = separator
                 head = "0"

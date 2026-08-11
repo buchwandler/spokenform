@@ -408,9 +408,26 @@ def resolve_replacements(
 def _replacement_priority(replacement: Replacement) -> int:
     """Return the documented semantic precedence for candidate conflicts."""
     rule = replacement.rule or ""
-    if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn", "sequence.exchange-rate", "sequence.url", "sequence.email"}:
+    if rule in {
+        "sequence.uuid",
+        "sequence.ipv4",
+        "sequence.mac",
+        "sequence.iban",
+        "sequence.isbn",
+        "sequence.exchange-rate",
+        "sequence.url",
+        "sequence.email",
+    }:
         return 100
-    if rule in {"sequence.coordinate", "sequence.formula", "sequence.compound-unit", "sequence.percent", "sequence.currency", "sequence.currency-magnitude", "sequence.biology"}:
+    if rule in {
+        "sequence.coordinate",
+        "sequence.formula",
+        "sequence.compound-unit",
+        "sequence.percent",
+        "sequence.currency",
+        "sequence.currency-magnitude",
+        "sequence.biology",
+    }:
         return 90
     if rule in {"sequence.legal", "sequence.sports", "sequence.address"}:
         return 80
@@ -418,7 +435,13 @@ def _replacement_priority(replacement: Replacement) -> int:
         return 75
     if rule.endswith(".date") or rule.endswith(".time") or rule == "sequence.roman":
         return 70
-    if rule in {"sequence.fraction", "sequence.phone", "sequence.version", "sequence.hashtag", "sequence.mention"}:
+    if rule in {
+        "sequence.fraction",
+        "sequence.phone",
+        "sequence.version",
+        "sequence.hashtag",
+        "sequence.mention",
+    }:
         return 60
     if ".currency" in rule or ".quantity" in rule or "temperature" in rule:
         return 50

@@ -7,14 +7,15 @@ versioning:
 entry_id: entry-0002
 release_version: 0.2.4
 kind: added
-summary: Added opt-in URL, e-mail, version, and contextual Roman rendering with caller
+summary:
+  Added opt-in URL, e-mail, version, and contextual Roman rendering with caller
   protection
 status: accepted
 audience: null
 scopes: []
 source_refs: []
 paths:
-- spokenform/protection.py
+  - spokenform/protection.py
 issues: []
 prs: []
 sources: []

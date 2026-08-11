@@ -7,7 +7,9 @@ from spokenform.sequences import SequenceRenderPolicy, render_letters, render_se
 
 @pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
 def test_every_supported_language_renders_ascii_letters_without_index_errors(language: str) -> None:
-    rendered = render_letters("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", language=language)
+    rendered = render_letters(
+        "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", language=language
+    )
     assert rendered
     assert "IndexError" not in rendered
 
@@ -35,22 +37,31 @@ def test_sequence_policy_can_keep_alpha_runs_lexical() -> None:
 
 
 def test_sequence_alpha_modes_are_distinct() -> None:
-    assert render_sequence(
-        "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="lexical")
-    ) == "ISBN"
-    assert render_sequence(
-        "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="grapheme_spaced")
-    ) == "I S B N"
-    assert render_sequence(
-        "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="spoken_letter_names")
-    ) == "i ese be ene"
+    assert (
+        render_sequence("ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="lexical"))
+        == "ISBN"
+    )
+    assert (
+        render_sequence(
+            "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="grapheme_spaced")
+        )
+        == "I S B N"
+    )
+    assert (
+        render_sequence(
+            "ISBN", language="es", policy=SequenceRenderPolicy(alpha_mode="spoken_letter_names")
+        )
+        == "i ese be ene"
+    )
 
 
 def test_hashtag_and_mention_rendering_is_lexical() -> None:
     assert prepare("#TravelTips @JeanDupont", language="en", use_spacy=False).spoken_text == (
         "hashtag TravelTips at Jean Dupont"
     )
-    assert prepare("#vacanze2024", language="it", use_spacy=False).spoken_text == "hashtag vacanze2024"
+    assert (
+        prepare("#vacanze2024", language="it", use_spacy=False).spoken_text == "hashtag vacanze2024"
+    )
     assert prepare("#Été2024", language="fr", use_spacy=False).spoken_text == "hashtag Été2024"
 
 
@@ -69,12 +80,17 @@ def test_coordinates_support_integer_precision_and_direction_words() -> None:
 
 def test_coordinates_fail_closed_when_directional_ranges_are_invalid() -> None:
     assert prepare("91° N", language="en", use_spacy=False).spoken_text == "ninety one° N"
-    assert prepare("181° E", language="en", use_spacy=False).spoken_text == "one hundred eighty one° E"
+    assert (
+        prepare("181° E", language="en", use_spacy=False).spoken_text == "one hundred eighty one° E"
+    )
 
 
 def test_isbn_and_sports_scores_use_category_specific_policies() -> None:
     isbn = prepare("ISBN 978-3-16-148410-0", language="en", use_spacy=False)
-    assert isbn.spoken_text == "I S B N nine seven eight three one six one four eight four one zero zero"
+    assert (
+        isbn.spoken_text
+        == "I S B N nine seven eight three one six one four eight four one zero zero"
+    )
     assert any(item.rule == "sequence.isbn" for item in isbn.source_replacements)
 
     assert prepare("final 3-2", language="en", use_spacy=False).spoken_text == (
@@ -87,12 +103,8 @@ def test_isbn_and_sports_scores_use_category_specific_policies() -> None:
 
 
 def test_fraction_and_acronym_policies_are_high_confidence_only() -> None:
-    assert prepare("½ ⅝", language="it", use_spacy=False).spoken_text == (
-        "un mezzo cinque ottavi"
-    )
-    assert prepare("NASA BND API", language="en", use_spacy=False).spoken_text == (
-        "Nasa b n d API"
-    )
+    assert prepare("½ ⅝", language="it", use_spacy=False).spoken_text == ("un mezzo cinque ottavi")
+    assert prepare("NASA BND API", language="en", use_spacy=False).spoken_text == ("Nasa b n d API")
     protected = prepare("https://example.org/v1.2.3", language="en", use_spacy=False)
     assert protected.spoken_text == "https://example.org/v1.2.3"
 

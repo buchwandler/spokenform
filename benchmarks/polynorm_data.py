@@ -86,7 +86,9 @@ def ensure_data(
 ) -> Path:
     """Ensure selected locale files and the upstream license exist locally."""
     root = cache_path(cache_dir)
-    missing = [locale for locale in locales if refresh or not data_path(locale, cache_dir).is_file()]
+    missing = [
+        locale for locale in locales if refresh or not data_path(locale, cache_dir).is_file()
+    ]
     license_path = root / "LICENSE"
     if (missing or not license_path.is_file()) and offline:
         absent = ", ".join(missing) or "LICENSE"
@@ -99,7 +101,10 @@ def ensure_data(
         if not license_path.is_file() or refresh:
             _download(_raw_url("LICENSE"), license_path)
         for locale in missing:
-            _download(_raw_url(f"polynorm_bench/{locale}/{locale}_groundtruth.jsonl"), data_path(locale, cache_dir))
+            _download(
+                _raw_url(f"polynorm_bench/{locale}/{locale}_groundtruth.jsonl"),
+                data_path(locale, cache_dir),
+            )
     return root
 
 
@@ -131,7 +136,12 @@ def load_cases(
                 if case_id is not None and case.case_id != case_id:
                     continue
                 selected.append(case)
-    selected.sort(key=lambda case: (case.polynorm_locale, int(case.index) if case.index.isdigit() else case.index))
+    selected.sort(
+        key=lambda case: (
+            case.polynorm_locale,
+            int(case.index) if case.index.isdigit() else case.index,
+        )
+    )
     return tuple(selected[:limit] if limit is not None else selected)
 
 

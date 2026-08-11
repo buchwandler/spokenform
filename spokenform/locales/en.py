@@ -111,24 +111,34 @@ QUANTITY_GRAMMAR.update(
         "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "atmosphere", "atmospheres"),
         "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "kilopascal", "kilopascals"),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascals"),
-        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "mile per hour", "miles per hour"),
+        "speed-mile-per-hour": QuantityGrammar(
+            "speed-mile-per-hour", "mile per hour", "miles per hour"
+        ),
         "power-watt": QuantityGrammar("power-watt", "watt", "watts"),
         "power-kilowatt": QuantityGrammar("power-kilowatt", "kilowatt", "kilowatts"),
         "energy-watt-hour": QuantityGrammar("energy-watt-hour", "watt-hour", "watt-hours"),
-        "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "kilowatt-hour", "kilowatt-hours"),
+        "energy-kilowatt-hour": QuantityGrammar(
+            "energy-kilowatt-hour", "kilowatt-hour", "kilowatt-hours"
+        ),
         "frequency-hertz": QuantityGrammar("frequency-hertz", "hertz", "hertz"),
         "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "kilohertz", "kilohertz"),
         "frequency-megahertz": QuantityGrammar("frequency-megahertz", "megahertz", "megahertz"),
         "frequency-gigahertz": QuantityGrammar("frequency-gigahertz", "gigahertz", "gigahertz"),
         "length-nanometer": QuantityGrammar("length-nanometer", "nanometer", "nanometers"),
         "current-ampere": QuantityGrammar("current-ampere", "ampere", "amperes"),
-        "current-milliampere": QuantityGrammar("current-milliampere", "milliampere", "milliamperes"),
-        "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "milliampere-hour", "milliampere-hours"),
+        "current-milliampere": QuantityGrammar(
+            "current-milliampere", "milliampere", "milliamperes"
+        ),
+        "charge-milliampere-hour": QuantityGrammar(
+            "charge-milliampere-hour", "milliampere-hour", "milliampere-hours"
+        ),
         "voltage-volt": QuantityGrammar("voltage-volt", "volt", "volts"),
         "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "lumen", "lumens"),
         "force-newton": QuantityGrammar("force-newton", "newton", "newtons"),
         "energy-joule": QuantityGrammar("energy-joule", "joule", "joules"),
-        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "millimeter of mercury", "millimeters of mercury"),
+        "pressure-millimeter-mercury": QuantityGrammar(
+            "pressure-millimeter-mercury", "millimeter of mercury", "millimeters of mercury"
+        ),
         "amount-mole": QuantityGrammar("amount-mole", "mole", "moles"),
         "concentration-molar": QuantityGrammar("concentration-molar", "molar", "molar"),
     }
@@ -257,7 +267,12 @@ def _parts(
     lexeme = parse_numeric_lexeme(raw, language, context=context)
     if lexeme is None:
         raise ValueError(f"Cannot parse English number {raw!r}")
-    return lexeme.negative, raw.strip().startswith("+"), int(lexeme.integer_digits), lexeme.fraction_digits
+    return (
+        lexeme.negative,
+        raw.strip().startswith("+"),
+        int(lexeme.integer_digits),
+        lexeme.fraction_digits,
+    )
 
 
 def _cardinal(value: int, language: str = "en", *, omit_conjunction: bool | None = None) -> str:
@@ -327,7 +342,11 @@ def _date_text(
     elif 1900 <= year < 2000:
         century, remainder = divmod(year, 100)
         prefix = str(num2words(century, lang=dependency_language))
-        year_text = prefix if remainder == 0 else f"{prefix} {'oh ' if remainder < 10 else ''}{num2words(remainder, lang=dependency_language)}"
+        year_text = (
+            prefix
+            if remainder == 0
+            else f"{prefix} {'oh ' if remainder < 10 else ''}{num2words(remainder, lang=dependency_language)}"
+        )
     else:
         year_text = str(num2words(year, lang=dependency_language))
     separator = " " if policy.year_mode == "locale" else ", "
@@ -400,7 +419,9 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
     minor = int((fraction or "").ljust(2, "0")) if fraction is not None else 0
     major_singular, major_plural, minor_singular, minor_plural = labels
     major_label = major_singular if integer == 1 else major_plural
-    major = _number_text(("-" if negative else "+" if positive else "") + str(integer), language="en")
+    major = _number_text(
+        ("-" if negative else "+" if positive else "") + str(integer), language="en"
+    )
     result = f"{major} {major_label}"
     if minor and minor_singular is not None and minor_plural is not None:
         minor_label = minor_singular if minor == 1 else minor_plural
@@ -492,12 +513,23 @@ def iter_replacements(
             )
     for match in _DATE_MD_NO_YEAR.finditer(text):
         day, month = int(match["day"]), int(match["month"])
-        if _valid_date(day, month, 2000) and _date_like_context(text, match.start(), match.end(), day=day):
-            add(match.start(), match.end(), f"{_MONTHS[month - 1]} {_spell(day, language, ordinal=True)}", "en.date")
+        if _valid_date(day, month, 2000) and _date_like_context(
+            text, match.start(), match.end(), day=day
+        ):
+            add(
+                match.start(),
+                match.end(),
+                f"{_MONTHS[month - 1]} {_spell(day, language, ordinal=True)}",
+                "en.date",
+            )
     for match in _TEXT_DATE_DMY.finditer(text):
         month_name = match["month"].rstrip(".").title()
         month_index = next(
-            (index for index, name in enumerate(_MONTHS, 1) if name.casefold().startswith(month_name.casefold())),
+            (
+                index
+                for index, name in enumerate(_MONTHS, 1)
+                if name.casefold().startswith(month_name.casefold())
+            ),
             None,
         )
         if month_index is None:
@@ -517,7 +549,11 @@ def iter_replacements(
     for match in _TEXT_DATE_RANGE.finditer(text):
         month_name = match["month"].rstrip(".").title()
         month_index = next(
-            (index for index, name in enumerate(_MONTHS, 1) if name.casefold().startswith(month_name.casefold())),
+            (
+                index
+                for index, name in enumerate(_MONTHS, 1)
+                if name.casefold().startswith(month_name.casefold())
+            ),
             None,
         )
         if month_index is None:
@@ -535,7 +571,11 @@ def iter_replacements(
     for match in _TEXT_DATE.finditer(text):
         month_name = match["month"].rstrip(".").title()
         month_index = next(
-            (index for index, name in enumerate(_MONTHS, 1) if name.casefold().startswith(month_name.casefold())),
+            (
+                index
+                for index, name in enumerate(_MONTHS, 1)
+                if name.casefold().startswith(month_name.casefold())
+            ),
             None,
         )
         if month_index is None:
@@ -565,7 +605,6 @@ def iter_replacements(
             if _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "en.date")
 
-
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         if hour > 23 or minute > 59:
@@ -593,7 +632,9 @@ def iter_replacements(
         add(start, end, _PLURAL_TENS_WORDS[int(match["value"])], "en.plural_tens")
 
     dependency_language = resolve_abbr2words_language(language)
-    quantity_matches = tuple(iter_unit_matches(text, dependency_language, protected_spans=protected))
+    quantity_matches = tuple(
+        iter_unit_matches(text, dependency_language, protected_spans=protected)
+    )
     quantity_spans = tuple((match.start, match.end) for match in quantity_matches)
     for match in _VERSION_DECIMAL.finditer(text):
         start, end = match.span()

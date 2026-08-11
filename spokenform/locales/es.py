@@ -84,32 +84,66 @@ QUANTITY_GRAMMAR.update(
         "data-kilobyte": QuantityGrammar("data-kilobyte", "m", "kilobyte", "kilobytes"),
         "data-megabyte": QuantityGrammar("data-megabyte", "m", "megabyte", "megabytes"),
         "data-gigabyte": QuantityGrammar("data-gigabyte", "m", "gigabyte", "gigabytes"),
-        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "m", "metro cúbico por segundo", "metros cúbicos por segundo"),
-        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "m", "litro por cien kilómetros", "litros por cien kilómetros"),
-        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "f", "atmósfera", "atmósferas"),
-        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "m", "kilopascal", "kilopascales"),
+        "flow-cubic-meter-per-second": QuantityGrammar(
+            "flow-cubic-meter-per-second",
+            "m",
+            "metro cúbico por segundo",
+            "metros cúbicos por segundo",
+        ),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar(
+            "fuel-consumption-liter-per-100-kilometer",
+            "m",
+            "litro por cien kilómetros",
+            "litros por cien kilómetros",
+        ),
+        "pressure-atmosphere": QuantityGrammar(
+            "pressure-atmosphere", "f", "atmósfera", "atmósferas"
+        ),
+        "pressure-kilopascal": QuantityGrammar(
+            "pressure-kilopascal", "m", "kilopascal", "kilopascales"
+        ),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "m", "pascal", "pascales"),
-        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "m", "milla por hora", "millas por hora"),
+        "speed-mile-per-hour": QuantityGrammar(
+            "speed-mile-per-hour", "m", "milla por hora", "millas por hora"
+        ),
         "temperature-kelvin": QuantityGrammar("temperature-kelvin", "m", "kelvin", "kelvin"),
-        "temperature-celsius": QuantityGrammar("temperature-celsius", "m", "grado Celsius", "grados Celsius"),
-        "temperature-fahrenheit": QuantityGrammar("temperature-fahrenheit", "m", "grado Fahrenheit", "grados Fahrenheit"),
+        "temperature-celsius": QuantityGrammar(
+            "temperature-celsius", "m", "grado Celsius", "grados Celsius"
+        ),
+        "temperature-fahrenheit": QuantityGrammar(
+            "temperature-fahrenheit", "m", "grado Fahrenheit", "grados Fahrenheit"
+        ),
         "power-watt": QuantityGrammar("power-watt", "m", "vatio", "vatios"),
         "power-kilowatt": QuantityGrammar("power-kilowatt", "m", "kilovatio", "kilovatios"),
         "energy-watt-hour": QuantityGrammar("energy-watt-hour", "m", "vatio-hora", "vatios-hora"),
-        "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "m", "kilovatio-hora", "kilovatios-hora"),
+        "energy-kilowatt-hour": QuantityGrammar(
+            "energy-kilowatt-hour", "m", "kilovatio-hora", "kilovatios-hora"
+        ),
         "frequency-hertz": QuantityGrammar("frequency-hertz", "m", "hercio", "hercios"),
-        "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "m", "kilohercio", "kilohercios"),
-        "frequency-megahertz": QuantityGrammar("frequency-megahertz", "m", "megahercio", "megahercios"),
-        "frequency-gigahertz": QuantityGrammar("frequency-gigahertz", "m", "gigahercio", "gigahercios"),
+        "frequency-kilohertz": QuantityGrammar(
+            "frequency-kilohertz", "m", "kilohercio", "kilohercios"
+        ),
+        "frequency-megahertz": QuantityGrammar(
+            "frequency-megahertz", "m", "megahercio", "megahercios"
+        ),
+        "frequency-gigahertz": QuantityGrammar(
+            "frequency-gigahertz", "m", "gigahercio", "gigahercios"
+        ),
         "length-nanometer": QuantityGrammar("length-nanometer", "m", "nanómetro", "nanómetros"),
         "current-ampere": QuantityGrammar("current-ampere", "m", "amperio", "amperios"),
-        "current-milliampere": QuantityGrammar("current-milliampere", "m", "miliamperio", "miliamperios"),
-        "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "m", "miliamperio-hora", "miliamperios-hora"),
+        "current-milliampere": QuantityGrammar(
+            "current-milliampere", "m", "miliamperio", "miliamperios"
+        ),
+        "charge-milliampere-hour": QuantityGrammar(
+            "charge-milliampere-hour", "m", "miliamperio-hora", "miliamperios-hora"
+        ),
         "voltage-volt": QuantityGrammar("voltage-volt", "m", "voltio", "voltios"),
         "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "m", "lumen", "lúmenes"),
         "force-newton": QuantityGrammar("force-newton", "m", "newton", "newtons"),
         "energy-joule": QuantityGrammar("energy-joule", "m", "julio", "julios"),
-        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "m", "milímetro de mercurio", "milímetros de mercurio"),
+        "pressure-millimeter-mercury": QuantityGrammar(
+            "pressure-millimeter-mercury", "m", "milímetro de mercurio", "milímetros de mercurio"
+        ),
         "amount-mole": QuantityGrammar("amount-mole", "m", "mol", "moles"),
         "concentration-molar": QuantityGrammar("concentration-molar", "m", "molar", "molares"),
         "customary-pound": QuantityGrammar("customary-pound", "m", "libra", "libras"),
@@ -122,11 +156,15 @@ _CURRENCY_SYMBOL = re.compile(
 )
 _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
-_DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{2})(?!\d)")
+_DATE_DMY_SHORT = re.compile(
+    r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{2})(?!\d)"
+)
 _DATE_DMY_NO_YEAR = re.compile(
     r"(?<![\w./])(?P<day>0?[1-9]|[12]\d|3[01])/(?P<month>0?[1-9]|1[0-2])(?![\w/])"
 )
-_DATE_DMY_HYPHEN = re.compile(r"(?<![\w.])(?P<day>\d{1,2})-(?P<month>\d{1,2})-(?P<year>\d{2,4})(?!\d)")
+_DATE_DMY_HYPHEN = re.compile(
+    r"(?<![\w.])(?P<day>\d{1,2})-(?P<month>\d{1,2})-(?P<year>\d{2,4})(?!\d)"
+)
 _DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{4}(?!\d)")
 _TIME_CANDIDATE = re.compile(r"(?<![\w.])\d{1,2}:\d{2}(?!\d)")
 _TIME_COLON = re.compile(
@@ -165,7 +203,9 @@ _ORDINAL_SYMBOL = re.compile(
 )
 
 
-def _parts(raw: str, language: str = "es", *, context: str = "quantity") -> tuple[bool, int, str | None]:
+def _parts(
+    raw: str, language: str = "es", *, context: str = "quantity"
+) -> tuple[bool, int, str | None]:
     lexeme = parse_numeric_lexeme(raw, language, context=context)
     if lexeme is None:
         raise ValueError(f"Cannot parse Spanish number {raw!r}")
@@ -308,7 +348,12 @@ def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
         "currency-south-korean-won": ("won", "wones", None, None),
     }
     if canonical_id == "currency-us-dollar" and language.casefold().replace("-", "_") == "es_mx":
-        names[canonical_id] = ("dólar estadounidense", "dólares estadounidenses", "centavo", "centavos")
+        names[canonical_id] = (
+            "dólar estadounidense",
+            "dólares estadounidenses",
+            "centavo",
+            "centavos",
+        )
     singular, plural, minor_singular, minor_plural = names.get(
         canonical_id, (canonical_id, canonical_id, "centavo", "centavos")
     )
@@ -351,7 +396,9 @@ def iter_replacements(
 
     for match in _DATE_DMY_NO_YEAR.finditer(text):
         day, month = int(match["day"]), int(match["month"])
-        if _valid_date(day, month, 2000) and _date_like_context(text, match.start(), match.end(), day=day):
+        if _valid_date(day, month, 2000) and _date_like_context(
+            text, match.start(), match.end(), day=day
+        ):
             day_text = "primero" if day == 1 else _spell(day, language)
             add(match.start(), match.end(), f"{day_text} de {_MONTHS[month - 1]}", "es.date")
     for pattern in (_DATE_DMY_SHORT, _DATE_DMY_HYPHEN):
@@ -398,7 +445,9 @@ def iter_replacements(
         add(match.start(), match.end(), value, "es.ordinal")
 
     currency_ids = {
-        "$": "currency-mexican-peso" if language.casefold().replace("-", "_") == "es_mx" else "currency-us-dollar",
+        "$": "currency-mexican-peso"
+        if language.casefold().replace("-", "_") == "es_mx"
+        else "currency-us-dollar",
         "€": "currency-euro",
         "£": "currency-pound-sterling",
     }

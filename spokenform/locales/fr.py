@@ -81,31 +81,51 @@ QUANTITY_GRAMMAR.update(
         "data-kilobyte": QuantityGrammar("data-kilobyte", "kilooctet", "kilooctets"),
         "data-megabyte": QuantityGrammar("data-megabyte", "mégaoctet", "mégaoctets"),
         "data-gigabyte": QuantityGrammar("data-gigaoctet", "gigaoctet", "gigaoctets"),
-        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "mètre cube par seconde", "mètres cubes par seconde"),
-        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "litre aux cent kilomètres", "litres aux cent kilomètres"),
+        "flow-cubic-meter-per-second": QuantityGrammar(
+            "flow-cubic-meter-per-second", "mètre cube par seconde", "mètres cubes par seconde"
+        ),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar(
+            "fuel-consumption-liter-per-100-kilometer",
+            "litre aux cent kilomètres",
+            "litres aux cent kilomètres",
+        ),
         "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "atmosphère", "atmosphères"),
         "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "kilopascal", "kilopascals"),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascals"),
-        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "mille par heure", "milles par heure"),
-        "temperature-celsius": QuantityGrammar("temperature-celsius", "degré Celsius", "degrés Celsius"),
-        "temperature-fahrenheit": QuantityGrammar("temperature-fahrenheit", "degré Fahrenheit", "degrés Fahrenheit"),
+        "speed-mile-per-hour": QuantityGrammar(
+            "speed-mile-per-hour", "mille par heure", "milles par heure"
+        ),
+        "temperature-celsius": QuantityGrammar(
+            "temperature-celsius", "degré Celsius", "degrés Celsius"
+        ),
+        "temperature-fahrenheit": QuantityGrammar(
+            "temperature-fahrenheit", "degré Fahrenheit", "degrés Fahrenheit"
+        ),
         "power-watt": QuantityGrammar("power-watt", "watt", "watts"),
         "power-kilowatt": QuantityGrammar("power-kilowatt", "kilowatt", "kilowatts"),
         "energy-watt-hour": QuantityGrammar("energy-watt-hour", "watt-heure", "watt-heures"),
-        "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "kilowatt-heure", "kilowatt-heures"),
+        "energy-kilowatt-hour": QuantityGrammar(
+            "energy-kilowatt-hour", "kilowatt-heure", "kilowatt-heures"
+        ),
         "frequency-hertz": QuantityGrammar("frequency-hertz", "hertz", "hertz"),
         "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "kilohertz", "kilohertz"),
         "frequency-megahertz": QuantityGrammar("frequency-megahertz", "mégahertz", "mégahertz"),
         "frequency-gigahertz": QuantityGrammar("frequency-gigahertz", "gigahertz", "gigahertz"),
         "length-nanometer": QuantityGrammar("length-nanometer", "nanomètre", "nanomètres"),
         "current-ampere": QuantityGrammar("current-ampere", "ampère", "ampères"),
-        "current-milliampere": QuantityGrammar("current-milliampere", "milliampère", "milliampères"),
-        "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "milliampère-heure", "milliampère-heures"),
+        "current-milliampere": QuantityGrammar(
+            "current-milliampere", "milliampère", "milliampères"
+        ),
+        "charge-milliampere-hour": QuantityGrammar(
+            "charge-milliampere-hour", "milliampère-heure", "milliampère-heures"
+        ),
         "voltage-volt": QuantityGrammar("voltage-volt", "volt", "volts"),
         "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "lumen", "lumens"),
         "force-newton": QuantityGrammar("force-newton", "newton", "newtons"),
         "energy-joule": QuantityGrammar("energy-joule", "joule", "joules"),
-        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "millimètre de mercure", "millimètres de mercure"),
+        "pressure-millimeter-mercury": QuantityGrammar(
+            "pressure-millimeter-mercury", "millimètre de mercure", "millimètres de mercure"
+        ),
         "amount-mole": QuantityGrammar("amount-mole", "mole", "moles"),
         "concentration-molar": QuantityGrammar("concentration-molar", "molaire", "molaires"),
         "customary-pound": QuantityGrammar("customary-pound", "livre", "livres"),
@@ -178,8 +198,13 @@ def _number_text(raw: str, language: str = "fr") -> str:
     result = _spell(integer, language)
     if fraction is not None:
         policy = numeric_speech_policy(language)
-        result += " " + policy.decimal_word + " " + " ".join(
-            _spell(int(group), language) for group in fraction_digit_groups(fraction, language)
+        result += (
+            " "
+            + policy.decimal_word
+            + " "
+            + " ".join(
+                _spell(int(group), language) for group in fraction_digit_groups(fraction, language)
+            )
         )
     return f"moins {result}" if negative else result
 
@@ -302,8 +327,15 @@ def iter_replacements(
 
     for match in _DATE_DMY_NO_YEAR.finditer(text):
         day, month = int(match["day"]), int(match["month"])
-        if _valid_date(day, month, 2000) and _date_like_context(text, match.start(), match.end(), day=day):
-            add(match.start(), match.end(), f"{_spell(day, language)} {_MONTHS[month - 1]}", "fr.date")
+        if _valid_date(day, month, 2000) and _date_like_context(
+            text, match.start(), match.end(), day=day
+        ):
+            add(
+                match.start(),
+                match.end(),
+                f"{_spell(day, language)} {_MONTHS[month - 1]}",
+                "fr.date",
+            )
     for match in _DATE_DMY_SHORT.finditer(text):
         year, _ = expand_year(match["year"])
         day, month = int(match["day"]), int(match["month"])

@@ -41,6 +41,4 @@ def test_math_and_music_words_follow_locale_without_promoting_literals() -> None
     assert prepare("2+2=4", language="de", use_spacy=False).spoken_text == (
         "zwei plus zwei gleich vier"
     )
-    assert prepare("chord C#", language="fr", use_spacy=False).spoken_text == (
-        "chord cé dièse"
-    )
+    assert prepare("chord C#", language="fr", use_spacy=False).spoken_text == ("chord cé dièse")

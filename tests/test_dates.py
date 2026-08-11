@@ -54,9 +54,7 @@ def test_date_candidates_retain_source_shape_and_locale_extensions() -> None:
     assert candidate.source_order == "dmy"
     assert candidate.separator == "."
     assert candidate.range_role == "single"
-    assert prepare("Oct 12", language="en_US", use_spacy=False).spoken_text == (
-        "October twelfth"
-    )
+    assert prepare("Oct 12", language="en_US", use_spacy=False).spoken_text == ("October twelfth")
     assert prepare("Oct 12, 2023", language="en_US", use_spacy=False).spoken_text == (
         "October twelfth twenty twenty three"
     )

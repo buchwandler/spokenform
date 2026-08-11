@@ -21,13 +21,23 @@ def test_structured_precedence_selects_the_semantic_candidate(
 ) -> None:
     result = prepare(source, language=language, use_spacy=False)
     if rule == "sequence.isbn":
-        assert any(item.rule == rule and item.source == "ISBN" for item in result.source_replacements)
-        assert any(item.rule == rule and item.source == source.split(" ", 1)[1] for item in result.source_replacements)
+        assert any(
+            item.rule == rule and item.source == "ISBN" for item in result.source_replacements
+        )
+        assert any(
+            item.rule == rule and item.source == source.split(" ", 1)[1]
+            for item in result.source_replacements
+        )
     else:
-        assert any(item.rule == rule and item.source == source_fragment for item in result.source_replacements)
+        assert any(
+            item.rule == rule and item.source == source_fragment
+            for item in result.source_replacements
+        )
 
 
 @pytest.mark.parametrize("source", ["https://example.org/1/2", "Brown v. Board", "l/100 km"])
 def test_no_false_claim_inputs_do_not_use_fraction_or_phone(source: str) -> None:
     result = prepare(source, language="en", use_spacy=False)
-    assert not any(item.rule in {"sequence.fraction", "sequence.phone"} for item in result.source_replacements)
+    assert not any(
+        item.rule in {"sequence.fraction", "sequence.phone"} for item in result.source_replacements
+    )

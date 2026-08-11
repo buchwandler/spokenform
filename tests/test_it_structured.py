@@ -130,9 +130,7 @@ def test_italian_times_and_extended_units_use_locale_policies() -> None:
     assert prepare("14:30", language="it_IT", use_spacy=False).spoken_text == (
         "quattordici e trenta"
     )
-    assert prepare("9:15", language="it_IT", use_spacy=False).spoken_text == (
-        "nove e quindici"
-    )
+    assert prepare("9:15", language="it_IT", use_spacy=False).spoken_text == ("nove e quindici")
     for source in ("60 mph", "100 kPa", "1 atm", "64 GB", "6 L/100km", "10 m³/s"):
         assert prepare(source, language="it_IT", use_spacy=False).spoken_text != source
 

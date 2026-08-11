@@ -80,18 +80,34 @@ QUANTITY_GRAMMAR.update(
         "data-kilobyte": QuantityGrammar("data-kilobyte", "kilobyte", "kilobyte"),
         "data-megabyte": QuantityGrammar("data-megabyte", "megabyte", "megabyte"),
         "data-gigabyte": QuantityGrammar("data-gigabyte", "gigabyte", "gigabyte"),
-        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "metro cubo al secondo", "metri cubi al secondo"),
-        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "litro per cento chilometri", "litri per cento chilometri"),
-        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "atmosfera", "atmosfere", "un'"),
+        "flow-cubic-meter-per-second": QuantityGrammar(
+            "flow-cubic-meter-per-second", "metro cubo al secondo", "metri cubi al secondo"
+        ),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar(
+            "fuel-consumption-liter-per-100-kilometer",
+            "litro per cento chilometri",
+            "litri per cento chilometri",
+        ),
+        "pressure-atmosphere": QuantityGrammar(
+            "pressure-atmosphere", "atmosfera", "atmosfere", "un'"
+        ),
         "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "chilopascal", "chilopascal"),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascal"),
-        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "miglio all'ora", "miglia all'ora"),
-        "temperature-celsius": QuantityGrammar("temperature-celsius", "grado Celsius", "gradi Celsius"),
-        "temperature-fahrenheit": QuantityGrammar("temperature-fahrenheit", "grado Fahrenheit", "gradi Fahrenheit"),
+        "speed-mile-per-hour": QuantityGrammar(
+            "speed-mile-per-hour", "miglio all'ora", "miglia all'ora"
+        ),
+        "temperature-celsius": QuantityGrammar(
+            "temperature-celsius", "grado Celsius", "gradi Celsius"
+        ),
+        "temperature-fahrenheit": QuantityGrammar(
+            "temperature-fahrenheit", "grado Fahrenheit", "gradi Fahrenheit"
+        ),
         "power-watt": QuantityGrammar("power-watt", "watt", "watt"),
         "power-kilowatt": QuantityGrammar("power-kilowatt", "chilowatt", "chilowatt"),
         "energy-watt-hour": QuantityGrammar("energy-watt-hour", "wattora", "wattora"),
-        "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "chilowattora", "chilowattora"),
+        "energy-kilowatt-hour": QuantityGrammar(
+            "energy-kilowatt-hour", "chilowattora", "chilowattora"
+        ),
         "frequency-hertz": QuantityGrammar("frequency-hertz", "hertz", "hertz"),
         "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "chilohertz", "chilohertz"),
         "frequency-megahertz": QuantityGrammar("frequency-megahertz", "megahertz", "megahertz"),
@@ -99,12 +115,16 @@ QUANTITY_GRAMMAR.update(
         "length-nanometer": QuantityGrammar("length-nanometer", "nanometro", "nanometri"),
         "current-ampere": QuantityGrammar("current-ampere", "ampere", "ampere"),
         "current-milliampere": QuantityGrammar("current-milliampere", "milliampere", "milliampere"),
-        "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "milliampereora", "milliampereora"),
+        "charge-milliampere-hour": QuantityGrammar(
+            "charge-milliampere-hour", "milliampereora", "milliampereora"
+        ),
         "voltage-volt": QuantityGrammar("voltage-volt", "volt", "volt"),
         "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "lumen", "lumen"),
         "force-newton": QuantityGrammar("force-newton", "newton", "newton"),
         "energy-joule": QuantityGrammar("energy-joule", "joule", "joule"),
-        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "millimetro di mercurio", "millimetri di mercurio"),
+        "pressure-millimeter-mercury": QuantityGrammar(
+            "pressure-millimeter-mercury", "millimetro di mercurio", "millimetri di mercurio"
+        ),
         "amount-mole": QuantityGrammar("amount-mole", "mole", "moli"),
         "concentration-molar": QuantityGrammar("concentration-molar", "molare", "molari"),
         "customary-pound": QuantityGrammar("customary-pound", "libbra", "libbre", "una"),
@@ -112,9 +132,13 @@ QUANTITY_GRAMMAR.update(
     }
 )
 
-_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./-](?P<month>\d{1,2})[./-](?P<year>\d{4})(?!\d)")
+_DATE_DMY = re.compile(
+    r"(?<![\w.])(?P<day>\d{1,2})[./-](?P<month>\d{1,2})[./-](?P<year>\d{4})(?!\d)"
+)
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
-_DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./-](?P<month>\d{1,2})[./-](?P<year>\d{2})(?!\d)")
+_DATE_DMY_SHORT = re.compile(
+    r"(?<![\w.])(?P<day>\d{1,2})[./-](?P<month>\d{1,2})[./-](?P<year>\d{2})(?!\d)"
+)
 _DATE_DMY_NO_YEAR = re.compile(
     r"(?<![\w./])(?P<day>0?[1-9]|[12]\d|3[01])/(?P<month>0?[1-9]|1[0-2])(?![\w/])"
 )
@@ -165,9 +189,7 @@ def _spell(value: int, language: str = "it") -> str:
     return str(num2words(value, lang=resolve_num2words_language(language)))
 
 
-def _number_text(
-    raw: str, *, singular_article: str | None = None, language: str = "it"
-) -> str:
+def _number_text(raw: str, *, singular_article: str | None = None, language: str = "it") -> str:
     negative, integer, fraction = _parts(raw, language)
     if fraction is None:
         result = _spell(integer, language)
@@ -284,8 +306,15 @@ def iter_replacements(
 
     for match in _DATE_DMY_NO_YEAR.finditer(text):
         day, month = int(match["day"]), int(match["month"])
-        if _valid_date(day, month, 2000) and _date_like_context(text, match.start(), match.end(), day=day):
-            add(match.start(), match.end(), f"{_spell(day, language)} {_MONTHS[month - 1]}", "it.date")
+        if _valid_date(day, month, 2000) and _date_like_context(
+            text, match.start(), match.end(), day=day
+        ):
+            add(
+                match.start(),
+                match.end(),
+                f"{_spell(day, language)} {_MONTHS[month - 1]}",
+                "it.date",
+            )
     for match in _DATE_DMY_SHORT.finditer(text):
         year, _ = expand_year(match["year"])
         day, month = int(match["day"]), int(match["month"])
@@ -324,7 +353,9 @@ def iter_replacements(
             )
 
     for match in _ORDINAL_SYMBOL.finditer(text):
-        value = str(num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal"))
+        value = str(
+            num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal")
+        )
         if match.group("suffix").casefold().rstrip(".") in {"a", "ª"} and value.endswith("o"):
             value = f"{value[:-1]}a"
         add(match.start(), match.end(), value, "it.ordinal")

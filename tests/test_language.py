@@ -21,14 +21,18 @@ def test_normalize_language(value: str, expected: str) -> None:
 def test_base_language_and_supported_languages() -> None:
     assert base_language("en_GB") == "en"
     assert base_language("de_DE") == "de"
-    assert supported_languages() == SUPPORTED_BASE_LANGUAGES == (
-        "cs",
-        "de",
-        "en",
-        "es",
-        "fr",
-        "it",
-        "pt",
+    assert (
+        supported_languages()
+        == SUPPORTED_BASE_LANGUAGES
+        == (
+            "cs",
+            "de",
+            "en",
+            "es",
+            "fr",
+            "it",
+            "pt",
+        )
     )
 
 

@@ -35,9 +35,7 @@ class SequenceVocabulary:
 class SequenceRenderPolicy:
     """Explicit alpha, digit, and punctuation behavior for one category."""
 
-    alpha_mode: Literal["lexical", "grapheme_spaced", "spoken_letter_names"] = (
-        "spoken_letter_names"
-    )
+    alpha_mode: Literal["lexical", "grapheme_spaced", "spoken_letter_names"] = "spoken_letter_names"
     digit_mode: Literal["digitwise", "cardinal", "group_cardinal"] = "digitwise"
     punctuation_mode: Literal["drop", "name", "segment"] = "name"
 
@@ -63,18 +61,60 @@ _LETTER_NAMES: dict[str, Mapping[str, str]] = {
         )
     ),
     "fr": {
-        "a": "a", "b": "bé", "c": "cé", "d": "dé", "e": "e", "f": "effe",
-        "g": "gé", "h": "ache", "i": "i", "j": "ji", "k": "ka", "l": "elle",
-        "m": "aime", "n": "aine", "o": "o", "p": "pé", "q": "ku", "r": "erre",
-        "s": "esse", "t": "té", "u": "u", "v": "vé", "w": "doublevé", "x": "ikse",
-        "y": "i grec", "z": "zède",
+        "a": "a",
+        "b": "bé",
+        "c": "cé",
+        "d": "dé",
+        "e": "e",
+        "f": "effe",
+        "g": "gé",
+        "h": "ache",
+        "i": "i",
+        "j": "ji",
+        "k": "ka",
+        "l": "elle",
+        "m": "aime",
+        "n": "aine",
+        "o": "o",
+        "p": "pé",
+        "q": "ku",
+        "r": "erre",
+        "s": "esse",
+        "t": "té",
+        "u": "u",
+        "v": "vé",
+        "w": "doublevé",
+        "x": "ikse",
+        "y": "i grec",
+        "z": "zède",
     },
     "it": {
-        "a": "a", "b": "bi", "c": "ci", "d": "di", "e": "e", "f": "effe",
-        "g": "gi", "h": "acca", "i": "i", "j": "i lunga", "k": "cappa", "l": "elle",
-        "m": "emme", "n": "enne", "o": "o", "p": "pi", "q": "cu", "r": "erre",
-        "s": "esse", "t": "ti", "u": "u", "v": "vu", "w": "doppia vu", "x": "ics",
-        "y": "ipsilon", "z": "zeta",
+        "a": "a",
+        "b": "bi",
+        "c": "ci",
+        "d": "di",
+        "e": "e",
+        "f": "effe",
+        "g": "gi",
+        "h": "acca",
+        "i": "i",
+        "j": "i lunga",
+        "k": "cappa",
+        "l": "elle",
+        "m": "emme",
+        "n": "enne",
+        "o": "o",
+        "p": "pi",
+        "q": "cu",
+        "r": "erre",
+        "s": "esse",
+        "t": "ti",
+        "u": "u",
+        "v": "vu",
+        "w": "doppia vu",
+        "x": "ics",
+        "y": "ipsilon",
+        "z": "zeta",
     },
     "pt": dict(
         zip(
@@ -84,11 +124,32 @@ _LETTER_NAMES: dict[str, Mapping[str, str]] = {
         )
     ),
     "cs": {
-        "a": "a", "b": "bé", "c": "cé", "d": "dé", "e": "é", "f": "ef",
-        "g": "gé", "h": "há", "i": "i", "j": "jé", "k": "ká", "l": "el",
-        "m": "em", "n": "en", "o": "ó", "p": "pé", "q": "kú", "r": "er",
-        "s": "es", "t": "té", "u": "ú", "v": "vé", "w": "dvojité vé", "x": "iks",
-        "y": "ypsilon", "z": "zet",
+        "a": "a",
+        "b": "bé",
+        "c": "cé",
+        "d": "dé",
+        "e": "é",
+        "f": "ef",
+        "g": "gé",
+        "h": "há",
+        "i": "i",
+        "j": "jé",
+        "k": "ká",
+        "l": "el",
+        "m": "em",
+        "n": "en",
+        "o": "ó",
+        "p": "pé",
+        "q": "kú",
+        "r": "er",
+        "s": "es",
+        "t": "té",
+        "u": "ú",
+        "v": "vé",
+        "w": "dvojité vé",
+        "x": "iks",
+        "y": "ypsilon",
+        "z": "zet",
     },
 }
 
@@ -96,12 +157,84 @@ _SUPERSCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
 _SUBSCRIPT_DIGITS = str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789")
 _DEFAULT_VOCABULARY = {
     "en": SequenceVocabulary(),
-    "de": SequenceVocabulary(point="Punkt", slash="Schrägstrich", hyphen="Bindestrich", underscore="Unterstrich", colon="Doppelpunkt", at="at", hash="Hashtag", plus="plus", equals="gleich", open_paren="öffnende Klammer", close_paren="schließende Klammer"),
-    "es": SequenceVocabulary(point="punto", slash="barra", hyphen="guion", underscore="guion bajo", colon="dos puntos", at="arroba", hash="almohadilla", plus="más", equals="igual", open_paren="paréntesis izquierdo", close_paren="paréntesis derecho"),
-    "fr": SequenceVocabulary(point="point", slash="barre oblique", hyphen="tiret", underscore="soulignement", colon="deux-points", at="arobase", hash="dièse", plus="plus", equals="égal", open_paren="parenthèse ouvrante", close_paren="parenthèse fermante"),
-    "it": SequenceVocabulary(point="punto", slash="barra", hyphen="trattino", underscore="trattino basso", colon="due punti", at="chiocciola", hash="cancelletto", plus="più", equals="uguale", open_paren="parentesi aperta", close_paren="parentesi chiusa"),
-    "pt": SequenceVocabulary(point="ponto", slash="barra", hyphen="hífen", underscore="sublinhado", colon="dois-pontos", at="arroba", hash="hashtag", plus="mais", equals="igual", open_paren="parêntese esquerdo", close_paren="parêntese direito"),
-    "cs": SequenceVocabulary(point="tečka", slash="lomítko", hyphen="spojovník", underscore="podtržítko", colon="dvojtečka", at="zavináč", hash="mřížka", plus="plus", equals="rovná se", open_paren="levá závorka", close_paren="pravá závorka"),
+    "de": SequenceVocabulary(
+        point="Punkt",
+        slash="Schrägstrich",
+        hyphen="Bindestrich",
+        underscore="Unterstrich",
+        colon="Doppelpunkt",
+        at="at",
+        hash="Hashtag",
+        plus="plus",
+        equals="gleich",
+        open_paren="öffnende Klammer",
+        close_paren="schließende Klammer",
+    ),
+    "es": SequenceVocabulary(
+        point="punto",
+        slash="barra",
+        hyphen="guion",
+        underscore="guion bajo",
+        colon="dos puntos",
+        at="arroba",
+        hash="almohadilla",
+        plus="más",
+        equals="igual",
+        open_paren="paréntesis izquierdo",
+        close_paren="paréntesis derecho",
+    ),
+    "fr": SequenceVocabulary(
+        point="point",
+        slash="barre oblique",
+        hyphen="tiret",
+        underscore="soulignement",
+        colon="deux-points",
+        at="arobase",
+        hash="dièse",
+        plus="plus",
+        equals="égal",
+        open_paren="parenthèse ouvrante",
+        close_paren="parenthèse fermante",
+    ),
+    "it": SequenceVocabulary(
+        point="punto",
+        slash="barra",
+        hyphen="trattino",
+        underscore="trattino basso",
+        colon="due punti",
+        at="chiocciola",
+        hash="cancelletto",
+        plus="più",
+        equals="uguale",
+        open_paren="parentesi aperta",
+        close_paren="parentesi chiusa",
+    ),
+    "pt": SequenceVocabulary(
+        point="ponto",
+        slash="barra",
+        hyphen="hífen",
+        underscore="sublinhado",
+        colon="dois-pontos",
+        at="arroba",
+        hash="hashtag",
+        plus="mais",
+        equals="igual",
+        open_paren="parêntese esquerdo",
+        close_paren="parêntese direito",
+    ),
+    "cs": SequenceVocabulary(
+        point="tečka",
+        slash="lomítko",
+        hyphen="spojovník",
+        underscore="podtržítko",
+        colon="dvojtečka",
+        at="zavináč",
+        hash="mřížka",
+        plus="plus",
+        equals="rovná se",
+        open_paren="levá závorka",
+        close_paren="pravá závorka",
+    ),
 }
 
 
@@ -124,7 +257,9 @@ def render_digits(text: str, *, language: str = "en") -> str:
     """Render each decimal digit individually, preserving leading zeroes."""
     names = _DIGIT_NAMES[_language(language)]
     normalized = normalize_unicode_digits(text)
-    return " ".join(names[int(character)] if character.isdigit() else character for character in normalized)
+    return " ".join(
+        names[int(character)] if character.isdigit() else character for character in normalized
+    )
 
 
 def render_letters(text: str, *, language: str = "en") -> str:
@@ -166,7 +301,9 @@ def render_sequence(
 ) -> str:
     """Render a claimed sequence with configurable punctuation names."""
     if policy is not None:
-        digit_mode = "cardinal" if policy.digit_mode in {"cardinal", "group_cardinal"} else "digitwise"
+        digit_mode = (
+            "cardinal" if policy.digit_mode in {"cardinal", "group_cardinal"} else "digitwise"
+        )
     vocab = vocabulary(language)
     names: dict[str, str | None] = {
         ".": vocab.point,

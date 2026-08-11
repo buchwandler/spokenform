@@ -7,15 +7,16 @@ versioning:
 entry_id: entry-0001
 release_version: 0.2.4
 kind: changed
-summary: Added locale-aware rendering for sequences, fractions, numeric values, and
+summary:
+  Added locale-aware rendering for sequences, fractions, numeric values, and
   identifiers
 status: accepted
 audience: null
 scopes: []
 source_refs:
-- tl:task-0023
+  - tl:task-0023
 paths:
-- spokenform
+  - spokenform
 issues: []
 prs: []
 sources: []

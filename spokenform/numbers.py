@@ -320,6 +320,7 @@ def _date_text(
 
 def _replace_dates(text: str, language: str) -> str:
     base = base_language(language)
+
     def replacement(match: re.Match[str]) -> str:
         try:
             date(int(match.group("year")), int(match.group("month")), int(match.group("day")))
@@ -342,6 +343,7 @@ def _replace_dates(text: str, language: str) -> str:
 
 def _replace_times(text: str, language: str) -> str:
     base = base_language(language)
+
     def replace(match: re.Match[str]) -> str:
         hour = int(match.group("hour"))
         minute = int(match.group("minute"))
@@ -526,9 +528,7 @@ def _protect_reserved_ranges(
     values = [text[start:end] for start, end in selected]
     result = text
     existing_offsets = [
-        ord(character) - 0xE000
-        for character in text
-        if 0xE000 <= ord(character) < 0xE000 + 0x1900
+        ord(character) - 0xE000 for character in text if 0xE000 <= ord(character) < 0xE000 + 0x1900
     ]
     placeholder_start = 0xE000 + max(existing_offsets, default=-1) + 1
     for index in reversed(range(len(selected))):
@@ -560,9 +560,7 @@ def _normalize_comma_decimal_plain_numbers(
         result = str(num2words(int(integer), lang=resolve_num2words_language(language)))
         if fraction is not None:
             result += f" {decimal_word} " + " ".join(
-                str(
-                    num2words(int(digit), lang=resolve_num2words_language(language))
-                )
+                str(num2words(int(digit), lang=resolve_num2words_language(language)))
                 for digit in fraction
             )
         return f"{negative_word} {result}" if negative else result
@@ -644,9 +642,7 @@ def _protect_english_units(protected: _ProtectedText, language: str = "en") -> _
     values = list(protected.values)
     result = protected.text
     occupied: list[tuple[int, int]] = []
-    for match in reversed(
-        tuple(iter_unit_matches(result, resolve_abbr2words_language(language)))
-    ):
+    for match in reversed(tuple(iter_unit_matches(result, resolve_abbr2words_language(language)))):
         if any(match.start < end and start < match.end for start, end in occupied):
             continue
         index = len(values)
@@ -727,7 +723,11 @@ def _render_numeric_lexeme(
                 )
         result = f"{integer + ' ' if integer else ''}{policy.decimal_word} {' '.join(rendered_groups)}".rstrip()
     else:
-        result = _english_spell(int(lexeme.integer_digits), language) if base_language(language) == "en" else _spell(int(lexeme.integer_digits), language)
+        result = (
+            _english_spell(int(lexeme.integer_digits), language)
+            if base_language(language) == "en"
+            else _spell(int(lexeme.integer_digits), language)
+        )
     if lexeme.negative:
         return f"{_negative_word(language)} {result}"
     return result
@@ -746,14 +746,17 @@ def _normalize_unified_plain_numbers(text: str, language: str) -> str:
             and not re.match(r"\.\d", match.string[match.end() :])
         ):
             return raw
-        if base_language(language) == "en" and "." not in unsigned and "," not in unsigned and len(unsigned) > 3:
+        if (
+            base_language(language) == "en"
+            and "." not in unsigned
+            and "," not in unsigned
+            and len(unsigned) > 3
+        ):
             return raw
         before = match.string[max(0, match.start() - 1) : match.start()]
         after = match.string[match.end() : match.end() + 1]
         fraction_tail = re.split(r"[.,]", unsigned)[-1]
-        if len(fraction_tail) > 2 and (
-            (before and before in "$€£") or (after and after in "$€£")
-        ):
+        if len(fraction_tail) > 2 and ((before and before in "$€£") or (after and after in "$€£")):
             return raw
         lexeme = parse_numeric_lexeme(raw, language, context="plain")
         if lexeme is None:

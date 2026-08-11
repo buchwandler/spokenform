@@ -10,8 +10,12 @@ from .polynorm_eval import evaluate_and_write
 
 
 def _parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Evaluate Spokenform against pinned PolyNorm-Bench data.")
-    parser.add_argument("--accept-license", action="store_true", help="Allow downloading CC BY-NC-ND data.")
+    parser = argparse.ArgumentParser(
+        description="Evaluate Spokenform against pinned PolyNorm-Bench data."
+    )
+    parser.add_argument(
+        "--accept-license", action="store_true", help="Allow downloading CC BY-NC-ND data."
+    )
     parser.add_argument("--offline", action="store_true", help="Use only the local pinned cache.")
     parser.add_argument("--locale", choices=POLYNORM_LOCALES)
     parser.add_argument("--category")

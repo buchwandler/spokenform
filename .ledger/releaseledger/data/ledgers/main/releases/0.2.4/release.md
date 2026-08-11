@@ -14,7 +14,7 @@ superseded_by: null
 changelog_file: docs/changelog.md
 boundary_ref: null
 source_refs:
-- tl:task-0023
+  - tl:task-0023
 source_count: null
 entry_count: 4
 artifact_count: 0

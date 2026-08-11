@@ -32,8 +32,13 @@ def test_locale_numeric_policies_are_selected_before_separator_heuristics() -> N
         "zweiundvierzig Komma eins neun fünf Kilometer"
     )
     assert prepare("3,000", language="es_MX", use_spacy=False).spoken_text == "tres mil"
-    assert prepare("45,000", language="es_MX", use_spacy=False).spoken_text == "cuarenta y cinco mil"
-    assert prepare("1.75", language="es_MX", use_spacy=False).spoken_text == "uno punto setenta y cinco"
+    assert (
+        prepare("45,000", language="es_MX", use_spacy=False).spoken_text == "cuarenta y cinco mil"
+    )
+    assert (
+        prepare("1.75", language="es_MX", use_spacy=False).spoken_text
+        == "uno punto setenta y cinco"
+    )
 
 
 def test_typed_and_contextual_renderers_do_not_use_global_code_rules() -> None:
@@ -41,7 +46,10 @@ def test_typed_and_contextual_renderers_do_not_use_global_code_rules() -> None:
         "I S B N nine seven eight"
     )
     assert prepare("Chapter IIX", language="en", use_spacy=False).spoken_text == "Chapter IIX"
-    assert prepare("Heinrich VIII.", language="de", use_spacy=False).spoken_text == "Heinrich der Achte."
+    assert (
+        prepare("Heinrich VIII.", language="de", use_spacy=False).spoken_text
+        == "Heinrich der Achte."
+    )
     assert prepare("√9 = 3", language="es", use_spacy=False).spoken_text == (
         "raíz cuadrada de nueve igual a tres"
     )

@@ -121,8 +121,6 @@ def test_spanish_times_and_extended_units_use_locale_policies() -> None:
     assert prepare("9:45 AM", language="es_MX", use_spacy=False).spoken_text == (
         "nueve y cuarenta y cinco de la mañana"
     )
-    assert prepare("14:30", language="es_MX", use_spacy=False).spoken_text == (
-        "catorce y treinta"
-    )
+    assert prepare("14:30", language="es_MX", use_spacy=False).spoken_text == ("catorce y treinta")
     for source in ("60 mph", "100 kPa", "1 atm", "64 GB", "6 L/100km", "10 m³/s"):
         assert prepare(source, language="es_MX", use_spacy=False).spoken_text != source
