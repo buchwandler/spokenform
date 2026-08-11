@@ -99,7 +99,7 @@
   {
     "name": "time remains caller managed",
     "input": "Nos vemos a las 18:20.",
-    "expected": "Nos vemos a las 18:20."
+    "expected": "Nos vemos a las dieciocho y veinte."
   },
   {
     "name": "compact migration scenario",

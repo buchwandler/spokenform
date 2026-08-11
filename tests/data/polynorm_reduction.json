@@ -1,0 +1,37 @@
+[
+  {
+    "id": "es-MX:reduction-decimal-quantity",
+    "locale": "es-MX",
+    "category": "Unit",
+    "source": "5.5 kg",
+    "notes": "Dot decimal in a Spanish quantity context."
+  },
+  {
+    "id": "it-IT:reduction-time",
+    "locale": "it-IT",
+    "category": "Time",
+    "source": "14:30",
+    "notes": "Italian colon time."
+  },
+  {
+    "id": "en-US:reduction-isbn",
+    "locale": "en-US",
+    "category": "ISBN",
+    "source": "ISBN 978-3-16-148410-0",
+    "notes": "Category-specific ISBN rendering."
+  },
+  {
+    "id": "de-DE:reduction-formula",
+    "locale": "de-DE",
+    "category": "Chemical Formula",
+    "source": "O₂",
+    "notes": "Single-element subscript formula."
+  },
+  {
+    "id": "fr-FR:reduction-phone",
+    "locale": "fr-FR",
+    "category": "Phone Number",
+    "source": "+33 1 23 45 67 89",
+    "notes": "Locale-specific phone grouping."
+  }
+]

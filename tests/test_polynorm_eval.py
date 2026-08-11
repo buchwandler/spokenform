@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
@@ -36,7 +37,12 @@ def test_evaluation_aggregates_and_continues_after_exception() -> None:
     assert summary["error_count"] == 1
     assert summary["by_locale"]["en-US"]["cases"] == 2
     assert summary["by_category"]["Date"]["error_count"] == 1
+    assert summary["by_locale_category"]["en-US"]["Date"]["error_count"] == 1
+    assert "digits" in summary["residual_symbols_by_category"]["Cardinal"]
     assert [failure["id"] for failure in failures] == ["en-US:2", "de-DE:1"]
+    assert failures[1]["changed_stages"]
+    assert "source_rules" in failures[1]
+    assert failures[1]["structured_claimed"] is False
 
 
 def test_evaluate_and_write_separates_metrics_from_text_reports(tmp_path) -> None:
@@ -49,3 +55,17 @@ def test_evaluate_and_write_separates_metrics_from_text_reports(tmp_path) -> Non
     assert "original_text" not in json.dumps(summary_json)
     assert (output_dir / "failures.jsonl").read_text(encoding="utf-8") == ""
     assert "PolyNorm failures" in (output_dir / "failures.md").read_text(encoding="utf-8")
+
+
+def test_reduction_fixture_covers_multiple_failure_families() -> None:
+    fixture = json.loads(
+        (Path(__file__).parent / "data" / "polynorm_reduction.json").read_text(encoding="utf-8")
+    )
+
+    assert {item["category"] for item in fixture} == {
+        "Unit",
+        "Time",
+        "ISBN",
+        "Chemical Formula",
+        "Phone Number",
+    }

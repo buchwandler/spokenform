@@ -1,4 +1,5 @@
 from spokenform import prepare
+from spokenform.dates import DateCandidate
 
 
 def test_german_date_grammar_covers_short_text_hyphenated_and_ranges() -> None:
@@ -36,4 +37,43 @@ def test_romance_locales_cover_short_and_text_month_dates() -> None:
     )
     assert prepare("5 nov 1990", language="it", use_spacy=False).spoken_text == (
         "cinque novembre millenovecentonovanta"
+    )
+
+
+def test_date_candidates_retain_source_shape_and_locale_extensions() -> None:
+    candidate = DateCandidate(
+        day=12,
+        month=10,
+        year=2023,
+        year_digits=4,
+        month_style="numeric",
+        source_order="dmy",
+        separator=".",
+    )
+    assert candidate.month_style == "numeric"
+    assert candidate.source_order == "dmy"
+    assert candidate.separator == "."
+    assert prepare("Oct 12", language="en_US", use_spacy=False).spoken_text == (
+        "October twelfth"
+    )
+    assert prepare("Oct 12, 2023", language="en_US", use_spacy=False).spoken_text == (
+        "October twelfth, two thousand and twenty-three"
+    )
+    assert prepare("12-10-2023", language="es_MX", use_spacy=False).spoken_text == (
+        "doce de octubre de dos mil veintitrés"
+    )
+    assert prepare("12 de octubre de 2023", language="es_MX", use_spacy=False).spoken_text == (
+        "doce de octubre de dos mil veintitrés"
+    )
+    assert prepare("12-10-2023", language="fr", use_spacy=False).spoken_text == (
+        "douze octobre deux mille vingt-trois"
+    )
+    assert prepare("12-10-2023", language="it", use_spacy=False).spoken_text == (
+        "dodici ottobre duemilaventitre"
+    )
+
+
+def test_dotted_short_dates_are_not_auto_protected_as_versions() -> None:
+    assert prepare("12.10.23", language="fr", use_spacy=False).spoken_text == (
+        "douze octobre deux mille vingt-trois"
     )

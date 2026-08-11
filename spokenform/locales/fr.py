@@ -20,6 +20,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
+from ..numeric_lexeme import parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -74,16 +75,30 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     ),
     "volume-cubic-meter": QuantityGrammar("volume-cubic-meter", "mètre cube", "mètres cubes"),
 }
+QUANTITY_GRAMMAR.update(
+    {
+        "data-byte": QuantityGrammar("data-byte", "octet", "octets"),
+        "data-kilobyte": QuantityGrammar("data-kilobyte", "kilooctet", "kilooctets"),
+        "data-megabyte": QuantityGrammar("data-megabyte", "mégaoctet", "mégaoctets"),
+        "data-gigabyte": QuantityGrammar("data-gigaoctet", "gigaoctet", "gigaoctets"),
+        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "mètre cube par seconde", "mètres cubes par seconde"),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "litre aux cent kilomètres", "litres aux cent kilomètres"),
+        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "atmosphère", "atmosphères"),
+        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "kilopascal", "kilopascals"),
+        "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascals"),
+        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "mille par heure", "milles par heure"),
+    }
+)
 
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
 _DATE_DMY = re.compile(
-    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)"
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./-](?P<month>0?[1-9]|1[0-2])[./-](?P<year>\d{4})(?!\d)"
 )
 _DATE_ISO = re.compile(
     r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
 )
 _DATE_DMY_SHORT = re.compile(
-    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2})(?!\d)"
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./-](?P<month>0?[1-9]|1[0-2])[./-](?P<year>\d{2})(?!\d)"
 )
 _DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{2,4}(?!\d)")
 _TIME_COLON = re.compile(r"(?<![\w.])(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
@@ -126,18 +141,10 @@ def _spell(value: int | Decimal, language: str = "fr", *, ordinal: bool = False)
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
-    value = raw.replace("−", "-").replace("\u00a0", " ").replace("\u202f", " ")
-    negative, unsigned = value.startswith("-"), value.lstrip("+-")
-    if unsigned.startswith((".", ",")):
-        integer, fraction = "0", unsigned[1:]
-    elif "," in unsigned:
-        integer, fraction = unsigned.split(",", 1)
-    elif re.search(r"\.\d{1,2}$", unsigned) and unsigned.count(".") == 1:
-        integer, fraction = unsigned.split(".", 1)
-    else:
-        integer, fraction = unsigned, None
-    integer = re.sub(r"[.\s]", "", integer) or "0"
-    return negative, int(integer), fraction
+    lexeme = parse_numeric_lexeme(raw, "fr", context="quantity")
+    if lexeme is None:
+        raise ValueError(f"Cannot parse French number {raw!r}")
+    return lexeme.negative, int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _number_text(raw: str, language: str = "fr") -> str:
@@ -220,6 +227,11 @@ def _currency_text(raw: str, canonical_id: str, language: str = "fr") -> str:
         "currency-euro": ("euro", "euros", "centime", "centimes"),
         "currency-us-dollar": ("dollar", "dollars", "cent", "cents"),
         "currency-pound-sterling": ("livre sterling", "livres sterling", "penny", "pence"),
+        "currency-swiss-franc": ("franc suisse", "francs suisses", "centime", "centimes"),
+        "currency-japanese-yen": ("yen", "yens", None, None),
+        "currency-mexican-peso": ("peso mexicain", "pesos mexicains", "centime", "centimes"),
+        "currency-indian-rupee": ("roupie", "roupies", "païse", "païses"),
+        "currency-south-korean-won": ("won", "wons", None, None),
     }
     singular, plural, minor_singular, minor_plural = major_names.get(
         canonical_id, (canonical_id, canonical_id, "centime", "centimes")
@@ -228,7 +240,7 @@ def _currency_text(raw: str, canonical_id: str, language: str = "fr") -> str:
     result = f"{_spell(integer, language)} {major}"
     if fraction is not None:
         minor = int((fraction + "00")[:2])
-        if minor:
+        if minor and minor_singular is not None and minor_plural is not None:
             minor_name = minor_singular if minor == 1 else minor_plural
             result += f" {_spell(minor, language)} {minor_name}"
     return f"moins {result}" if negative else result

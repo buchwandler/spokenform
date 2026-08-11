@@ -407,13 +407,13 @@ def resolve_replacements(
 def _replacement_priority(replacement: Replacement) -> int:
     """Return the documented semantic precedence for candidate conflicts."""
     rule = replacement.rule or ""
-    if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn"}:
+    if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn", "sequence.exchange-rate"}:
         return 100
     if rule in {"sequence.coordinate", "sequence.formula", "sequence.compound-unit", "sequence.percent", "sequence.currency", "sequence.currency-magnitude"}:
         return 90
     if rule in {"sequence.legal", "sequence.sports", "sequence.address"}:
         return 80
-    if rule.endswith(".date-range"):
+    if rule.endswith(".date-range") or rule.endswith(".time-range"):
         return 75
     if rule.endswith(".date") or rule.endswith(".time"):
         return 70
@@ -421,8 +421,10 @@ def _replacement_priority(replacement: Replacement) -> int:
         return 60
     if ".currency" in rule or ".quantity" in rule or "temperature" in rule:
         return 50
-    if rule in {"sequence.acronym", "sequence.ticker", "sequence.product", "sequence.plate"}:
+    if rule in {"sequence.acronym", "sequence.ticker"}:
         return 40
+    if rule in {"sequence.product", "sequence.plate"}:
+        return 60
     return 0
 
 

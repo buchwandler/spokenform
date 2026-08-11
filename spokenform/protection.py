@@ -52,7 +52,9 @@ def discover_protected_spans(
                 continue
             if kind == "version" and _is_dotted_phone(match.group(0)):
                 continue
-            if kind == "version" and base == "de" and _is_german_number_or_date(match.group(0)):
+            if kind == "version" and base in {"de", "es", "fr", "it"} and _is_locale_date(
+                match.group(0)
+            ):
                 continue
             if any(start < span[1] and span[0] < end for start, end in occupied):
                 continue
@@ -66,6 +68,11 @@ def _is_german_number_or_date(value: str) -> bool:
         re.fullmatch(r"\d{1,3}(?:\.\d{3})+", value)
         or re.fullmatch(r"\d{1,2}\.\d{1,2}\.\d{2,4}", value)
     )
+
+
+def _is_locale_date(value: str) -> bool:
+    """Return whether a dotted sequence has an unambiguous DMY date shape."""
+    return bool(re.fullmatch(r"\d{1,2}[./]\d{1,2}[./](?:\d{2}|\d{4})", value))
 
 
 def _is_dotted_phone(value: str) -> bool:

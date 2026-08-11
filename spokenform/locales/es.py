@@ -20,6 +20,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
+from ..numeric_lexeme import parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -77,13 +78,32 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
         "speed-kilometer-per-hour", "m", "kilómetro por hora", "kilómetros por hora"
     ),
 }
+QUANTITY_GRAMMAR.update(
+    {
+        "data-byte": QuantityGrammar("data-byte", "m", "byte", "bytes"),
+        "data-kilobyte": QuantityGrammar("data-kilobyte", "m", "kilobyte", "kilobytes"),
+        "data-megabyte": QuantityGrammar("data-megabyte", "m", "megabyte", "megabytes"),
+        "data-gigabyte": QuantityGrammar("data-gigabyte", "m", "gigabyte", "gigabytes"),
+        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "m", "metro cúbico por segundo", "metros cúbicos por segundo"),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "m", "litro por cien kilómetros", "litros por cien kilómetros"),
+        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "f", "atmósfera", "atmósferas"),
+        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "m", "kilopascal", "kilopascales"),
+        "pressure-pascal": QuantityGrammar("pressure-pascal", "m", "pascal", "pascales"),
+        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "m", "milla por hora", "millas por hora"),
+    }
+)
 
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)"
 _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
 _DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{2})(?!\d)")
+_DATE_DMY_HYPHEN = re.compile(r"(?<![\w.])(?P<day>\d{1,2})-(?P<month>\d{1,2})-(?P<year>\d{2,4})(?!\d)")
 _DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{4}(?!\d)")
 _TIME_CANDIDATE = re.compile(r"(?<![\w.])\d{1,2}:\d{2}(?!\d)")
+_TIME_COLON = re.compile(
+    r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?:\s*(?P<period>a\.?\s*m\.?|p\.?\s*m\.?))?(?!\w)",
+    re.IGNORECASE,
+)
 _MONTHS = (
     "enero",
     "febrero",
@@ -102,20 +122,21 @@ _TEXT_DATE = re.compile(
     r"(?P<day>\d{1,2})\s+(?P<month>enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene\.?|feb\.?|mar\.?|abr\.?|may\.?|jun\.?|jul\.?|ago\.?|sep\.?|oct\.?|nov\.?|dic\.?)\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
-_ORDINAL_SYMBOL = re.compile(r"(?<![\w.])(?P<number>\d+)(?:\.?[ºª])(?!\w)", re.IGNORECASE)
+_TEXT_DATE_DE = re.compile(
+    r"(?P<day>\d{1,2})\s+de\s+(?P<month>enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)"
+    r"(?:\s+de)?\s*(?P<year>\d{2,4})?",
+    re.IGNORECASE,
+)
+_ORDINAL_SYMBOL = re.compile(
+    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|[oa])(?!\w)", re.IGNORECASE
+)
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
-    value = raw.replace("−", "-").replace("\u00a0", " ").replace("\u202f", " ")
-    negative, unsigned = value.startswith("-"), value.lstrip("+-")
-    if unsigned.startswith(","):
-        integer, fraction = "0", unsigned[1:]
-    elif "," in unsigned:
-        integer, fraction = unsigned.split(",", 1)
-    else:
-        integer, fraction = unsigned, None
-    integer = re.sub(r"[.\s]", "", integer) or "0"
-    return negative, int(integer), fraction
+    lexeme = parse_numeric_lexeme(raw, "es", context="quantity")
+    if lexeme is None:
+        raise ValueError(f"Cannot parse Spanish number {raw!r}")
+    return lexeme.negative, int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _decimal(raw: str) -> Decimal:
@@ -177,6 +198,33 @@ def _date_text(day: int, month: int, year: int, language: str = "es") -> str:
     return f"{_spell(day, language)} de {_MONTHS[month - 1]} de {_spell(year, language)}"
 
 
+def _time_text(hour: int, minute: int, period: str | None, language: str = "es") -> str:
+    """Render Spanish clock times with an explicit locale policy."""
+    if period:
+        normalized = period.casefold().replace(".", "").replace(" ", "")
+        display_hour = hour % 12 or 12
+        suffix = "de la mañana" if normalized == "am" else "de la tarde"
+        parts = [_spell(display_hour, language)]
+        if minute:
+            parts.extend(("y", _spell(minute, language)))
+        return f"{' '.join(parts)} {suffix}"
+    parts = [_spell(hour, language)]
+    if minute:
+        parts.extend(("y", _spell(minute, language)))
+    return " ".join(parts)
+
+
+def _ordinal_text(number: int, suffix: str, language: str = "es") -> str:
+    """Render high-confidence Spanish ordinal markers with local gender."""
+    ordinal = str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
+    suffix = suffix.casefold().replace(".", "")
+    if suffix in {"a", "ª"} and ordinal.endswith("o"):
+        return f"{ordinal[:-1]}a"
+    if suffix in {"er"} and ordinal.endswith(("ero", "ercero")):
+        return ordinal[:-1]
+    return str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
+
+
 def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
 
@@ -212,7 +260,15 @@ def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
         "currency-euro": ("euro", "euros", "céntimo", "céntimos"),
         "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
         "currency-pound-sterling": ("libra esterlina", "libras esterlinas", "penique", "peniques"),
+        "currency-mexican-peso": ("peso mexicano", "pesos mexicanos", "centavo", "centavos"),
+        "currency-swiss-franc": ("franco suizo", "francos suizos", "céntimo", "céntimos"),
+        "currency-japanese-yen": ("yen", "yenes", None, None),
+        "currency-indian-rupee": ("rupia", "rupias", "paisa", "paise"),
+        "currency-south-korean-won": ("won", "wones", None, None),
+        "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
     }
+    if canonical_id == "currency-us-dollar" and language.casefold().replace("-", "_") == "es_mx":
+        names[canonical_id] = ("dólar estadounidense", "dólares estadounidenses", "centavo", "centavos")
     singular, plural, minor_singular, minor_plural = names.get(
         canonical_id, (canonical_id, canonical_id, "centavo", "centavos")
     )
@@ -222,7 +278,7 @@ def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
     number = _number_text(major_raw, gender=gender, apocopate=True, language=language)
     if fraction is not None:
         minor_value = int(fraction)
-        if minor_value:
+        if minor_value and minor_singular is not None and minor_plural is not None:
             minor = minor_singular if minor_value == 1 else minor_plural
             minor_number = _number_text(
                 str(minor_value), gender="m", apocopate=True, language=language
@@ -253,14 +309,14 @@ def iter_replacements(
         if value is not None and not _overlaps(start, end, protected):
             candidates.append(Replacement(start, end, value, "structured", "es", rule))
 
-    for pattern in (_DATE_DMY_SHORT,):
+    for pattern in (_DATE_DMY_SHORT, _DATE_DMY_HYPHEN):
         for match in pattern.finditer(text):
             year, _ = expand_year(match["year"])
             day, month = int(match["day"]), int(match["month"])
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "es.date")
     month_aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
-    for match in _TEXT_DATE.finditer(text):
+    for match in (*_TEXT_DATE_DE.finditer(text), *_TEXT_DATE.finditer(text)):
         month_key = match["month"].lower().rstrip(".")
         text_month: int | None = month_aliases.get(month_key[:3])
         if text_month is None:
@@ -281,8 +337,16 @@ def iter_replacements(
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "es.date")
 
+    for match in _TIME_COLON.finditer(text):
+        add(
+            match.start(),
+            match.end(),
+            _time_text(int(match["hour"]), int(match["minute"]), match["period"], language),
+            "es.time",
+        )
+
     for match in _ORDINAL_SYMBOL.finditer(text):
-        value = str(num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal"))
+        value = _ordinal_text(int(match["number"]), match["suffix"], language)
         add(match.start(), match.end(), value, "es.ordinal")
 
     for match in iter_unit_matches(

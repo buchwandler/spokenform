@@ -164,7 +164,7 @@
   {
     "id": "abbreviation-main-street",
     "source": "123 Main St.",
-    "spoken": "123 Main Street",
+    "spoken": "one two three Main Street",
     "expand_numbers": false
   },
   {
@@ -230,7 +230,7 @@
     "spoken": "one hundred thousand"
   },
   { "id": "reserved-year", "source": "1984", "spoken": "1984" },
-  { "id": "reserved-ordinal", "source": "1st", "spoken": "1st" },
+  { "id": "reserved-ordinal", "source": "1st", "spoken": "first" },
   { "id": "reserved-roman", "source": "II", "spoken": "II" },
   { "id": "reserved-version", "source": "1.02.3", "spoken": "1.02.3" },
   {

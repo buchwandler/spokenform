@@ -39,13 +39,13 @@ def _real_english_g2p() -> EnglishG2P:
 def test_real_english_downstream_contract() -> None:
     source = (
         "Visit St. Patrick at 37 C. Pay $12.50 for 10 in. World War II began in 1984, "
-        "and 1st edition uses 1.02.3."
+        "and first edition uses 1.02.3."
     )
     prepared = prepare_for_kokorog2p(source, "en")
     assert prepared.spoken_text == (
         "Visit Saint Patrick at thirty seven degrees Celsius Pay "
         "twelve dollars and fifty cents for ten inches World War II began in 1984, "
-        "and 1st edition uses 1.02.3."
+        "and first edition uses 1.02.3."
     )
     assert [
         (item.source, item.replacement, item.kind, item.rule)
@@ -68,7 +68,7 @@ def test_real_english_downstream_contract() -> None:
     )
     assert any(token.text == "1984" for token in tokens)
     assert any(token.text == "II" for token in tokens)
-    assert any(token.text == "1st" for token in tokens)
+    assert any(token.text == "first" for token in tokens)
     assert any(token.text == "1.02.3" for token in tokens)
     assert not prepared.warnings
 

@@ -67,6 +67,13 @@ def resolve_num2words_language(language: str) -> str:
 
 def resolve_abbr2words_language(language: str) -> str:
     """Select an exact abbr2words language or its supported base fallback."""
+    requested = normalize_language(language)
+    # Regional abbr2words tables can expose the base inventory under a
+    # variant name without providing a distinct abbreviation contract.  The
+    # Mexican Spanish table is the reviewed exception: its currency symbols
+    # have a different canonical identity and must remain locale-specific.
+    if requested != "es_MX" and "_" in requested:
+        return base_language(requested)
     supported = {normalize_language(code) for code in abbr2words_supported_languages()}
     usable: set[str] = set()
     for code in supported:
@@ -76,7 +83,7 @@ def resolve_abbr2words_language(language: str) -> str:
             continue
         else:
             usable.add(code)
-    return _resolve_dependency_language(language, usable)
+    return _resolve_dependency_language(requested, usable)
 
 
 __all__ = [

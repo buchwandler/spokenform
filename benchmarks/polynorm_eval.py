@@ -203,6 +203,15 @@ def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _residual_symbol_counts(results: Iterable[dict[str, Any]]) -> dict[str, int]:
+    """Aggregate source-like symbols left in generated speech."""
+    totals: defaultdict[str, int] = defaultdict(int)
+    for row in results:
+        for symbol, count in row.get("residual_symbols", {}).items():
+            totals[symbol] += int(count)
+    return dict(sorted(totals.items()))
+
+
 def evaluate_cases(
     cases: Iterable[PolyNormCase],
     *,
@@ -219,10 +228,18 @@ def evaluate_cases(
         error: str | None = None
         actual = ""
         warnings: list[str] = []
+        changed_stages: tuple[str, ...] = ()
+        source_rules: tuple[str, ...] = ()
+        structured_claimed = False
         try:
             result = prepare_fn(case.original_text, language=language, use_spacy=False)
             actual = result.spoken_text
             warnings = list(result.warnings)
+            changed_stages = tuple(stage.name for stage in result.stages if stage.changed)
+            source_rules = tuple(
+                sorted({edit.rule for edit in result.mapped_edits if edit.rule})
+            )
+            structured_claimed = any(edit.stage == "structured" for edit in result.mapped_edits)
         except Exception as exc:  # benchmark discovery must continue per case
             error = f"{type(exc).__name__}: {exc}"
         literal_exact = not error and literal_key(actual) == literal_key(case.normalized_text)
@@ -245,6 +262,9 @@ def evaluate_cases(
             "unchanged": actual == case.original_text if not error else False,
             "error": error,
             "residual_symbols": residual_symbols(actual),
+            "changed_stages": changed_stages,
+            "source_rules": source_rules,
+            "structured_claimed": structured_claimed,
         }
         rows.append(row)
         if error or not literal_exact or not speech_exact:
@@ -261,10 +281,14 @@ def evaluate_cases(
     grouped_locale: dict[str, list[dict[str, Any]]] = defaultdict(list)
     grouped_category: dict[str, list[dict[str, Any]]] = defaultdict(list)
     grouped_ownership: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    grouped_locale_category: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     for row in rows:
         grouped_locale[row["polynorm_locale"]].append(row)
         grouped_category[row["canonical_category"]].append(row)
         grouped_ownership[row["ownership"]].append(row)
+        grouped_locale_category[row["polynorm_locale"]][row["canonical_category"]].append(row)
     reviewed_rows = [row for row in rows if row["quarantine"] is None]
     summary = {
         **_metric_counts(rows),
@@ -277,6 +301,18 @@ def evaluate_cases(
         },
         "by_ownership": {
             key: _metric_counts(value) for key, value in sorted(grouped_ownership.items())
+        },
+        "by_locale_category": {
+            locale: {
+                category: _metric_counts(category_rows)
+                for category, category_rows in sorted(categories.items())
+            }
+            for locale, categories in sorted(grouped_locale_category.items())
+        },
+        "residual_symbols": _residual_symbol_counts(rows),
+        "residual_symbols_by_category": {
+            category: _residual_symbol_counts(category_rows)
+            for category, category_rows in sorted(grouped_category.items())
         },
         "reviewed": _metric_counts(reviewed_rows),
         "quarantine_count": len(rows) - len(reviewed_rows),

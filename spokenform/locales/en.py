@@ -20,6 +20,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
+from ..numeric_lexeme import parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -93,6 +94,26 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "customary-teaspoon": QuantityGrammar("customary-teaspoon", "teaspoon", "teaspoons"),
     "customary-tablespoon": QuantityGrammar("customary-tablespoon", "tablespoon", "tablespoons"),
 }
+QUANTITY_GRAMMAR.update(
+    {
+        "data-byte": QuantityGrammar("data-byte", "byte", "bytes"),
+        "data-kilobyte": QuantityGrammar("data-kilobyte", "kilobyte", "kilobytes"),
+        "data-megabyte": QuantityGrammar("data-megabyte", "megabyte", "megabytes"),
+        "data-gigabyte": QuantityGrammar("data-gigabyte", "gigabyte", "gigabytes"),
+        "flow-cubic-meter-per-second": QuantityGrammar(
+            "flow-cubic-meter-per-second", "cubic meter per second", "cubic meters per second"
+        ),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar(
+            "fuel-consumption-liter-per-100-kilometer",
+            "liter per 100 kilometers",
+            "liters per 100 kilometers",
+        ),
+        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "atmosphere", "atmospheres"),
+        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "kilopascal", "kilopascals"),
+        "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascals"),
+        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "mile per hour", "miles per hour"),
+    }
+)
 
 _DATE_DMY = re.compile(
     r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{4})(?!\d)"
@@ -104,6 +125,7 @@ _DATE_MDY = re.compile(
     r"(?<![\w.])(?P<month>0?[1-9]|1[0-2])[/.-](?P<day>0?[1-9]|[12]\d|3[01])[/.-](?P<year>\d{2,4})(?!\d)"
 )
 _TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
+_ORDINAL_SUFFIX = re.compile(r"(?<!\w)(?P<number>\d+)(?P<suffix>st|nd|rd|th)\b", re.IGNORECASE)
 _PLURAL_TENS = re.compile(r"(?<!\w)(?P<value>[2-9]0)(?P<suffix>s)(?!\w)", re.IGNORECASE)
 _VERSION_DECIMAL = re.compile(
     r"(?<![\w.])(?P<integer>\d+)\.0(?!\w|\.\d)",
@@ -177,12 +199,12 @@ _MONTHS = (
 )
 _TEXT_DATE = re.compile(
     r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
-    r"(?P<day>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})?",
+    r"(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
 _TEXT_DATE_RANGE = re.compile(
     r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
-    r"(?P<start>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s*[-–]\s*(?P<end>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})",
+    r"(?P<start>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?\s*[-–]\s*(?P<end>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})",
     re.IGNORECASE,
 )
 
@@ -198,22 +220,17 @@ def _spell(value: int, language: str = "en", *, ordinal: bool = False) -> str:
     return result.replace(",", "").replace("-", " ")
 
 
-def _parts(raw: str) -> tuple[bool, bool, int, str | None]:
-    value = raw.replace("−", "-").replace("\u00a0", " ").replace("\u202f", " ").strip()
-    negative = value.startswith("-")
-    positive = value.startswith("+")
-    unsigned = value.lstrip("+-").replace(" ", "")
-    if "." in unsigned:
-        integer, fraction = unsigned.split(".", 1)
-    else:
-        integer, fraction = unsigned.replace(",", ""), None
-    if fraction is not None:
-        integer = integer.replace(",", "")
-    return negative, positive, int(integer or "0"), fraction
+def _parts(
+    raw: str, language: str = "en", *, context: str = "plain"
+) -> tuple[bool, bool, int, str | None]:
+    lexeme = parse_numeric_lexeme(raw, language, context=context)
+    if lexeme is None:
+        raise ValueError(f"Cannot parse English number {raw!r}")
+    return lexeme.negative, raw.strip().startswith("+"), int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _number_text(raw: str, language: str = "en") -> str:
-    negative, positive, integer, fraction = _parts(raw)
+    negative, positive, integer, fraction = _parts(raw, language, context="quantity")
     if fraction is None:
         result = _spell(integer, language)
     else:
@@ -229,7 +246,7 @@ def _number_text(raw: str, language: str = "en") -> str:
 
 def _decimal(raw: str) -> Decimal:
     try:
-        negative, _, integer, fraction = _parts(raw)
+        negative, _, integer, fraction = _parts(raw, context="quantity")
         value = f"{'-' if negative else ''}{integer}"
         if fraction is not None:
             value += f".{fraction}"
@@ -251,6 +268,14 @@ def _date_text(day: int, month: int, year: int, language: str = "en") -> str:
     day_text = str(num2words(day, lang=dependency_language, to="ordinal"))
     year_text = str(num2words(year, lang=dependency_language))
     return f"{_MONTHS[month - 1]} {day_text}, {year_text}"
+
+
+def _valid_ordinal_suffix(number: int, suffix: str) -> bool:
+    """Validate English ordinal suffixes before rendering the ordinal."""
+    suffix = suffix.casefold()
+    if 10 < number % 100 < 14:
+        return suffix == "th"
+    return suffix == {1: "st", 2: "nd", 3: "rd"}.get(number % 10, "th")
 
 
 def _terminal_dot(text: str, end: int) -> bool:
@@ -278,12 +303,17 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
         "currency-us-dollar": ("dollar", "dollars", "cent", "cents"),
         "currency-pound-sterling": ("pound", "pounds", "penny", "pence"),
         "currency-euro": ("euro", "euros", "cent", "cents"),
+        "currency-japanese-yen": ("yen", "yen", None, None),
+        "currency-swiss-franc": ("Swiss franc", "Swiss francs", "centime", "centimes"),
+        "currency-indian-rupee": ("rupee", "rupees", "paise", "paise"),
+        "currency-south-korean-won": ("won", "won", None, None),
+        "currency-mexican-peso": ("Mexican peso", "Mexican pesos", "centavo", "centavos"),
     }
     labels = names.get(canonical_id)
     if labels is None:
         return None
     try:
-        negative, positive, integer, fraction = _parts(raw)
+        negative, positive, integer, fraction = _parts(raw, context="currency")
     except ValueError:
         return None
     if fraction is not None and len(fraction) > 2:
@@ -297,7 +327,7 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
     major_label = major_singular if integer == 1 else major_plural
     major = _number_text(("-" if negative else "+" if positive else "") + str(integer))
     result = f"{major} {major_label}"
-    if minor:
+    if minor and minor_singular is not None and minor_plural is not None:
         minor_label = minor_singular if minor == 1 else minor_plural
         result += f" and {_spell(minor)} {minor_label}"
     return result
@@ -410,6 +440,16 @@ def iter_replacements(
                 value = f"{_MONTHS[month_index - 1]} {_spell(int(match['day']), language, ordinal=True)}"
             add(match.start(), match.end(), value, "en.date")
 
+    for match in _ORDINAL_SUFFIX.finditer(text):
+        number = int(match["number"])
+        if _valid_ordinal_suffix(number, match["suffix"]):
+            add(
+                match.start(),
+                match.end(),
+                _spell(number, language, ordinal=True),
+                "en.ordinal",
+            )
+
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
@@ -422,7 +462,10 @@ def iter_replacements(
         if hour > 23 or minute > 59:
             continue
         hour_text = _spell(hour, language)
-        if minute == 0:
+        following = text[match.end() :]
+        if minute == 0 and re.match(r"\s+noon\b", following, re.IGNORECASE):
+            value = hour_text
+        elif minute == 0:
             value = f"{hour_text} o'clock"
         elif minute < 10:
             value = f"{hour_text} oh {_spell(minute, language)}"

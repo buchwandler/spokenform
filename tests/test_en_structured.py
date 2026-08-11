@@ -16,6 +16,11 @@ _CURRENCY_IDS = {
     "currency-euro",
     "currency-us-dollar",
     "currency-pound-sterling",
+    "currency-japanese-yen",
+    "currency-swiss-franc",
+    "currency-indian-rupee",
+    "currency-south-korean-won",
+    "currency-mexican-peso",
 }
 
 
@@ -295,7 +300,7 @@ def test_temperature_aliases_are_atomic_source_aligned_replacements(
     ("source", "spoken"),
     [
         ("Visit St.", "Visit Saint"),
-        ("123 Main St.", "123 Main Street"),
+        ("123 Main St.", "one two three Main Street"),
         ("St. Patrick", "Saint Patrick"),
         ("They wandered around in.", "They wandered around in."),
         ("10 in.", "ten inches."),
@@ -350,7 +355,7 @@ def test_idempotence_and_plain_number_reservations() -> None:
     source = "42 -5 3.14 .02 30,000 1984 1st II 1.02.3"
     result = prepare(source, language="en", use_spacy=False)
     assert result.spoken_text == (
-        "forty two minus five three point one four point zero two thirty thousand 1984 1st II 1.02.3"
+        "forty two minus five three point one four point zero two thirty thousand 1984 first II 1.02.3"
     )
     assert (
         prepare(result.spoken_text, language="en", use_spacy=False).spoken_text

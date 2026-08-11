@@ -4,18 +4,21 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass
 from fractions import Fraction
+from typing import Literal
 
 from num2words import num2words
 
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
-from ..sequences import render_letters, render_sequence
+from ..numeric_lexeme import parse_numeric_lexeme
+from ..sequences import render_letters, render_sequence, vocabulary
 
 _FRACTION_CHARS = "½⅓⅔¼¾⅛⅜⅝⅞"
 _FRACTION_RE = re.compile(rf"(?<!\w)(?P<whole>\d+)?(?P<fraction>[{_FRACTION_CHARS}])(?!\w)")
 _COORDINATE_RE = re.compile(
-    r"(?<!\w)(?P<value>[+-]?\d+(?:[.,]\d+)?)\s*°(?:\s*(?P<direction>[NSEW])\b)?(?!\s*[CF]\b)",
+    r"(?<!\w)(?P<value>[+-]?\d+(?:[.,]\d+)?)\s*°(?:\s*(?P<direction>[NSEWO])\b)?(?!\s*[CF]\b)",
     re.IGNORECASE,
 )
 _PERCENT_RE = re.compile(
@@ -30,6 +33,23 @@ _CURRENCY_SYMBOL_RE = re.compile(
 )
 _CURRENCY_MAGNITUDE_RE = re.compile(
     r"(?<!\w)(?P<symbol>[€$£])\s*(?P<number>[+\-−]?\d+(?:[.,]\d+)?)\s+(?P<magnitude>thousand|million|billion|tausend|million(?:en)?|milliard(?:en)?|mil|millón(?:es)?|milli(?:one|ardi)?)(?!\w)",
+    re.IGNORECASE,
+)
+_EXCHANGE_EQUAL_RE = re.compile(
+    r"(?<!\w)(?P<left_number>[+\-−]?(?:\d+(?:[.,]\d+)?))\s*"
+    r"(?P<left_currency>[A-Z]{3}|[€$£])\s*=\s*"
+    r"(?P<right_currency>[A-Z]{3}|[€$£])?\s*(?P<right_number>[+\-−]?(?:\d+(?:[.,]\d+)?))(?!\w)",
+    re.IGNORECASE,
+)
+_EXCHANGE_TO_RE = re.compile(
+    r"(?<!\w)(?P<number>[+\-−]?(?:\d+(?:[.,]\d+)?))\s*"
+    r"(?P<currency>[A-Z]{3}|[€$£])\s+(?:to|für|a|vers|per)\s+"
+    r"(?P<target>[A-Z]{3}|[€$£])(?!\w)",
+    re.IGNORECASE,
+)
+_EXCHANGE_SLASH_RE = re.compile(
+    r"(?<!\w)(?P<number>[+\-−]?(?:\d+(?:[.,]\d+)?))\s*"
+    r"(?P<currency>[A-Z]{3})\s*/\s*(?P<target>[A-Z]{3})(?!\w)",
     re.IGNORECASE,
 )
 _ISBN_RE = re.compile(
@@ -54,38 +74,66 @@ _PHONE_RE = re.compile(
     r"(?<![\w,.])(?P<value>\+?[0-9][0-9 ()/.\-]{5,}[0-9])(?!\w)"
 )
 _EMERGENCY_RE = re.compile(
-    r"\b(?:call|dial|emergency|notruf|emergencia|urgence|emergenza)\s+(?P<value>110|112|911|999)\b",
+    r"\b(?:call|dial|emergency|notruf|emergencia|número\s+de\s+emergencia|urgence|numéro\s+d['’]urgence|emergenza|numero\s+di\s+emergenza)\s+(?P<value>110|112|911|999)\b",
     re.IGNORECASE,
 )
 _VERSION_CONTEXT_RE = re.compile(
     r"(?P<label>\b(?:version|release|ver\.?|build)\s*[=:]?\s*)(?P<value>v?\d+(?:\.\d+){2,}(?:[a-z]+\d*)?)",
     re.IGNORECASE,
 )
-_HASHTAG_RE = re.compile(r"(?<!\w)#(?P<value>[\wÀ-ž]+)", re.UNICODE)
-_MENTION_RE = re.compile(r"(?<!\w)@(?P<value>[\wÀ-ž]+)", re.UNICODE)
+_HASHTAG_RE = re.compile(r"(?<!\w)#(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?)", re.UNICODE)
+_MENTION_RE = re.compile(r"(?<!\w)@(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?)", re.UNICODE)
 _FORMULA_RE = re.compile(
-    r"(?<!\w)(?P<value>(?:[A-Z][a-z]?(?:[0-9₀-₉]+)?|\([A-Z][a-z]?(?:[0-9₀-₉]+)?\))+)(?!\w)"
+    r"(?<!\w)(?P<value>(?:(?:[A-Z][a-z]?)+|\((?:[A-Z][a-z]?)+\)[0-9₀-₉]+|[A-Z][a-z]?[0-9₀-₉]+)+)(?!\w)"
 )
 _ACRONYM_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{2,8})(?!\w)")
 _TICKER_RE = re.compile(r"(?<!\w)\$(?P<value>[A-Z]{1,5})(?!\w)")
 _PRODUCT_RE = re.compile(
-    r"(?P<label>SN|S/N|Serial|SKU|Model|VIN|IMEI|ICCID|Part(?:\s+number)?|Product(?:\s+code)?)\s*(?:[:#]\s*|\s+)(?P<value>[A-Za-z0-9][A-Za-z0-9-]{2,})",
+    r"(?P<label>SN|S/N|Serial(?:\s+number)?|SKU|Model|Modelo|VIN|IMEI|ICCID|Part(?:\s+number)?|Product(?:\s+code)?)\s*(?:[:#]\s*|\s+)(?P<value>[A-Za-z0-9][A-Za-z0-9-]{2,})",
     re.IGNORECASE,
 )
 _LEGAL_RE = re.compile(
-    r"(?<!\w)(?P<value>(?:§|Art\.?|Artikel)\s*\d+(?:\s+[IVXLCDM]+)?(?:\s+\d+)?\s+[A-ZÄÖÜ]{2,})(?!\w)",
+    r"(?<!\w)(?P<value>(?:§|Art\.?|Artikel)\s*\d+(?:\s+(?:Abs\.?\s*\d+|[IVXLCDM]+))?(?:\s+\d+)?\s+[A-ZÄÖÜ]{2,})(?!\w)",
     re.IGNORECASE,
 )
+_LEGAL_PREFIX_RE = re.compile(
+    r"(?<!\w)(?P<value>[A-ZÄÖÜ]{2,}\s+§\s*\d+(?:\s+Abs\.?\s*\d+)?)(?!\w)", re.IGNORECASE
+)
+_LEGAL_US_RE = re.compile(
+    r"(?<!\w)(?P<value>\d+\s+U\.S\.C\.\s+§\s*\d+)(?!\w)", re.IGNORECASE
+)
+_LEGAL_ES_RE = re.compile(
+    r"(?<!\w)(?P<value>ley\s+\d{1,3}(?:\.\d{3})?)(?!\w)", re.IGNORECASE
+)
+_LEGAL_IT_RE = re.compile(
+    r"(?<!\w)(?P<value>legge\s+n\.?\s*\d+(?:/\d{4})?)(?!\w)", re.IGNORECASE
+)
+_LEGAL_FR_RE = re.compile(
+    r"(?<!\w)(?P<value>(?:décret|decret)\s+n[°o]?\s*\d{4}-\d+)(?!\w)", re.IGNORECASE
+)
 _SPORTS_RE = re.compile(
-    r"(?P<context>\b(?:score|final|match|football|basketball|handball|volleyball|set|satz)\b[^\d]{0,24})(?P<value>\d{1,2}:\d{1,2})",
+    r"(?P<context>\b(?:score|final|match|game|football|basketball|handball|volleyball|set|satz|marcador|punteggio|ergebnis|résultat|resultado|ganó|gagné|vinto)\b[^\d]{0,32})"
+    r"(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2}|\d{1,2}\s+(?:a|to|à)\s+\d{1,2})",
     re.IGNORECASE,
 )
 _ADDRESS_SUFFIX_RE = re.compile(
     r"(?<!\w)(?P<number>\d{1,4})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÄÖÜ][\wÄÖÜäöüß.-]*(?:\s+(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Blvd\.?))?)(?!\w)",
 )
 _ADDRESS_RE = re.compile(
-    r"(?<!\w)(?P<street>(?:[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ.-]*(?:straße|strasse|platz)|[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ.-]*\s+(?:Street|Road|Avenue|Ave\.?|Rd\.?|Blvd\.?)))\s+"
+    r"(?<!\w)(?P<street>(?:[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ.-]*(?:straße|strasse|platz|gasse|allee|weg|promenade)|[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ.-]*\s+(?:Street|St\.?|Road|Avenue|Ave\.?|Rd\.?|Blvd\.?)))\s+"
     r"(?P<number>\d{1,4})(?P<suffix>[A-Za-z])?(?:\s*[-–]\s*(?P<range>\d{1,4}))?(?:\s*/\s*(?P<slash>\d{1,4}))?(?!\w)",
+    re.IGNORECASE,
+)
+_ADDRESS_REVERSE = re.compile(
+    r"(?<!\w)(?P<number>\d{1,5})(?P<suffix>[A-Za-z])?\s+(?P<street>[A-ZÄÖÜÀ-Ý][\wÄÖÜäöüßÀ-ÿ.-]*)\s+"
+    r"(?P<kind>Street|St\.?|Road|Rd\.?|Avenue|Ave\.?|Boulevard|Blvd\.?)(?!\w)",
+    re.IGNORECASE,
+)
+_LEADING_ADDRESS_RE = re.compile(
+    r"(?<!\w)(?P<number>\d{1,5})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÀ-Ý][\wÀ-ÿ.-]*(?:\s+[A-ZÀ-Ý][\wÀ-ÿ.-]*){0,3})(?!\w)",
+)
+_ADDRESS_COMPONENT_RE = re.compile(
+    r"(?P<label>Apt\.?|Apartment|Suite|Piso|Departamento|Interior|Local|Unité|Appartement)\s*#?\s*(?P<number>\d+[A-Za-z]?)",
     re.IGNORECASE,
 )
 _POSTBOX_RE = re.compile(r"\b(?P<label>Postfach|P\.O\.\s*Box)\s+(?P<number>\d{1,6})\b", re.IGNORECASE)
@@ -110,6 +158,7 @@ _FRACTION_WORDS = {
     "de": {Fraction(1, 2): "einhalb", Fraction(1, 3): "ein Drittel", Fraction(2, 3): "zwei Drittel", Fraction(1, 4): "ein Viertel", Fraction(3, 4): "drei Viertel", Fraction(1, 8): "ein Achtel", Fraction(3, 8): "drei Achtel", Fraction(5, 8): "fünf Achtel", Fraction(7, 8): "sieben Achtel"},
     "es": {Fraction(1, 2): "un medio", Fraction(1, 3): "un tercio", Fraction(2, 3): "dos tercios", Fraction(1, 4): "un cuarto", Fraction(3, 4): "tres cuartos", Fraction(1, 8): "un octavo", Fraction(3, 8): "tres octavos", Fraction(5, 8): "cinco octavos", Fraction(7, 8): "siete octavos"},
     "fr": {Fraction(1, 2): "un demi", Fraction(1, 3): "un tiers", Fraction(2, 3): "deux tiers", Fraction(1, 4): "un quart", Fraction(3, 4): "trois quarts", Fraction(1, 8): "un huitième", Fraction(3, 8): "trois huitièmes", Fraction(5, 8): "cinq huitièmes", Fraction(7, 8): "sept huitièmes"},
+    "it": {Fraction(1, 2): "un mezzo", Fraction(1, 3): "un terzo", Fraction(2, 3): "due terzi", Fraction(1, 4): "un quarto", Fraction(3, 4): "tre quarti", Fraction(1, 8): "un ottavo", Fraction(3, 8): "tre ottavi", Fraction(5, 8): "cinque ottavi", Fraction(7, 8): "sette ottavi"},
 }
 _WORD_ACRONYMS = {
     "NASA": "nasa",
@@ -120,6 +169,78 @@ _WORD_ACRONYMS = {
 }
 _ROMAN_ONLY = re.compile(r"^[IVXLCDM]+$")
 _LEXICAL_UPPERCASE = frozenset({"API", "URL", "ISBN", "CHF", "EUR", "USD", "GBP", "HTTP", "HTTPS"})
+_ELEMENT_SYMBOLS = frozenset(
+    "H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og".split()
+)
+
+
+@dataclass(frozen=True, slots=True)
+class AcronymPolicy:
+    """Explicit lexical/initialism/preserve sets for uppercase tokens."""
+
+    lexical_words: frozenset[str]
+    initialisms: frozenset[str]
+    preserve: frozenset[str]
+
+
+_ACRONYM_POLICY = AcronymPolicy(
+    lexical_words=frozenset(_WORD_ACRONYMS),
+    initialisms=frozenset({"BND", "FBI", "CIA", "U N", "U S C"}),
+    preserve=_LEXICAL_UPPERCASE,
+)
+
+
+@dataclass(frozen=True, slots=True)
+class IsbnRenderPolicy:
+    """Locale policy for rendering validated ISBN groups."""
+
+    group_mode: Literal["digitwise", "cardinal"]
+    separator_word: str | None = None
+    speak_group_boundaries: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class PhoneCandidate:
+    """Parsed phone groups retained until locale rendering."""
+
+    country_prefix: str | None
+    groups: tuple[str, ...]
+    punctuation: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CodeToken:
+    """One semantic token in an alphanumeric code."""
+
+    kind: Literal["letters", "digits", "separator"]
+    text: str
+
+
+@dataclass(frozen=True, slots=True)
+class CodeRenderPolicy:
+    """Category-specific rendering policy for typed codes."""
+
+    letters: Literal["symbol", "letter-name", "lexical"] = "letter-name"
+    digits: Literal["digitwise", "cardinal", "year"] = "digitwise"
+    separators: Literal["omit", "speak", "pause"] = "omit"
+
+
+_CODE_POLICIES = {
+    "serial": CodeRenderPolicy("letter-name", "digitwise", "omit"),
+    "vin": CodeRenderPolicy("letter-name", "digitwise", "omit"),
+    "license": CodeRenderPolicy("letter-name", "digitwise", "omit"),
+    "model": CodeRenderPolicy("letter-name", "cardinal", "omit"),
+    "product": CodeRenderPolicy("letter-name", "digitwise", "omit"),
+}
+
+
+_ISBN_POLICIES = {
+    "en": IsbnRenderPolicy("digitwise"),
+    "de": IsbnRenderPolicy("digitwise"),
+    "es": IsbnRenderPolicy("digitwise", speak_group_boundaries=True),
+    "it": IsbnRenderPolicy("digitwise", speak_group_boundaries=True),
+    "fr": IsbnRenderPolicy("cardinal"),
+}
 
 
 def _cardinal(value: int, language: str) -> str:
@@ -155,10 +276,11 @@ def _coordinate_is_valid(value: str, direction: str | None) -> bool:
 
 
 def _coordinate_text(value: str, direction: str | None, language: str) -> str:
-    normalized = value.replace(",", ".")
-    unsigned = normalized.lstrip("+-")
-    integer, _, fraction = unsigned.partition(".")
-    sign = "minus " if normalized.startswith("-") else "plus " if normalized.startswith("+") else ""
+    lexeme = parse_numeric_lexeme(value, language, context="coordinate")
+    if lexeme is None:
+        return value
+    integer, fraction = lexeme.integer_digits, lexeme.fraction_digits
+    sign = "minus " if lexeme.negative else "plus " if value.startswith("+") else ""
     base = base_language(language)
     decimal_word = {
         "cs": "celá",
@@ -177,6 +299,7 @@ def _coordinate_text(value: str, direction: str | None, language: str) -> str:
         "pt": {"N": "norte", "S": "sul", "E": "leste", "W": "oeste"},
         "cs": {"N": "sever", "S": "jih", "E": "východ", "W": "západ"},
     }.get(base_language(language), {"N": "north", "S": "south", "E": "east", "W": "west"})
+    direction_words.setdefault("O", "oeste" if base == "es" else "west")
     degree = {
         "cs": "stupňů",
         "de": "Grad",
@@ -194,32 +317,17 @@ def _coordinate_text(value: str, direction: str | None, language: str) -> str:
     return result
 
 
-def _decimal_parts(raw: str, language: str) -> tuple[bool, int, str | None]:
-    normalized = raw.replace("−", "-")
-    negative = normalized.startswith("-")
-    unsigned = normalized.lstrip("+-")
-    base = base_language(language)
-    decimal_separator = "," if base in {"cs", "de", "es", "fr", "it", "pt"} else "."
-    if "," in unsigned and "." in unsigned:
-        separator = "," if unsigned.rfind(",") > unsigned.rfind(".") else "."
-        integer, fraction = unsigned.rsplit(separator, 1)
-        integer = integer.replace(",", "").replace(".", "")
-    elif decimal_separator in unsigned:
-        integer, fraction = unsigned.split(decimal_separator, 1)
-        if len(fraction) > 2 and len(integer) <= 3:
-            integer, fraction = unsigned.replace(decimal_separator, ""), None
-    elif decimal_separator == "," and "." in unsigned:
-        integer, fraction = unsigned.rsplit(".", 1)
-        if len(fraction) > 2:
-            integer, fraction = unsigned.replace(".", ""), None
-    else:
-        integer, fraction = unsigned, None
-    integer = re.sub(r"[.,]", "", integer) or "0"
-    return negative, int(integer), fraction
+def _decimal_parts(
+    raw: str, language: str, *, context: str = "plain"
+) -> tuple[bool, int, str | None]:
+    lexeme = parse_numeric_lexeme(raw, language, context=context)
+    if lexeme is None:
+        raise ValueError(f"Cannot parse numeric lexeme {raw!r}")
+    return lexeme.negative, int(lexeme.integer_digits or "0"), lexeme.fraction_digits
 
 
-def _decimal_text(raw: str, language: str) -> str:
-    negative, integer, fraction = _decimal_parts(raw, language)
+def _decimal_text(raw: str, language: str, *, context: str = "plain") -> str:
+    negative, integer, fraction = _decimal_parts(raw, language, context=context)
     base = base_language(language)
     decimal_word = {
         "cs": "celá", "de": "Komma", "es": "coma", "fr": "virgule",
@@ -236,7 +344,7 @@ def _percent_text(raw: str, language: str) -> str:
         "cs": "procent", "de": "Prozent", "en": "percent", "es": "por ciento",
         "fr": "pour cent", "it": "percento", "pt": "por cento",
     }
-    return f"{_decimal_text(raw, language)} {names.get(base_language(language), 'percent')}"
+    return f"{_decimal_text(raw, language, context='percent')} {names.get(base_language(language), 'percent')}"
 
 
 def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
@@ -247,7 +355,7 @@ def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
         "£": {"de": "Pfund", "en": "pounds", "es": "libras", "fr": "livres", "it": "sterline", "pt": "libras", "cs": "libry"},
     }
     minor_names = {"de": "Cent", "en": "cents", "es": "centavos", "fr": "centimes", "it": "centesimi", "pt": "centavos", "cs": "centů"}
-    negative, integer, fraction = _decimal_parts(raw, language)
+    negative, integer, fraction = _decimal_parts(raw, language, context="currency")
     major = _cardinal(integer, language)
     if negative:
         major = f"minus {major}"
@@ -262,6 +370,25 @@ def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
     return result
 
 
+_CURRENCY_CODE_NAMES = {
+    "EUR": {"en": "euro", "de": "Euro", "es": "euros", "fr": "euros", "it": "euro"},
+    "USD": {"en": "US dollars", "de": "US-Dollar", "es": "dólares estadounidenses", "fr": "dollars américains", "it": "dollari statunitensi"},
+    "GBP": {"en": "pounds", "de": "Pfund", "es": "libras esterlinas", "fr": "livres sterling", "it": "sterline"},
+    "JPY": {"en": "yen", "de": "Yen", "es": "yenes", "fr": "yens", "it": "yen"},
+    "CHF": {"en": "Swiss francs", "de": "Schweizer Franken", "es": "francos suizos", "fr": "francs suisses", "it": "franchi svizzeri"},
+    "INR": {"en": "rupees", "de": "Indische Rupien", "es": "rupias", "fr": "roupies", "it": "rupie"},
+    "KRW": {"en": "won", "de": "Won", "es": "wones", "fr": "wons", "it": "won"},
+    "MXN": {"en": "Mexican pesos", "de": "Mexikanische Pesos", "es": "pesos mexicanos", "fr": "pesos mexicains", "it": "pesos messicani"},
+}
+_CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP"}
+
+
+def _currency_code_text(number: str, code: str, language: str) -> str:
+    canonical = _CURRENCY_SYMBOL_CODES.get(code, code.upper())
+    name = _CURRENCY_CODE_NAMES.get(canonical, {}).get(base_language(language), canonical)
+    return f"{_decimal_text(number, language, context='currency')} {name}"
+
+
 def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
     base = base_language(language)
     labels = {
@@ -269,7 +396,7 @@ def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
         "mol/l": {"en": "moles per liter", "de": "Mol pro Liter", "es": "moles por litro", "fr": "moles par litre", "it": "moli per litro", "pt": "moles por litro", "cs": "molů na litr"},
     }
     label = labels[unit.casefold()].get(base, labels[unit.casefold()]["en"])
-    return f"{_decimal_text(number, language)} {label}" if number else label
+    return f"{_decimal_text(number, language, context='quantity')} {label}" if number else label
 
 
 def _claimed(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
@@ -290,7 +417,19 @@ def _phone_is_plausible(value: str) -> bool:
     return len(digits) >= 7 and (value.startswith("+") or bool(re.search(r"[ ()/.-]", value)))
 
 
-def _marker_text(marker: str, value: str, language: str) -> str:
+def _phone_text(value: str, language: str) -> str:
+    """Render phone groups without speaking ordinary separator punctuation."""
+    groups = tuple(re.findall(r"\d+", value))
+    rendered: list[str] = []
+    for group in groups:
+        if base_language(language) == "fr" and len(group) == 2:
+            rendered.append(_cardinal(int(group), language))
+        else:
+            rendered.append(_digitwise(group, language))
+    return " ".join(rendered)
+
+
+def _marker_text(marker: str, value: str, language: str, *, include_marker: bool = True) -> str:
     marker_words = {
         "#": {
             "cs": "hashtag",
@@ -312,7 +451,8 @@ def _marker_text(marker: str, value: str, language: str) -> str:
         },
     }
     marker_name = marker_words[marker].get(base_language(language), marker)
-    return f"{marker_name} {_render_identifier(value, language)}"
+    rendered = _render_identifier(value, language)
+    return f"{marker_name} {rendered}" if include_marker else rendered
 
 
 def _identifier_tokens(value: str) -> tuple[tuple[str, str], ...]:
@@ -328,8 +468,13 @@ def _identifier_tokens(value: str) -> tuple[tuple[str, str], ...]:
             current.clear()
 
     for index, character in enumerate(value):
-        if character in "_-" or character.isspace():
+        if character in "_-":
             flush()
+            tokens.append(("separator", character))
+            continue
+        if character.isspace():
+            flush()
+            tokens.append(("separator", " "))
             continue
         if current and character.isdigit() != current[-1].isdigit():
             flush()
@@ -360,7 +505,14 @@ def _render_identifier(value: str, language: str) -> str:
     rendered: list[str] = []
     for kind, token in tokens:
         if kind == "digit":
-            rendered.append(_cardinal(int(token), language))
+            if len(token) == 4 and 1900 <= int(token) <= 2100:
+                rendered.append(_cardinal(int(token), language))
+            else:
+                rendered.append(_digitwise(token, language))
+        elif kind == "separator":
+            rendered.append(
+                vocabulary(language).underscore if token == "_" else vocabulary(language).hyphen
+            )
         elif opaque and token.isascii() and token.isupper():
             rendered.append(render_letters(token, language=language))
         else:
@@ -370,7 +522,11 @@ def _render_identifier(value: str, language: str) -> str:
 
 def _formula_is_plausible(value: str) -> bool:
     tokens = re.findall(r"[A-Z][a-z]?", value)
-    return len(tokens) >= 2 and bool(re.search(r"[a-z]", value) or re.search(r"[0-9₀-₉]", value))
+    return all(token in _ELEMENT_SYMBOLS for token in tokens) and (
+        len(tokens) >= 2 or bool(re.search(r"[0-9₀-₉]", value))
+    ) and bool(
+        re.search(r"[a-z]", value) or re.search(r"[0-9₀-₉]", value)
+    )
 
 
 def _isbn_is_valid(value: str) -> bool:
@@ -389,35 +545,112 @@ def _formula_text(value: str, language: str) -> str:
         if token.isdigit() or any(character in "₀₁₂₃₄₅₆₇₈₉" for character in token):
             parts.append(_cardinal(int(token.translate(str.maketrans("₀₁₂₃₄₅₆₇₈₉", "0123456789"))), language))
         elif token in "()":
-            parts.append({"(": "open parenthesis", ")": "close parenthesis"}[token])
+            parts.append(
+                vocabulary(language).open_paren if token == "(" else vocabulary(language).close_paren
+            )
         else:
-            parts.append(render_letters(token, language=language))
+            parts.extend(character.casefold() for character in token)
     return " ".join(parts)
 
 
-def _typed_code_text(value: str, language: str) -> str:
+def _code_tokens(value: str) -> tuple[CodeToken, ...]:
+    return tuple(
+        CodeToken(
+            "digits" if token.isdigit() else "letters" if token.isalpha() else "separator",
+            token,
+        )
+        for token in re.findall(r"[A-Za-z]+|\d+|[^A-Za-z\d]+", value)
+    )
+
+
+def _typed_code_text(value: str, language: str, *, category: str = "product") -> str:
+    policy = _CODE_POLICIES.get(category, _CODE_POLICIES["product"])
     parts: list[str] = []
-    for token in re.findall(r"[A-Za-z]+|\d+|[^A-Za-z\d]+", value):
-        if token.isdigit():
-            parts.append(_digitwise(token, language))
-        elif token.isalpha():
-            parts.append(render_letters(token, language=language))
+    for token in _code_tokens(value):
+        if token.kind == "digits":
+            if policy.digits == "cardinal":
+                parts.append(_cardinal(int(token.text), language))
+            elif policy.digits == "year" and len(token.text) == 4:
+                parts.append(_cardinal(int(token.text), language))
+            else:
+                parts.append(_digitwise(token.text, language))
+        elif token.kind == "letters":
+            if policy.letters == "lexical":
+                parts.append(token.text)
+            else:
+                parts.append(render_letters(token.text, language=language))
+        elif policy.separators == "speak":
+            parts.append(render_sequence(token.text, language=language))
+        elif policy.separators == "pause":
+            parts.append(" ")
+    return " ".join(part for part in parts if part.strip())
+
+
+def _isbn_text(value: str, language: str) -> str:
+    """Render ISBN groups without speaking source hyphens."""
+    policy = _ISBN_POLICIES.get(base_language(language), _ISBN_POLICIES["en"])
+    groups = tuple(group for group in re.split(r"[-\s]+", value.strip()) if group)
+    rendered: list[str] = []
+    for group in groups:
+        if policy.group_mode == "cardinal" and group.isdigit():
+            rendered.append(_cardinal(int(group), language))
         else:
-            parts.append(render_sequence(token, language=language))
-    return " ".join(parts)
+            rendered.append(_digitwise(group, language))
+    separator = policy.separator_word or ""
+    if policy.speak_group_boundaries and separator:
+        return f" {separator} ".join(rendered)
+    return " ".join(rendered)
 
 
 def _acronym_text(value: str, language: str) -> str:
-    return _WORD_ACRONYMS.get(value, render_sequence(value, language=language))
+    if value in _ACRONYM_POLICY.lexical_words:
+        return _WORD_ACRONYMS[value]
+    return render_sequence(value, language=language)
 
 
 def _score_text(value: str, language: str) -> str:
-    left, right = value.split(":")
+    match = re.fullmatch(r"\s*(\d+)\s*(?::|[-–]|a|to|à)\s*(\d+)\s*", value, re.IGNORECASE)
+    if match is None:
+        return value
+    left, right = match.groups()
     connector = {"de": "zu", "es": "a", "fr": "à", "it": "a"}.get(base_language(language), "to")
     return f"{_cardinal(int(left), language)} {connector} {_cardinal(int(right), language)}"
 
 
 def _legal_text(value: str, language: str) -> str:
+    base = base_language(language)
+    german_match = re.fullmatch(
+        r"§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?\s+([A-ZÄÖÜ]{2,})", value, re.IGNORECASE
+    )
+    if german_match:
+        result = f"Paragraph {_cardinal(int(german_match.group(1)), language)}"
+        if german_match.group(2):
+            result += f" Absatz {_cardinal(int(german_match.group(2)), language)}"
+        result += f" {render_sequence(german_match.group(3), language=language)}"
+        return result
+    us_match = re.fullmatch(r"(\d+)\s+U\.S\.C\.\s+§\s*(\d+)", value, re.IGNORECASE)
+    if us_match:
+        left = _cardinal(int(us_match.group(1)), language).replace("-", " ").replace(",", "")
+        right = _cardinal(int(us_match.group(2)), language).replace("-", " ").replace(",", "")
+        return f"{left} U S C section {right}"
+    es_match = re.fullmatch(r"ley\s+(\d{1,3}(?:\.\d{3})?)", value, re.IGNORECASE)
+    if es_match:
+        return f"ley {_cardinal(int(es_match.group(1).replace('.', '')), language)}"
+    it_match = re.fullmatch(r"legge\s+n\.?\s*(\d+)(?:/(\d{4}))?", value, re.IGNORECASE)
+    if it_match:
+        result = f"legge numero {_cardinal(int(it_match.group(1)), language)}"
+        if it_match.group(2):
+            result += f" del {_cardinal(int(it_match.group(2)), language)}"
+        return result
+    fr_match = re.fullmatch(r"(?:décret|decret)\s+n[°o]?\s*(\d{4})-(\d+)", value, re.IGNORECASE)
+    if fr_match:
+        return f"décret numéro {_cardinal(int(fr_match.group(1)), language)} {_cardinal(int(fr_match.group(2)), language)}"
+    prefix_match = re.fullmatch(r"([A-ZÄÖÜ]{2,})\s+§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?", value, re.IGNORECASE)
+    if prefix_match:
+        result = f"{_digitwise(prefix_match.group(1), language)} Paragraf {_cardinal(int(prefix_match.group(2)), language)}"
+        if prefix_match.group(3):
+            result += f" Absatz {_cardinal(int(prefix_match.group(3)), language)}"
+        return result
     match = re.match(
         r"(?:§|Art\.?|Artikel)\s*(\d+)(?:\s+([IVXLCDM]+))?(?:\s+(\d+))?\s+([A-ZÄÖÜ]{2,})$",
         value,
@@ -434,7 +667,7 @@ def _legal_text(value: str, language: str) -> str:
         "it": ("paragrafo", "articolo"),
         "pt": ("parágrafo", "artigo"),
     }
-    heading_pair = headings.get(base_language(language), headings["en"])
+    heading_pair = headings.get(base, headings["en"])
     heading = heading_pair[0] if value.lstrip().startswith("§") else heading_pair[1]
     result = [heading, _cardinal(int(match.group(1)), language)]
     for group in match.groups()[1:3]:
@@ -460,6 +693,20 @@ def _street_address_text(match: re.Match[str], language: str) -> str:
     return f"{match['street']} {value}"
 
 
+def _reverse_address_text(match: re.Match[str], language: str) -> str:
+    number = _digitwise(match["number"], language) if base_language(language) in {"en", "fr"} else _cardinal(int(re.sub(r"[A-Za-z]", "", match["number"])), language)
+    if match["suffix"]:
+        number += f" {render_letters(match['suffix'], language=language)}"
+    labels = {"st": "Street", "street": "Street", "rd": "Road", "road": "Road", "ave": "Avenue", "avenue": "Avenue", "blvd": "Boulevard", "boulevard": "Boulevard"}
+    kind = labels.get(match["kind"].casefold().rstrip("."), match["kind"])
+    return f"{number} {match['street']} {kind}"
+
+
+def _leading_address_text(match: re.Match[str], language: str) -> str:
+    number = _digitwise(match["number"], language)
+    return f"{number} {render_letters(match['suffix'], language=language)} {match['street']}"
+
+
 def _add(candidates: list[Replacement], match: re.Match[str], value: str, language: str, rule: str, protected: tuple[tuple[int, int], ...]) -> None:
     if _claimed(match.start(), match.end(), protected):
         candidates.append(Replacement(match.start(), match.end(), value, "structured", language, rule))
@@ -475,6 +722,43 @@ def iter_sequence_replacements(
     language = normalize_language(language)
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
+    for match in _EXCHANGE_EQUAL_RE.finditer(text):
+        left_code = _CURRENCY_SYMBOL_CODES.get(match["left_currency"], match["left_currency"].upper())
+        right_raw = match["right_currency"] or ""
+        right_code = _CURRENCY_SYMBOL_CODES.get(right_raw, right_raw.upper())
+        _add(
+            candidates,
+            match,
+            f"{_currency_code_text(match['left_number'], left_code, language)} equals "
+            f"{_currency_code_text(match['right_number'], right_code, language)}",
+            language,
+            "sequence.exchange-rate",
+            protected,
+        )
+    for match in _EXCHANGE_TO_RE.finditer(text):
+        source_code = _CURRENCY_SYMBOL_CODES.get(match["currency"], match["currency"].upper())
+        target_code = _CURRENCY_SYMBOL_CODES.get(match["target"], match["target"].upper())
+        _add(
+            candidates,
+            match,
+            f"{_currency_code_text(match['number'], source_code, language)} to "
+            f"{_CURRENCY_CODE_NAMES.get(target_code, {}).get(base_language(language), target_code)}",
+            language,
+            "sequence.exchange-rate",
+            protected,
+        )
+    for match in _EXCHANGE_SLASH_RE.finditer(text):
+        source_code = match["currency"].upper()
+        target_code = match["target"].upper()
+        _add(
+            candidates,
+            match,
+            f"{_currency_code_text(match['number'], source_code, language)} per "
+            f"{_CURRENCY_CODE_NAMES.get(target_code, {}).get(base_language(language), target_code)}",
+            language,
+            "sequence.exchange-rate",
+            protected,
+        )
     for match in _CURRENCY_MAGNITUDE_RE.finditer(text):
         symbol = match["symbol"]
         value = f"{_decimal_text(match['number'], language)} {match['magnitude']}"
@@ -520,6 +804,10 @@ def iter_sequence_replacements(
         _add(candidates, match, _fraction_text(match["whole"], match["fraction"], language), language, "sequence.fraction", protected)
     for match in _COORDINATE_RE.finditer(text):
         direction = match["direction"]
+        if base_language(language) == "it" and direction is None:
+            # In Italian an attached degree marker is an ordinal unless a
+            # directional coordinate makes the semantic reading unambiguous.
+            continue
         if _coordinate_is_valid(match["value"], direction):
             _add(
                 candidates,
@@ -532,7 +820,7 @@ def iter_sequence_replacements(
     for match in _ISBN_RE.finditer(text):
         if _isbn_is_valid(match["value"]):
             label = render_sequence(match["label"], language=language)
-            _add(candidates, match, f"{label} {_typed_code_text(match['value'], language)}", language, "sequence.isbn", protected)
+            _add(candidates, match, f"{label} {_isbn_text(match['value'], language)}", language, "sequence.isbn", protected)
     for match in _UUID_RE.finditer(text):
         _add(candidates, match, _punctuated(match["value"], language), language, "sequence.uuid", protected)
     for match in _IPV4_RE.finditer(text):
@@ -545,7 +833,7 @@ def iter_sequence_replacements(
         _add(candidates, match, _punctuated(match["value"].replace(" ", ""), language), language, "sequence.iban", protected)
     for match in _PHONE_RE.finditer(text):
         if _phone_is_plausible(match["value"]):
-            _add(candidates, match, _punctuated(match["value"], language), language, "sequence.phone", protected)
+            _add(candidates, match, _phone_text(match["value"], language), language, "sequence.phone", protected)
     for match in _EMERGENCY_RE.finditer(text):
         _add(candidates, match, match.group(0).replace(match["value"], _digitwise(match["value"], language)), language, "sequence.emergency", protected)
     for match in _VERSION_CONTEXT_RE.finditer(text):
@@ -555,7 +843,27 @@ def iter_sequence_replacements(
             candidates.append(Replacement(start, end, _punctuated(value, language), "structured", language, "sequence.version"))
     for pattern, marker, rule in ((_HASHTAG_RE, "#", "sequence.hashtag"), (_MENTION_RE, "@", "sequence.mention")):
         for match in pattern.finditer(text):
-            _add(candidates, match, _marker_text(marker, match["value"], language), language, rule, protected)
+            prefix = text[max(0, match.start() - 32) : match.start()]
+            marker_already_named = bool(
+                re.search(
+                    r"(?:hashtag|almohadilla|dièse|hashtag|arroba|arobase|chiocciola|at)\s*$",
+                    prefix,
+                    re.IGNORECASE,
+                )
+            )
+            _add(
+                candidates,
+                match,
+                _marker_text(
+                    marker,
+                    match["value"],
+                    language,
+                    include_marker=not marker_already_named,
+                ),
+                language,
+                rule,
+                protected,
+            )
     for match in _FORMULA_RE.finditer(text):
         if _formula_is_plausible(match["value"]):
             _add(candidates, match, _formula_text(match["value"], language), language, "sequence.formula", protected)
@@ -563,23 +871,45 @@ def iter_sequence_replacements(
         value = f"dollar {render_sequence(match['value'], language=language)}"
         _add(candidates, match, value, language, "sequence.ticker", protected)
     for match in _PRODUCT_RE.finditer(text):
-        label = render_sequence(match["label"].replace("/", ""), language=language)
-        value = _typed_code_text(match["value"], language)
+        raw_label = match["label"].strip()
+        label_key = raw_label.casefold().replace(".", "")
+        label_words = {
+            "sn": "serial number",
+            "s/n": "serial number",
+            "serial": "serial number",
+            "serial number": "serial number",
+            "sku": "SKU",
+            "vin": "VIN",
+            "imei": "IMEI",
+            "iccid": "ICCID",
+            "model": "model",
+            "modelo": "modelo",
+            "part": "part number",
+            "part number": "part number",
+            "product": "product code",
+            "product code": "product code",
+        }
+        label = label_words.get(label_key, raw_label)
+        category = (
+            "vin" if label_key == "vin" else "serial" if label_key in {"sn", "s/n", "serial", "serial number"} else "model" if label_key in {"model", "modelo"} else "product"
+        )
+        value = _typed_code_text(match["value"], language, category=category)
         _add(candidates, match, f"{label} {value}", language, "sequence.product", protected)
     for match in _CODE_RE.finditer(text):
-        _add(candidates, match, _typed_code_text(match["value"], language), language, "sequence.product", protected)
+        _add(candidates, match, _typed_code_text(match["value"], language, category="product"), language, "sequence.product", protected)
     for match in _PLATE_RE.finditer(text):
-        _add(candidates, match, _typed_code_text(match["value"], language), language, "sequence.plate", protected)
+        _add(candidates, match, _typed_code_text(match["value"], language, category="license"), language, "sequence.plate", protected)
     for match in _ACRONYM_RE.finditer(text):
         value = match["value"]
-        if value in _WORD_ACRONYMS or (
-            value not in _LEXICAL_UPPERCASE
+        if value in _ACRONYM_POLICY.lexical_words or value in _ACRONYM_POLICY.initialisms or (
+            value not in _ACRONYM_POLICY.preserve
             and len(value) <= 6
             and not _ROMAN_ONLY.fullmatch(value)
         ):
             _add(candidates, match, _acronym_text(value, language), language, "sequence.acronym", protected)
-    for match in _LEGAL_RE.finditer(text):
-        _add(candidates, match, _legal_text(match["value"], language), language, "sequence.legal", protected)
+    for pattern in (_LEGAL_RE, _LEGAL_PREFIX_RE, _LEGAL_US_RE, _LEGAL_ES_RE, _LEGAL_IT_RE, _LEGAL_FR_RE):
+        for match in pattern.finditer(text):
+            _add(candidates, match, _legal_text(match["value"], language), language, "sequence.legal", protected)
     for match in _SPORTS_RE.finditer(text):
         start, end = match.start("value"), match.end("value")
         if _claimed(start, end, protected):
@@ -588,6 +918,32 @@ def iter_sequence_replacements(
         _add(candidates, match, _address_text(match["number"], match["suffix"], match["street"], language), language, "sequence.address", protected)
     for match in _ADDRESS_RE.finditer(text):
         _add(candidates, match, _street_address_text(match, language), language, "sequence.address", protected)
+    for match in _ADDRESS_REVERSE.finditer(text):
+        _add(candidates, match, _reverse_address_text(match, language), language, "sequence.address", protected)
+    for match in _LEADING_ADDRESS_RE.finditer(text):
+        _add(candidates, match, _leading_address_text(match, language), language, "sequence.address", protected)
+    for match in _ADDRESS_COMPONENT_RE.finditer(text):
+        label = match["label"].casefold().rstrip(".")
+        label_words = {
+            "apt": "Apartment",
+            "apartment": "Apartment",
+            "suite": "Suite",
+            "piso": "piso",
+            "departamento": "departamento",
+            "interior": "interior",
+            "local": "local",
+            "unité": "unité",
+            "appartement": "appartement",
+        }
+        number = _digitwise(match["number"], language) if base_language(language) in {"en", "fr"} else _cardinal(int(re.sub(r"[A-Za-z]", "", match["number"])), language)
+        _add(
+            candidates,
+            match,
+            f"{label_words.get(label, match['label'])} {number}",
+            language,
+            "sequence.address",
+            protected,
+        )
     for match in _POSTBOX_RE.finditer(text):
         _add(
             candidates,
@@ -599,7 +955,20 @@ def iter_sequence_replacements(
         )
     for match in _FLOOR_RE.finditer(text):
         label = "Obergeschoss" if base_language(language) == "de" and match["label"].casefold() == "og" else match["label"]
-        _add(candidates, match, f"{_cardinal(int(match['number']), language)} {label}", language, "sequence.address", protected)
+        if base_language(language) == "de" and match["label"].casefold() == "og":
+            number = str(
+                num2words(
+                    int(match["number"]),
+                    lang=resolve_num2words_language(language),
+                    to="ordinal",
+                )
+            )
+            if number.endswith("e"):
+                number += "s"
+            value = f"{number} {label}"
+        else:
+            value = f"{_cardinal(int(match['number']), language)} {label}"
+        _add(candidates, match, value, language, "sequence.address", protected)
     if base_language(language) == "de":
         for match in _POSTAL_CITY_RE.finditer(text):
             _add(

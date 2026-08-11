@@ -15,9 +15,11 @@
 - German quantity recognition depends on the released `abbr2words` structured
   match API. spokenform owns the semantic grammar, not the symbol inventory.
 - English, German, French, Spanish, Italian, Portuguese, and Czech have parity-gated
-  structured ownership. Spanish, Italian, Portuguese, and Czech time
-  expressions remain caller-managed because no reviewed time ownership contract
-  is included. English owns a conservative contextual single-dot release-label
+  structured ownership. Spanish and Italian colon-time expressions are owned by
+  locale policies; Portuguese and Czech time expressions remain caller-managed.
+  Spanish explicit AM/PM forms use a 12-hour conversational branch, while
+  unqualified 24-hour forms retain their written hour/minute values in speech.
+  English owns a conservative contextual single-dot release-label
   rule (`bot 2.0` -> `bot two point oh`) in addition to ordinary decimals. It
   does not apply `oh` globally: ordinary decimal zeros remain digit-wise,
   quantities take precedence, and years, suffix ordinals, Roman numerals,
@@ -31,11 +33,13 @@
   Spanish one-ending agreement rather than delegating grammar to `num2words`.
 
 High-confidence structured sequences include Unicode fractions, coordinates,
-ISBNs, UUIDs, IPv4, MAC addresses, IBANs, contextual phones and versions,
-hashtags, mentions, conservative chemical formulas, acronyms/tickers, labeled
-product codes, legal references, sports scores, and address suffixes. Broad
-natural-language address, legal, mathematical, and musical parsing remains
-outside the core contract.
+ISBNs, UUIDs, IPv4, MAC addresses, IBANs, locale-grouped phones and versions,
+hashtags, mentions, conservative chemical formulas, explicit acronym policy,
+labeled serial/VIN/product codes, legal references, sports scores, and
+address components. Broad natural-language address, legal, mathematical, and
+musical parsing remains outside the core contract. Unlabeled ambiguous
+alphanumeric strings remain unchanged rather than being memorized as product
+codes.
 
 # Limitations and readiness gates
 
@@ -46,8 +50,8 @@ phonemization, and model-specific punctuation.
 German was the first kokorog2p parity target. English has a direct spokenform API
 parity contract; French, Spanish, Italian, and Portuguese now
 have text, source mapping, downstream token/phoneme, protection, and
-released-stack fixtures. Spanish, Italian, Portuguese, and Czech time remain
-caller-managed. Czech and English semantic number categories are owned by
+released-stack fixtures. Portuguese and Czech time remain caller-managed.
+Czech and English semantic number categories are owned by
 spokenform, and English is active on the kokorog2p spokenform adapter for
 reviewed structured semantics, contextual single-dot release labels, and safe
 ordinary-number categories. English phoneme-sensitive years, suffix ordinals,

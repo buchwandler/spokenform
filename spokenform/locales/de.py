@@ -14,6 +14,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year, parsed_date
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
+from ..numeric_lexeme import parse_numeric_lexeme
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,6 +88,20 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
     "magnitude-million": QuantityGrammar("magnitude-million", "f", "Million", "Millionen"),
     "magnitude-billion": QuantityGrammar("magnitude-billion", "f", "Milliarde", "Milliarden"),
 }
+QUANTITY_GRAMMAR.update(
+    {
+        "data-byte": QuantityGrammar("data-byte", "m", "Byte", "Byte"),
+        "data-kilobyte": QuantityGrammar("data-kilobyte", "m", "Kilobyte", "Kilobyte"),
+        "data-megabyte": QuantityGrammar("data-megabyte", "m", "Megabyte", "Megabyte"),
+        "data-gigabyte": QuantityGrammar("data-gigabyte", "m", "Gigabyte", "Gigabyte"),
+        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "m", "Kubikmeter pro Sekunde", "Kubikmeter pro Sekunde"),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "m", "Liter pro hundert Kilometer", "Liter pro hundert Kilometer"),
+        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "f", "Atmosphäre", "Atmosphären"),
+        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "m", "Kilopascal", "Kilopascal"),
+        "pressure-pascal": QuantityGrammar("pressure-pascal", "m", "Pascal", "Pascal"),
+        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "m", "Meile pro Stunde", "Meilen pro Stunde"),
+    }
+)
 
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
 _DATE = re.compile(
@@ -109,6 +124,10 @@ _HYPHEN_DATE = re.compile(
 _DAY_MONTH = re.compile(r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])\.(?P<month>0?[1-9]|1[0-2])\.(?!\d)")
 _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
 _TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
+_TIME_RANGE = re.compile(
+    r"(?<!\d)(?P<start_hour>[01]?\d|2[0-3]):(?P<start_minute>[0-5]\d)\s*[–-]\s*"
+    r"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?!\d)"
+)
 _CURRENCY_PREFIX = re.compile(
     rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
 )
@@ -159,18 +178,10 @@ def _spell(value: int | Decimal, language: str = "de") -> str:
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
-    value = raw.replace("−", "-")
-    negative, unsigned = value.startswith("-"), value.lstrip("+-")
-    if unsigned.startswith((".", ",")):
-        integer, fraction = "0", unsigned[1:]
-    elif "," in unsigned:
-        integer, fraction = unsigned.split(",", 1)
-    elif re.search(r"\.\d{1,2}$", unsigned) and unsigned.count(".") == 1:
-        integer, fraction = unsigned.split(".", 1)
-    else:
-        integer, fraction = unsigned, None
-    integer = re.sub(r"[.\s]", "", integer) or "0"
-    return negative, int(integer), fraction
+    lexeme = parse_numeric_lexeme(raw, "de", context="quantity")
+    if lexeme is None:
+        raise ValueError(f"Cannot parse German number {raw!r}")
+    return lexeme.negative, int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _number(raw: str, *, one: str | None = None, language: str = "de") -> str:
@@ -211,8 +222,10 @@ def _ending(text: str, start: int) -> str:
         ("am", "im", "vom", "zum", "zur", "auf der", "an der", "in dem", "in den", "auf den")
     ):
         return "en"
-    if prefix.endswith(("ans", "ins", "die", "auf die", "der")):
+    if prefix.endswith(("ans", "ins", "die", "das", "auf die", "der")):
         return "e"
+    if prefix.endswith(("ihren", "deren")):
+        return "en"
     return "er"
 
 
@@ -257,9 +270,14 @@ def _currency_id(symbol: str, language: str = "de") -> str | None:
 def _currency_name(canonical_id: str) -> str:
     return {
         "currency-euro": "Euro",
+        "currency-us-dollar": "US-Dollar",
         "currency-dollar": "Dollar",
         "currency-pound": "Pfund",
         "currency-swiss-franc": "Schweizer Franken",
+        "currency-japanese-yen": "Yen",
+        "currency-indian-rupee": "Indische Rupien",
+        "currency-south-korean-won": "Won",
+        "currency-mexican-peso": "Mexikanische Pesos",
     }.get(canonical_id, "")
 
 
@@ -355,6 +373,18 @@ def iter_replacements(
         if text_year is None or _valid(day, month, text_year):
             value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e', language)} {month_name}"
             add(match, f"{value} {_year(text_year, language)}" if text_year else value, "de.text-date")
+    for match in _TIME_RANGE.finditer(text):
+        start_hour, start_minute = int(match["start_hour"]), int(match["start_minute"])
+        end_hour, end_minute = int(match["end_hour"]), int(match["end_minute"])
+        start = "ein" if start_hour == 1 else _spell(start_hour, language)
+        end = "ein" if end_hour == 1 else _spell(end_hour, language)
+        if start_minute == 0 and end_minute == 0:
+            value = f"{start} bis {end} Uhr"
+        else:
+            start_value = f"{start} Uhr" if start_minute == 0 else f"{start} Uhr {_spell(start_minute, language)}"
+            end_value = f"{end} Uhr" if end_minute == 0 else f"{end} Uhr {_spell(end_minute, language)}"
+            value = f"{start_value} bis {end_value}"
+        add(match, value, "de.time-range")
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         value = (

@@ -19,6 +19,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
+from ..numeric_lexeme import parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -73,10 +74,24 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
         "speed-kilometer-per-hour", "chilometro all'ora", "chilometri all'ora"
     ),
 }
+QUANTITY_GRAMMAR.update(
+    {
+        "data-byte": QuantityGrammar("data-byte", "byte", "byte"),
+        "data-kilobyte": QuantityGrammar("data-kilobyte", "kilobyte", "kilobyte"),
+        "data-megabyte": QuantityGrammar("data-megabyte", "megabyte", "megabyte"),
+        "data-gigabyte": QuantityGrammar("data-gigabyte", "gigabyte", "gigabyte"),
+        "flow-cubic-meter-per-second": QuantityGrammar("flow-cubic-meter-per-second", "metro cubo al secondo", "metri cubi al secondo"),
+        "fuel-consumption-liter-per-100-kilometer": QuantityGrammar("fuel-consumption-liter-per-100-kilometer", "litro per cento chilometri", "litri per cento chilometri"),
+        "pressure-atmosphere": QuantityGrammar("pressure-atmosphere", "atmosfera", "atmosfere", "un'"),
+        "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "chilopascal", "chilopascal"),
+        "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascal"),
+        "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "miglio all'ora", "miglia all'ora"),
+    }
+)
 
-_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
+_DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./-](?P<month>\d{1,2})[./-](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
-_DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{2})(?!\d)")
+_DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./-](?P<month>\d{1,2})[./-](?P<year>\d{2})(?!\d)")
 _MONTHS = (
     "gennaio",
     "febbraio",
@@ -95,20 +110,17 @@ _TEXT_DATE = re.compile(
     r"(?P<day>\d{1,2})\s+(?P<month>gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre|gen\.?|feb\.?|mar\.?|apr\.?|mag\.?|giu\.?|lug\.?|ago\.?|set\.?|ott\.?|nov\.?|dic\.?)\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
-_ORDINAL_SYMBOL = re.compile(r"(?<![\w.])(?P<number>\d+)(?:\.?[ºª])(?!\w)", re.IGNORECASE)
+_ORDINAL_SYMBOL = re.compile(
+    r"(?<![\w.])(?P<number>\d+)(?:\.?[ºª°])(?!\s*[CF]\b)(?!\w)", re.IGNORECASE
+)
+_TIME_COLON = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?!\w)")
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
-    value = raw.replace("−", "-").replace("\u00a0", " ").replace("\u202f", " ")
-    negative, unsigned = value.startswith("-"), value.lstrip("+-")
-    if unsigned.startswith(","):
-        integer, fraction = "0", unsigned[1:]
-    elif "," in unsigned:
-        integer, fraction = unsigned.split(",", 1)
-    else:
-        integer, fraction = unsigned, None
-    integer = re.sub(r"[.\s]", "", integer) or "0"
-    return negative, int(integer), fraction
+    lexeme = parse_numeric_lexeme(raw, "it", context="quantity")
+    if lexeme is None:
+        raise ValueError(f"Cannot parse Italian number {raw!r}")
+    return lexeme.negative, int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _decimal(raw: str) -> Decimal:
@@ -153,6 +165,11 @@ def _date_text(day: int, month: int, year: int, language: str = "it") -> str:
     return f"{_spell(day, language)} {_MONTHS[month - 1]} {_spell(year, language)}"
 
 
+def _time_text(hour: int, minute: int, language: str = "it") -> str:
+    hour_text = _spell(hour, language)
+    return hour_text if minute == 0 else f"{hour_text} e {_spell(minute, language)}"
+
+
 def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
 
@@ -190,6 +207,11 @@ def _currency_text(raw: str, canonical_id: str, language: str = "it") -> str:
         "currency-euro": ("euro", "euro", "centesimo", "centesimi"),
         "currency-us-dollar": ("dollaro", "dollari", "centesimo", "centesimi"),
         "currency-pound-sterling": ("sterlina", "sterline", "centesimo", "centesimi"),
+        "currency-swiss-franc": ("franco svizzero", "franchi svizzeri", "centesimo", "centesimi"),
+        "currency-japanese-yen": ("yen", "yen", None, None),
+        "currency-mexican-peso": ("peso messicano", "pesos messicani", "centesimo", "centesimi"),
+        "currency-indian-rupee": ("rupia", "rupie", "paisa", "paise"),
+        "currency-south-korean-won": ("won", "won", None, None),
     }
     singular, plural, minor_singular, minor_plural = names[canonical_id]
     major = singular if integer == 1 else plural
@@ -200,7 +222,7 @@ def _currency_text(raw: str, canonical_id: str, language: str = "it") -> str:
     result = f"{number} {major}"
     if fraction is not None:
         minor_value = int((fraction + "00")[:2])
-        if minor_value:
+        if minor_value and minor_singular is not None and minor_plural is not None:
             minor = minor_singular if minor_value == 1 else minor_plural
             minor_number = "un" if minor_value == 1 else _spell(minor_value, language)
             result += f" e {minor_number} {minor}"
@@ -250,6 +272,14 @@ def iter_replacements(
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
+
+    for match in _TIME_COLON.finditer(text):
+        add(
+            match.start(),
+            match.end(),
+            _time_text(int(match["hour"]), int(match["minute"]), language),
+            "it.time",
+        )
 
     for match in _ORDINAL_SYMBOL.finditer(text):
         value = str(num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal"))

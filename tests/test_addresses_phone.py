@@ -17,12 +17,12 @@ def test_german_address_structures_use_category_specific_number_policies() -> No
     assert prepare("Postfach 1234", language="de", use_spacy=False).spoken_text == (
         "Postfach eins zwei drei vier"
     )
-    assert prepare("3. OG", language="de", use_spacy=False).spoken_text == "drei Obergeschoss"
+    assert prepare("3. OG", language="de", use_spacy=False).spoken_text == "drittes Obergeschoss"
 
 
 def test_phone_shapes_and_contextual_emergency_numbers() -> None:
     assert prepare("555.123.4567", language="en", use_spacy=False).spoken_text == (
-        "five five five point one two three point four five six seven"
+        "five five five one two three four five six seven"
     )
     assert prepare("Dial 911", language="en", use_spacy=False).spoken_text == "Dial nine one one"
     assert prepare("Notruf 112", language="de", use_spacy=False).spoken_text == "Notruf eins eins zwei"

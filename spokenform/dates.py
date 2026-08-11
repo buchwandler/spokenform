@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,6 +34,20 @@ class ParsedDateRange:
     end: ParsedDate
 
 
+@dataclass(frozen=True, slots=True)
+class DateCandidate:
+    """Source-aware date shape retained until a locale renders the value."""
+
+    day: int
+    month: int
+    year: int | None
+    year_digits: int | None
+    month_style: Literal["numeric", "name", "abbrev"]
+    source_order: Literal["mdy", "dmy", "ymd"]
+    separator: str | None
+    year_was_apostrophe: bool = False
+
+
 def expand_year(raw: str, *, pivot: int = 68) -> tuple[int, int]:
     """Expand a short year and return ``(year, source_digit_count)``."""
     digits = len(raw)
@@ -51,4 +66,10 @@ def parsed_date(day: str, month: str, year: str | None = None) -> ParsedDate:
     return result
 
 
-__all__ = ["ParsedDate", "ParsedDateRange", "expand_year", "parsed_date"]
+__all__ = [
+    "DateCandidate",
+    "ParsedDate",
+    "ParsedDateRange",
+    "expand_year",
+    "parsed_date",
+]

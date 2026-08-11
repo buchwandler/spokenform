@@ -118,10 +118,23 @@ def test_italian_repeated_identical_fragments_keep_distinct_source_replacements(
 def test_italian_profile_promotes_numbers_but_keeps_colon_times_caller_managed() -> None:
     config = PreparationConfig.for_kokorog2p("it")
     assert config.number_policy.value == "structured_and_plain"
-    assert prepare("18:20 e 12", config=config, use_spacy=False).spoken_text == "18:20 e dodici"
-    assert prepare("Ci vediamo alle 18:20.", language="it", use_spacy=False).spoken_text == (
-        "Ci vediamo alle 18:20."
+    assert prepare("18:20 e 12", config=config, use_spacy=False).spoken_text == (
+        "diciotto e venti e dodici"
     )
+    assert prepare("Ci vediamo alle 18:20.", language="it", use_spacy=False).spoken_text == (
+        "Ci vediamo alle diciotto e venti."
+    )
+
+
+def test_italian_times_and_extended_units_use_locale_policies() -> None:
+    assert prepare("14:30", language="it_IT", use_spacy=False).spoken_text == (
+        "quattordici e trenta"
+    )
+    assert prepare("9:15", language="it_IT", use_spacy=False).spoken_text == (
+        "nove e quindici"
+    )
+    for source in ("60 mph", "100 kPa", "1 atm", "64 GB", "6 L/100km", "10 m³/s"):
+        assert prepare(source, language="it_IT", use_spacy=False).spoken_text != source
 
 
 def test_italian_plain_pass_protects_invalid_and_iso_date_candidates() -> None:

@@ -112,4 +112,17 @@ def test_spanish_repeated_fragments_and_source_replacements() -> None:
 def test_spanish_profile_promotes_number_policy_without_time_ownership() -> None:
     config = PreparationConfig.for_kokorog2p("es")
     assert config.number_policy.value == "structured_and_plain"
-    assert prepare("18:20 y 12", config=config, use_spacy=False).spoken_text == "18:20 y doce"
+    assert prepare("18:20 y 12", config=config, use_spacy=False).spoken_text == (
+        "dieciocho y veinte y doce"
+    )
+
+
+def test_spanish_times_and_extended_units_use_locale_policies() -> None:
+    assert prepare("9:45 AM", language="es_MX", use_spacy=False).spoken_text == (
+        "nueve y cuarenta y cinco de la mañana"
+    )
+    assert prepare("14:30", language="es_MX", use_spacy=False).spoken_text == (
+        "catorce y treinta"
+    )
+    for source in ("60 mph", "100 kPa", "1 atm", "64 GB", "6 L/100km", "10 m³/s"):
+        assert prepare(source, language="es_MX", use_spacy=False).spoken_text != source
