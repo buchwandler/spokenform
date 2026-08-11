@@ -7,9 +7,9 @@ def test_german_date_grammar_covers_short_text_hyphenated_and_ranges() -> None:
         "12.10.23": "zwölfte zehnten dreiundzwanzig",
         "5. Nov. 1990": "fünfter November neunzehnhundertneunzig",
         "15-Jan-2023": "fünfzehnter Januar zweitausenddreiundzwanzig",
-        "31. Dez. 2025": "einunddreißigste Dezember zweitausendfünfundzwanzig",
+        "31. Dez. 2025": "einunddreißigster Dezember zweitausendfünfundzwanzig",
         "’23": "dreiundzwanzig",
-        "30.06.": "dreißigster sechster",
+        "30.06.": "dreißigster sechster.",
         "10.-12. Mai": "zehnter bis zwölfter Mai",
     }
     for source, expected in cases.items():

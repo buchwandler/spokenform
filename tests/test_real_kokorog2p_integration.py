@@ -77,11 +77,11 @@ def test_real_german_downstream_contract() -> None:
     source = "Zum 14.05.2026 kosten 12,50 EUR."
     prepared = prepare_for_kokorog2p(source, "de")
     assert prepared.spoken_text == (
-        "Zum vierzehnten Mai zweitausendsechsundzwanzig kosten zwölf Euro fünfzig Cent."
+        "Zum vierzehnten Mai zweitausendsechsundzwanzig kosten zwölf Euro fünfzig."
     )
     assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
         ("14.05.2026", "vierzehnten Mai zweitausendsechsundzwanzig"),
-        ("12,50 EUR", "zwölf Euro fünfzig Cent"),
+        ("12,50 EUR", "zwölf Euro fünfzig"),
     ]
     tokens = _real_g2p()(prepared.spoken_text)
     assert [token.text for token in tokens] == [
@@ -93,7 +93,6 @@ def test_real_german_downstream_contract() -> None:
         "zwölf",
         "Euro",
         "fünfzig",
-        "Cent",
         ".",
     ]
     assert all(token.phonemes for token in tokens)

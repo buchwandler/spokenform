@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from enum import Enum
 from typing import Literal
 
 from .language import base_language, normalize_language
@@ -32,6 +33,25 @@ class NumericLexeme:
         return f"{'-' if self.negative else ''}{self.integer_digits}"
 
 
+class NumberRenderMode(str, Enum):
+    """Semantic rendering mode selected by a recognizer."""
+
+    CARDINAL = "cardinal"
+    DIGIT_SEQUENCE = "digit_sequence"
+    YEAR = "year"
+    DECIMAL = "decimal"
+    ORDINAL = "ordinal"
+
+
+@dataclass(frozen=True, slots=True)
+class NumericPunctuationPolicy:
+    """Locale punctuation contract used before any ambiguity fallback."""
+
+    decimal_separator: str
+    grouping_separators: tuple[str, ...]
+    alternate_decimal_separators: tuple[str, ...] = ()
+
+
 @dataclass(frozen=True, slots=True)
 class NumericSpeechPolicy:
     """Locale-selected wording policy for a parsed numeric lexeme."""
@@ -49,6 +69,26 @@ _NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "es_MX": NumericSpeechPolicy("punto", "two_digit_cardinal"),
     "fr_FR": NumericSpeechPolicy("virgule", "two_digit_cardinal"),
     "it_IT": NumericSpeechPolicy("virgola", "two_digit_cardinal"),
+}
+
+
+_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
+    "en_US": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
+    # Mexican Spanish commonly uses comma grouping and dot decimals, while
+    # accepting short comma decimals in quantities from mixed corpora.
+    "es_MX": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f"), (",",)),
+    "de_DE": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+    "fr_FR": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f", "."), (".",)),
+    "it_IT": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+}
+
+_BASE_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
+    "en": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
+    "es": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+    "de": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+    "fr": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f", "."), (".",)),
+    "it": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+    "pt": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
 }
 
 _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
@@ -72,6 +112,17 @@ def numeric_speech_policy(language: str) -> NumericSpeechPolicy:
     )
 
 
+def numeric_punctuation_policy(language: str) -> NumericPunctuationPolicy:
+    """Return the locale punctuation policy for numeric lexeme parsing."""
+    normalized = normalize_language(language)
+    return _NUMERIC_PUNCTUATION_POLICIES.get(
+        normalized,
+        _BASE_NUMERIC_PUNCTUATION_POLICIES.get(
+            base_language(normalized), NumericPunctuationPolicy(".", (",", " "))
+        ),
+    )
+
+
 def fraction_digit_groups(fraction_digits: str, language: str) -> tuple[str, ...]:
     """Group fractional digits according to the locale speech policy."""
     policy = numeric_speech_policy(language)
@@ -85,7 +136,7 @@ def fraction_digit_groups(fraction_digits: str, language: str) -> tuple[str, ...
 
 
 _NUMERIC_RE = re.compile(
-    r"^[+\-−]?(?:\d(?:[\d\s\u00a0\u202f.,'’]*\d)?|\.\d[\d\s\u00a0\u202f.,'’]*)$"
+    r"^[+\-−]?(?:\d(?:[\d\s\u00a0\u202f.,'’]*\d)?|[.,]\d[\d\s\u00a0\u202f.,'’]*)$"
 )
 _STRONG_DECIMAL_CONTEXTS = frozenset({"quantity", "currency", "percent", "coordinate"})
 _NON_NUMERIC_CONTEXTS = frozenset({"date", "date_candidate", "time", "version"})
@@ -132,8 +183,7 @@ def parse_numeric_lexeme(
         return None
 
     language = normalize_language(language)
-    base = base_language(language)
-    default_decimal = "," if base in {"cs", "de", "es", "fr", "it", "pt"} else "."
+    policy = numeric_punctuation_policy(language)
     separators = tuple(character for character in unsigned if character in ".,")
     if not separators:
         return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())
@@ -147,44 +197,51 @@ def parse_numeric_lexeme(
         rightmost_index = max(unsigned.rfind("."), unsigned.rfind(","))
         candidate = unsigned[rightmost_index]
         tail = unsigned[rightmost_index + 1 :]
-        if tail and len(tail) != 3:
+        # The locale's declared decimal separator wins even for a three-digit
+        # fractional tail (for example de-DE ``42,195``).  A non-preferred
+        # separator needs a short tail before it is accepted as decimal.
+        if candidate == policy.decimal_separator or (
+            candidate in policy.alternate_decimal_separators and len(tail) != 3
+        ):
             decimal_separator = candidate
         else:
-            # A mixed pair with a three-digit terminal group is ambiguous
-            # (for example ``1,234.567``); do not guess.
             return None
     else:
         separator = separators[0]
         positions = _separator_positions(unsigned, separator)
         if len(positions) > 1:
-            if _grouping_is_valid(unsigned, separator):
+            if separator in policy.grouping_separators and _grouping_is_valid(unsigned, separator):
                 grouping_separators.append(separator)
             else:
                 return None
         else:
             head, tail = unsigned.split(separator, 1)
-            if not head or not tail:
+            if not tail:
                 return None
-            if len(tail) in {1, 2}:
-                # A short terminal group is strong decimal evidence even
-                # when the source uses the non-preferred locale separator
-                # (for example ``1.5`` in Spanish or Italian).
-                decimal_separator = separator
-            elif len(tail) == 3:
-                if context == "currency" and separator == default_decimal and base == "en":
-                    # English currency grammar accepts comma grouping and at
-                    # most two dot-decimal minor digits; ``1.005`` is not a
-                    # valid amount and must remain untouched.
+            if not head:
+                if separator not in (policy.decimal_separator, *policy.alternate_decimal_separators):
                     return None
+                decimal_separator = separator
+                head = "0"
+            if separator == policy.decimal_separator:
+                if context == "currency" and len(tail) > 2:
+                    return None
+                decimal_separator = separator
+            elif separator in policy.alternate_decimal_separators and (
+                len(tail) in {1, 2} or context == "coordinate"
+            ):
+                decimal_separator = separator
+            elif len(tail) == 3 and separator in policy.grouping_separators:
                 grouping_separators.append(separator)
-            elif separator == default_decimal or context in _STRONG_DECIMAL_CONTEXTS:
+            elif context in _STRONG_DECIMAL_CONTEXTS and len(tail) in {1, 2}:
                 decimal_separator = separator
             else:
                 return None
 
     if decimal_separator is not None:
         integer, fraction = unsigned.rsplit(decimal_separator, 1)
-        if not integer or not fraction or not fraction.isdigit():
+        integer = integer or "0"
+        if not fraction or not fraction.isdigit():
             return None
         remaining = integer.replace(",", "").replace(".", "")
         if not remaining.isdigit():
@@ -192,6 +249,9 @@ def parse_numeric_lexeme(
         for separator in distinct:
             if separator != decimal_separator:
                 grouping_separators.append(separator)
+        integer = _clean_grouping(remaining)
+        if any(character not in "0123456789" for character in integer):
+            return None
         return NumericLexeme(
             raw,
             negative,
@@ -201,7 +261,7 @@ def parse_numeric_lexeme(
             tuple(dict.fromkeys(grouping_separators)),
         )
 
-    integer = unsigned.replace(",", "").replace(".", "")
+    integer = _clean_grouping(unsigned.replace(",", "").replace(".", ""))
     if not integer.isdigit():
         return None
     return NumericLexeme(
@@ -216,8 +276,11 @@ def parse_numeric_lexeme(
 
 __all__ = [
     "NumericLexeme",
+    "NumberRenderMode",
+    "NumericPunctuationPolicy",
     "NumericSpeechPolicy",
     "fraction_digit_groups",
+    "numeric_punctuation_policy",
     "numeric_speech_policy",
     "parse_numeric_lexeme",
 ]

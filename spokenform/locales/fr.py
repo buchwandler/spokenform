@@ -113,7 +113,7 @@ QUANTITY_GRAMMAR.update(
     }
 )
 
-_NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
+_NUMBER = r"[+\-−]?(?:(?:\d+(?:[.,]\d+)+)|(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+)|\d+|[.,]\d+)"
 _DATE_DMY = re.compile(
     r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./-](?P<month>0?[1-9]|1[0-2])[./-](?P<year>\d{4})(?!\d)"
 )
@@ -135,7 +135,7 @@ _TIME_CANDIDATE = re.compile(r"(?<![\w.])\d{1,2}\s*(?::\s*\d{2}|h\s*\d{0,2})(?!\
 _ORDINAL = re.compile(
     r"(?<![\w.,])(?P<number>\d+)\s*(?P<suffix>er|ère|re|ème|e|nd|nde)\b", re.IGNORECASE
 )
-_PLAIN_NUMBER = re.compile(rf"(?<![\w.])(?P<number>{_NUMBER})(?![\w.])")
+_PLAIN_NUMBER = re.compile(rf"(?<![\w.])(?P<number>{_NUMBER})(?![.,]\d)(?![\w.])")
 _MONTHS = (
     "janvier",
     "février",

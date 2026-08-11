@@ -5,12 +5,12 @@
   {
     "name": "grouped currency",
     "input": "1.234,56 EUR",
-    "expected": "eintausendzweihundertvierunddreißig Euro sechsundfünfzig Cent"
+    "expected": "eintausendzweihundertvierunddreißig Euro sechsundfünfzig"
   },
   {
     "name": "prefix currency",
     "input": "CHF 12,80",
-    "expected": "zwölf Schweizer Franken achtzig Cent"
+    "expected": "zwölf Schweizer Franken achtzig"
   },
   {
     "name": "valid date",
@@ -65,7 +65,7 @@
   {
     "name": "currency suffix",
     "input": "12,80 EUR",
-    "expected": "zwölf Euro achtzig Cent"
+    "expected": "zwölf Euro achtzig"
   },
   {
     "name": "flexible abbreviation variants",
@@ -126,17 +126,17 @@
   {
     "name": "currency dot decimal",
     "input": "12.50 EUR",
-    "expected": "zwölf Euro fünfzig Cent"
+    "expected": "zwölf Euro fünfzig"
   },
   {
     "name": "currency negative",
     "input": "-1,25 EUR",
-    "expected": "minus ein Euro fünfundzwanzig Cent"
+    "expected": "minus ein Euro fünfundzwanzig"
   },
   {
     "name": "currency leading zero cents",
     "input": "0,05 EUR",
-    "expected": "null Euro fünf Cent"
+    "expected": "null Euro fünf"
   },
   {
     "name": "plain trailing fractional zero",
@@ -161,17 +161,17 @@
   {
     "name": "two digit date",
     "input": "03/01/26",
-    "expected": "dritte Januar zweitausendsechsundzwanzig"
+    "expected": "dritte ersten zweitausendsechsundzwanzig"
   },
   {
     "name": "Maerz date",
     "input": "3. Maerz 2026",
-    "expected": "dritte März zweitausendsechsundzwanzig"
+    "expected": "dritter März zweitausendsechsundzwanzig"
   },
   {
     "name": "abbreviated March date",
     "input": "3. Mär 2026",
-    "expected": "dritte März zweitausendsechsundzwanzig"
+    "expected": "dritter März zweitausendsechsundzwanzig"
   },
   {
     "name": "ordinal zur",

@@ -41,11 +41,24 @@ exactness, raw speech exactness, locale-aware speech-equivalent exactness,
 presentation-only disagreements, semantic failures, word error rate, unchanged
 cases, exceptions, residual source-symbol counts, locale/category/ownership
 aggregates, locale × canonical-category metrics, and per-failure changed
-stages/source rules. Raw speech exactness remains the PolyNorm-comparable metric;
+stages/source rules. Each failure also records the primary rule, claim owner,
+failure phase, winning source span, protection reason, numeric speech policy,
+and render mode. `gate_metrics` keeps safety, owned, extended-candidate,
+protected, and per-locale views separate so protected or unsupported categories
+are not mistaken for regressions in owned behavior. Raw speech exactness remains the PolyNorm-comparable metric;
 equivalent speech is a parallel diagnostic. It continues after mismatches and individual runtime
 exceptions and does not add a score threshold to normal CI. Questionable
 upstream rows remain visible with quarantine reasons and are excluded only
 from reviewed metrics.
+
+The local quarantine annotations are intentionally limited to eight upstream
+rows whose expected text is malformed, questionable, or inconsistent with the
+source (for example, an instruction instead of normalized speech or an
+inconsistent coordinate). They are never rewritten. German compact currency is
+an explicit policy: the major unit and minor numeric value are spoken without
+`und` or `Cent`; locale punctuation is selected before separator heuristics;
+URLs, e-mail addresses, versions, and caller-protected spans remain literal by
+default.
 
 ## Structured normalization ownership
 

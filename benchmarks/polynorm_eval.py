@@ -11,6 +11,7 @@ import sys
 import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable
+from dataclasses import asdict
 from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
@@ -18,6 +19,7 @@ from statistics import mean, median
 from typing import Any
 
 from spokenform import PreparedText, prepare
+from spokenform.numeric_lexeme import numeric_speech_policy
 from spokenform.sequences import render_letters
 
 from .polynorm_data import (
@@ -252,6 +254,149 @@ def _residual_symbol_counts(results: Iterable[dict[str, Any]]) -> dict[str, int]
     return dict(sorted(totals.items()))
 
 
+def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> dict[str, Any]:
+    """Extract stable claim/provenance fields for benchmark triage."""
+    mapped_edits = tuple(getattr(result, "mapped_edits", ()) or ())
+    source_replacements = tuple(getattr(result, "source_replacements", ()) or ())
+    candidates = [
+        edit
+        for edit in (*source_replacements, *mapped_edits)
+        if getattr(edit, "rule", None)
+    ]
+    candidates.sort(
+        key=lambda edit: (
+            -int(getattr(edit, "source_end", 0)) + int(getattr(edit, "source_start", 0)),
+            int(getattr(edit, "source_start", 0)),
+        )
+    )
+    winner = candidates[0] if candidates else None
+    primary_rule = getattr(winner, "rule", None) if winner is not None else None
+    if winner is None:
+        winning_span = None
+    else:
+        winning_span = {
+            "start": int(getattr(winner, "source_start", 0)),
+            "end": int(getattr(winner, "source_end", 0)),
+            "source": str(getattr(winner, "source", "")),
+            "rule": primary_rule,
+        }
+
+    protected_spans = tuple(getattr(result, "protected_spans", ()) or ())
+    protected_mutation = any(
+        int(getattr(edit, "source_start", 0)) < int(getattr(span, "end", 0))
+        and int(getattr(span, "start", 0)) < int(getattr(edit, "source_end", 0))
+        for edit in source_replacements
+        for span in protected_spans
+    )
+    protected_reasons = tuple(
+        dict.fromkeys(
+            str(getattr(span, "kind", "literal"))
+            for span in protected_spans
+            if getattr(span, "kind", None)
+        )
+    )
+    if protected_reasons:
+        protected_reason = ", ".join(protected_reasons)
+    elif ownership == "protected":
+        protected_reason = "benchmark protected ownership"
+    else:
+        protected_reason = None
+
+    rules = [str(getattr(edit, "rule", "")) for edit in mapped_edits if getattr(edit, "rule", None)]
+    if ownership == "protected" and protected_spans:
+        failure_phase = "protected"
+    elif primary_rule is None:
+        failure_phase = "unrecognized"
+    elif any(getattr(edit, "stage", None) == "numbers" for edit in mapped_edits):
+        failure_phase = "locale_rendering"
+    elif any(getattr(edit, "stage", None) == "structured" for edit in mapped_edits):
+        failure_phase = "structured_rendering"
+    else:
+        failure_phase = "downstream_rendering"
+
+    return {
+        "primary_rule": primary_rule,
+        "claim_owner": ownership if primary_rule else ("protection" if protected_spans else "unclaimed"),
+        "failure_phase": failure_phase,
+        "winning_span": winning_span,
+        "protected_reason": protected_reason,
+        "protected_mutation": protected_mutation,
+        "numeric_policy": asdict(numeric_speech_policy(language)),
+        "render_mode": _render_mode_for_rule(primary_rule, rules),
+    }
+
+
+def _render_mode_for_rule(primary_rule: str | None, rules: Iterable[str]) -> str:
+    """Map implementation provenance to a compact benchmark render mode."""
+    haystack = " ".join(rule.casefold() for rule in rules)
+    for marker, mode in (
+        ("isbn", "digit_sequence"),
+        ("phone", "digit_sequence"),
+        ("mac", "digit_sequence"),
+        ("ipv4", "digit_sequence"),
+        ("serial", "digit_sequence"),
+        ("plate", "digit_sequence"),
+        ("vin", "digit_sequence"),
+        ("product", "typed_code"),
+        ("address", "address"),
+        ("coordinate", "coordinate"),
+        ("legal", "legal_reference"),
+        ("sports", "sports_score"),
+        ("hashtag", "literal_payload"),
+        ("mention", "literal_payload"),
+        ("roman", "roman"),
+        ("math", "mathematical_expression"),
+        ("music", "musical_notation"),
+    ):
+        if marker in haystack:
+            return mode
+    if primary_rule and ".quantity" in primary_rule:
+        return "quantity"
+    if primary_rule and "currency" in primary_rule:
+        return "currency"
+    if primary_rule and "date" in primary_rule:
+        return "date"
+    if primary_rule and "time" in primary_rule:
+        return "time"
+    if primary_rule and "ordinal" in primary_rule:
+        return "ordinal"
+    if primary_rule:
+        return "cardinal"
+    return "unchanged"
+
+
+def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return separate safety, ownership, and locale benchmark views."""
+    grouped_ownership: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    grouped_locale: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped_ownership[row["ownership"]].append(row)
+        grouped_locale[row["polynorm_locale"]].append(row)
+    protected = grouped_ownership.get("protected", [])
+    safety = {
+        "protected_cases": len(protected),
+        "protected_mutation_count": sum(
+            bool(row.get("protected_mutation")) for row in protected
+        ),
+        "protected_unchanged_rate": (
+            1.0 - sum(bool(row.get("protected_mutation")) for row in protected) / len(protected)
+            if protected
+            else 0.0
+        ),
+        "error_count": sum(bool(row["error"]) for row in rows),
+    }
+    return {
+        "safety": safety,
+        "owned": _metric_counts(grouped_ownership.get("owned", [])),
+        "extended": _metric_counts(grouped_ownership.get("extended-candidate", [])),
+        "protected": _metric_counts(protected),
+        "locale": {
+            locale: _metric_counts(locale_rows)
+            for locale, locale_rows in sorted(grouped_locale.items())
+        },
+    }
+
+
 def evaluate_cases(
     cases: Iterable[PolyNormCase],
     *,
@@ -271,6 +416,7 @@ def evaluate_cases(
         changed_stages: tuple[str, ...] = ()
         source_rules: tuple[str, ...] = ()
         structured_claimed = False
+        result: PreparedText | Any = None
         try:
             result = prepare_fn(case.original_text, language=language, use_spacy=False)
             actual = result.spoken_text
@@ -292,6 +438,9 @@ def evaluate_cases(
         speech_wer = (
             word_error_rate(speech_key(case.normalized_text), speech_key(actual)) if not error else 0.0
         )
+        provenance = _provenance_diagnostics(result, ownership=ownership, language=language)
+        if error:
+            provenance["failure_phase"] = "parse_error"
         row = {
             "id": case.case_id,
             "polynorm_locale": case.polynorm_locale,
@@ -314,6 +463,7 @@ def evaluate_cases(
             "changed_stages": changed_stages,
             "source_rules": source_rules,
             "structured_claimed": structured_claimed,
+            **provenance,
         }
         rows.append(row)
         if error or not literal_exact or not speech_exact:
@@ -365,6 +515,7 @@ def evaluate_cases(
         },
         "reviewed": _metric_counts(reviewed_rows),
         "quarantine_count": len(rows) - len(reviewed_rows),
+        "gate_metrics": _gate_metrics(rows),
     }
     return summary, tuple(failures)
 

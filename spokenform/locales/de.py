@@ -120,7 +120,7 @@ _DATE = re.compile(
     r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2,4})(?!\d)"
 )
 _TEXT_DATE = re.compile(
-    r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)((?!\w))(?:\s+(?P<year>\d{2,4}))?",
+    r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Nov\.?|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)((?!\w))(?:\s+(?P<year>\d{2,4}))?",
     re.IGNORECASE,
 )
 _TEXT_DATE_RANGE = re.compile(
@@ -138,7 +138,9 @@ _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
 _TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
 _TIME_RANGE = re.compile(
     r"(?<!\d)(?P<start_hour>[01]?\d|2[0-3]):(?P<start_minute>[0-5]\d)\s*[–-]\s*"
-    r"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?!\d)"
+    r"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?:\s+Uhr)?(?!\d)|"
+    r"(?<!\d)(?P<start_hour_bis>[01]?\d|2[0-3]):(?P<start_minute_bis>[0-5]\d)\s+bis\s+"
+    r"(?P<end_hour_bis>[01]?\d|2[0-3]):(?P<end_minute_bis>[0-5]\d)(?:\s+Uhr)?(?!\d)"
 )
 _CURRENCY_PREFIX = re.compile(
     rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
@@ -302,7 +304,7 @@ def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
     if fraction:
         cents = int((fraction + "00")[:2])
         if cents:
-            result += f" {_spell(cents, language)} Cent"
+            result += f" {_spell(cents, language)}"
     return f"minus {result}" if negative else result
 
 
@@ -334,7 +336,11 @@ def iter_replacements(
         )
         if _valid(day, month, date_year):
             month_name = next(name for number, name in _MONTHS.values() if number == month)
-            month_text = _ordinal(month, "en", language) if separator == "." and len(year_raw) == 2 else month_name
+            month_text = (
+                _ordinal(month, "en", language)
+                if separator == "/" or (separator == "." and len(year_raw) == 2)
+                else month_name
+            )
             add(
                 match,
                 f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language, year_digits=year_digits if separator == '.' else None)}",
@@ -344,9 +350,12 @@ def iter_replacements(
         day, month = int(match["day"]), int(match["month"])
         if parsed_date(match["day"], match["month"]).valid():
             month_name = _ordinal(month, _ending(text, match.start()), language)
+            value = f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}"
+            if match.group(0).endswith("."):
+                value += "."
             add(
                 match,
-                f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}",
+                value,
                 "de.date",
             )
     for match in _HYPHEN_DATE.finditer(text):
@@ -384,17 +393,23 @@ def iter_replacements(
             else (int(year_raw) if year_raw else None)
         )
         if text_year is None or _valid(day, month, text_year):
-            value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e', language)} {month_name}"
+            value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'er', language)} {month_name}"
             add(match, f"{value} {_year(text_year, language, year_digits=len(year_raw) if year_raw else None)}" if text_year else value, "de.text-date")
     for match in _TIME_RANGE.finditer(text):
-        start_hour, start_minute = int(match["start_hour"]), int(match["start_minute"])
-        end_hour, end_minute = int(match["end_hour"]), int(match["end_minute"])
+        start_hour = int(match["start_hour"] or match["start_hour_bis"])
+        start_minute = int(match["start_minute"] or match["start_minute_bis"])
+        end_hour = int(match["end_hour"] or match["end_hour_bis"])
+        end_minute = int(match["end_minute"] or match["end_minute_bis"])
         start = "ein" if start_hour == 1 else _spell(start_hour, language)
         end = "ein" if end_hour == 1 else _spell(end_hour, language)
         if start_minute == 0 and end_minute == 0:
             value = f"{start} bis {end} Uhr"
         else:
-            start_value = f"{start} Uhr" if start_minute == 0 else f"{start} Uhr {_spell(start_minute, language)}"
+            start_value = (
+                start
+                if start_minute == 0
+                else f"{start} Uhr {_spell(start_minute, language)}"
+            )
             end_value = f"{end} Uhr" if end_minute == 0 else f"{end} Uhr {_spell(end_minute, language)}"
             value = f"{start_value} bis {end_value}"
         add(match, value, "de.time-range")

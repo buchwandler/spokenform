@@ -37,6 +37,27 @@ def test_evaluation_separates_raw_presentation_and_semantic_diagnostics() -> Non
     assert summary["semantic_failure_count"] == 0
     assert failures[0]["speech_exact_raw"] is False
     assert failures[0]["speech_exact_equivalent"] is True
+    assert failures[0]["render_mode"] == "unchanged"
+    assert failures[0]["numeric_policy"]["decimal_word"] == "punto"
+
+
+def test_evaluation_reports_claim_provenance_and_gate_views() -> None:
+    cases = (
+        PolyNormCase("de-DE", "1", "Unit", "42 kg", "wrong"),
+        PolyNormCase("en-US", "2", "URL or Email", "https://example.org", "spoken"),
+    )
+
+    summary, failures = evaluate_cases(cases)
+
+    quantity = next(item for item in failures if item["id"] == "de-DE:1")
+    assert quantity["primary_rule"] == "de.quantity"
+    assert quantity["claim_owner"] == "owned"
+    assert quantity["winning_span"]["source"] == "42 kg"
+    assert quantity["failure_phase"] == "structured_rendering"
+    assert quantity["render_mode"] == "quantity"
+    assert set(summary["gate_metrics"]) == {"safety", "owned", "extended", "protected", "locale"}
+    assert summary["gate_metrics"]["protected"]["cases"] == 1
+    assert summary["gate_metrics"]["safety"]["protected_unchanged_rate"] == 1.0
 
 
 def test_evaluation_aggregates_and_continues_after_exception() -> None:

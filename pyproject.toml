@@ -34,8 +34,8 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  # 0.2.4 provides the structured identities required by all migrated locales.
-  "abbr2words>=0.2.4,<0.3.0",
+  # 0.2.6 is the released dependency containing compact-unit collision fixes.
+  "abbr2words>=0.2.6,<0.3.0",
   "num2words>=0.5.14,<0.6",
 ]
 

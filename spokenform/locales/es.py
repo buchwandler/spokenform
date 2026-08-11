@@ -117,6 +117,9 @@ QUANTITY_GRAMMAR.update(
 )
 
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)"
+_CURRENCY_SYMBOL = re.compile(
+    r"(?<!\w)(?P<symbol>[$€£])\s*(?P<number>[+\-−]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?![.,]\d)(?!\w)"
+)
 _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
 _DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{2})(?!\d)")
@@ -158,7 +161,7 @@ _TEXT_DATE_DE = re.compile(
     re.IGNORECASE,
 )
 _ORDINAL_SYMBOL = re.compile(
-    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|[oa])(?!\w)", re.IGNORECASE
+    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|(?:do|to|ta|mo|vo)|[oa])(?!\w)", re.IGNORECASE
 )
 
 
@@ -256,7 +259,7 @@ def _ordinal_text(number: int, suffix: str, language: str = "es") -> str:
     """Render high-confidence Spanish ordinal markers with local gender."""
     ordinal = str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
     suffix = suffix.casefold().replace(".", "")
-    if suffix in {"a", "ª"} and ordinal.endswith("o"):
+    if suffix in {"a", "ª", "ta"} and ordinal.endswith("o"):
         return f"{ordinal[:-1]}a"
     if suffix in {"er"} and ordinal.endswith(("ero", "ercero")):
         return ordinal[:-1]
@@ -393,6 +396,19 @@ def iter_replacements(
     for match in _ORDINAL_SYMBOL.finditer(text):
         value = _ordinal_text(int(match["number"]), match["suffix"], language)
         add(match.start(), match.end(), value, "es.ordinal")
+
+    currency_ids = {
+        "$": "currency-mexican-peso" if language.casefold().replace("-", "_") == "es_mx" else "currency-us-dollar",
+        "€": "currency-euro",
+        "£": "currency-pound-sterling",
+    }
+    for match in _CURRENCY_SYMBOL.finditer(text):
+        add(
+            match.start(),
+            match.end(),
+            _currency_text(match["number"], currency_ids[match["symbol"]], language),
+            "es.currency",
+        )
 
     for match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected

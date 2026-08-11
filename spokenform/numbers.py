@@ -18,6 +18,13 @@ from .language import (
     resolve_abbr2words_language,
     resolve_num2words_language,
 )
+from .numeric_lexeme import (
+    NumberRenderMode,
+    NumericLexeme,
+    fraction_digit_groups,
+    numeric_speech_policy,
+    parse_numeric_lexeme,
+)
 
 _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
@@ -169,6 +176,9 @@ _CZECH_PLAIN_NUMBER_RE = re.compile(
 )
 _ENGLISH_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:,\d{3})+|\d{1,3})(?:\.\d+)?|\.\d+)(?!\w|\.\d)"
+)
+_UNIFIED_PLAIN_NUMBER_RE = re.compile(
+    r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)+|[.,]\d+)|\d+)(?!\w)"
 )
 
 
@@ -596,7 +606,12 @@ def _normalize_czech_plain_numbers(text: str, language: str = "cs") -> str:
 
 def _english_spell(value: int, language: str = "en") -> str:
     """Spell a safe English cardinal without punctuation or hyphens."""
-    return str(num2words(value, lang=resolve_num2words_language(language))).replace(",", "").replace("-", " ")
+    return (
+        str(num2words(value, lang=resolve_num2words_language(language)))
+        .replace(",", "")
+        .replace("-", " ")
+        .replace(" and ", " ")
+    )
 
 
 def _english_plain_number_text(raw: str, language: str = "en") -> str:
@@ -662,6 +677,93 @@ def _normalize_english_plain_numbers(text: str, language: str = "en") -> str:
     ).restore()
 
 
+def _negative_word(language: str) -> str:
+    return {
+        "de": "minus",
+        "en": "minus",
+        "es": "menos",
+        "fr": "moins",
+        "it": "meno",
+        "pt": "menos",
+    }.get(base_language(language), "minus")
+
+
+def _render_numeric_lexeme(
+    lexeme: NumericLexeme,
+    language: str,
+    *,
+    mode: NumberRenderMode = NumberRenderMode.CARDINAL,
+) -> str:
+    """Render a parsed lexeme without reparsing its punctuation."""
+    if mode is NumberRenderMode.DIGIT_SEQUENCE:
+        result = " ".join(
+            str(num2words(int(digit), lang=resolve_num2words_language(language)))
+            for digit in lexeme.integer_digits
+        )
+    elif mode is NumberRenderMode.YEAR:
+        result = _year_text(int(lexeme.integer_digits), language)
+    elif mode is NumberRenderMode.ORDINAL:
+        result = _spell(int(lexeme.integer_digits), language, ordinal=True)
+    elif lexeme.fraction_digits is not None or mode is NumberRenderMode.DECIMAL:
+        policy = numeric_speech_policy(language)
+        leading_decimal = lexeme.raw.lstrip("+−-").startswith((".", ","))
+        integer = (
+            ""
+            if leading_decimal and base_language(language) == "en"
+            else _english_spell(int(lexeme.integer_digits), language)
+            if base_language(language) == "en"
+            else _spell(int(lexeme.integer_digits), language)
+        )
+        groups = fraction_digit_groups(lexeme.fraction_digits or "", language)
+        rendered_groups = []
+        for group in groups:
+            if len(group) == 1:
+                rendered_groups.append(_spell(int(group), language))
+            else:
+                rendered_groups.append(
+                    _english_spell(int(group), language)
+                    if base_language(language) == "en"
+                    else _spell(int(group), language)
+                )
+        result = f"{integer + ' ' if integer else ''}{policy.decimal_word} {' '.join(rendered_groups)}".rstrip()
+    else:
+        result = _english_spell(int(lexeme.integer_digits), language) if base_language(language) == "en" else _spell(int(lexeme.integer_digits), language)
+    if lexeme.negative:
+        return f"{_negative_word(language)} {result}"
+    return result
+
+
+def _normalize_unified_plain_numbers(text: str, language: str) -> str:
+    """Normalize plain numbers through the same lexeme parser as quantities."""
+    protected = _protect_plain_numbers(text)
+
+    def replace(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        unsigned = raw.lstrip("+−-")
+        if (
+            len(unsigned) == 1
+            and match.string[match.end() : match.end() + 1] == "."
+            and not re.match(r"\.\d", match.string[match.end() :])
+        ):
+            return raw
+        if base_language(language) == "en" and "." not in unsigned and "," not in unsigned and len(unsigned) > 3:
+            return raw
+        before = match.string[max(0, match.start() - 1) : match.start()]
+        after = match.string[match.end() : match.end() + 1]
+        fraction_tail = re.split(r"[.,]", unsigned)[-1]
+        if len(fraction_tail) > 2 and (
+            (before and before in "$€£") or (after and after in "$€£")
+        ):
+            return raw
+        lexeme = parse_numeric_lexeme(raw, language, context="plain")
+        if lexeme is None:
+            return raw
+        return _render_numeric_lexeme(lexeme, language)
+
+    result = _UNIFIED_PLAIN_NUMBER_RE.sub(replace, protected.text)
+    return _ProtectedText(result, protected.values, protected.placeholder_start).restore()
+
+
 def normalize_plain_numbers(
     text: str,
     *,
@@ -677,18 +779,8 @@ def normalize_plain_numbers(
     working = reserved.text
     if base == "cs":
         result = _normalize_czech_plain_numbers(working, language)
-    elif base in {"es", "it", "pt"}:
-        number_language = language
-        result = _normalize_comma_decimal_plain_numbers(
-            working,
-            language=number_language,
-            decimal_word={"es": "coma", "it": "virgola", "pt": "vírgula"}[base],
-            negative_word={"es": "menos", "it": "meno", "pt": "menos"}[base],
-        )
-    elif base == "en":
-        result = _normalize_english_plain_numbers(working, language)
     else:
-        result = normalize_numbers(working, language=language)
+        result = _normalize_unified_plain_numbers(working, language)
     for index, value in enumerate(reserved.values):
         result = result.replace(chr(reserved.placeholder_start + index), value)
     return result

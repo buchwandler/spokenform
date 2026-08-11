@@ -35,7 +35,7 @@ def test_public_span_helpers_and_serialization_round_trip() -> None:
 def test_structured_output_is_reserved_from_later_broad_normalizers() -> None:
     result = prepare("1,7 kg. #E.", language="fr", use_spacy=False)
 
-    assert result.spoken_text == "un virgule sept kilogrammes. hashtag e."
+    assert result.spoken_text == "un virgule sept kilogrammes. hashtag E."
     assert result.reserved_spans
     assert all(span.owner == "structured-generated" for span in result.reserved_spans)
     assert all(stage.reserved for stage in result.stages if stage.name != "unicode")

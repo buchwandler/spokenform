@@ -137,7 +137,7 @@ _TEXT_DATE = re.compile(
     re.IGNORECASE,
 )
 _ORDINAL_SYMBOL = re.compile(
-    r"(?<![\w.])(?P<number>\d+)(?:\.?[ºª°])(?!\s*[CF]\b)(?!\w)", re.IGNORECASE
+    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª°]|[oa])(?!\s*[CF]\b)(?!\w)", re.IGNORECASE
 )
 _TIME_COLON = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?!\w)")
 _TIME_DOTTED = re.compile(r"(?<!\w)(?P<hour>\d{1,2})\.(?P<minute>[0-5]\d)(?!\w)")
@@ -325,6 +325,8 @@ def iter_replacements(
 
     for match in _ORDINAL_SYMBOL.finditer(text):
         value = str(num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal"))
+        if match.group("suffix").casefold().rstrip(".") in {"a", "ª"} and value.endswith("o"):
+            value = f"{value[:-1]}a"
         add(match.start(), match.end(), value, "it.ordinal")
 
     for match in iter_unit_matches(
