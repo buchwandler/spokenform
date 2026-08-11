@@ -14,6 +14,14 @@ def test_opt_in_literal_promotion_renders_url_email_and_version() -> None:
     assert "at" in result.spoken_text
 
 
+def test_literal_promotion_remains_opt_in_for_defaults() -> None:
+    source = "https://example.org/v1.2.3"
+    default = prepare(source, language="en", use_spacy=False)
+    promoted = prepare(source, language="en", use_spacy=False, normalize_literals=True)
+    assert default.spoken_text == source
+    assert promoted.spoken_text != source
+
+
 def test_literal_promotion_keeps_caller_protected_spans_absolute() -> None:
     source = "See https://example.org/a2 and Chapter IV"
     start = source.index("https://")

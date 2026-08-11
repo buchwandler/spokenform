@@ -26,6 +26,7 @@ class Replacement:
     kind: str = "replacement"
     language: str | None = None
     rule: str | None = None
+    specificity: int = 0
 
     def validate(self, source_length: int) -> None:
         if self.start < 0 or self.end < self.start or self.end > source_length:
@@ -388,7 +389,7 @@ def resolve_replacements(
         enumerate(replacements),
         key=lambda item: (
             item[1].start,
-            -_replacement_priority(item[1]),
+            -(_replacement_priority(item[1]) + item[1].specificity),
             -(item[1].end - item[1].start),
             item[0],
         ),

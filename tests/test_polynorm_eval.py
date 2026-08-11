@@ -2,8 +2,10 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
+    environment_fingerprint,
     evaluate_and_write,
     evaluate_cases,
     literal_key,
@@ -73,6 +75,44 @@ def test_evaluate_and_write_separates_metrics_from_text_reports(tmp_path) -> Non
     assert "original_text" not in json.dumps(summary_json)
     assert (output_dir / "failures.jsonl").read_text(encoding="utf-8") == ""
     assert "PolyNorm failures" in (output_dir / "failures.md").read_text(encoding="utf-8")
+
+
+def test_environment_fingerprint_records_source_commit() -> None:
+    fingerprint = environment_fingerprint(("en-US",))
+    assert fingerprint["spokenform_source_commit"]
+
+
+def test_compare_runs_reports_case_id_and_aggregate_deltas(tmp_path) -> None:
+    before = tmp_path / "before"
+    after = tmp_path / "after"
+    before.mkdir()
+    after.mkdir()
+    summaries = (
+        {"semantic_failure_count": 3, "speech_exact_equivalent_count": 7, "literal_exact_count": 4},
+        {"semantic_failure_count": 2, "speech_exact_equivalent_count": 8, "literal_exact_count": 5},
+    )
+    for directory, summary, failures in (
+        (before, summaries[0], ("en-US:1", "en-US:2", "en-US:3")),
+        (after, summaries[1], ("en-US:2", "en-US:4")),
+    ):
+        (directory / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+        (directory / "failures.jsonl").write_text(
+            "".join(json.dumps({"id": failure}) + "\n" for failure in failures),
+            encoding="utf-8",
+        )
+
+    comparison = compare_runs(before, after)
+
+    assert comparison["summary_delta"] == {
+        "semantic_failure_count": -1,
+        "speech_exact_equivalent_count": 1,
+        "literal_exact_count": 1,
+    }
+    assert comparison["case_delta"] == {
+        "resolved": ["en-US:1", "en-US:3"],
+        "new_failures": ["en-US:4"],
+        "remaining": ["en-US:2"],
+    }
 
 
 def test_reduction_fixture_covers_multiple_failure_families() -> None:

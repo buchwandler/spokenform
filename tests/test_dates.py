@@ -4,12 +4,12 @@ from spokenform.dates import DateCandidate
 
 def test_german_date_grammar_covers_short_text_hyphenated_and_ranges() -> None:
     cases = {
-        "12.10.23": "zwölfte Oktober dreiundzwanzig",
+        "12.10.23": "zwölfte zehnten dreiundzwanzig",
         "5. Nov. 1990": "fünfter November neunzehnhundertneunzig",
         "15-Jan-2023": "fünfzehnter Januar zweitausenddreiundzwanzig",
         "31. Dez. 2025": "einunddreißigste Dezember zweitausendfünfundzwanzig",
-        "’23": "zweitausenddreiundzwanzig",
-        "30.06.": "dreißigster Juni",
+        "’23": "dreiundzwanzig",
+        "30.06.": "dreißigster sechster",
         "10.-12. Mai": "zehnter bis zwölfter Mai",
     }
     for source, expected in cases.items():
@@ -18,13 +18,13 @@ def test_german_date_grammar_covers_short_text_hyphenated_and_ranges() -> None:
 
 def test_english_us_dates_cover_numeric_text_and_ranges() -> None:
     assert prepare("12/31/23", language="en_US", use_spacy=False).spoken_text == (
-        "December thirty-first, two thousand and twenty-three"
+        "December thirty-first twenty three"
     )
     assert prepare("January 5th, 2023", language="en_US", use_spacy=False).spoken_text == (
-        "January fifth, two thousand and twenty-three"
+        "January fifth twenty twenty three"
     )
     assert prepare("Jan 5-7, 2023", language="en_US", use_spacy=False).spoken_text == (
-        "January fifth through seventh, two thousand and twenty three"
+        "January fifth through seventh twenty twenty three"
     )
 
 
@@ -53,11 +53,12 @@ def test_date_candidates_retain_source_shape_and_locale_extensions() -> None:
     assert candidate.month_style == "numeric"
     assert candidate.source_order == "dmy"
     assert candidate.separator == "."
+    assert candidate.range_role == "single"
     assert prepare("Oct 12", language="en_US", use_spacy=False).spoken_text == (
         "October twelfth"
     )
     assert prepare("Oct 12, 2023", language="en_US", use_spacy=False).spoken_text == (
-        "October twelfth, two thousand and twenty-three"
+        "October twelfth twenty twenty three"
     )
     assert prepare("12-10-2023", language="es_MX", use_spacy=False).spoken_text == (
         "doce de octubre de dos mil veintitrés"
@@ -83,3 +84,21 @@ def test_iso_slash_dates_beat_fraction_and_phone_candidates() -> None:
     result = prepare("2025/03/15", language="en", use_spacy=False)
     assert result.spoken_text == "March fifteenth, two thousand and twenty-five"
     assert any(item.rule == "en.date" for item in result.source_replacements)
+
+
+def test_benchmark_date_shapes_and_no_year_dates_use_date_rules() -> None:
+    cases = {
+        ("11/30", "en_US"): "November thirtieth",
+        ("06/10", "en_US"): "June tenth",
+        ("3rd July 1995", "en_US"): "July third nineteen ninety five",
+        ("31 Jan 2025", "en_US"): "January thirty-first twenty twenty five",
+        ("09/01/24", "en_US"): "September first twenty four",
+        ("le 30/06", "fr_FR"): "le trente juin",
+        ("il 31/12", "it_IT"): "il trentuno dicembre",
+        ("31/01", "es_MX"): "treinta y uno de enero",
+        ("04/07", "es_MX"): "cuatro de julio",
+    }
+    for (source, language), expected in cases.items():
+        result = prepare(source, language=language, use_spacy=False)
+        assert result.spoken_text == expected, (source, language)
+        assert any(item.rule.endswith(".date") for item in result.source_replacements)

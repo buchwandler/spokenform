@@ -28,7 +28,7 @@ def _fixture_rows() -> list[dict[str, str]]:
     return json.loads(_FIXTURE.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("language", ["en", "en-us", "en-gb"])
+@pytest.mark.parametrize("language", ["en", "en-gb"])
 def test_english_parity_fixture(language: str) -> None:
     for row in _fixture_rows():
         result = prepare(
@@ -40,6 +40,15 @@ def test_english_parity_fixture(language: str) -> None:
         assert result.spoken_text == row["spoken"], row["id"]
         if "rule" in row:
             assert any(edit.rule == row["rule"] for edit in result.source_replacements), row["id"]
+
+
+def test_english_us_uses_regional_cardinal_and_year_style() -> None:
+    assert prepare("250 mg", language="en_US", use_spacy=False).spoken_text == (
+        "two hundred fifty milligrams"
+    )
+    assert prepare("05/20/2023", language="en_US", use_spacy=False).spoken_text == (
+        "May twentieth twenty twenty three"
+    )
 
 
 def test_all_current_english_canonical_ids_have_grammar() -> None:

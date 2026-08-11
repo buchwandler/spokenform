@@ -95,7 +95,7 @@ def test_fraction_and_acronym_policies_are_high_confidence_only() -> None:
         "un mezzo cinque ottavi"
     )
     assert prepare("NASA BND API", language="en", use_spacy=False).spoken_text == (
-        "nasa b n d API"
+        "Nasa b n d API"
     )
     protected = prepare("https://example.org/v1.2.3", language="en", use_spacy=False)
     assert protected.spoken_text == "https://example.org/v1.2.3"

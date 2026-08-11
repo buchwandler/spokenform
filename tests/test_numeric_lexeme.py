@@ -1,5 +1,10 @@
 from spokenform import prepare
-from spokenform.numeric_lexeme import NumericLexeme, parse_numeric_lexeme
+from spokenform.numeric_lexeme import (
+    NumericLexeme,
+    fraction_digit_groups,
+    numeric_speech_policy,
+    parse_numeric_lexeme,
+)
 
 
 def test_numeric_lexeme_preserves_cross_locale_decimal_precision() -> None:
@@ -38,14 +43,23 @@ def test_numeric_lexeme_fails_closed_for_date_and_version_candidates() -> None:
 
 def test_cross_locale_quantity_regressions_are_not_grouped_integers() -> None:
     assert prepare("5.5 kg", language="es-MX", use_spacy=False).spoken_text == (
-        "cinco coma cinco kilogramos"
+        "cinco punto cinco kilogramos"
     )
     assert prepare("23.7°C", language="es-MX", use_spacy=False).spoken_text == (
-        "veintitrés coma siete grados Celsius"
+        "veintitrés punto siete grados Celsius"
     )
     assert prepare("36.5°C", language="it-IT", use_spacy=False).spoken_text == (
         "trentasei virgola cinque gradi Celsius"
     )
     assert prepare("2.75 kg", language="it-IT", use_spacy=False).spoken_text == (
-        "due virgola sette cinque chilogrammi"
+        "due virgola settantacinque chilogrammi"
     )
+
+
+def test_numeric_speech_policy_is_locale_specific_and_immutable() -> None:
+    assert numeric_speech_policy("es-MX").decimal_word == "punto"
+    assert numeric_speech_policy("es").decimal_word == "coma"
+    assert numeric_speech_policy("en-US").omit_cardinal_conjunction is True
+    assert numeric_speech_policy("fr-FR").fraction_mode == "two_digit_cardinal"
+    assert fraction_digit_groups("75", "fr-FR") == ("75",)
+    assert fraction_digit_groups("09", "fr-FR") == ("0", "9")

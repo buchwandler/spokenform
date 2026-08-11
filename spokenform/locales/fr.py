@@ -20,7 +20,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
-from ..numeric_lexeme import parse_numeric_lexeme
+from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -87,6 +87,29 @@ QUANTITY_GRAMMAR.update(
         "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "kilopascal", "kilopascals"),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascals"),
         "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "mille par heure", "milles par heure"),
+        "temperature-celsius": QuantityGrammar("temperature-celsius", "degré Celsius", "degrés Celsius"),
+        "temperature-fahrenheit": QuantityGrammar("temperature-fahrenheit", "degré Fahrenheit", "degrés Fahrenheit"),
+        "power-watt": QuantityGrammar("power-watt", "watt", "watts"),
+        "power-kilowatt": QuantityGrammar("power-kilowatt", "kilowatt", "kilowatts"),
+        "energy-watt-hour": QuantityGrammar("energy-watt-hour", "watt-heure", "watt-heures"),
+        "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "kilowatt-heure", "kilowatt-heures"),
+        "frequency-hertz": QuantityGrammar("frequency-hertz", "hertz", "hertz"),
+        "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "kilohertz", "kilohertz"),
+        "frequency-megahertz": QuantityGrammar("frequency-megahertz", "mégahertz", "mégahertz"),
+        "frequency-gigahertz": QuantityGrammar("frequency-gigahertz", "gigahertz", "gigahertz"),
+        "length-nanometer": QuantityGrammar("length-nanometer", "nanomètre", "nanomètres"),
+        "current-ampere": QuantityGrammar("current-ampere", "ampère", "ampères"),
+        "current-milliampere": QuantityGrammar("current-milliampere", "milliampère", "milliampères"),
+        "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "milliampère-heure", "milliampère-heures"),
+        "voltage-volt": QuantityGrammar("voltage-volt", "volt", "volts"),
+        "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "lumen", "lumens"),
+        "force-newton": QuantityGrammar("force-newton", "newton", "newtons"),
+        "energy-joule": QuantityGrammar("energy-joule", "joule", "joules"),
+        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "millimètre de mercure", "millimètres de mercure"),
+        "amount-mole": QuantityGrammar("amount-mole", "mole", "moles"),
+        "concentration-molar": QuantityGrammar("concentration-molar", "molaire", "molaires"),
+        "customary-pound": QuantityGrammar("customary-pound", "livre", "livres"),
+        "temperature-kelvin": QuantityGrammar("temperature-kelvin", "kelvin", "kelvins"),
     }
 )
 
@@ -99,6 +122,9 @@ _DATE_ISO = re.compile(
 )
 _DATE_DMY_SHORT = re.compile(
     r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./-](?P<month>0?[1-9]|1[0-2])[./-](?P<year>\d{2})(?!\d)"
+)
+_DATE_DMY_NO_YEAR = re.compile(
+    r"(?<![\w./])(?P<day>0?[1-9]|[12]\d|3[01])/(?P<month>0?[1-9]|1[0-2])(?![\w/])"
 )
 _DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{2,4}(?!\d)")
 _TIME_COLON = re.compile(r"(?<![\w.])(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
@@ -140,23 +166,26 @@ def _spell(value: int | Decimal, language: str = "fr", *, ordinal: bool = False)
     )
 
 
-def _parts(raw: str) -> tuple[bool, int, str | None]:
-    lexeme = parse_numeric_lexeme(raw, "fr", context="quantity")
+def _parts(raw: str, language: str = "fr") -> tuple[bool, int, str | None]:
+    lexeme = parse_numeric_lexeme(raw, language, context="quantity")
     if lexeme is None:
         raise ValueError(f"Cannot parse French number {raw!r}")
     return lexeme.negative, int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _number_text(raw: str, language: str = "fr") -> str:
-    negative, integer, fraction = _parts(raw)
+    negative, integer, fraction = _parts(raw, language)
     result = _spell(integer, language)
     if fraction is not None:
-        result += " virgule " + " ".join(_spell(int(digit), language) for digit in fraction)
+        policy = numeric_speech_policy(language)
+        result += " " + policy.decimal_word + " " + " ".join(
+            _spell(int(group), language) for group in fraction_digit_groups(fraction, language)
+        )
     return f"moins {result}" if negative else result
 
 
-def _decimal(raw: str) -> Decimal:
-    negative, integer, fraction = _parts(raw)
+def _decimal(raw: str, language: str = "fr") -> Decimal:
+    negative, integer, fraction = _parts(raw, language)
     normalized = f"{'-' if negative else ''}{integer}"
     if fraction is not None:
         normalized += f".{fraction}"
@@ -172,6 +201,13 @@ def _valid_date(day: int, month: int, year: int) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:
+    if start == 0 and end == len(text):
+        return day >= 4
+    left = text[max(0, start - 24) : start].casefold()
+    return day > 12 or bool(re.search(r"\b(?:le|du|au|date)\s*$", left))
 
 
 def _date_text(day: int, month: int, year: int, language: str = "fr") -> str:
@@ -208,12 +244,12 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "fr") -> str | N
     grammar = QUANTITY_GRAMMAR.get(canonical_id)
     if canonical_id == "temperature-celsius" or canonical_id == "temperature-fahrenheit":
         unit = "Celsius" if canonical_id.endswith("celsius") else "Fahrenheit"
-        value = _decimal(match.value)
+        value = _decimal(match.value, language)
         noun = f"degré {unit}" if value == 1 else f"degrés {unit}"
         return f"{_number_text(match.value, language)} {noun}"
     if grammar is None:
         return None
-    value = _decimal(match.value)
+    value = _decimal(match.value, language)
     noun = grammar.singular if value == 1 else grammar.plural
     result = f"{_number_text(match.value, language)} {noun}"
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
@@ -222,7 +258,7 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "fr") -> str | N
 
 
 def _currency_text(raw: str, canonical_id: str, language: str = "fr") -> str:
-    negative, integer, fraction = _parts(raw)
+    negative, integer, fraction = _parts(raw, language)
     major_names = {
         "currency-euro": ("euro", "euros", "centime", "centimes"),
         "currency-us-dollar": ("dollar", "dollars", "cent", "cents"),
@@ -264,6 +300,10 @@ def iter_replacements(
         if value is not None and not _overlaps(start, end, protected):
             candidates.append(Replacement(start, end, value, "structured", "fr", rule))
 
+    for match in _DATE_DMY_NO_YEAR.finditer(text):
+        day, month = int(match["day"]), int(match["month"])
+        if _valid_date(day, month, 2000) and _date_like_context(text, match.start(), match.end(), day=day):
+            add(match.start(), match.end(), f"{_spell(day, language)} {_MONTHS[month - 1]}", "fr.date")
     for match in _DATE_DMY_SHORT.finditer(text):
         year, _ = expand_year(match["year"])
         day, month = int(match["day"]), int(match["month"])

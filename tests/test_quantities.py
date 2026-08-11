@@ -6,13 +6,16 @@ def test_percentage_and_compound_units_are_claimed_as_whole_spans() -> None:
         "zwei Komma sieben fünf Prozent"
     )
     assert prepare("2,75%", language="es_MX", use_spacy=False).spoken_text == (
-        "dos coma siete cinco por ciento"
+        "dos punto setenta y cinco por ciento"
     )
     assert prepare("2 g/cm³", language="en", use_spacy=False).spoken_text == (
         "two grams per cubic centimeter"
     )
     assert prepare("2 mol/l", language="de", use_spacy=False).spoken_text == (
         "zwei Mol pro Liter"
+    )
+    assert prepare("6 L/100km", language="en", use_spacy=False).spoken_text == (
+        "six liters per one hundred kilometers"
     )
 
 

@@ -56,6 +56,9 @@ class DateCandidate:
     source_order: Literal["mdy", "dmy", "ymd"]
     separator: str | None
     year_was_apostrophe: bool = False
+    day_had_ordinal_suffix: bool = False
+    range_role: Literal["single", "start", "end"] = "single"
+    surrounding_preposition: str | None = None
 
     @property
     def source_year_digits(self) -> int | None:

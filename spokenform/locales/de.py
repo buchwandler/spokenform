@@ -14,7 +14,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year, parsed_date
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
-from ..numeric_lexeme import parse_numeric_lexeme
+from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +100,18 @@ QUANTITY_GRAMMAR.update(
         "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "m", "Kilopascal", "Kilopascal"),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "m", "Pascal", "Pascal"),
         "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "m", "Meile pro Stunde", "Meilen pro Stunde"),
+        "temperature-celsius": QuantityGrammar("temperature-celsius", "n", "Grad Celsius", "Grad Celsius"),
+        "temperature-fahrenheit": QuantityGrammar("temperature-fahrenheit", "n", "Grad Fahrenheit", "Grad Fahrenheit"),
+        "power-kilowatt": QuantityGrammar("power-kilowatt", "m", "Kilowatt", "Kilowatt"),
+        "energy-joule": QuantityGrammar("energy-joule", "m", "Joule", "Joule"),
+        "length-nanometer": QuantityGrammar("length-nanometer", "m", "Nanometer", "Nanometer"),
+        "current-ampere": QuantityGrammar("current-ampere", "n", "Ampere", "Ampere"),
+        "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "m", "Lumen", "Lumen"),
+        "force-newton": QuantityGrammar("force-newton", "m", "Newton", "Newton"),
+        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "m", "Millimeter Quecksilbersäule", "Millimeter Quecksilbersäule"),
+        "amount-mole": QuantityGrammar("amount-mole", "n", "Mol", "Mol"),
+        "concentration-molar": QuantityGrammar("concentration-molar", "n", "molar", "molar"),
+        "customary-pound": QuantityGrammar("customary-pound", "n", "Pfund", "Pfund"),
     }
 )
 
@@ -177,25 +189,28 @@ def _spell(value: int | Decimal, language: str = "de") -> str:
     return str(num2words(value, lang=resolve_num2words_language(language)))
 
 
-def _parts(raw: str) -> tuple[bool, int, str | None]:
-    lexeme = parse_numeric_lexeme(raw, "de", context="quantity")
+def _parts(raw: str, language: str = "de") -> tuple[bool, int, str | None]:
+    lexeme = parse_numeric_lexeme(raw, language, context="quantity")
     if lexeme is None:
         raise ValueError(f"Cannot parse German number {raw!r}")
     return lexeme.negative, int(lexeme.integer_digits), lexeme.fraction_digits
 
 
 def _number(raw: str, *, one: str | None = None, language: str = "de") -> str:
-    negative, integer, fraction = _parts(raw)
+    negative, integer, fraction = _parts(raw, language)
     if fraction is None:
         result = one if integer == 1 and one else _spell(integer, language)
     else:
-        result = f"{_spell(integer, language)} Komma " + " ".join(
-            _spell(int(digit), language) for digit in fraction
+        policy = numeric_speech_policy(language)
+        result = f"{_spell(integer, language)} {policy.decimal_word} " + " ".join(
+            _spell(int(group), language) for group in fraction_digit_groups(fraction, language)
         )
     return f"minus {result}" if negative else result
 
 
-def _year(value: int, language: str = "de") -> str:
+def _year(value: int, language: str = "de", *, year_digits: int | None = None) -> str:
+    if year_digits == 2:
+        return _spell(value % 100, language)
     if 1100 <= value < 2000:
         century, remainder = divmod(value, 100)
         prefix = f"{_spell(century, language)}hundert"
@@ -219,7 +234,7 @@ def _ordinal(value: int, ending: str, language: str = "de") -> str:
 def _ending(text: str, start: int) -> str:
     prefix = re.sub(r"\s+", " ", text[max(0, start - 48) : start].lower()).rstrip()
     if prefix.endswith(
-        ("am", "im", "vom", "zum", "zur", "auf der", "an der", "in dem", "in den", "auf den")
+        ("am", "im", "vom", "zum", "zur", "bis", "auf der", "an der", "in dem", "in den", "auf den")
     ):
         return "en"
     if prefix.endswith(("ans", "ins", "die", "das", "auf die", "der")):
@@ -245,7 +260,7 @@ def _quantity(match: UnitMatch, text: str, language: str = "de") -> str | None:
     grammar = QUANTITY_GRAMMAR.get(match.canonical_id or "")
     if grammar is None:
         return None
-    negative, integer, fraction = _parts(match.value)
+    negative, integer, fraction = _parts(match.value, language)
     value = Decimal(
         f"{'-' if negative else ''}{integer}.{fraction}"
         if fraction
@@ -313,25 +328,22 @@ def iter_replacements(
     for match in _DATE.finditer(text):
         day, month, year_raw = int(match["day"]), int(match["month"]), match["year"]
         separator = "." if "." in match.group(0) else "/"
+        year_digits = len(year_raw)
         date_year = int(year_raw) if len(year_raw) == 4 else (
             int(year_raw) if separator == "." else 2000 + int(year_raw)
         )
         if _valid(day, month, date_year):
             month_name = next(name for number, name in _MONTHS.values() if number == month)
-            month_text = (
-                _ordinal(month, "en", language)
-                if separator == "/" and len(year_raw) == 4
-                else month_name
-            )
+            month_text = _ordinal(month, "en", language) if separator == "." and len(year_raw) == 2 else month_name
             add(
                 match,
-                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language)}",
+                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language, year_digits=year_digits if separator == '.' else None)}",
                 "de.date",
             )
     for match in _DAY_MONTH.finditer(text):
         day, month = int(match["day"]), int(match["month"])
         if parsed_date(match["day"], match["month"]).valid():
-            month_name = next(name for number, name in _MONTHS.values() if number == month)
+            month_name = _ordinal(month, _ending(text, match.start()), language)
             add(
                 match,
                 f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}",
@@ -348,7 +360,7 @@ def iter_replacements(
             month_name = next(name for number, name in _MONTHS.values() if number == month)
             add(
                 match,
-                f"{_ordinal(int(match['day']), _ending(text, match.start()), language)} {month_name} {_year(year, language)}",
+                f"{_ordinal(int(match['day']), _ending(text, match.start()), language)} {month_name} {_year(year, language, year_digits=len(match['year']))}",
                 "de.date",
             )
     for match in _TEXT_DATE_RANGE.finditer(text):
@@ -357,11 +369,12 @@ def iter_replacements(
         if match["year"]:
             range_year, _ = expand_year(match["year"])
         if not range_year or (_valid(int(match["start"]), month, range_year) and _valid(int(match["end"]), month, range_year)):
-            value = f"{_ordinal(int(match['start']), 'er', language)} bis {_ordinal(int(match['end']), 'er', language)} {month_name}"
-            add(match, f"{value} {_year(range_year, language)}" if range_year else value, "de.date-range")
+            ending = _ending(text, match.start())
+            value = f"{_ordinal(int(match['start']), ending, language)} bis {_ordinal(int(match['end']), ending, language)} {month_name}"
+            add(match, f"{value} {_year(range_year, language, year_digits=len(match['year']) if match['year'] else None)}" if range_year else value, "de.date-range")
     for match in _APOSTROPHE_YEAR.finditer(text):
-        year, _ = expand_year(match["year"])
-        add(match, _year(year, language), "de.short-year")
+        year, year_digits = expand_year(match["year"])
+        add(match, _year(year, language, year_digits=year_digits), "de.short-year")
     for match in _TEXT_DATE.finditer(text):
         month, month_name = _MONTHS[match["month"].lower().rstrip(".")]
         year_raw, day = match["year"], int(match["day"])
@@ -372,7 +385,7 @@ def iter_replacements(
         )
         if text_year is None or _valid(day, month, text_year):
             value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e', language)} {month_name}"
-            add(match, f"{value} {_year(text_year, language)}" if text_year else value, "de.text-date")
+            add(match, f"{value} {_year(text_year, language, year_digits=len(year_raw) if year_raw else None)}" if text_year else value, "de.text-date")
     for match in _TIME_RANGE.finditer(text):
         start_hour, start_minute = int(match["start_hour"]), int(match["start_minute"])
         end_hour, end_minute = int(match["end_hour"]), int(match["end_minute"])

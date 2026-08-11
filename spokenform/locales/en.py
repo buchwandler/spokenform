@@ -20,7 +20,7 @@ from ..config import NumberPolicy
 from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
-from ..numeric_lexeme import parse_numeric_lexeme
+from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -112,6 +112,25 @@ QUANTITY_GRAMMAR.update(
         "pressure-kilopascal": QuantityGrammar("pressure-kilopascal", "kilopascal", "kilopascals"),
         "pressure-pascal": QuantityGrammar("pressure-pascal", "pascal", "pascals"),
         "speed-mile-per-hour": QuantityGrammar("speed-mile-per-hour", "mile per hour", "miles per hour"),
+        "power-watt": QuantityGrammar("power-watt", "watt", "watts"),
+        "power-kilowatt": QuantityGrammar("power-kilowatt", "kilowatt", "kilowatts"),
+        "energy-watt-hour": QuantityGrammar("energy-watt-hour", "watt-hour", "watt-hours"),
+        "energy-kilowatt-hour": QuantityGrammar("energy-kilowatt-hour", "kilowatt-hour", "kilowatt-hours"),
+        "frequency-hertz": QuantityGrammar("frequency-hertz", "hertz", "hertz"),
+        "frequency-kilohertz": QuantityGrammar("frequency-kilohertz", "kilohertz", "kilohertz"),
+        "frequency-megahertz": QuantityGrammar("frequency-megahertz", "megahertz", "megahertz"),
+        "frequency-gigahertz": QuantityGrammar("frequency-gigahertz", "gigahertz", "gigahertz"),
+        "length-nanometer": QuantityGrammar("length-nanometer", "nanometer", "nanometers"),
+        "current-ampere": QuantityGrammar("current-ampere", "ampere", "amperes"),
+        "current-milliampere": QuantityGrammar("current-milliampere", "milliampere", "milliamperes"),
+        "charge-milliampere-hour": QuantityGrammar("charge-milliampere-hour", "milliampere-hour", "milliampere-hours"),
+        "voltage-volt": QuantityGrammar("voltage-volt", "volt", "volts"),
+        "luminous-flux-lumen": QuantityGrammar("luminous-flux-lumen", "lumen", "lumens"),
+        "force-newton": QuantityGrammar("force-newton", "newton", "newtons"),
+        "energy-joule": QuantityGrammar("energy-joule", "joule", "joules"),
+        "pressure-millimeter-mercury": QuantityGrammar("pressure-millimeter-mercury", "millimeter of mercury", "millimeters of mercury"),
+        "amount-mole": QuantityGrammar("amount-mole", "mole", "moles"),
+        "concentration-molar": QuantityGrammar("concentration-molar", "molar", "molar"),
     }
 )
 
@@ -126,6 +145,9 @@ _DATE_ISO_SLASH = re.compile(
 )
 _DATE_MDY = re.compile(
     r"(?<![\w.])(?P<month>0?[1-9]|1[0-2])[/.-](?P<day>0?[1-9]|[12]\d|3[01])[/.-](?P<year>\d{2,4})(?!\d)"
+)
+_DATE_MD_NO_YEAR = re.compile(
+    r"(?<![\w.])(?P<month>0?[1-9]|1[0-2])/(?P<day>0?[1-9]|[12]\d|3[01])(?![\w/])"
 )
 _TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
 _ORDINAL_SUFFIX = re.compile(r"(?<!\w)(?P<number>\d+)(?P<suffix>st|nd|rd|th)\b", re.IGNORECASE)
@@ -205,6 +227,12 @@ _TEXT_DATE = re.compile(
     r"(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
+_TEXT_DATE_DMY = re.compile(
+    r"(?P<day>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+"
+    r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)"
+    r"(?:,)?\s*(?P<year>\d{2,4})?",
+    re.IGNORECASE,
+)
 _TEXT_DATE_RANGE = re.compile(
     r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
     r"(?P<start>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?\s*[-–]\s*(?P<end>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})",
@@ -232,13 +260,21 @@ def _parts(
     return lexeme.negative, raw.strip().startswith("+"), int(lexeme.integer_digits), lexeme.fraction_digits
 
 
+def _cardinal(value: int, language: str = "en", *, omit_conjunction: bool | None = None) -> str:
+    result = _spell(value, language)
+    if omit_conjunction is None:
+        omit_conjunction = numeric_speech_policy(language).omit_cardinal_conjunction
+    return result.replace(" and ", " ") if omit_conjunction else result
+
+
 def _number_text(raw: str, language: str = "en") -> str:
     negative, positive, integer, fraction = _parts(raw, language, context="quantity")
     if fraction is None:
-        result = _spell(integer, language)
+        result = _cardinal(integer, language)
     else:
-        result = f"{_spell(integer, language)} point " + " ".join(
-            _spell(int(digit), language) for digit in fraction
+        policy = numeric_speech_policy(language)
+        result = f"{_cardinal(integer, language)} {policy.decimal_word} " + " ".join(
+            _cardinal(int(group), language) for group in fraction_digit_groups(fraction, language)
         )
     if negative:
         return f"minus {result}"
@@ -266,16 +302,47 @@ def _valid_date(day: int, month: int, year: int) -> bool:
     return True
 
 
-def _date_text(day: int, month: int, year: int, language: str = "en") -> str:
+def _date_text(
+    day: int,
+    month: int,
+    year: int,
+    language: str = "en",
+    *,
+    year_digits: int | None = None,
+) -> str:
     dependency_language = resolve_num2words_language(language)
     day_text = str(num2words(day, lang=dependency_language, to="ordinal"))
-    if 1900 <= year < 2000:
+    policy = numeric_speech_policy(language)
+    if policy.year_mode == "locale" and year_digits == 2:
+        year_text = _cardinal(year % 100, language)
+    elif policy.year_mode == "locale" and 2000 <= year < 2100:
+        century, remainder = divmod(year, 100)
+        year_text = _cardinal(century, language)
+        if remainder:
+            year_text = f"{year_text} {_cardinal(remainder, language)}"
+    elif policy.year_mode == "locale" and 1900 <= year < 2000:
+        century, remainder = divmod(year, 100)
+        prefix = _cardinal(century, language)
+        year_text = prefix if remainder == 0 else f"{prefix} {_cardinal(remainder, language)}"
+    elif 1900 <= year < 2000:
         century, remainder = divmod(year, 100)
         prefix = str(num2words(century, lang=dependency_language))
         year_text = prefix if remainder == 0 else f"{prefix} {'oh ' if remainder < 10 else ''}{num2words(remainder, lang=dependency_language)}"
     else:
         year_text = str(num2words(year, lang=dependency_language))
-    return f"{_MONTHS[month - 1]} {day_text}, {year_text}"
+    separator = " " if policy.year_mode == "locale" else ", "
+    return f"{_MONTHS[month - 1]} {day_text}{separator}{year_text}"
+
+
+def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:
+    """Recognize no-year month/day forms without stealing fractions."""
+    if start == 0 and end == len(text):
+        return day >= 4
+    left = text[max(0, start - 32) : start].casefold()
+    right = text[end : end + 32].casefold()
+    if day > 12 or re.search(r"\b(?:on|by|from|until|date|dated)\s*$", left):
+        return not re.match(r"\s*(?:cup|kg|g|m|cm|in|of)\b", right)
+    return False
 
 
 def _valid_ordinal_suffix(number: int, suffix: str) -> bool:
@@ -333,7 +400,7 @@ def _currency_text(raw: str, canonical_id: str) -> str | None:
     minor = int((fraction or "").ljust(2, "0")) if fraction is not None else 0
     major_singular, major_plural, minor_singular, minor_plural = labels
     major_label = major_singular if integer == 1 else major_plural
-    major = _number_text(("-" if negative else "+" if positive else "") + str(integer))
+    major = _number_text(("-" if negative else "+" if positive else "") + str(integer), language="en")
     result = f"{major} {major_label}"
     if minor and minor_singular is not None and minor_plural is not None:
         minor_label = minor_singular if minor == 1 else minor_plural
@@ -409,14 +476,44 @@ def iter_replacements(
             candidates.append(Replacement(start, end, value, "structured", "en", rule))
 
     for match in _DATE_MDY.finditer(text):
-        year, _ = expand_year(match["year"])
+        year, year_digits = expand_year(match["year"])
         if _valid_date(int(match["day"]), int(match["month"]), year):
             add(
                 match.start(),
                 match.end(),
-                _date_text(int(match["day"]), int(match["month"]), year, language),
+                _date_text(
+                    int(match["day"]),
+                    int(match["month"]),
+                    year,
+                    language,
+                    year_digits=year_digits,
+                ),
                 "en.date",
             )
+    for match in _DATE_MD_NO_YEAR.finditer(text):
+        day, month = int(match["day"]), int(match["month"])
+        if _valid_date(day, month, 2000) and _date_like_context(text, match.start(), match.end(), day=day):
+            add(match.start(), match.end(), f"{_MONTHS[month - 1]} {_spell(day, language, ordinal=True)}", "en.date")
+    for match in _TEXT_DATE_DMY.finditer(text):
+        month_name = match["month"].rstrip(".").title()
+        month_index = next(
+            (index for index, name in enumerate(_MONTHS, 1) if name.casefold().startswith(month_name.casefold())),
+            None,
+        )
+        if month_index is None:
+            continue
+        text_year = None
+        year_digits = None
+        if match["year"]:
+            text_year, year_digits = expand_year(match["year"])
+        day = int(match["day"])
+        if text_year is None or _valid_date(day, month_index, text_year):
+            value = (
+                f"{_MONTHS[month_index - 1]} {_spell(day, language, ordinal=True)}"
+                if text_year is None
+                else _date_text(day, month_index, text_year, language, year_digits=year_digits)
+            )
+            add(match.start(), match.end(), value, "en.date")
     for match in _TEXT_DATE_RANGE.finditer(text):
         month_name = match["month"].rstrip(".").title()
         month_index = next(
@@ -429,7 +526,11 @@ def iter_replacements(
         if _valid_date(int(match["start"]), month_index, year) and _valid_date(
             int(match["end"]), month_index, year
         ):
-            value = f"{_MONTHS[month_index - 1]} {_spell(int(match['start']), language, ordinal=True)} through {_spell(int(match['end']), language, ordinal=True)}, {_spell(year, language)}"
+            if numeric_speech_policy(language).year_mode == "locale":
+                year_text = _date_text(1, month_index, year, language).split(" ", 2)[-1]
+                value = f"{_MONTHS[month_index - 1]} {_spell(int(match['start']), language, ordinal=True)} through {_spell(int(match['end']), language, ordinal=True)} {year_text}"
+            else:
+                value = f"{_MONTHS[month_index - 1]} {_spell(int(match['start']), language, ordinal=True)} through {_spell(int(match['end']), language, ordinal=True)}, {_spell(year, language)}"
             add(match.start(), match.end(), value, "en.date-range")
     for match in _TEXT_DATE.finditer(text):
         month_name = match["month"].rstrip(".").title()

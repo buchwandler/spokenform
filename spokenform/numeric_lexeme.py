@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Literal
 
 from .language import base_language, normalize_language
 
@@ -29,6 +30,58 @@ class NumericLexeme:
     def signed_integer(self) -> str:
         """Return the integer digits with the source sign."""
         return f"{'-' if self.negative else ''}{self.integer_digits}"
+
+
+@dataclass(frozen=True, slots=True)
+class NumericSpeechPolicy:
+    """Locale-selected wording policy for a parsed numeric lexeme."""
+
+    decimal_word: str
+    fraction_mode: Literal["digitwise", "two_digit_cardinal", "cardinal"]
+    preserve_leading_zero_fraction: bool = True
+    omit_cardinal_conjunction: bool = False
+    year_mode: Literal["cardinal", "split_hundreds", "short", "locale"] = "cardinal"
+
+
+_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
+    "en_US": NumericSpeechPolicy("point", "digitwise", omit_cardinal_conjunction=True, year_mode="locale"),
+    "de_DE": NumericSpeechPolicy("Komma", "digitwise", year_mode="split_hundreds"),
+    "es_MX": NumericSpeechPolicy("punto", "two_digit_cardinal"),
+    "fr_FR": NumericSpeechPolicy("virgule", "two_digit_cardinal"),
+    "it_IT": NumericSpeechPolicy("virgola", "two_digit_cardinal"),
+}
+
+_BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
+    "en": NumericSpeechPolicy("point", "digitwise"),
+    "de": NumericSpeechPolicy("Komma", "digitwise", year_mode="split_hundreds"),
+    "es": NumericSpeechPolicy("coma", "digitwise"),
+    "fr": NumericSpeechPolicy("virgule", "digitwise"),
+    "it": NumericSpeechPolicy("virgola", "digitwise"),
+    "pt": NumericSpeechPolicy("vírgula", "digitwise"),
+}
+
+
+def numeric_speech_policy(language: str) -> NumericSpeechPolicy:
+    """Return the immutable numeric speech policy for a normalized locale."""
+    normalized = normalize_language(language)
+    return _NUMERIC_SPEECH_POLICIES.get(
+        normalized,
+        _BASE_NUMERIC_SPEECH_POLICIES.get(
+            base_language(normalized), NumericSpeechPolicy("point", "digitwise")
+        ),
+    )
+
+
+def fraction_digit_groups(fraction_digits: str, language: str) -> tuple[str, ...]:
+    """Group fractional digits according to the locale speech policy."""
+    policy = numeric_speech_policy(language)
+    if (
+        policy.fraction_mode in {"two_digit_cardinal", "cardinal"}
+        and len(fraction_digits) == 2
+        and not (policy.preserve_leading_zero_fraction and fraction_digits.startswith("0"))
+    ):
+        return (fraction_digits,)
+    return tuple(fraction_digits)
 
 
 _NUMERIC_RE = re.compile(
@@ -161,4 +214,10 @@ def parse_numeric_lexeme(
     )
 
 
-__all__ = ["NumericLexeme", "parse_numeric_lexeme"]
+__all__ = [
+    "NumericLexeme",
+    "NumericSpeechPolicy",
+    "fraction_digit_groups",
+    "numeric_speech_policy",
+    "parse_numeric_lexeme",
+]

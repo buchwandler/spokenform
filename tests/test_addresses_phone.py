@@ -6,7 +6,7 @@ def test_german_address_structures_use_category_specific_number_policies() -> No
         "Hauptstraße fünfundvierzig"
     )
     assert prepare("Bahnhofplatz 7a", language="de", use_spacy=False).spoken_text == (
-        "Bahnhofplatz sieben A"
+        "Bahnhofplatz sieben a"
     )
     assert prepare("Hauptstraße 123-125", language="de", use_spacy=False).spoken_text == (
         "Hauptstraße einhundertdreiundzwanzig bis einhundertfünfundzwanzig"
@@ -26,3 +26,5 @@ def test_phone_shapes_and_contextual_emergency_numbers() -> None:
     )
     assert prepare("Dial 911", language="en", use_spacy=False).spoken_text == "Dial nine one one"
     assert prepare("Notruf 112", language="de", use_spacy=False).spoken_text == "Notruf eins eins zwei"
+    assert prepare("+49 30 123456", language="en", use_spacy=False).spoken_text.startswith("plus four nine")
+    assert prepare("06 12 34 56 78", language="fr", use_spacy=False).spoken_text.startswith("zéro six")

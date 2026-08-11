@@ -6,6 +6,7 @@ import json
 import platform
 import re
 import string
+import subprocess
 import sys
 import unicodedata
 from collections import defaultdict
@@ -121,6 +122,22 @@ def _package_version(name: str) -> str:
         return "not-installed"
 
 
+def source_commit() -> str | None:
+    """Return the checked-out source commit when this run comes from Git."""
+    repository = Path(__file__).resolve().parent.parent
+    try:
+        result = subprocess.run(
+            ("git", "-C", str(repository), "rev-parse", "HEAD"),
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    commit = result.stdout.strip()
+    return commit or None
+
+
 def environment_fingerprint(locales: Iterable[str]) -> dict[str, object]:
     """Return reproducibility metadata for one benchmark configuration."""
     from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
@@ -137,7 +154,7 @@ def environment_fingerprint(locales: Iterable[str]) -> dict[str, object]:
         "dataset_repository": POLYNORM_REPOSITORY,
         "dataset_commit": POLYNORM_DATASET_COMMIT,
         "spokenform_version": _package_version("spokenform"),
-        "spokenform_source_commit": None,
+        "spokenform_source_commit": source_commit(),
         "abbr2words_version": _package_version("abbr2words"),
         "num2words_version": _package_version("num2words"),
         "python_version": sys.version.split()[0],
