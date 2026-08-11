@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable
+from dataclasses import replace
 from typing import cast
 
 from abbr2words import abbr2words_with_replacements, iter_unit_matches
@@ -20,11 +21,12 @@ from .language import normalize_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
     Replacement,
+    apply_replacements,
     compose_source_replacements,
     convert_abbr_replacements,
     replacements_from_diff,
 )
-from .models import PreparationStage, PreparedText, SourceReplacement, TokenAnnotation
+from .models import PreparationStage, PreparedText, ReservedSpan, SourceReplacement, TokenAnnotation
 from .numbers import normalize_plain_numbers
 from .protection import (
     ProtectedSpan,
@@ -178,6 +180,7 @@ def prepare(
 
     stages: list[PreparationStage] = []
     current = protected.text
+    reserved_spans: tuple[ReservedSpan, ...] = ()
 
     if normalize_unicode:
         before = current
@@ -232,7 +235,9 @@ def prepare(
                 protected_values=protected.values,
                 protected_placeholders=protected.placeholders,
                 language=language_code,
+                reserved=structured.reserved,
             )
+            reserved_spans = structured.reserved
             current_annotations = remap_annotations_for_replacements(
                 current_annotations,
                 ((item.start, item.end, len(item.text)) for item in internal_replacements),
@@ -260,7 +265,7 @@ def prepare(
                 current,
                 protected.values,
                 protected.placeholders,
-            ),
+            ) + tuple((item.start, item.end) for item in reserved_spans),
         )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,
@@ -275,7 +280,13 @@ def prepare(
             protected_values=protected.values,
             protected_placeholders=protected.placeholders,
             language=language_code,
+            reserved=reserved_spans,
         )
+        _, _, abbreviation_map = apply_replacements(
+            protected.restore(before), abbreviation_replacements, stage="abbreviations"
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, abbreviation_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
         internal_replacements = map_visible_replacements_to_internal(
             before,
             abbreviation_replacements,
@@ -289,11 +300,21 @@ def prepare(
 
     if plain_numbers_enabled:
         before = current
+        internal_reserved_ranges = _reserved_ranges_in_internal(
+            before,
+            reserved_spans,
+            protected.values,
+            protected.placeholders,
+        )
         current = apply_stage(
             stages,
             "numbers",
             current,
-            lambda value: normalize_plain_numbers(value, language=language_code),
+            lambda value: normalize_plain_numbers(
+                value,
+                language=language_code,
+                protected_ranges=internal_reserved_ranges,
+            ),
             restore=protected.restore,
         )
         number_stage = stages[-1]
@@ -312,6 +333,11 @@ def prepare(
             current_annotations,
             ((item.start, item.end, len(item.text)) for item in internal_replacements),
         )
+        number_map = OffsetMap.from_replacements(
+            len(number_stage.before), number_replacements, output_length=len(number_stage.after)
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, number_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
 
     if normalize_whitespace:
         before = current
@@ -347,6 +373,13 @@ def prepare(
             current_annotations,
             ((item.start, item.end, len(item.text)) for item in internal_replacements),
         )
+        whitespace_map = OffsetMap.from_replacements(
+            len(whitespace_stage.before),
+            whitespace_replacements,
+            output_length=len(whitespace_stage.after),
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, whitespace_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
 
     current = protected.restore(current)
 
@@ -364,6 +397,7 @@ def prepare(
         protected_spans=tuple(merged_protected),
         offset_map=offset_map,
         source_replacements=source_replacements,
+        reserved_spans=reserved_spans,
         warnings=(*protection_warnings, *spacy_warnings, *policy_warnings),
     )
 
@@ -384,6 +418,38 @@ def prepare_for_kokorog2p(
 
 
 __all__ = ["prepare", "prepare_text", "prepare_for_kokorog2p", "normalize_spacing"]
+
+
+def _remap_reserved_spans(
+    spans: tuple[ReservedSpan, ...],
+    mapping: OffsetMap,
+) -> tuple[ReservedSpan, ...]:
+    """Carry generated ownership through one visible stage edit map."""
+    remapped: list[ReservedSpan] = []
+    for span in spans:
+        start, end = mapping.map_source_span(span.start, span.end)
+        if start < end:
+            remapped.append(ReservedSpan(start, end, span.owner, span.reason))
+    return tuple(remapped)
+
+
+def _reserved_ranges_in_internal(
+    text: str,
+    spans: tuple[ReservedSpan, ...],
+    protected_values: tuple[str, ...],
+    protected_placeholders: tuple[str, ...],
+) -> tuple[tuple[int, int], ...]:
+    """Translate visible reservation coordinates into sentinel text coordinates."""
+    replacements = tuple(
+        Replacement(span.start, span.end, "") for span in spans if span.start < span.end
+    )
+    internal = map_visible_replacements_to_internal(
+        text,
+        replacements,
+        protected_values,
+        protected_placeholders,
+    )
+    return tuple((item.start, item.end) for item in internal)
 
 
 def _expand_partial_structured_protection(
@@ -542,6 +608,7 @@ def _build_prepared_text(
     protected_spans: tuple[ProtectedSpan, ...],
     offset_map: OffsetMap,
     source_replacements: tuple[SourceReplacement, ...],
+    reserved_spans: tuple[ReservedSpan, ...],
     warnings: tuple[str, ...],
 ) -> PreparedText:
     """Construct the public result from finalized pipeline state."""
@@ -554,6 +621,7 @@ def _build_prepared_text(
         mapped_edits=tuple(edit for stage in stages for edit in stage.mapped_edits),
         source_replacements=source_replacements,
         protected_spans=protected_spans,
+        reserved_spans=reserved_spans,
         offset_map=offset_map,
         warnings=warnings,
     )

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
+from .models import ReservedSpan
 
 
 @dataclass(frozen=True, slots=True)
@@ -15,7 +16,7 @@ class StageResult:
 
     text: str
     replacements: tuple[Replacement, ...]
-    reserved: tuple[tuple[int, int], ...] = ()
+    reserved: tuple[ReservedSpan, ...] = ()
 
 
 def iter_structured_replacements(
@@ -83,8 +84,18 @@ def normalize_structured(
     )
     from .mapping import apply_replacements
 
-    result, _, _ = apply_replacements(text, replacements, stage="structured")
-    return StageResult(result, replacements)
+    result, mapped_edits, _ = apply_replacements(text, replacements, stage="structured")
+    reserved = tuple(
+        ReservedSpan(
+            start=edit.output_start,
+            end=edit.output_end,
+            owner="structured-generated",
+            reason=edit.rule or "accepted structured replacement",
+        )
+        for edit in mapped_edits
+        if edit.output_start < edit.output_end
+    )
+    return StageResult(result, replacements, reserved)
 
 
 __all__ = ["StageResult", "iter_structured_replacements", "normalize_structured"]

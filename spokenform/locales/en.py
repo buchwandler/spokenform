@@ -17,6 +17,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
@@ -99,6 +100,9 @@ _DATE_DMY = re.compile(
 _DATE_ISO = re.compile(
     r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
 )
+_DATE_MDY = re.compile(
+    r"(?<![\w.])(?P<month>0?[1-9]|1[0-2])[/.-](?P<day>0?[1-9]|[12]\d|3[01])[/.-](?P<year>\d{2,4})(?!\d)"
+)
 _TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
 _PLURAL_TENS = re.compile(r"(?<!\w)(?P<value>[2-9]0)(?P<suffix>s)(?!\w)", re.IGNORECASE)
 _VERSION_DECIMAL = re.compile(
@@ -170,6 +174,16 @@ _MONTHS = (
     "October",
     "November",
     "December",
+)
+_TEXT_DATE = re.compile(
+    r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
+    r"(?P<day>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})?",
+    re.IGNORECASE,
+)
+_TEXT_DATE_RANGE = re.compile(
+    r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
+    r"(?P<start>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s*[-–]\s*(?P<end>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})",
+    re.IGNORECASE,
 )
 
 
@@ -356,11 +370,52 @@ def iter_replacements(
         if value is not None and not _overlaps(start, end, protected):
             candidates.append(Replacement(start, end, value, "structured", "en", rule))
 
+    for match in _DATE_MDY.finditer(text):
+        year, _ = expand_year(match["year"])
+        if _valid_date(int(match["day"]), int(match["month"]), year):
+            add(
+                match.start(),
+                match.end(),
+                _date_text(int(match["day"]), int(match["month"]), year, language),
+                "en.date",
+            )
+    for match in _TEXT_DATE_RANGE.finditer(text):
+        month_name = match["month"].rstrip(".").title()
+        month_index = next(
+            (index for index, name in enumerate(_MONTHS, 1) if name.casefold().startswith(month_name.casefold())),
+            None,
+        )
+        if month_index is None:
+            continue
+        year, _ = expand_year(match["year"])
+        if _valid_date(int(match["start"]), month_index, year) and _valid_date(
+            int(match["end"]), month_index, year
+        ):
+            value = f"{_MONTHS[month_index - 1]} {_spell(int(match['start']), language, ordinal=True)} through {_spell(int(match['end']), language, ordinal=True)}, {_spell(year, language)}"
+            add(match.start(), match.end(), value, "en.date-range")
+    for match in _TEXT_DATE.finditer(text):
+        month_name = match["month"].rstrip(".").title()
+        month_index = next(
+            (index for index, name in enumerate(_MONTHS, 1) if name.casefold().startswith(month_name.casefold())),
+            None,
+        )
+        if month_index is None:
+            continue
+        text_year: int | None = int(match["year"]) if match["year"] else None
+        if text_year is not None:
+            text_year, _ = expand_year(match["year"])
+        if text_year is None or _valid_date(int(match["day"]), month_index, text_year):
+            value = _date_text(int(match["day"]), month_index, text_year or 2000, language)
+            if text_year is None:
+                value = f"{_MONTHS[month_index - 1]} {_spell(int(match['day']), language, ordinal=True)}"
+            add(match.start(), match.end(), value, "en.date")
+
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "en.date")
+
 
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])

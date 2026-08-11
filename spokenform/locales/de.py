@@ -11,6 +11,7 @@ from decimal import Decimal
 from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
+from ..dates import expand_year, parsed_date
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
@@ -95,6 +96,18 @@ _TEXT_DATE = re.compile(
     r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)((?!\w))(?:\s+(?P<year>\d{2,4}))?",
     re.IGNORECASE,
 )
+_TEXT_DATE_RANGE = re.compile(
+    r"(?P<start>0?[1-9]|[12]\d|3[01])\.-(?P<end>0?[1-9]|[12]\d|3[01])\.\s+"
+    r"(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)"
+    r"(?:\s+(?P<year>\d{2,4}))?",
+    re.IGNORECASE,
+)
+_HYPHEN_DATE = re.compile(
+    r"(?P<day>0?[1-9]|[12]\d|3[01])-(?P<month>\d{1,2}|Jan(?:uar)?\.?|Feb(?:ruar)?\.?|März?\.?|Apr(?:il)?\.?|Mai|Jun(?:i)?\.?|Jul(?:i)?\.?|Aug(?:ust)?\.?|Sep(?:t(?:ember)?)?\.?|Okt(?:ober)?\.?|Nov(?:ember)?\.?|Dez(?:ember)?\.?)-(?P<year>\d{2,4})",
+    re.IGNORECASE,
+)
+_DAY_MONTH = re.compile(r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])\.(?P<month>0?[1-9]|1[0-2])\.(?!\d)")
+_APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
 _TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
 _CURRENCY_PREFIX = re.compile(
     rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
@@ -112,7 +125,9 @@ _LABEL = re.compile(
 _ORDINAL = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÄÖÜäöüß])")
 _MONTHS = {
     "januar": (1, "Januar"),
+    "jan": (1, "Januar"),
     "februar": (2, "Februar"),
+    "feb": (2, "Februar"),
     "märz": (3, "März"),
     "maerz": (3, "März"),
     "mär": (3, "März"),
@@ -120,13 +135,18 @@ _MONTHS = {
     "apr": (4, "April"),
     "mai": (5, "Mai"),
     "juni": (6, "Juni"),
+    "jun": (6, "Juni"),
     "juli": (7, "Juli"),
+    "jul": (7, "Juli"),
     "august": (8, "August"),
     "aug": (8, "August"),
     "september": (9, "September"),
+    "sep": (9, "September"),
     "sept": (9, "September"),
     "oktober": (10, "Oktober"),
+    "okt": (10, "Oktober"),
     "november": (11, "November"),
+    "nov": (11, "November"),
     "dezember": (12, "Dezember"),
     "dez": (12, "Dezember"),
 }
@@ -290,6 +310,40 @@ def iter_replacements(
                 f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language)}",
                 "de.date",
             )
+    for match in _DAY_MONTH.finditer(text):
+        day, month = int(match["day"]), int(match["month"])
+        if parsed_date(match["day"], match["month"]).valid():
+            month_name = next(name for number, name in _MONTHS.values() if number == month)
+            add(
+                match,
+                f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}",
+                "de.date",
+            )
+    for match in _HYPHEN_DATE.finditer(text):
+        raw_month = match["month"].lower().rstrip(".")
+        if raw_month.isdigit():
+            month = int(raw_month)
+        else:
+            month = _MONTHS.get(raw_month, (0, ""))[0]
+        year, _ = expand_year(match["year"])
+        if month and _valid(int(match["day"]), month, year):
+            month_name = next(name for number, name in _MONTHS.values() if number == month)
+            add(
+                match,
+                f"{_ordinal(int(match['day']), _ending(text, match.start()), language)} {month_name} {_year(year, language)}",
+                "de.date",
+            )
+    for match in _TEXT_DATE_RANGE.finditer(text):
+        month, month_name = _MONTHS[match["month"].lower().rstrip(".")]
+        range_year: int | None = None
+        if match["year"]:
+            range_year, _ = expand_year(match["year"])
+        if not range_year or (_valid(int(match["start"]), month, range_year) and _valid(int(match["end"]), month, range_year)):
+            value = f"{_ordinal(int(match['start']), 'er', language)} bis {_ordinal(int(match['end']), 'er', language)} {month_name}"
+            add(match, f"{value} {_year(range_year, language)}" if range_year else value, "de.date-range")
+    for match in _APOSTROPHE_YEAR.finditer(text):
+        year, _ = expand_year(match["year"])
+        add(match, _year(year, language), "de.short-year")
     for match in _TEXT_DATE.finditer(text):
         month, month_name = _MONTHS[match["month"].lower().rstrip(".")]
         year_raw, day = match["year"], int(match["day"])

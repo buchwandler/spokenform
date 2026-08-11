@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from .mapping import OffsetMap, Replacement, apply_replacements, resolve_replacements
-from .models import PreparationStage, TextEdit, make_stage
+from .models import PreparationStage, ReservedSpan, TextEdit, make_stage
 
 
 def apply_stage(
@@ -31,6 +31,7 @@ def apply_replacement_stage(
     protected_values: tuple[str, ...] = (),
     protected_placeholders: tuple[str, ...] = (),
     language: str | None = None,
+    reserved: tuple[ReservedSpan, ...] = (),
 ) -> str:
     """Apply exact replacements while keeping protected sentinels internal.
 
@@ -73,6 +74,7 @@ def apply_replacement_stage(
             after=visible_after,
             edits=edits,
             mapped_edits=mapped_edits,
+            reserved=reserved,
         )
     )
 

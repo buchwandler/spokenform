@@ -50,6 +50,8 @@ def discover_protected_spans(
             span = (match.start(), match.end())
             if kind == "version" and (_is_strong_sequence(text) or _is_contextual_version(text, match.start())):
                 continue
+            if kind == "version" and _is_dotted_phone(match.group(0)):
+                continue
             if kind == "version" and base == "de" and _is_german_number_or_date(match.group(0)):
                 continue
             if any(start < span[1] and span[0] < end for start, end in occupied):
@@ -64,6 +66,14 @@ def _is_german_number_or_date(value: str) -> bool:
         re.fullmatch(r"\d{1,3}(?:\.\d{3})+", value)
         or re.fullmatch(r"\d{1,2}\.\d{1,2}\.\d{2,4}", value)
     )
+
+
+def _is_dotted_phone(value: str) -> bool:
+    """Leave plausible dotted phone groups available to the phone recognizer."""
+    if not re.fullmatch(r"\+?\d{2,4}(?:\.\d{2,4}){1,3}", value):
+        return False
+    digits = re.sub(r"\D", "", value)
+    return 7 <= len(digits) <= 15 and not re.fullmatch(r"\d{1,2}\.\d{1,2}\.\d{2,4}", value)
 
 
 def _is_strong_sequence(text: str) -> bool:

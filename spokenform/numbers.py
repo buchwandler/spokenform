@@ -486,6 +486,32 @@ def _protect_plain_numbers(text: str) -> _ProtectedText:
     return _ProtectedText(protected, tuple(values), placeholder_start)
 
 
+def _protect_reserved_ranges(
+    text: str,
+    protected_ranges: tuple[tuple[int, int], ...],
+) -> _ProtectedText:
+    """Hide already-rendered structured output from the plain-number pass."""
+    selected: list[tuple[int, int]] = []
+    for start, end in sorted(protected_ranges):
+        start = max(0, start)
+        end = min(len(text), end)
+        if start >= end or (selected and start < selected[-1][1]):
+            continue
+        selected.append((start, end))
+    values = [text[start:end] for start, end in selected]
+    result = text
+    existing_offsets = [
+        ord(character) - 0xE000
+        for character in text
+        if 0xE000 <= ord(character) < 0xE000 + 0x1900
+    ]
+    placeholder_start = 0xE000 + max(existing_offsets, default=-1) + 1
+    for index in reversed(range(len(selected))):
+        start, end = selected[index]
+        result = result[:start] + chr(placeholder_start + index) + result[end:]
+    return _ProtectedText(result, tuple(values), placeholder_start)
+
+
 def _normalize_comma_decimal_plain_numbers(
     text: str,
     *,
@@ -621,22 +647,33 @@ def _normalize_english_plain_numbers(text: str, language: str = "en") -> str:
     ).restore()
 
 
-def normalize_plain_numbers(text: str, *, language: str) -> str:
+def normalize_plain_numbers(
+    text: str,
+    *,
+    language: str,
+    protected_ranges: tuple[tuple[int, int], ...] = (),
+) -> str:
     """Verbalize only ordinary numbers, preserving all structured candidates."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     language = normalize_language(language)
     base = _base_language(language)
+    reserved = _protect_reserved_ranges(text, protected_ranges)
+    working = reserved.text
     if base == "cs":
-        return _normalize_czech_plain_numbers(text, language)
-    if base in {"es", "it", "pt"}:
+        result = _normalize_czech_plain_numbers(working, language)
+    elif base in {"es", "it", "pt"}:
         number_language = language
-        return _normalize_comma_decimal_plain_numbers(
-            text,
+        result = _normalize_comma_decimal_plain_numbers(
+            working,
             language=number_language,
             decimal_word={"es": "coma", "it": "virgola", "pt": "vírgula"}[base],
             negative_word={"es": "menos", "it": "meno", "pt": "menos"}[base],
         )
-    if base == "en":
-        return _normalize_english_plain_numbers(text, language)
-    return normalize_numbers(text, language=language)
+    elif base == "en":
+        result = _normalize_english_plain_numbers(working, language)
+    else:
+        result = normalize_numbers(working, language=language)
+    for index, value in enumerate(reserved.values):
+        result = result.replace(chr(reserved.placeholder_start + index), value)
+    return result

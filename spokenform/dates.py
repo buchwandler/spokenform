@@ -1,0 +1,54 @@
+"""Small parsed date models shared by locale grammars."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedDate:
+    """A validated calendar date retaining the source year width."""
+
+    day: int
+    month: int
+    year: int | None = None
+    year_digits: int | None = None
+
+    def valid(self) -> bool:
+        if self.year is None:
+            return 1 <= self.day <= 31 and 1 <= self.month <= 12
+        try:
+            date(self.year, self.month, self.day)
+        except ValueError:
+            return False
+        return True
+
+
+@dataclass(frozen=True, slots=True)
+class ParsedDateRange:
+    """Two dates represented by one source expression."""
+
+    start: ParsedDate
+    end: ParsedDate
+
+
+def expand_year(raw: str, *, pivot: int = 68) -> tuple[int, int]:
+    """Expand a short year and return ``(year, source_digit_count)``."""
+    digits = len(raw)
+    value = int(raw)
+    if digits == 2:
+        value += 2000 if value <= pivot else 1900
+    return value, digits
+
+
+def parsed_date(day: str, month: str, year: str | None = None) -> ParsedDate:
+    """Build a parsed date model without accepting invalid calendar values."""
+    expanded_year, digits = expand_year(year) if year else (None, None)
+    result = ParsedDate(int(day), int(month), expanded_year, digits)
+    if not result.valid():
+        raise ValueError(f"Invalid date: {result!r}")
+    return result
+
+
+__all__ = ["ParsedDate", "ParsedDateRange", "expand_year", "parsed_date"]

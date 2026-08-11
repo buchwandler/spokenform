@@ -409,17 +409,19 @@ def _replacement_priority(replacement: Replacement) -> int:
     rule = replacement.rule or ""
     if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn"}:
         return 100
-    if rule in {"sequence.coordinate", "sequence.formula"}:
+    if rule in {"sequence.coordinate", "sequence.formula", "sequence.compound-unit", "sequence.percent", "sequence.currency", "sequence.currency-magnitude"}:
         return 90
     if rule in {"sequence.legal", "sequence.sports", "sequence.address"}:
         return 80
+    if rule.endswith(".date-range"):
+        return 75
     if rule.endswith(".date") or rule.endswith(".time"):
         return 70
     if rule in {"sequence.fraction", "sequence.phone", "sequence.version", "sequence.hashtag", "sequence.mention"}:
         return 60
     if ".currency" in rule or ".quantity" in rule or "temperature" in rule:
         return 50
-    if rule in {"sequence.acronym", "sequence.ticker", "sequence.product"}:
+    if rule in {"sequence.acronym", "sequence.ticker", "sequence.product", "sequence.plate"}:
         return 40
     return 0
 

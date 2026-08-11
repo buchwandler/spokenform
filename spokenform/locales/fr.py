@@ -17,6 +17,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
@@ -81,6 +82,9 @@ _DATE_DMY = re.compile(
 _DATE_ISO = re.compile(
     r"(?<![\w.])(?P<year>\d{4})-(?P<month>0?[1-9]|1[0-2])-(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)"
 )
+_DATE_DMY_SHORT = re.compile(
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2})(?!\d)"
+)
 _DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{2,4}(?!\d)")
 _TIME_COLON = re.compile(r"(?<![\w.])(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
 _TIME_H = re.compile(
@@ -104,6 +108,10 @@ _MONTHS = (
     "octobre",
     "novembre",
     "décembre",
+)
+_TEXT_DATE = re.compile(
+    r"(?P<day>0?[1-9]|[12]\d|3[01])\s+(?P<month>janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre|janv\.?|févr\.?|févr\.?|avr\.?|juil\.?|sept\.?|oct\.?|nov\.?|déc\.?|dec\.?)\s*(?P<year>\d{2,4})?",
+    re.IGNORECASE,
 )
 
 
@@ -243,6 +251,27 @@ def iter_replacements(
     def add(start: int, end: int, value: str | None, rule: str) -> None:
         if value is not None and not _overlaps(start, end, protected):
             candidates.append(Replacement(start, end, value, "structured", "fr", rule))
+
+    for match in _DATE_DMY_SHORT.finditer(text):
+        year, _ = expand_year(match["year"])
+        day, month = int(match["day"]), int(match["month"])
+        if _valid_date(day, month, year):
+            add(match.start(), match.end(), _date_text(day, month, year, language), "fr.date")
+    aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
+    aliases.update({"fev": 2, "aou": 8, "dec": 12})
+    for match in _TEXT_DATE.finditer(text):
+        text_month: int | None = aliases.get(match["month"].lower().rstrip(".")[:3])
+        if text_month is None:
+            continue
+        text_year: int | None = None
+        if match["year"]:
+            text_year, _ = expand_year(match["year"])
+        day = int(match["day"])
+        if text_year is None or _valid_date(day, text_month, text_year):
+            value = _date_text(day, text_month, text_year or 2000, language)
+            if text_year is None:
+                value = f"{_spell(day, language)} {_MONTHS[text_month - 1]}"
+            add(match.start(), match.end(), value, "fr.date")
 
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):

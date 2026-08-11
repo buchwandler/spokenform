@@ -41,6 +41,16 @@ class TextEdit:
 
 
 @dataclass(frozen=True, slots=True)
+class ReservedSpan:
+    """An output range owned by a stage and unavailable to broad normalizers."""
+
+    start: int
+    end: int
+    owner: str
+    reason: str
+
+
+@dataclass(frozen=True, slots=True)
 class PreparationStage:
     """The before/after text and edits produced by one stage."""
 
@@ -49,6 +59,7 @@ class PreparationStage:
     after: str
     edits: tuple[TextEdit, ...] = ()
     mapped_edits: tuple[MappedEdit, ...] = ()
+    reserved: tuple[ReservedSpan, ...] = ()
 
     @property
     def changed(self) -> bool:
@@ -100,6 +111,7 @@ class PreparedText:
     mapped_edits: tuple[MappedEdit, ...] = ()
     source_replacements: tuple[SourceReplacement, ...] = ()
     protected_spans: tuple[ProtectedSpan, ...] = ()
+    reserved_spans: tuple[ReservedSpan, ...] = ()
     offset_map: OffsetMap | None = None
     warnings: tuple[str, ...] = ()
 
@@ -176,6 +188,7 @@ class PreparedText:
             "offset_map": self.offset_map.to_dict() if self.offset_map is not None else None,
             "warnings": list(self.warnings),
             "protected_spans": [asdict(item) for item in self.protected_spans],
+            "reserved_spans": [asdict(item) for item in self.reserved_spans],
             "stage_report": self.stage_report,
         }
 

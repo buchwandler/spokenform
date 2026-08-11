@@ -16,6 +16,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..dates import expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
@@ -75,6 +76,7 @@ QUANTITY_GRAMMAR: dict[str, QuantityGrammar] = {
 
 _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
+_DATE_DMY_SHORT = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{2})(?!\d)")
 _MONTHS = (
     "gennaio",
     "febbraio",
@@ -89,6 +91,11 @@ _MONTHS = (
     "novembre",
     "dicembre",
 )
+_TEXT_DATE = re.compile(
+    r"(?P<day>\d{1,2})\s+(?P<month>gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre|gen\.?|feb\.?|mar\.?|apr\.?|mag\.?|giu\.?|lug\.?|ago\.?|set\.?|ott\.?|nov\.?|dic\.?)\s*(?P<year>\d{2,4})?",
+    re.IGNORECASE,
+)
+_ORDINAL_SYMBOL = re.compile(r"(?<![\w.])(?P<number>\d+)(?:\.?[ºª])(?!\w)", re.IGNORECASE)
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
@@ -218,11 +225,35 @@ def iter_replacements(
         if value is not None and not _overlaps(start, end, protected):
             candidates.append(Replacement(start, end, value, "structured", "it", rule))
 
+    for match in _DATE_DMY_SHORT.finditer(text):
+        year, _ = expand_year(match["year"])
+        day, month = int(match["day"]), int(match["month"])
+        if _valid_date(day, month, year):
+            add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
+    aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
+    for match in _TEXT_DATE.finditer(text):
+        text_month: int | None = aliases.get(match["month"].lower().rstrip(".")[:3])
+        if text_month is None:
+            continue
+        text_year: int | None = None
+        if match["year"]:
+            text_year, _ = expand_year(match["year"])
+        day = int(match["day"])
+        if text_year is None or _valid_date(day, text_month, text_year):
+            value = _date_text(day, text_month, text_year or 2000, language)
+            if text_year is None:
+                value = f"{_spell(day, language)} {_MONTHS[text_month - 1]}"
+            add(match.start(), match.end(), value, "it.date")
+
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
+
+    for match in _ORDINAL_SYMBOL.finditer(text):
+        value = str(num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal"))
+        add(match.start(), match.end(), value, "it.ordinal")
 
     for match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected

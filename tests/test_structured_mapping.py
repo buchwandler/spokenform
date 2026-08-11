@@ -30,3 +30,25 @@ def test_public_span_helpers_and_serialization_round_trip() -> None:
     assert quantity_edit.stages == ("structured",)
     restored = OffsetMap.from_dict(result.to_dict()["offset_map"])
     assert restored.source_to_output(len(source)) == len(result.spoken_text)
+
+
+def test_structured_output_is_reserved_from_later_broad_normalizers() -> None:
+    result = prepare("1,7 kg. #E.", language="fr", use_spacy=False)
+
+    assert result.spoken_text == "un virgule sept kilogrammes. hashtag e."
+    assert result.reserved_spans
+    assert all(span.owner == "structured-generated" for span in result.reserved_spans)
+    assert all(stage.reserved for stage in result.stages if stage.name != "unicode")
+    assert not next(stage for stage in result.stages if stage.name == "numbers").mapped_edits
+    assert result.to_adapter_dict()["reserved_spans"]
+
+
+def test_generated_structured_span_maps_back_to_one_source_token() -> None:
+    source = "Weight: 2 kg."
+    result = prepare(source, language="en", use_spacy=False)
+    span = result.reserved_spans[0]
+    assert result.spoken_text[span.start : span.end] == "two kilograms"
+    assert result.map_output_span(span.start, span.end) == (
+        source.index("2 kg"),
+        source.index("2 kg") + len("2 kg"),
+    )

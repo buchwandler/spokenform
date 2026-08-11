@@ -16,3 +16,9 @@ remain local.
 
 PolyNorm is a discovery tool, not a normal CI or release gate. The benchmark
 does not make unsupported PolyNorm locales part of Spokenform's public API.
+
+Fresh runs record the resolved Spokenform, `abbr2words`, and `num2words`
+versions, PolyNorm dataset commit, locale mapping, Python version, and the
+available case count. The pinned snapshot currently contains 2,680 overlap
+cases; reports use the available count rather than assuming every locale has
+the same number of rows.

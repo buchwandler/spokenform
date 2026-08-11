@@ -7,9 +7,9 @@ span so identifiers are never accidentally split into generic numbers.
 
 from __future__ import annotations
 
-import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal, Mapping
+from typing import Literal
 
 from .language import base_language, normalize_language
 
@@ -31,6 +31,17 @@ class SequenceVocabulary:
     close_paren: str = "close parenthesis"
 
 
+@dataclass(frozen=True, slots=True)
+class SequenceRenderPolicy:
+    """Explicit alpha, digit, and punctuation behavior for one category."""
+
+    alpha_mode: Literal["lexical", "grapheme_spaced", "spoken_letter_names"] = (
+        "spoken_letter_names"
+    )
+    digit_mode: Literal["digitwise", "cardinal", "group_cardinal"] = "digitwise"
+    punctuation_mode: Literal["drop", "name", "segment"] = "name"
+
+
 _DIGIT_NAMES: dict[str, tuple[str, ...]] = {
     "en": ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"),
     "de": ("null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"),
@@ -41,14 +52,44 @@ _DIGIT_NAMES: dict[str, tuple[str, ...]] = {
     "cs": ("nula", "jedna", "dva", "tři", "čtyři", "pět", "šest", "sedm", "osm", "devět"),
 }
 
-_LETTER_NAMES: dict[str, tuple[str, ...]] = {
-    "en": tuple("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z".lower().split()),
-    "de": tuple("A B C D E F G H I J K L M N O P Q R S T U V W X Y Z".split()),
-    "es": tuple("a be ce de e efe ge hache i jota ka ele eme ene eñe o pe cu erre ese te u uve dobleuve equis ye zeta".split()),
-    "fr": tuple("a bé cé dé e effe gé ache i ji ka elle aime aine o pé ku erre esse té u vé doublevé ikse i grec zède".split()),
-    "it": tuple("a bi ci di e effe gi acca i elle emme enne o pi cu erre esse ti u vu doppia vu vi zeta".split()),
-    "pt": tuple("a bê cê dê e efe gê agá i jota cá ele eme ene ó pê quê erre esse tê u vê dáblio vê xis ípsilon zê".split()),
-    "cs": tuple("a bé cé dé é ef gé há i jé ká el em en ó pé kú er es té ú vé dvojité vé iks ypsilon zet".split()),
+_LETTER_NAMES: dict[str, Mapping[str, str]] = {
+    "en": {character: character for character in "abcdefghijklmnopqrstuvwxyz"},
+    "de": {character: character.upper() for character in "abcdefghijklmnopqrstuvwxyz"},
+    "es": dict(
+        zip(
+            "abcdefghijklmnopqrstuvwxyz",
+            "a be ce de e efe ge hache i jota ka ele eme ene o pe cu erre ese te u uve dobleuve equis ye zeta".split(),
+            strict=True,
+        )
+    ),
+    "fr": {
+        "a": "a", "b": "bé", "c": "cé", "d": "dé", "e": "e", "f": "effe",
+        "g": "gé", "h": "ache", "i": "i", "j": "ji", "k": "ka", "l": "elle",
+        "m": "aime", "n": "aine", "o": "o", "p": "pé", "q": "ku", "r": "erre",
+        "s": "esse", "t": "té", "u": "u", "v": "vé", "w": "doublevé", "x": "ikse",
+        "y": "i grec", "z": "zède",
+    },
+    "it": {
+        "a": "a", "b": "bi", "c": "ci", "d": "di", "e": "e", "f": "effe",
+        "g": "gi", "h": "acca", "i": "i", "j": "i lunga", "k": "cappa", "l": "elle",
+        "m": "emme", "n": "enne", "o": "o", "p": "pi", "q": "cu", "r": "erre",
+        "s": "esse", "t": "ti", "u": "u", "v": "vu", "w": "doppia vu", "x": "ics",
+        "y": "ipsilon", "z": "zeta",
+    },
+    "pt": dict(
+        zip(
+            "abcdefghijklmnopqrstuvwxyz",
+            "a bê cê dê e efe gê agá i jota cá ele eme ene ó pê quê erre esse tê u vê dáblio xis ípsilon zê".split(),
+            strict=True,
+        )
+    ),
+    "cs": {
+        "a": "a", "b": "bé", "c": "cé", "d": "dé", "e": "é", "f": "ef",
+        "g": "gé", "h": "há", "i": "i", "j": "jé", "k": "ká", "l": "el",
+        "m": "em", "n": "en", "o": "ó", "p": "pé", "q": "kú", "r": "er",
+        "s": "es", "t": "té", "u": "ú", "v": "vé", "w": "dvojité vé", "x": "iks",
+        "y": "ypsilon", "z": "zet",
+    },
 }
 
 _SUPERSCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
@@ -90,12 +131,11 @@ def render_letters(text: str, *, language: str = "en") -> str:
     """Spell alphabetic characters individually using locale vocabulary."""
     names = _LETTER_NAMES[_language(language)]
     normalized = normalize_unicode_digits(text)
-    alphabet = "abcdefghijklmnopqrstuvwxyz"
     result: list[str] = []
     for character in normalized:
         folded = character.casefold()
-        if folded in alphabet:
-            result.append(names[alphabet.index(folded)])
+        if folded in names:
+            result.append(names[folded])
         elif folded == "ñ" and _language(language) == "es":
             result.append("eñe")
         else:
@@ -122,10 +162,13 @@ def render_sequence(
     language: str = "en",
     punctuation: Mapping[str, str | None] | None = None,
     digit_mode: Literal["digitwise", "cardinal"] = "digitwise",
+    policy: SequenceRenderPolicy | None = None,
 ) -> str:
     """Render a claimed sequence with configurable punctuation names."""
+    if policy is not None:
+        digit_mode = "cardinal" if policy.digit_mode in {"cardinal", "group_cardinal"} else "digitwise"
     vocab = vocabulary(language)
-    names = {
+    names: dict[str, str | None] = {
         ".": vocab.point,
         "/": vocab.slash,
         "-": vocab.hyphen,
@@ -151,12 +194,16 @@ def render_sequence(
     for character in normalized:
         if character.isdigit():
             rendered.append(render_digits(character, language=language))
+        elif character.isalpha() and policy is not None and policy.alpha_mode == "lexical":
+            rendered.append(character)
         elif character.isalpha():
             rendered.append(render_letters(character, language=language))
         elif character.isspace():
             continue
         else:
             name = names.get(character)
+            if policy is not None and policy.punctuation_mode == "drop":
+                name = None
             if name:
                 rendered.append(name)
             elif name is not None:
@@ -168,6 +215,7 @@ def render_sequence(
 
 __all__ = [
     "SequenceVocabulary",
+    "SequenceRenderPolicy",
     "normalize_unicode_digits",
     "render_alnum",
     "render_digits",
