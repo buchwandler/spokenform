@@ -400,7 +400,10 @@ def iter_replacements(
 
     unit_protected = protected + tuple(plural_tens_spans)
     for match in iter_unit_matches(text, dependency_language, protected_spans=unit_protected):
-        replacement = _quantity_text(match, text, language)
+        try:
+            replacement = _quantity_text(match, text, language)
+        except (TypeError, ValueError):
+            replacement = None
         add(
             match.start,
             match.end,

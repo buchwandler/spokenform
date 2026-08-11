@@ -38,18 +38,46 @@ _LITERAL_PATTERNS = (
 )
 
 
-def discover_protected_spans(text: str) -> tuple[ProtectedSpan, ...]:
-    """Find literal forms that should not be sent through semantic rules."""
+def discover_protected_spans(
+    text: str, *, language: str | None = None
+) -> tuple[ProtectedSpan, ...]:
+    """Find auto-literals that generic stages must not partially rewrite."""
+    base = language.replace("-", "_").split("_", 1)[0].casefold() if language else None
     found: list[ProtectedSpan] = []
     occupied: list[tuple[int, int]] = []
     for kind, pattern in _LITERAL_PATTERNS:
         for match in pattern.finditer(text):
             span = (match.start(), match.end())
+            if kind == "version" and (_is_strong_sequence(text) or _is_contextual_version(text, match.start())):
+                continue
+            if kind == "version" and base == "de" and _is_german_number_or_date(match.group(0)):
+                continue
             if any(start < span[1] and span[0] < end for start, end in occupied):
                 continue
             occupied.append(span)
             found.append(ProtectedSpan(*span, kind=kind, source="discovered"))
     return tuple(sorted(found, key=lambda item: (item.start, item.end)))
+
+
+def _is_german_number_or_date(value: str) -> bool:
+    return bool(
+        re.fullmatch(r"\d{1,3}(?:\.\d{3})+", value)
+        or re.fullmatch(r"\d{1,2}\.\d{1,2}\.\d{2,4}", value)
+    )
+
+
+def _is_strong_sequence(text: str) -> bool:
+    """Keep canonical identifiers available to semantic recognizers."""
+    return bool(
+        re.search(r"(?<!\w)\d{1,3}(?:\.\d{1,3}){3}(?!\w)", text)
+        or re.search(r"(?<![\w-])[0-9a-fA-F]{8}(?:-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}(?![\w-])", text)
+        or re.search(r"(?<![\w:])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}(?![\w:])", text)
+    )
+
+
+def _is_contextual_version(text: str, start: int) -> bool:
+    prefix = text[max(0, start - 24) : start]
+    return bool(re.search(r"(?:version|release|ver\.?|build)\s*[=:]?\s*$", prefix, re.IGNORECASE))
 
 
 def coerce_protected_spans(

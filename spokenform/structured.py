@@ -31,6 +31,11 @@ def iter_structured_replacements(
     language = normalize_language(language)
     base = base_language(language)
     protected = tuple(protected_ranges)
+    from .recognizers import iter_sequence_replacements
+
+    shared_candidates = iter_sequence_replacements(
+        text, language=language, protected_ranges=protected
+    )
     if base == "en":
         from .locales.en import iter_replacements
 
@@ -63,7 +68,7 @@ def iter_structured_replacements(
         candidates = iter_replacements(text, language=language, protected_ranges=protected)
     else:
         return ()
-    return resolve_replacements(candidates, source_length=len(text))
+    return resolve_replacements((*shared_candidates, *candidates), source_length=len(text))
 
 
 def normalize_structured(

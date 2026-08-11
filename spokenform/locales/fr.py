@@ -267,7 +267,12 @@ def iter_replacements(
     for match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
-        replacement = _quantity_text(match, text, language)
+        try:
+            replacement = _quantity_text(match, text, language)
+        except (InvalidOperation, TypeError, ValueError):
+            # Dependency candidates are advisory; malformed numeric lexemes
+            # must never make preparation fail for the whole sentence.
+            replacement = None
         add(
             match.start,
             match.end,

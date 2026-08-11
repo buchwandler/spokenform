@@ -10,14 +10,15 @@ from urllib.request import urlopen
 POLYNORM_REPOSITORY = "https://github.com/apple/ml-speech-polynorm-bench"
 POLYNORM_RAW_BASE = "https://raw.githubusercontent.com/apple/ml-speech-polynorm-bench"
 POLYNORM_COMMIT = "f3c67e047bea6b7c40bc2466c0fdaad51d8ce67d"
+POLYNORM_DATASET_COMMIT = POLYNORM_COMMIT
 POLYNORM_LICENSE = "CC BY-NC-ND 4.0"
 POLYNORM_LOCALES = ("de-DE", "en-US", "es-MX", "fr-FR", "it-IT")
 POLYNORM_TO_SPOKENFORM = {
-    "de-DE": "de",
-    "en-US": "en",
-    "es-MX": "es",
-    "fr-FR": "fr",
-    "it-IT": "it",
+    "de-DE": "de_DE",
+    "en-US": "en_US",
+    "es-MX": "es_MX",
+    "fr-FR": "fr_FR",
+    "it-IT": "it_IT",
 }
 
 
@@ -145,6 +146,7 @@ def selected_locales(locale: str | None = None) -> tuple[str, ...]:
 
 __all__ = [
     "POLYNORM_COMMIT",
+    "POLYNORM_DATASET_COMMIT",
     "POLYNORM_LICENSE",
     "POLYNORM_LOCALES",
     "POLYNORM_RAW_BASE",

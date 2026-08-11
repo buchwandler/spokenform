@@ -386,7 +386,12 @@ def resolve_replacements(
         replacement.validate(source_length)
     ranked = sorted(
         enumerate(replacements),
-        key=lambda item: (item[1].start, -(item[1].end - item[1].start), item[0]),
+        key=lambda item: (
+            item[1].start,
+            -_replacement_priority(item[1]),
+            -(item[1].end - item[1].start),
+            item[0],
+        ),
     )
     selected: list[Replacement] = []
     for _, candidate in ranked:
@@ -397,6 +402,26 @@ def resolve_replacements(
             continue
         selected.append(candidate)
     return tuple(sorted(selected, key=lambda item: (item.start, item.end)))
+
+
+def _replacement_priority(replacement: Replacement) -> int:
+    """Return the documented semantic precedence for candidate conflicts."""
+    rule = replacement.rule or ""
+    if rule in {"sequence.uuid", "sequence.ipv4", "sequence.mac", "sequence.iban", "sequence.isbn"}:
+        return 100
+    if rule in {"sequence.coordinate", "sequence.formula"}:
+        return 90
+    if rule in {"sequence.legal", "sequence.sports", "sequence.address"}:
+        return 80
+    if rule.endswith(".date") or rule.endswith(".time"):
+        return 70
+    if rule in {"sequence.fraction", "sequence.phone", "sequence.version", "sequence.hashtag", "sequence.mention"}:
+        return 60
+    if ".currency" in rule or ".quantity" in rule or "temperature" in rule:
+        return 50
+    if rule in {"sequence.acronym", "sequence.ticker", "sequence.product"}:
+        return 40
+    return 0
 
 
 def convert_abbr_replacements(

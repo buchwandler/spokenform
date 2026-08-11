@@ -419,7 +419,7 @@ def _prepare_protected_text(
     supplied_spans = _expand_partial_structured_protection(
         text, language=language, spans=supplied_spans
     )
-    merged: list[ProtectedSpan] = list(discover_protected_spans(text))
+    merged: list[ProtectedSpan] = list(discover_protected_spans(text, language=language))
     for candidate in supplied_spans:
         if not any(
             existing.start < candidate.end and candidate.start < existing.end for existing in merged

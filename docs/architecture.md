@@ -3,12 +3,14 @@
 `spokenform.prepare()` applies explicit stages in this order:
 
 1. validate the selected language and protected ranges;
-2. discover literal ranges such as URLs, email addresses, and semantic versions;
+2. discover caller-protected ranges and auto-detected literals such as URLs,
+   email addresses, and (when not claimed semantically) semantic versions;
 3. obtain or validate optional lexical annotations;
 4. replace protected ranges with internal sentinels and remap annotation offsets;
 5. normalize Unicode independently when enabled;
-6. ask `abbr2words` for source-aligned structured quantity identities and realize
-   them with the selected locale's semantic grammar;
+6. recognize complete high-confidence structured sequences, then ask `abbr2words`
+   for source-aligned structured quantity identities and realize them with the
+   selected locale's semantic grammar;
 7. expand lexical abbreviations with exact `abbr2words` replacements;
 8. verbalize remaining generic numeric forms according to `NumberPolicy`;
 9. normalize whitespace according to independently configurable controls;
@@ -94,3 +96,15 @@ reviewed structured semantics, contextual single-dot release labels, and safe
 ordinary-number categories. Years, suffix ordinals, Roman numerals, phone/ID and
 arbitrary multi-dot sequences, numeric suffixes, and G2P decisions remain
 downstream-owned.
+
+## Structured precedence
+
+Caller protection is absolute. Auto-detected literals are a fallback reservation
+against partial generic rewrites; a complete semantic recognizer may claim an
+auto-literal before it is reserved. Candidate conflict resolution gives priority
+to canonical identifiers, then coordinates and formulas, contextual legal,
+sports, and address forms, dates and times, contextual sequences,
+quantities/currencies/temperatures, and generic acronym/product candidates.
+Unclaimed or ambiguous forms remain opaque. Every selected candidate is still an
+exact `Replacement`, so precedence does not weaken source/output mapping or
+protected-span behavior.

@@ -191,7 +191,7 @@ def _placeholder(index: int) -> str:
     return chr(0xE000 + index)
 
 
-def _protect(text: str) -> _ProtectedText:
+def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
     values: list[str] = []
 
     def replace(match: re.Match[str]) -> str:
@@ -201,7 +201,18 @@ def _protect(text: str) -> _ProtectedText:
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
-    protected = _BARE_VERSION_RE.sub(replace, protected)
+    base = base_language(language) if language else None
+
+    def bare_version(match: re.Match[str]) -> str:
+        value = match.group(0)
+        if base == "de" and (
+            re.fullmatch(r"\d{1,3}(?:\.\d{3})+", value)
+            or re.fullmatch(r"\d{1,2}\.\d{1,2}\.\d{2,4}", value)
+        ):
+            return value
+        return replace(match)
+
+    protected = _BARE_VERSION_RE.sub(bare_version, protected)
 
     def invalid_date(match: re.Match[str]) -> str:
         try:
@@ -436,7 +447,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
 
         structured = normalize_structured(text, language=language)
         return normalize_plain_numbers(structured.text, language=language)
-    protected = _protect(text)
+    protected = _protect(text, language=language)
     result = protected.text
     transformations: tuple[Callable[[str, str], str], ...] = (
         _replace_dates,

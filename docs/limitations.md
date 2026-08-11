@@ -4,8 +4,9 @@
 - Language detection and mixed-language segmentation are external.
 - SSMD and other markup must be parsed before calling `spokenform`.
 - Date, time, currency, ordinal, and locale grammar is intentionally conservative.
-- Invalid calendar dates and times are recognized as protected structured
-  candidates and remain literal; ambiguous two-digit years remain unchanged.
+- Invalid calendar dates and times remain literal; ambiguous standalone versions,
+  phone-like strings without context, and generic serials remain protected or
+  downstream-owned rather than being partially rewritten.
 - Protected spans use allocated private-use sentinels that are checked against the
   current input, so existing private-use characters are preserved literally.
 - `abbr2words` accepts POS annotations, but its bundled registries do not
@@ -28,6 +29,13 @@
 - Spanish decimal quantities and money are decomposed deterministically from
   written fractional digits; reviewed fixtures define major/minor wording and
   Spanish one-ending agreement rather than delegating grammar to `num2words`.
+
+High-confidence structured sequences include Unicode fractions, coordinates,
+ISBNs, UUIDs, IPv4, MAC addresses, IBANs, contextual phones and versions,
+hashtags, mentions, conservative chemical formulas, acronyms/tickers, labeled
+product codes, legal references, sports scores, and address suffixes. Broad
+natural-language address, legal, mathematical, and musical parsing remains
+outside the core contract.
 
 # Limitations and readiness gates
 

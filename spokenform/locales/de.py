@@ -92,7 +92,7 @@ _DATE = re.compile(
     r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2,4})(?!\d)"
 )
 _TEXT_DATE = re.compile(
-    r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|Mär|Apr|Mai|Juni|Juli|Aug|September|Sept|Oktober|November|Dezember|Dez)(?:\s+(?P<year>\d{2,4}))?",
+    r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)((?!\w))(?:\s+(?P<year>\d{2,4}))?",
     re.IGNORECASE,
 )
 _TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
@@ -103,7 +103,7 @@ _CURRENCY_SUFFIX = re.compile(
     rf"(?<![\w.])(?P<number>{_NUMBER})\s*(?P<symbol>[^\W\d_€$£]+|[€$£])(?!\w)", re.IGNORECASE
 )
 _TEMPERATURE = re.compile(
-    rf"(?<!\w)(?P<number>{_NUMBER})\s*°?\s*(?P<unit>°?C|°?F)(?!\w)", re.IGNORECASE
+    rf"(?<!\w)(?P<number>{_NUMBER})(?:(?:\s*°\s*)|(?:\s+))(?P<unit>C|F)(?!\w)", re.IGNORECASE
 )
 _LABEL = re.compile(
     r"(?P<label>laufende\s+Nummer|Lfd\.\s*Nr\.|Nummer|Gleis|Kapitel|Absatz|Seite|S\.)\s+(?P<number>\d+)(?!\w)",
@@ -274,21 +274,29 @@ def iter_replacements(
 
     for match in _DATE.finditer(text):
         day, month, year_raw = int(match["day"]), int(match["month"]), match["year"]
-        date_year = int(year_raw) if len(year_raw) == 4 else 2000 + int(year_raw)
+        separator = "." if "." in match.group(0) else "/"
+        date_year = int(year_raw) if len(year_raw) == 4 else (
+            int(year_raw) if separator == "." else 2000 + int(year_raw)
+        )
         if _valid(day, month, date_year):
             month_name = next(name for number, name in _MONTHS.values() if number == month)
+            month_text = (
+                _ordinal(month, "en", language)
+                if separator == "/" and len(year_raw) == 4
+                else month_name
+            )
             add(
                 match,
-                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_name} {_year(date_year, language)}",
+                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language)}",
                 "de.date",
             )
     for match in _TEXT_DATE.finditer(text):
-        month, month_name = _MONTHS[match["month"].lower()]
+        month, month_name = _MONTHS[match["month"].lower().rstrip(".")]
         year_raw, day = match["year"], int(match["day"])
         text_year: int | None = (
             int(year_raw)
             if year_raw and len(year_raw) == 4
-            else (2000 + int(year_raw) if year_raw else None)
+            else (int(year_raw) if year_raw else None)
         )
         if text_year is None or _valid(day, month, text_year):
             value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'e', language)} {month_name}"
@@ -336,7 +344,10 @@ def iter_replacements(
                     )
                 continue
         if not _overlaps(match.start, match.end, protected):
-            replacement = _quantity(match, text, language)
+            try:
+                replacement = _quantity(match, text, language)
+            except (TypeError, ValueError):
+                replacement = None
             if replacement:
                 candidates.append(
                     Replacement(

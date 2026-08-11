@@ -248,7 +248,10 @@ def iter_replacements(
     for match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
-        replacement = _quantity_text(match, text, language=language)
+        try:
+            replacement = _quantity_text(match, text, language=language)
+        except (TypeError, ValueError):
+            replacement = None
         add(
             match.start,
             match.end,
