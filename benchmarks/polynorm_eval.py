@@ -12,7 +12,7 @@ import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from statistics import mean, median
@@ -545,7 +545,7 @@ def evaluate_cases(
 
 
 def _run_id() -> str:
-    return datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _write_failures_markdown(failures: tuple[dict[str, Any], ...], path: Path) -> None:
@@ -587,7 +587,7 @@ def evaluate_and_write(
         "repository": POLYNORM_REPOSITORY,
         "dataset_commit": POLYNORM_DATASET_COMMIT,
         "commit": POLYNORM_COMMIT,
-        "generated_at": datetime.now(UTC).isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "locales": sorted({case.polynorm_locale for case in case_list}),
         "spokenform_languages": sorted(
             {POLYNORM_TO_SPOKENFORM[case.polynorm_locale] for case in case_list}

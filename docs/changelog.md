@@ -8,7 +8,7 @@
 
 - Added contextual English single-dot release-label pronunciation (`bot 2.0` -> `bot two point oh`) while preserving ordinary decimal precision and multi-dot protection
 
-## [0.2.4] - Unreleased
+## [0.2.4] - 2026-08-11
 
 ### Added
 
