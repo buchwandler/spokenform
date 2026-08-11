@@ -101,6 +101,12 @@ def test_fraction_and_acronym_policies_are_high_confidence_only() -> None:
     assert protected.spoken_text == "https://example.org/v1.2.3"
 
 
+def test_generic_uppercase_acronyms_are_grapheme_spaced() -> None:
+    result = prepare("ABC", language="en", use_spacy=False)
+    assert result.spoken_text == "A B C"
+    assert any(item.rule == "sequence.acronym" for item in result.source_replacements)
+
+
 @pytest.mark.parametrize(
     ("language", "source", "expected"),
     [

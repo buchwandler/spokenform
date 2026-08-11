@@ -816,10 +816,13 @@ def _acronym_text(value: str, language: str) -> str:
     policy = acronym_policy(language)
     if value in policy.lexical_words:
         return value.casefold()
+    if value in policy.preserve:
+        return value
+    alpha_mode = policy.default_mode if value in policy.initialisms else "grapheme_spaced"
     return render_sequence(
         value,
         language=language,
-        policy=SequenceRenderPolicy(alpha_mode=policy.default_mode),
+        policy=SequenceRenderPolicy(alpha_mode=alpha_mode),
     )
 
 
