@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
+from benchmarks.polynorm import _parser
 from benchmarks.polynorm_eval import (
+    _filter_failures_by_speech_wer,
     environment_fingerprint,
     evaluate_and_write,
     evaluate_cases,
@@ -22,6 +24,49 @@ def test_comparison_normalization_keeps_semantic_symbols() -> None:
     assert speech_key("Hello, world!") == speech_key("Hello world")
     assert word_error_rate(("one", "two"), ("one", "three")) == 0.5
     assert speech_key_equivalent("i ese be ene", language="es") == ("i", "s", "b", "n")
+
+
+def test_speech_wer_threshold_is_strict_and_optional() -> None:
+    failures = tuple(
+        {"id": case_id, "speech_wer": wer}
+        for case_id, wer in (("low", 0.25), ("equal", 0.5), ("high", 0.75))
+    )
+
+    assert [item["id"] for item in _filter_failures_by_speech_wer(failures, 0.5)] == ["high"]
+    assert _filter_failures_by_speech_wer(failures, None) == failures
+    assert _parser().parse_args(["--speech-wer-threshold", "0.5"]).speech_wer_threshold == 0.5
+
+
+def test_speech_wer_threshold_keeps_polynorm_summary_metrics(tmp_path, monkeypatch):
+    failures = tuple(
+        {
+            "id": case_id,
+            "polynorm_locale": "en-US",
+            "category": "Cardinal",
+            "original_text": "source",
+            "expected": "expected",
+            "actual": "actual",
+            "speech_wer": wer,
+            "error": None,
+        }
+        for case_id, wer in (("low", 0.25), ("equal", 0.5), ("high", 0.75))
+    )
+    monkeypatch.setattr(
+        "benchmarks.polynorm_eval.evaluate_cases",
+        lambda cases: ({"cases": 3, "error_count": 0}, failures),
+    )
+
+    output_dir, summary = evaluate_and_write((), output_root=tmp_path, speech_wer_threshold=0.5)
+
+    assert summary["cases"] == 3
+    assert summary["speech_wer_threshold"] == 0.5
+    assert summary["stored_failure_count"] == 1
+    stored = [json.loads(line)["id"] for line in (output_dir / "failures.jsonl").read_text().splitlines()]
+    assert stored == ["high"]
+    report = (output_dir / "failures.md").read_text()
+    assert "#### high" in report
+    assert "#### equal" not in report
+    assert "#### low" not in report
 
 
 def test_evaluation_separates_raw_presentation_and_semantic_diagnostics() -> None:

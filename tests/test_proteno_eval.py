@@ -2,9 +2,11 @@ import json
 from types import SimpleNamespace
 
 from benchmarks.proteno_compare import compare_runs
+from benchmarks.proteno import _parser
 from benchmarks.proteno_data import ProtenoCase, ProtenoExclusion
 from benchmarks.proteno_eval import (
     _write_failures_markdown,
+    _filter_failures_by_speech_wer,
     evaluate_and_write,
     evaluate_cases,
     literal_key,
@@ -49,6 +51,53 @@ def test_comparison_layers_and_wer():
     assert speech_key("Pay $5") != speech_key("Pay five")
     assert speech_key_equivalent("i ese be ene", language="es") == ("i", "s", "b", "n")
     assert word_error_rate(("one", "two"), ("one", "three")) == 0.5
+
+
+def test_speech_wer_threshold_is_strict_and_optional():
+    failures = tuple(
+        {"id": case_id, "speech_wer": wer}
+        for case_id, wer in (("low", 0.25), ("equal", 0.5), ("high", 0.75))
+    )
+
+    assert [item["id"] for item in _filter_failures_by_speech_wer(failures, 0.5)] == ["high"]
+    assert _filter_failures_by_speech_wer(failures, None) == failures
+    assert _parser().parse_args(["--speech-wer-threshold", "0.5"]).speech_wer_threshold == 0.5
+
+
+def test_speech_wer_threshold_keeps_proteno_summary_metrics(tmp_path, monkeypatch):
+    failures = tuple(
+        {
+            "id": case_id,
+            "proteno_language": "en",
+            "case_kind": "normalization",
+            "split": "train",
+            "source_tokens": ("source",),
+            "original_text": "source",
+            "expected": "expected",
+            "actual": "actual",
+            "speech_wer": wer,
+            "primary_rule": "en.cardinal",
+            "failure_phase": "downstream_rendering",
+            "error": None,
+        }
+        for case_id, wer in (("low", 0.25), ("equal", 0.5), ("high", 0.75))
+    )
+    monkeypatch.setattr(
+        "benchmarks.proteno_eval.evaluate_cases",
+        lambda cases: ({"cases": 3, "error_count": 0}, failures),
+    )
+
+    output_dir, summary = evaluate_and_write((), output_root=tmp_path, speech_wer_threshold=0.5)
+
+    assert summary["cases"] == 3
+    assert summary["speech_wer_threshold"] == 0.5
+    assert summary["stored_failure_count"] == 1
+    stored = [json.loads(line)["id"] for line in (output_dir / "failures.jsonl").read_text().splitlines()]
+    assert stored == ["high"]
+    report = next(output_dir.glob("failures-en-normalization-*.md")).read_text()
+    assert "#### high" in report
+    assert "#### equal" not in report
+    assert "#### low" not in report
 
 
 def test_normalization_identity_mapping_and_provenance():

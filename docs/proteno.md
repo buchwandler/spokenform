@@ -32,6 +32,7 @@ python -m benchmarks.proteno --offline --language es
 python -m benchmarks.proteno --offline --split test
 python -m benchmarks.proteno --offline --language en --limit 100
 python -m benchmarks.proteno --offline --case en:00481 --show-failures all
+python -m benchmarks.proteno --offline --speech-wer-threshold 0.5
 ```
 
 Use `--refresh` to redownload selected pinned files. `--cache-dir` and
@@ -42,6 +43,12 @@ for example `en:00481`, so filtering does not renumber cases.
 
 `--show-failures all` prints the compact `failures.md` index; open its links to
 inspect the bounded detail shards.
+
+Use `--speech-wer-threshold VALUE` to persist only failure entries whose word
+error rate is strictly greater than `VALUE`. The option filters
+`failures.jsonl` and the Markdown failure shards only; summary metrics and
+evaluated-case counts still cover the complete run. With no threshold, all
+current failure entries are stored.
 
 Spokenform uses `en_US` for Proteno English and generic `es` for Proteno Spanish,
 with `use_spacy=False` recorded in the environment metadata.

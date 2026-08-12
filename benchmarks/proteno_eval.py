@@ -522,17 +522,29 @@ def _write_failures_markdown(
     }
 
 
+def _filter_failures_by_speech_wer(
+    failures: Iterable[dict[str, Any]], threshold: float | None
+) -> tuple[dict[str, Any], ...]:
+    """Select persisted failures without changing complete-run evaluation metrics."""
+    values = tuple(failures)
+    if threshold is None:
+        return values
+    return tuple(failure for failure in values if float(failure["speech_wer"]) > threshold)
+
+
 def evaluate_and_write(
     cases: Iterable[ProtenoCase],
     *,
     exclusions: Iterable[ProtenoExclusion] = (),
     split: str = "all",
     output_root: Path | str = "benchmark-results/proteno",
+    speech_wer_threshold: float | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metadata and local source-bearing reports."""
     case_list = tuple(cases)
     exclusion_list = tuple(exclusions)
     summary, failures = evaluate_cases(case_list)
+    stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     languages = sorted({case.proteno_language for case in case_list})
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
@@ -562,15 +574,17 @@ def evaluate_and_write(
             reason: sum(item.reason == reason for item in exclusion_list)
             for reason in sorted({item.reason for item in exclusion_list})
         },
+        "speech_wer_threshold": speech_wer_threshold,
+        "stored_failure_count": len(stored_failures),
         **summary,
     }
     with (output_dir / "failures.jsonl").open("w", encoding="utf-8") as handle:
-        for failure in failures:
+        for failure in stored_failures:
             handle.write(json.dumps(failure, ensure_ascii=False, sort_keys=True) + "\n")
     with (output_dir / "excluded.jsonl").open("w", encoding="utf-8") as handle:
         for exclusion in exclusion_list:
             handle.write(json.dumps(exclusion.as_dict(), ensure_ascii=False, sort_keys=True) + "\n")
-    summary_payload["failure_reports"] = _write_failures_markdown(failures, output_dir)
+    summary_payload["failure_reports"] = _write_failures_markdown(stored_failures, output_dir)
     (output_dir / "summary.json").write_text(
         json.dumps(summary_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )

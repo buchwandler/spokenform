@@ -3,10 +3,21 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 from .proteno_data import ensure_data, load_cases_with_exclusions, selected_languages
 from .proteno_eval import evaluate_and_write
+
+
+def _non_negative_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed) or parsed < 0:
+        raise argparse.ArgumentTypeError("must be a finite, non-negative number")
+    return parsed
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -21,6 +32,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--split", choices=("all", "train", "test"), default="all")
     parser.add_argument("--case", dest="case_id", help="Case identifier such as en:00481.")
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--speech-wer-threshold",
+        type=_non_negative_float,
+        metavar="VALUE",
+        help="Persist only failures with Speech WER strictly greater than VALUE.",
+    )
     parser.add_argument("--refresh", action="store_true", help="Redownload selected pinned files.")
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument(
@@ -55,7 +72,11 @@ def main(argv: list[str] | None = None) -> int:
         limit=args.limit,
     )
     output_dir, summary = evaluate_and_write(
-        cases, exclusions=exclusions, split=args.split, output_root=args.results_dir
+        cases,
+        exclusions=exclusions,
+        split=args.split,
+        output_root=args.results_dir,
+        speech_wer_threshold=args.speech_wer_threshold,
     )
     print(f"Proteno cases: {summary['cases']}")
     print(f"Excluded: {summary['excluded_count']}")

@@ -3,10 +3,21 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 
 from .polynorm_data import POLYNORM_LOCALES, ensure_data, load_cases, selected_locales
 from .polynorm_eval import evaluate_and_write
+
+
+def _non_negative_float(value: str) -> float:
+    try:
+        parsed = float(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not math.isfinite(parsed) or parsed < 0:
+        raise argparse.ArgumentTypeError("must be a finite, non-negative number")
+    return parsed
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -21,6 +32,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--category")
     parser.add_argument("--case", dest="case_id", help="Case identifier such as en-US:1.")
     parser.add_argument("--limit", type=int)
+    parser.add_argument(
+        "--speech-wer-threshold",
+        type=_non_negative_float,
+        metavar="VALUE",
+        help="Persist only failures with Speech WER strictly greater than VALUE.",
+    )
     parser.add_argument("--refresh", action="store_true", help="Redownload selected pinned files.")
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument("--show-failures", choices=("none", "all"), default="none")
@@ -49,7 +66,9 @@ def main(argv: list[str] | None = None) -> int:
         case_id=args.case_id,
         limit=args.limit,
     )
-    output_dir, summary = evaluate_and_write(cases, output_root=args.results_dir)
+    output_dir, summary = evaluate_and_write(
+        cases, output_root=args.results_dir, speech_wer_threshold=args.speech_wer_threshold
+    )
     print(f"PolyNorm cases: {summary['cases']}")
     print(f"Results: {output_dir}")
     if args.show_failures == "all":

@@ -572,14 +572,26 @@ def _write_failures_markdown(failures: tuple[dict[str, Any], ...], path: Path) -
     path.write_text("\n".join(lines), encoding="utf-8")
 
 
+def _filter_failures_by_speech_wer(
+    failures: Iterable[dict[str, Any]], threshold: float | None
+) -> tuple[dict[str, Any], ...]:
+    """Select persisted failures without changing complete-run evaluation metrics."""
+    values = tuple(failures)
+    if threshold is None:
+        return values
+    return tuple(failure for failure in values if float(failure["speech_wer"]) > threshold)
+
+
 def evaluate_and_write(
     cases: Iterable[PolyNormCase],
     *,
     output_root: Path | str = "benchmark-results/polynorm",
+    speech_wer_threshold: float | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metrics plus local text-bearing failure reports."""
     case_list = tuple(cases)
     summary, failures = evaluate_cases(case_list)
+    stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
     summary_payload = {
@@ -593,15 +605,17 @@ def evaluate_and_write(
             {POLYNORM_TO_SPOKENFORM[case.polynorm_locale] for case in case_list}
         ),
         "environment": environment_fingerprint(case.polynorm_locale for case in case_list),
+        "speech_wer_threshold": speech_wer_threshold,
+        "stored_failure_count": len(stored_failures),
         **summary,
     }
     (output_dir / "summary.json").write_text(
         json.dumps(summary_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
     with (output_dir / "failures.jsonl").open("w", encoding="utf-8") as handle:
-        for failure in failures:
+        for failure in stored_failures:
             handle.write(json.dumps(failure, ensure_ascii=False, sort_keys=True) + "\n")
-    _write_failures_markdown(failures, output_dir / "failures.md")
+    _write_failures_markdown(stored_failures, output_dir / "failures.md")
     return output_dir, summary_payload
 
 

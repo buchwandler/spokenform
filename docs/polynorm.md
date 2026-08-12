@@ -24,7 +24,14 @@ python -m benchmarks.polynorm --offline
 python -m benchmarks.polynorm --offline --locale en-US --category Date
 python -m benchmarks.polynorm --offline --case en-US:1
 python -m benchmarks.polynorm --offline --show-failures all
+python -m benchmarks.polynorm --offline --speech-wer-threshold 0.5
 ```
+
+Use `--speech-wer-threshold VALUE` to persist only failure entries whose word
+error rate is strictly greater than `VALUE`. The option filters
+`failures.jsonl` and `failures.md` only; summary metrics and evaluated-case
+counts still cover the complete run. With no threshold, all current failure
+entries are stored.
 
 The overlap files are not assumed to have equal lengths; the evaluator derives
 the case count from the cached JSONL files. Reports therefore distinguish raw
