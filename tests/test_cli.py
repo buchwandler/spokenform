@@ -35,3 +35,43 @@ def test_cli_exposes_strict_mode() -> None:
 def test_cli_exposes_structured_toggle() -> None:
     args = _parser().parse_args(["--no-structured", "2 kg"])
     assert args.no_structured is True
+
+
+def test_cli_exposes_output_policies() -> None:
+    args = _parser().parse_args(
+        [
+            "--symbol-mode",
+            "keep",
+            "--keep-symbols",
+            ":;,()-,.",
+            "--generic-acronym-case",
+            "lower",
+            "ABC, test!",
+        ]
+    )
+    assert args.symbol_mode == "keep"
+    assert args.keep_symbols == ":;,()-,."
+    assert args.generic_acronym_case == "lower"
+
+
+def test_cli_output_policies_work_end_to_end() -> None:
+    completed = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "spokenform",
+            "--no-abbreviations",
+            "--no-numbers",
+            "--symbol-mode",
+            "keep",
+            "--keep-symbols",
+            ":;,()-,.",
+            "--generic-acronym-case",
+            "lower",
+            "ABC, test!",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert completed.stdout.strip() == "a b c, test"

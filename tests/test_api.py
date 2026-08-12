@@ -228,3 +228,78 @@ def test_preparation_config_validates_spacy_options() -> None:
         PreparationConfig(language="en", use_spacy="yes")  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="spacy_model"):
         PreparationConfig(language="en", spacy_model="  ")
+
+
+def test_preparation_config_validates_symbol_policies() -> None:
+    with pytest.raises(ValueError, match="symbol_mode"):
+        PreparationConfig(symbol_mode="invalid")  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="keep_symbols"):
+        PreparationConfig(symbol_mode="none", keep_symbols=".")
+    with pytest.raises(ValueError, match="symbol_mode='remove'"):
+        PreparationConfig(symbol_mode="keep")
+    with pytest.raises(TypeError, match="keep_symbols"):
+        PreparationConfig(symbol_mode="keep", keep_symbols=None)  # type: ignore[arg-type]
+
+
+def test_symbol_modes_are_explicit_and_unicode_aware() -> None:
+    source = "Hello, world! (test) - ok."
+    common = dict(
+        language="en",
+        use_spacy=False,
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+    )
+    unchanged = prepare(source, **common, symbol_mode="none")
+    removed = prepare(source, **common, symbol_mode="remove")
+    kept = prepare(source, **common, symbol_mode="keep", keep_symbols=":;,()-,.")
+
+    assert unchanged.spoken_text == source
+    assert not any(stage.name == "symbols" for stage in unchanged.stages)
+    assert removed.spoken_text == "Hello world test ok"
+    assert kept.spoken_text == "Hello, world (test) - ok."
+
+    unicode_removed = prepare("a—b…c © d", **common, symbol_mode="remove")
+    unicode_kept = prepare("a—b…c © d", **common, symbol_mode="keep", keep_symbols="—…")
+    assert unicode_removed.spoken_text == "abc d"
+    assert unicode_kept.spoken_text == "a—b…c d"
+
+
+def test_symbol_filter_respects_protection_and_mapping() -> None:
+    result = prepare(
+        "A:B ! C one ! two",
+        language="en",
+        use_spacy=False,
+        protected_spans=[(0, 3)],
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+        symbol_mode="remove",
+    )
+
+    assert result.spoken_text == "A:B C one two"
+    assert result.stages[0].name == "symbols"
+    assert any(edit.stage == "symbols" and edit.replacement == "" for edit in result.mapped_edits)
+    assert result.map_source_span(14, 17) == (10, 13)
+    assert result.map_output_span(10, 13) == (14, 17)
+
+
+def test_symbol_filter_runs_after_semantic_recognition() -> None:
+    result = prepare("12.5 50% €20", language="en", use_spacy=False, symbol_mode="remove")
+
+    assert result.spoken_text == "twelve point five fifty percent twenty euros"
+    assert [stage.name for stage in result.stages].index("symbols") > [
+        stage.name for stage in result.stages
+    ].index("structured")
+
+
+def test_symbol_and_acronym_policies_are_config_driven() -> None:
+    config = PreparationConfig(
+        language="en",
+        use_spacy=False,
+        symbol_mode="keep",
+        keep_symbols=".,",
+        generic_acronym_case="lower",
+    )
+    result = prepare("ABC!.", config=config)
+    assert result.spoken_text == "a b c."

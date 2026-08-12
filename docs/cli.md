@@ -26,3 +26,16 @@ spokenform --lang en --spacy-model en_core_web_sm --strict "The board is 2 in. w
 Pipeline stages can be disabled independently with `--no-structured`,
 `--no-abbreviations`, `--no-numbers`, and `--keep-whitespace`. Structured values
 remain available when lexical abbreviation expansion is disabled.
+
+Residual symbol behavior is explicit:
+
+```bash
+spokenform --lang en --symbol-mode none 'ABC, test!'
+spokenform --lang en --symbol-mode remove 'ABC, test!'
+spokenform --lang en --symbol-mode keep --keep-symbols ':;,()-,.' 'ABC, test!'
+spokenform --lang en --generic-acronym-case lower 'ABC AAPL'
+```
+
+`--keep-symbols` is an exact-codepoint allowlist and is meaningful only with
+`--symbol-mode keep`; quote it in shells because characters such as `;` have
+special syntax.

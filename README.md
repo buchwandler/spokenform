@@ -134,6 +134,27 @@ prepared = prepare("The board is 2 in. wide.", config=config)
 
 When a `PreparationConfig` is supplied, it is authoritative for pipeline options.
 
+### Residual symbols and acronym case
+
+Residual punctuation and symbols are unchanged by default:
+
+```python
+PreparationConfig(language="en", symbol_mode="none")
+```
+
+Use `symbol_mode="remove"` to remove all residual Unicode punctuation and
+symbols, or use an exact-codepoint allowlist with `symbol_mode="keep"`:
+
+```python
+PreparationConfig(language="en", symbol_mode="remove")
+PreparationConfig(language="en", symbol_mode="keep", keep_symbols=":;,()-,.")
+```
+
+The filter runs after semantic recognition and does not modify protected spans.
+For generic uppercase acronyms, `generic_acronym_case="lower"` renders `ABC`
+as `a b c`; the default and `"upper"` render it as `A B C`. Lexical acronyms,
+preserved terms, and known initialisms retain their existing policies.
+
 ## spaCy support
 
 spaCy supplies POS annotations for abbreviation rules that opt into POS guards. The public normalization API remains provider-neutral.

@@ -16,8 +16,10 @@
    selected locale's semantic grammar;
 7. expand lexical abbreviations with exact `abbr2words` replacements;
 8. verbalize remaining generic numeric forms according to `NumberPolicy`;
-9. normalize whitespace according to independently configurable controls;
-10. restore protected text and compose stage offset maps.
+9. when requested, filter residual Unicode punctuation/symbol characters under
+   the caller's `symbol_mode`, while protected sentinels remain opaque;
+10. normalize whitespace according to independently configurable controls;
+11. restore protected text and compose stage offset maps.
 
 Each stage records its input, output, edits, and mapped edits. Structured and
 abbreviation stages emit exact replacements; temporary text-only stages retain
@@ -41,6 +43,11 @@ lexicons, pronunciations, and vocabulary IDs.
 spokenform owns semantic spacing and punctuation consumed by a structured or
 lexical expression. Downstream G2P owns quote style, dash canonicalization,
 apostrophe variants, and punctuation choices required only by a model tokenizer.
+
+The optional `symbols` stage is a caller-requested final residual-output policy,
+not semantic recognition. It is disabled for `symbol_mode="none"`; semantic
+punctuation is consumed first by structured recognizers, and model-specific
+punctuation remains downstream unless the caller explicitly requests filtering.
 
 The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical

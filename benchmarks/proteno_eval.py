@@ -147,7 +147,7 @@ def environment_fingerprint(languages: Iterable[str]) -> dict[str, object]:
         "platform": platform.platform(),
         "locale_mapping": resolution,
         "configuration": {
-            "prepare": {"use_spacy": False},
+            "prepare": {"use_spacy": False, "symbol_mode": "remove"},
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
             "benchmark_commit": PROTENO_COMMIT,
         },
@@ -281,7 +281,12 @@ def evaluate_cases(
         source_rules: tuple[str, ...] = ()
         structured_claimed = False
         try:
-            result = prepare_fn(case.original_text, language=language, use_spacy=False)
+            result = prepare_fn(
+                case.original_text,
+                language=language,
+                use_spacy=False,
+                symbol_mode="remove",
+            )
             actual = result.spoken_text
             warnings = list(getattr(result, "warnings", ()) or ())
             changed_stages = tuple(

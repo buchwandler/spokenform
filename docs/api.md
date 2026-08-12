@@ -21,6 +21,20 @@ skipping the whitespace stage entirely. `normalize_literals=True` opts into
 high-confidence URL, e-mail, semantic-version, and contextual Roman rendering;
 caller-protected spans always take precedence.
 
+`symbol_mode="none"` is the backward-compatible default and applies no general
+residual-symbol filter. `symbol_mode="remove"` removes Unicode punctuation and
+symbol characters (`P*` and `S*`) left after semantic recognition. With
+`symbol_mode="keep"`, `keep_symbols` is an exact-codepoint allowlist; it must
+not be empty. An allowlist is invalid in `none` or `remove` mode. The active
+filter is recorded as a `symbols` stage before whitespace normalization and
+never changes protected spans. Symbol deletions are included in stage and
+source/output mapping.
+
+`generic_acronym_case="upper"` is the default. Set it to `"lower"` to lowercase
+only generic grapheme-spaced uppercase acronyms; lexical acronyms, preserved
+terms, known initialisms, identifiers, and mixed-case tokens keep their normal
+policies.
+
 ```{autoclass} spokenform.PreparationConfig
 :members:
 ```

@@ -1,12 +1,12 @@
 import json
 from types import SimpleNamespace
 
-from benchmarks.proteno_compare import compare_runs
 from benchmarks.proteno import _parser
+from benchmarks.proteno_compare import compare_runs
 from benchmarks.proteno_data import ProtenoCase, ProtenoExclusion
 from benchmarks.proteno_eval import (
-    _write_failures_markdown,
     _filter_failures_by_speech_wer,
+    _write_failures_markdown,
     evaluate_and_write,
     evaluate_cases,
     literal_key,
@@ -92,7 +92,9 @@ def test_speech_wer_threshold_keeps_proteno_summary_metrics(tmp_path, monkeypatc
     assert summary["cases"] == 3
     assert summary["speech_wer_threshold"] == 0.5
     assert summary["stored_failure_count"] == 1
-    stored = [json.loads(line)["id"] for line in (output_dir / "failures.jsonl").read_text().splitlines()]
+    stored = [
+        json.loads(line)["id"] for line in (output_dir / "failures.jsonl").read_text().splitlines()
+    ]
     assert stored == ["high"]
     report = next(output_dir.glob("failures-en-normalization-*.md")).read_text()
     assert "#### high" in report
@@ -128,7 +130,11 @@ def test_normalization_identity_mapping_and_provenance():
     assert summary["identity_cases"] == 1
     assert summary["identity_preserved_count"] == 1
     assert summary["identity_mutation_count"] == 0
-    assert calls[0][1] == {"language": "en_US", "use_spacy": False}
+    assert calls[0][1] == {
+        "language": "en_US",
+        "use_spacy": False,
+        "symbol_mode": "remove",
+    }
     assert failures == ()
 
 

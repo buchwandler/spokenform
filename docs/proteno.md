@@ -51,7 +51,10 @@ evaluated-case counts still cover the complete run. With no threshold, all
 current failure entries are stored.
 
 Spokenform uses `en_US` for Proteno English and generic `es` for Proteno Spanish,
-with `use_spacy=False` recorded in the environment metadata.
+with `use_spacy=False` and `symbol_mode="remove"` recorded in the environment
+metadata. Proteno's normalized target presentation requires residual sign
+removal; this is benchmark configuration and does not change Spokenform's
+normal `symbol_mode="none"` default.
 
 ## Spanish projection and exclusions
 

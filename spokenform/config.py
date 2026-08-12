@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Literal
 
 from .language import base_language, normalize_language
 
@@ -15,6 +16,10 @@ class NumberPolicy(str, Enum):
     PLAIN = "plain"
     STRUCTURED_AND_PLAIN = "structured_and_plain"
     CALLER_MANAGED = "caller_managed"
+
+
+SymbolMode = Literal["none", "remove", "keep"]
+GenericAcronymCase = Literal["upper", "lower"]
 
 
 def number_policy_for_language(language: str) -> NumberPolicy:
@@ -53,6 +58,9 @@ class PreparationConfig:
     number_policy: NumberPolicy | None = None
     preserve_run_boundaries: bool = False
     model_punctuation: bool = False
+    symbol_mode: SymbolMode = "none"
+    keep_symbols: str = ""
+    generic_acronym_case: GenericAcronymCase = "upper"
     context: bool = True
     strict: bool = False
 
@@ -71,6 +79,19 @@ class PreparationConfig:
                 raise ValueError("spacy_model must not be empty")
         if self.number_policy is not None and not isinstance(self.number_policy, NumberPolicy):
             raise TypeError("number_policy must be a NumberPolicy or None")
+        if self.symbol_mode not in {"none", "remove", "keep"}:
+            raise ValueError("symbol_mode must be 'none', 'remove', or 'keep'")
+        if not isinstance(self.keep_symbols, str):
+            raise TypeError("keep_symbols must be a string")
+        if self.symbol_mode != "keep" and self.keep_symbols:
+            raise ValueError("keep_symbols is only valid when symbol_mode='keep'")
+        if self.symbol_mode == "keep" and not self.keep_symbols:
+            raise ValueError(
+                "keep_symbols must not be empty when symbol_mode='keep'; "
+                "use symbol_mode='remove' to remove all symbols"
+            )
+        if self.generic_acronym_case not in {"upper", "lower"}:
+            raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
         for name in (
             "expand_abbreviations",
             "expand_structured",
@@ -108,4 +129,10 @@ class PreparationConfig:
         )
 
 
-__all__ = ["NumberPolicy", "PreparationConfig", "number_policy_for_language"]
+__all__ = [
+    "GenericAcronymCase",
+    "NumberPolicy",
+    "PreparationConfig",
+    "SymbolMode",
+    "number_policy_for_language",
+]

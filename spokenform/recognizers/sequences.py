@@ -1303,7 +1303,12 @@ def _isbn_label_text(label: str, language: str) -> str:
     return f"{_grapheme_text('ISBN', language)} {words.get(base_language(language), words['en'])[kind]}"
 
 
-def _acronym_text(value: str, language: str) -> str:
+def _acronym_text(
+    value: str,
+    language: str,
+    *,
+    generic_acronym_case: Literal["upper", "lower"] = "upper",
+) -> str:
     policy = acronym_policy(language)
     if value in policy.lexical_words:
         if policy.lexical_case == "source-preserving":
@@ -1314,11 +1319,14 @@ def _acronym_text(value: str, language: str) -> str:
     if value in policy.preserve:
         return value
     alpha_mode = policy.default_mode if value in policy.initialisms else "grapheme_spaced"
-    return render_sequence(
+    rendered = render_sequence(
         value,
         language=language,
         policy=SequenceRenderPolicy(alpha_mode=alpha_mode),
     )
+    if alpha_mode == "grapheme_spaced":
+        return rendered.lower() if generic_acronym_case == "lower" else rendered.upper()
+    return rendered
 
 
 def _score_text(value: str, language: str) -> str:
@@ -1529,6 +1537,7 @@ def iter_sequence_replacements(
     language: str = "en",
     protected_ranges: Iterable[tuple[int, int]] = (),
     promote_literals: bool = False,
+    generic_acronym_case: Literal["upper", "lower"] = "upper",
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""
     language = normalize_language(language)
@@ -2033,7 +2042,11 @@ def iter_sequence_replacements(
             _add(
                 candidates,
                 match,
-                _acronym_text(value, language),
+                _acronym_text(
+                    value,
+                    language,
+                    generic_acronym_case=generic_acronym_case,
+                ),
                 language,
                 "sequence.acronym",
                 protected,

@@ -25,6 +25,23 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-numbers", action="store_true")
     parser.add_argument("--keep-whitespace", action="store_true")
     parser.add_argument(
+        "--symbol-mode",
+        choices=("none", "remove", "keep"),
+        default="none",
+        help="Residual punctuation/symbol policy (default: none)",
+    )
+    parser.add_argument(
+        "--keep-symbols",
+        default="",
+        help="Exact Unicode symbols to retain when --symbol-mode=keep",
+    )
+    parser.add_argument(
+        "--generic-acronym-case",
+        choices=("upper", "lower"),
+        default="upper",
+        help="Case for generic grapheme-spaced uppercase acronyms",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="Raise on unavailable spaCy models and invalid protected spans",
@@ -51,6 +68,9 @@ def main(argv: list[str] | None = None) -> int:
         expand_structured=not args.no_structured,
         expand_numbers=not args.no_numbers,
         normalize_whitespace=not args.keep_whitespace,
+        symbol_mode=args.symbol_mode,
+        keep_symbols=args.keep_symbols,
+        generic_acronym_case=args.generic_acronym_case,
         strict=args.strict,
     )
     if args.json:

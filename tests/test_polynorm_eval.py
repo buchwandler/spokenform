@@ -2,9 +2,9 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+from benchmarks.polynorm import _parser
 from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
-from benchmarks.polynorm import _parser
 from benchmarks.polynorm_eval import (
     _filter_failures_by_speech_wer,
     environment_fingerprint,
@@ -61,7 +61,9 @@ def test_speech_wer_threshold_keeps_polynorm_summary_metrics(tmp_path, monkeypat
     assert summary["cases"] == 3
     assert summary["speech_wer_threshold"] == 0.5
     assert summary["stored_failure_count"] == 1
-    stored = [json.loads(line)["id"] for line in (output_dir / "failures.jsonl").read_text().splitlines()]
+    stored = [
+        json.loads(line)["id"] for line in (output_dir / "failures.jsonl").read_text().splitlines()
+    ]
     assert stored == ["high"]
     report = (output_dir / "failures.md").read_text()
     assert "#### high" in report

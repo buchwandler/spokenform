@@ -16,7 +16,7 @@ from .annotations import (
     to_abbr2words_annotations,
     validate_annotations,
 )
-from .config import NumberPolicy, PreparationConfig
+from .config import GenericAcronymCase, NumberPolicy, PreparationConfig, SymbolMode
 from .language import normalize_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
@@ -99,6 +99,9 @@ def prepare(
     number_policy: NumberPolicy | None = None,
     preserve_run_boundaries: bool = False,
     model_punctuation: bool = False,
+    symbol_mode: SymbolMode = "none",
+    keep_symbols: str = "",
+    generic_acronym_case: GenericAcronymCase = "upper",
     context: bool = True,
     strict: bool = False,
 ) -> PreparedText:
@@ -130,9 +133,25 @@ def prepare(
         number_policy = config.number_policy
         preserve_run_boundaries = config.preserve_run_boundaries
         model_punctuation = config.model_punctuation
+        symbol_mode = config.symbol_mode
+        keep_symbols = config.keep_symbols
+        generic_acronym_case = config.generic_acronym_case
         context = config.context
         strict = config.strict
-    elif use_spacy is not None or spacy_model is not None:
+    if not isinstance(keep_symbols, str):
+        raise TypeError("keep_symbols must be a string")
+    if symbol_mode not in {"none", "remove", "keep"}:
+        raise ValueError("symbol_mode must be 'none', 'remove', or 'keep'")
+    if symbol_mode != "keep" and keep_symbols:
+        raise ValueError("keep_symbols is only valid when symbol_mode='keep'")
+    if symbol_mode == "keep" and not keep_symbols:
+        raise ValueError(
+            "keep_symbols must not be empty when symbol_mode='keep'; "
+            "use symbol_mode='remove' to remove all symbols"
+        )
+    if generic_acronym_case not in {"upper", "lower"}:
+        raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
+    if use_spacy is not None or spacy_model is not None:
         PreparationConfig(
             language=language,
             use_spacy=use_spacy,
@@ -150,6 +169,9 @@ def prepare(
             number_policy=number_policy,
             preserve_run_boundaries=preserve_run_boundaries,
             model_punctuation=model_punctuation,
+            symbol_mode=symbol_mode,
+            keep_symbols=keep_symbols,
+            generic_acronym_case=generic_acronym_case,
             context=context,
             strict=strict,
         )
@@ -224,6 +246,7 @@ def prepare(
                 protected.placeholders,
             ),
             promote_literals=normalize_literals,
+            generic_acronym_case=generic_acronym_case,
         )
         if structured.replacements:
             internal_replacements = map_visible_replacements_to_internal(
@@ -345,6 +368,43 @@ def prepare(
         reserved_spans = _remap_reserved_spans(reserved_spans, number_map)
         stages[-1] = replace(stages[-1], reserved=reserved_spans)
 
+    if symbol_mode != "none":
+        before = current
+        current = apply_stage(
+            stages,
+            "symbols",
+            current,
+            lambda value: _filter_output_symbols(
+                value,
+                mode=symbol_mode,
+                keep_symbols=keep_symbols,
+            ),
+            restore=protected.restore,
+        )
+        symbol_stage = stages[-1]
+        symbol_replacements = replacements_from_diff(
+            symbol_stage.before,
+            symbol_stage.after,
+            symbol_stage.name,
+        )
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            symbol_replacements,
+            protected.values,
+            protected.placeholders,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
+        )
+        symbol_map = OffsetMap.from_replacements(
+            len(symbol_stage.before),
+            symbol_replacements,
+            output_length=len(symbol_stage.after),
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, symbol_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
+
     if normalize_whitespace:
         before = current
         current = apply_stage(
@@ -437,6 +497,18 @@ def _remap_reserved_spans(
         if start < end:
             remapped.append(ReservedSpan(start, end, span.owner, span.reason))
     return tuple(remapped)
+
+
+def _filter_output_symbols(text: str, *, mode: SymbolMode, keep_symbols: str) -> str:
+    """Remove residual Unicode punctuation and symbols under an explicit policy."""
+    if mode == "none":
+        return text
+    allowed = frozenset(keep_symbols) if mode == "keep" else frozenset()
+    return "".join(
+        character
+        for character in text
+        if not (unicodedata.category(character).startswith(("P", "S")) and character not in allowed)
+    )
 
 
 def _reserved_ranges_in_internal(

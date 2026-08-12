@@ -115,6 +115,19 @@ def test_generic_uppercase_acronyms_are_grapheme_spaced() -> None:
     assert any(item.rule == "sequence.acronym" for item in result.source_replacements)
 
 
+def test_generic_acronym_case_does_not_change_special_classes() -> None:
+    upper = prepare("ABC AAPL NASA API", language="en", use_spacy=False)
+    lower = prepare(
+        "ABC AAPL NASA API",
+        language="en",
+        use_spacy=False,
+        generic_acronym_case="lower",
+    )
+
+    assert upper.spoken_text == "A B C A A P L Nasa API"
+    assert lower.spoken_text == "a b c a a p l Nasa API"
+
+
 @pytest.mark.parametrize(
     ("language", "source", "expected"),
     [
