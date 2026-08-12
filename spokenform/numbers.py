@@ -421,7 +421,11 @@ def _replace_numbers(text: str, language: str) -> str:
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)
-        if raw.startswith(("-", "−")) and match.start() > 0 and match.string[match.start() - 1] in "-−":
+        if (
+            raw.startswith(("-", "−"))
+            and match.start() > 0
+            and match.string[match.start() - 1] in "-−"
+        ):
             raw = raw[1:]
         if base == "de":
             unsigned = raw.lstrip("+−-")
@@ -741,7 +745,11 @@ def _normalize_unified_plain_numbers(text: str, language: str) -> str:
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)
-        if raw.startswith(("-", "−")) and match.start() > 0 and match.string[match.start() - 1] in "-−":
+        if (
+            raw.startswith(("-", "−"))
+            and match.start() > 0
+            and match.string[match.start() - 1] in "-−"
+        ):
             raw = raw[1:]
         unsigned = raw.lstrip("+−-")
         if (

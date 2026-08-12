@@ -42,7 +42,10 @@ def test_literal_rendering_and_contextual_phones_are_locale_safe() -> None:
     url = prepare(
         "Le site est http://site.fr.", language="fr", use_spacy=False, normalize_literals=True
     )
-    assert url.spoken_text == "Le site est h t t p deux-points barre oblique barre oblique s i t e point f r."
+    assert (
+        url.spoken_text
+        == "Le site est h t t p deux-points barre oblique barre oblique s i t e point f r."
+    )
 
     version = prepare(
         "La versione è v2.5.1.", language="it", use_spacy=False, normalize_literals=True

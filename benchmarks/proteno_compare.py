@@ -41,10 +41,19 @@ def _failed(row: dict[str, Any] | None) -> bool:
     return bool(row and (row.get("error") or row.get("semantic_failure")))
 
 
-def _diff_rows(before: dict[str, dict[str, Any]], after: dict[str, dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
-    result: dict[str, list[dict[str, Any]]] = {key: [] for key in (
-        "fixed", "regressed", "unchanged_failure", "newly_changed_but_still_wrong", "presentation_only_change"
-    )}
+def _diff_rows(
+    before: dict[str, dict[str, Any]], after: dict[str, dict[str, Any]]
+) -> dict[str, list[dict[str, Any]]]:
+    result: dict[str, list[dict[str, Any]]] = {
+        key: []
+        for key in (
+            "fixed",
+            "regressed",
+            "unchanged_failure",
+            "newly_changed_but_still_wrong",
+            "presentation_only_change",
+        )
+    }
     for case_id in sorted(set(before) & set(after)):
         old, new = before[case_id], after[case_id]
         old_failed, new_failed = _failed(old), _failed(new)

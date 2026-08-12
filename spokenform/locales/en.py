@@ -187,6 +187,8 @@ def _decade_text(value: int) -> str:
         century = "nineteen" if value < 2000 else "twenty"
         return f"{century} {tens}"
     return f"{render_english_year(value)}s"
+
+
 _VERSION_LABEL_WORDS = frozenset(
     {
         "version",

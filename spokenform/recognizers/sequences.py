@@ -979,12 +979,13 @@ def _literal_symbol_words(language: str) -> dict[str, str]:
         ":": {"de": "Doppelpunkt", "es": "dos puntos", "fr": "deux-points", "it": "due punti"}.get(
             base, "colon"
         ),
-        "@": {"de": "at", "es": "arroba", "fr": "arobase", "it": "chiocciola"}.get(
-            base, "at"
-        ),
-        "?": {"de": "Fragezeichen", "es": "interrogación", "fr": "point d’interrogation", "it": "punto interrogativo"}.get(
-            base, "question mark"
-        ),
+        "@": {"de": "at", "es": "arroba", "fr": "arobase", "it": "chiocciola"}.get(base, "at"),
+        "?": {
+            "de": "Fragezeichen",
+            "es": "interrogación",
+            "fr": "point d’interrogation",
+            "it": "punto interrogativo",
+        }.get(base, "question mark"),
         "&": {"de": "und", "es": "y", "fr": "et", "it": "e"}.get(base, "and"),
     }
 
@@ -1052,9 +1053,11 @@ def _version_text(
     if has_v and not include_version_word:
         parts.append(_grapheme_text("v", language))
     if include_version_word:
-        parts.append({"de": "Version", "es": "versión", "fr": "version", "it": "version"}.get(
-            base_language(language), "version"
-        ))
+        parts.append(
+            {"de": "Version", "es": "versión", "fr": "version", "it": "version"}.get(
+                base_language(language), "version"
+            )
+        )
     for component in re.split(r"[.-]", body):
         if not component:
             continue
@@ -1962,7 +1965,14 @@ def iter_sequence_replacements(
             )
     if promote_literals:
         for match in _BARE_DOMAIN_RE.finditer(text):
-            _add(candidates, match, _url_text(match.group(0), language), language, "sequence.url", protected)
+            _add(
+                candidates,
+                match,
+                _url_text(match.group(0), language),
+                language,
+                "sequence.url",
+                protected,
+            )
     for match in _EXCHANGE_EQUAL_RE.finditer(text):
         left_code = _CURRENCY_SYMBOL_CODES.get(
             match["left_currency"], match["left_currency"].upper()
@@ -2256,11 +2266,11 @@ def iter_sequence_replacements(
             _add(
                 candidates,
                 match,
-                    _version_text(
-                        match["value"],
-                        language,
-                        include_version_word=promote_literals and base_language(language) == "en",
-                    ),
+                _version_text(
+                    match["value"],
+                    language,
+                    include_version_word=promote_literals and base_language(language) == "en",
+                ),
                 language,
                 "sequence.version",
                 protected,
@@ -2546,10 +2556,7 @@ def iter_sequence_replacements(
     for match in _ACRONYM_RE.finditer(text):
         value = match["value"]
         policy = acronym_policy(language)
-        if (
-            value in policy.lexical_words
-            or value in policy.initialisms
-        ):
+        if value in policy.lexical_words or value in policy.initialisms:
             _add(
                 candidates,
                 match,
@@ -2603,8 +2610,8 @@ def iter_sequence_replacements(
                     "structured",
                     language,
                     "sequence.sports",
+                )
             )
-        )
     for match in _DOTTED_LEXICAL_RE.finditer(text):
         _add(candidates, match, "uncle", language, "sequence.acronym", protected)
     for match in _ADDRESS_SUFFIX_RE.finditer(text):

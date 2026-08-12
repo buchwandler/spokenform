@@ -86,7 +86,9 @@ def main(argv: list[str] | None = None) -> int:
         speech_wer_threshold=args.speech_wer_threshold,
         profile=profile,
     )
-    print(f"Proteno profile: {summary['profile']} (normalize_literals={summary['normalize_literals']})")
+    print(
+        f"Proteno profile: {summary['profile']} (normalize_literals={summary['normalize_literals']})"
+    )
     print(f"Proteno cases: {summary['cases']}")
     print(f"Excluded: {summary['excluded_count']}")
     print(f"Results: {output_dir}")
