@@ -2,6 +2,7 @@
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/spokenform)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/spokenform)
 [![codecov](https://codecov.io/gh/buchwandler/spokenform/graph/badge.svg?token=FeOQeR94qo)](https://codecov.io/gh/buchwandler/spokenform)
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/buchwandler/spokenform/HEAD?urlpath=lab/tree/notebooks/spokenform_playground.ipynb)
 
 # spokenform
 
@@ -257,6 +258,16 @@ python examples/german.py --spacy-model de_core_news_sm
 python examples/protected_text.py
 python examples/offset_mapping.py
 ```
+
+## Interactive notebook
+
+Try `spokenform` in your browser without installing it locally:
+
+[Launch the spokenform playground on Binder](https://mybinder.org/v2/gh/buchwandler/spokenform/HEAD?urlpath=lab/tree/notebooks/spokenform_playground.ipynb)
+
+The Binder notebook runs the selected repository revision and includes interactive
+controls for language, semantic stages, residual-symbol handling, and generic
+acronym casing. Changes made in a Binder session are temporary.
 
 ## Documentation
 

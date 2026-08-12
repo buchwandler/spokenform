@@ -16,3 +16,21 @@ python examples/german.py
 python examples/german.py --spacy-model de_core_news_sm
 python examples/protected_text.py
 ```
+
+## Interactive Jupyter notebook
+
+The repository includes [`notebooks/spokenform_playground.ipynb`](../notebooks/spokenform_playground.ipynb).
+
+It demonstrates:
+
+- basic normalization;
+- multilingual examples;
+- structured quantities, dates, currencies, and specialist sequences;
+- protected spans;
+- literal normalization;
+- symbol policy and generic acronym case policy;
+- stage provenance;
+- source/output mapping;
+- an interactive `ipywidgets` playground.
+
+A Binder badge in the main README launches the notebook directly in JupyterLab.
