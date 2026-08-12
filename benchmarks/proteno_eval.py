@@ -346,6 +346,10 @@ def evaluate_cases(
             "index": case.index,
             "split": case.split,
             "case_kind": case.case_kind,
+            "profile": profile,
+            "original_text": case.original_text,
+            "expected": case.normalized_text,
+            "actual": actual,
             "literal_exact": literal_exact,
             "speech_exact": speech_exact,
             "speech_exact_equivalent": speech_exact_equivalent,
@@ -423,6 +427,7 @@ def evaluate_cases(
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
+    summary["_rows"] = tuple(rows)
     return summary, tuple(failures)
 
 
@@ -568,6 +573,7 @@ def evaluate_and_write(
         if profile == "extended"
         else evaluate_cases(case_list)
     )
+    all_rows = summary.pop("_rows", ())
     stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     languages = sorted({case.proteno_language for case in case_list})
     output_dir = Path(output_root) / _run_id()
@@ -607,6 +613,9 @@ def evaluate_and_write(
     with (output_dir / "failures.jsonl").open("w", encoding="utf-8") as handle:
         for failure in stored_failures:
             handle.write(json.dumps(failure, ensure_ascii=False, sort_keys=True) + "\n")
+    with (output_dir / "rows.jsonl").open("w", encoding="utf-8") as handle:
+        for row in all_rows:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     with (output_dir / "excluded.jsonl").open("w", encoding="utf-8") as handle:
         for exclusion in exclusion_list:
             handle.write(json.dumps(exclusion.as_dict(), ensure_ascii=False, sort_keys=True) + "\n")

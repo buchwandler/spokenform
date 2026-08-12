@@ -79,6 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         speech_wer_threshold=args.speech_wer_threshold,
         profile=profile,
     )
+    print(f"PolyNorm profile: {summary['profile']} (normalize_literals={summary['normalize_literals']})")
     print(f"PolyNorm cases: {summary['cases']}")
     print(f"Results: {output_dir}")
     if args.show_failures == "all":

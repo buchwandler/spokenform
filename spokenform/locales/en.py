@@ -163,6 +163,7 @@ _DATE_MD_NO_YEAR = re.compile(
 _TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
 _ORDINAL_SUFFIX = re.compile(r"(?<!\w)(?P<number>\d+)(?P<suffix>st|nd|rd|th)\b", re.IGNORECASE)
 _PLURAL_TENS = re.compile(r"(?<!\w)(?P<value>[2-9]0)(?P<suffix>s)(?!\w)", re.IGNORECASE)
+_DECADE = re.compile(r"(?<!\w)(?P<value>(?:19|20)\d{2})s(?!\w)", re.IGNORECASE)
 _VERSION_DECIMAL = re.compile(
     r"(?<![\w.])(?P<integer>\d+)\.0(?!\w|\.\d)",
 )
@@ -176,6 +177,16 @@ _PLURAL_TENS_WORDS = {
     80: "eighties",
     90: "nineties",
 }
+
+
+def _decade_text(value: int) -> str:
+    if value % 100 == 0:
+        return "two thousands" if value == 2000 else f"{value // 100} hundreds"
+    tens = _PLURAL_TENS_WORDS.get(value % 100)
+    if tens is not None:
+        century = "nineteen" if value < 2000 else "twenty"
+        return f"{century} {tens}"
+    return f"{render_english_year(value)}s"
 _VERSION_LABEL_WORDS = frozenset(
     {
         "version",
@@ -689,6 +700,13 @@ def iter_replacements(
         add(match.start(), match.end(), value, "en.time")
 
     plural_tens_spans: list[tuple[int, int]] = []
+    decade_spans: list[tuple[int, int]] = []
+    for match in _DECADE.finditer(text):
+        start, end = match.span()
+        if _overlaps(start, end, protected):
+            continue
+        decade_spans.append((start, end))
+        add(start, end, _decade_text(int(match["value"])), "en.decade")
     for match in _PLURAL_TENS.finditer(text):
         if not _is_plural_tens_context(text, match.start()):
             continue
@@ -713,7 +731,7 @@ def iter_replacements(
                 "en.version_decimal",
             )
 
-    unit_protected = protected + tuple(plural_tens_spans)
+    unit_protected = protected + tuple(plural_tens_spans) + tuple(decade_spans)
     for match in iter_unit_matches(text, dependency_language, protected_spans=unit_protected):
         try:
             replacement = _quantity_text(match, text, language)

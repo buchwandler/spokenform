@@ -258,7 +258,7 @@ def test_plural_tens_respects_protected_spans() -> None:
     assert not result.source_replacements
 
 
-def test_plural_tens_is_idempotent_and_four_digit_decades_remain_out_of_scope() -> None:
+def test_plural_tens_is_idempotent_and_four_digit_decades_avoid_seconds() -> None:
     source = "There was a chance in the high 70s that they knew."
     first = prepare(source, language="en", use_spacy=False)
     second = prepare(first.spoken_text, language="en", use_spacy=False)
@@ -266,9 +266,8 @@ def test_plural_tens_is_idempotent_and_four_digit_decades_remain_out_of_scope() 
 
     decade = prepare("the 1970s", language="en", use_spacy=False)
     assert not any(item.rule == "en.plural_tens" for item in decade.source_replacements)
-    assert any(
-        item.source == "1970s" and item.rule == "en.quantity" for item in decade.source_replacements
-    )
+    assert "seconds" not in decade.spoken_text
+    assert any(item.source == "1970s" and item.rule == "en.decade" for item in decade.source_replacements)
 
 
 @pytest.mark.parametrize(

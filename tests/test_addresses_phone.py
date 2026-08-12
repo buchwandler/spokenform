@@ -38,3 +38,15 @@ def test_phone_shapes_and_contextual_emergency_numbers() -> None:
     assert prepare("06 12 34 56 78", language="fr", use_spacy=False).spoken_text.startswith(
         "zéro six"
     )
+
+
+def test_ambiguous_seven_digit_phone_shapes_require_contact_context() -> None:
+    assert prepare("555-7890", language="en", use_spacy=False).spoken_text == "555-7890"
+    result = prepare("Text me at 555-7890", language="en", use_spacy=False)
+    assert result.spoken_text == "Text me at five five five seven eight nine zero"
+    assert any(item.rule == "sequence.phone" for item in result.source_replacements)
+
+
+def test_emergency_number_rendering_can_be_locale_digitwise() -> None:
+    result = prepare("Emergencia 911", language="es", use_spacy=False)
+    assert result.spoken_text == "Emergencia nueve uno uno"

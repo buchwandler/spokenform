@@ -19,6 +19,7 @@ class NumberPolicy(str, Enum):
 
 
 SymbolMode = Literal["none", "remove", "keep"]
+GenericAcronymMode = Literal["known_only", "spell_unknown"]
 GenericAcronymCase = Literal["upper", "lower"]
 
 
@@ -60,6 +61,7 @@ class PreparationConfig:
     model_punctuation: bool = False
     symbol_mode: SymbolMode = "none"
     keep_symbols: str = ""
+    generic_acronym_mode: GenericAcronymMode = "known_only"
     generic_acronym_case: GenericAcronymCase = "upper"
     context: bool = True
     strict: bool = False
@@ -92,6 +94,8 @@ class PreparationConfig:
             )
         if self.generic_acronym_case not in {"upper", "lower"}:
             raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
+        if self.generic_acronym_mode not in {"known_only", "spell_unknown"}:
+            raise ValueError("generic_acronym_mode must be 'known_only' or 'spell_unknown'")
         for name in (
             "expand_abbreviations",
             "expand_structured",
@@ -130,6 +134,7 @@ class PreparationConfig:
 
 
 __all__ = [
+    "GenericAcronymMode",
     "GenericAcronymCase",
     "NumberPolicy",
     "PreparationConfig",

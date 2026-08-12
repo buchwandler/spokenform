@@ -119,17 +119,60 @@ def test_unknown_uppercase_prose_is_preserved() -> None:
     assert not any(item.rule == "sequence.acronym" for item in result.source_replacements)
 
 
-def test_generic_acronym_case_does_not_change_special_classes() -> None:
-    upper = prepare("ABC AAPL NASA API", language="en", use_spacy=False)
-    lower = prepare(
+def test_generic_acronym_mode_and_case_are_independent() -> None:
+    known_upper = prepare("ABC AAPL NASA API", language="en", use_spacy=False)
+    known_lower = prepare(
         "ABC AAPL NASA API",
         language="en",
         use_spacy=False,
         generic_acronym_case="lower",
     )
+    spelled_upper = prepare(
+        "ABC AAPL NASA API",
+        language="en",
+        use_spacy=False,
+        generic_acronym_mode="spell_unknown",
+        generic_acronym_case="upper",
+    )
+    spelled_lower = prepare(
+        "ABC AAPL NASA API",
+        language="en",
+        use_spacy=False,
+        generic_acronym_mode="spell_unknown",
+        generic_acronym_case="lower",
+    )
 
-    assert upper.spoken_text == "ABC AAPL Nasa API"
-    assert lower.spoken_text == "a b c a a p l Nasa API"
+    assert known_upper.spoken_text == "ABC AAPL Nasa API"
+    assert known_lower.spoken_text == "ABC AAPL Nasa API"
+    assert spelled_upper.spoken_text == "A B C A A P L Nasa A P I"
+    assert spelled_lower.spoken_text == "a b c a a p l Nasa a p i"
+    assert any(item.rule == "abbr:initialism-undotted" for item in spelled_upper.source_replacements)
+
+
+def test_contextual_tickers_are_typed_and_not_generic_acronyms() -> None:
+    result = prepare("The ticker is MSFT. The stock symbol is GOOG.", language="en", use_spacy=False)
+    ticker_rules = [item for item in result.source_replacements if item.rule == "sequence.ticker"]
+    assert result.spoken_text == "The ticker is M S F T. The stock symbol is G O O G."
+    assert [item.source for item in ticker_rules] == ["MSFT", "GOOG"]
+
+
+def test_typed_identifier_labels_use_contextual_code_policies() -> None:
+    for source, expected in (
+        ("PIN 4711", "P I N four seven one one"),
+        ("VIN-1234567890ABCDEF", "V I N one two three four five six seven eight nine zero A B C D E F"),
+        ("License plate FL-ABC12", "license plate F L A B C one two"),
+        ("Matrikelnummer 1234567", "Matrikelnummer one two three four five six seven"),
+    ):
+        result = prepare(source, language="en", use_spacy=False)
+        assert result.spoken_text == expected
+        assert any(item.rule in {"sequence.product", "sequence.plate", "sequence.vin"} for item in result.source_replacements)
+
+
+def test_product_code_supports_mixed_suffixes_without_claiming_words() -> None:
+    positive = prepare("WH-1000XM4", language="en", use_spacy=False)
+    negative = prepare("LaCrosse McGill VanRullen", language="en", use_spacy=False)
+    assert any(item.rule == "sequence.product" for item in positive.source_replacements)
+    assert "LaCrosse McGill VanRullen" in negative.spoken_text
 
 
 @pytest.mark.parametrize(

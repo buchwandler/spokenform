@@ -16,8 +16,14 @@ from .annotations import (
     to_abbr2words_annotations,
     validate_annotations,
 )
-from .config import GenericAcronymCase, NumberPolicy, PreparationConfig, SymbolMode
-from .language import normalize_language, resolve_abbr2words_language
+from .config import (
+    GenericAcronymCase,
+    GenericAcronymMode,
+    NumberPolicy,
+    PreparationConfig,
+    SymbolMode,
+)
+from .language import base_language, normalize_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
     Replacement,
@@ -101,6 +107,7 @@ def prepare(
     model_punctuation: bool = False,
     symbol_mode: SymbolMode = "none",
     keep_symbols: str = "",
+    generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
     context: bool = True,
     strict: bool = False,
@@ -135,6 +142,7 @@ def prepare(
         model_punctuation = config.model_punctuation
         symbol_mode = config.symbol_mode
         keep_symbols = config.keep_symbols
+        generic_acronym_mode = config.generic_acronym_mode
         generic_acronym_case = config.generic_acronym_case
         context = config.context
         strict = config.strict
@@ -151,6 +159,8 @@ def prepare(
         )
     if generic_acronym_case not in {"upper", "lower"}:
         raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
+    if generic_acronym_mode not in {"known_only", "spell_unknown"}:
+        raise ValueError("generic_acronym_mode must be 'known_only' or 'spell_unknown'")
     if use_spacy is not None or spacy_model is not None:
         PreparationConfig(
             language=language,
@@ -171,6 +181,7 @@ def prepare(
             model_punctuation=model_punctuation,
             symbol_mode=symbol_mode,
             keep_symbols=keep_symbols,
+            generic_acronym_mode=generic_acronym_mode,
             generic_acronym_case=generic_acronym_case,
             context=context,
             strict=strict,
@@ -246,6 +257,7 @@ def prepare(
                 protected.placeholders,
             ),
             promote_literals=normalize_literals,
+            generic_acronym_mode=generic_acronym_mode,
             generic_acronym_case=generic_acronym_case,
         )
         if structured.replacements:
@@ -284,17 +296,30 @@ def prepare(
                 for value in (protected_value_by_placeholder[character],)
             ),
         )
-        abbreviation_result = abbr2words_with_replacements(
-            protected.restore(current),
-            lang=resolve_abbr2words_language(language_code),
-            context=context,
-            annotations=to_abbr2words_annotations(visible_annotations),
-            protected_spans=map_internal_protected_spans_to_visible(
+        abbreviation_kwargs: dict[str, object] = {
+            "lang": resolve_abbr2words_language(language_code),
+            "context": context,
+            "annotations": to_abbr2words_annotations(visible_annotations),
+            "protected_spans": map_internal_protected_spans_to_visible(
                 current,
                 protected.values,
                 protected.placeholders,
             )
             + tuple((item.start, item.end) for item in reserved_spans),
+        }
+        if generic_acronym_mode == "spell_unknown" or generic_acronym_case != "upper":
+            abbreviation_kwargs.update(
+                {
+                    "initialism_mode": (
+                        "spell_undotted"
+                        if generic_acronym_mode == "spell_unknown"
+                        else "dotted_only"
+                    ),
+                    "initialism_case": generic_acronym_case,
+                }
+            )
+        abbreviation_result = abbr2words_with_replacements(
+            protected.restore(current), **abbreviation_kwargs
         )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,
@@ -370,23 +395,32 @@ def prepare(
 
     if symbol_mode != "none":
         before = current
-        current = apply_stage(
+        visible_before = protected.restore(current)
+        symbol_replacements = _iter_symbol_replacements(
+            visible_before,
+            mode=symbol_mode,
+            keep_symbols=keep_symbols,
+            language=language_code,
+            protected_ranges=(
+                map_internal_protected_spans_to_visible(
+                    current,
+                    protected.values,
+                    protected.placeholders,
+                )
+                + tuple((item.start, item.end) for item in reserved_spans)
+            ),
+        )
+        current = apply_replacement_stage(
             stages,
             "symbols",
             current,
-            lambda value: _filter_output_symbols(
-                value,
-                mode=symbol_mode,
-                keep_symbols=keep_symbols,
-            ),
-            restore=protected.restore,
+            symbol_replacements,
+            protected_values=protected.values,
+            protected_placeholders=protected.placeholders,
+            language=language_code,
+            reserved=reserved_spans,
         )
         symbol_stage = stages[-1]
-        symbol_replacements = replacements_from_diff(
-            symbol_stage.before,
-            symbol_stage.after,
-            symbol_stage.name,
-        )
         internal_replacements = map_visible_replacements_to_internal(
             before,
             symbol_replacements,
@@ -499,16 +533,61 @@ def _remap_reserved_spans(
     return tuple(remapped)
 
 
-def _filter_output_symbols(text: str, *, mode: SymbolMode, keep_symbols: str) -> str:
-    """Remove residual Unicode punctuation and symbols under an explicit policy."""
+def _iter_symbol_replacements(
+    text: str,
+    *,
+    mode: SymbolMode,
+    keep_symbols: str,
+    language: str,
+    protected_ranges: tuple[tuple[int, int], ...] = (),
+) -> tuple[Replacement, ...]:
+    """Return mapped edits for residual symbols without joining lexical runs."""
     if mode == "none":
-        return text
+        return ()
     allowed = frozenset(keep_symbols) if mode == "keep" else frozenset()
-    return "".join(
-        character
-        for character in text
-        if not (unicodedata.category(character).startswith(("P", "S")) and character not in allowed)
-    )
+    replacements: list[Replacement] = []
+
+    def protected_at(index: int) -> tuple[int, int] | None:
+        return next(
+            ((start, end) for start, end in protected_ranges if start <= index < end),
+            None,
+        )
+
+    def removable(character: str) -> bool:
+        return unicodedata.category(character).startswith(("P", "S")) and character not in allowed
+
+    index = 0
+    while index < len(text):
+        protected = protected_at(index)
+        if protected is not None:
+            index = protected[1]
+            continue
+        character = text[index]
+        if not removable(character):
+            index += 1
+            continue
+
+        start = index
+        while index < len(text) and removable(text[index]) and protected_at(index) is None:
+            index += 1
+        end = index
+        left = text[start - 1] if start else ""
+        right = text[end] if end < len(text) else ""
+        replacement = " " if left.isalnum() and right.isalnum() else ""
+
+        if (
+            character == "&"
+            and base_language(language) == "en"
+            and start > 0
+            and end < len(text)
+            and text[start - 1].isspace()
+            and text[end].isspace()
+        ):
+            replacement = "and"
+        replacements.append(
+            Replacement(start, end, replacement, "symbols", language, "symbol.remove")
+        )
+    return tuple(replacements)
 
 
 def _reserved_ranges_in_internal(

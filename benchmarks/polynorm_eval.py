@@ -483,6 +483,10 @@ def evaluate_cases(
             "canonical_category": canonical,
             "ownership": ownership,
             "quarantine": quarantine,
+            "profile": profile,
+            "original_text": case.original_text,
+            "expected": case.normalized_text,
+            "actual": actual,
             "literal_exact": literal_exact,
             "speech_exact": speech_exact,
             "speech_exact_raw": speech_exact,
@@ -552,6 +556,7 @@ def evaluate_cases(
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
+    summary["_rows"] = tuple(rows)
     return summary, tuple(failures)
 
 
@@ -607,6 +612,7 @@ def evaluate_and_write(
         if profile == "extended"
         else evaluate_cases(case_list)
     )
+    all_rows = summary.pop("_rows", ())
     stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
@@ -635,6 +641,9 @@ def evaluate_and_write(
     with (output_dir / "failures.jsonl").open("w", encoding="utf-8") as handle:
         for failure in stored_failures:
             handle.write(json.dumps(failure, ensure_ascii=False, sort_keys=True) + "\n")
+    with (output_dir / "rows.jsonl").open("w", encoding="utf-8") as handle:
+        for row in all_rows:
+            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     _write_failures_markdown(stored_failures, output_dir / "failures.md")
     return output_dir, summary_payload
 

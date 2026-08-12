@@ -36,6 +36,13 @@ def _parser() -> argparse.ArgumentParser:
         help="Exact Unicode symbols to retain when --symbol-mode=keep",
     )
     parser.add_argument(
+        "--generic-acronyms",
+        choices=("known-only", "spell-unknown"),
+        default="known-only",
+        dest="generic_acronym_mode",
+        help="Whether to spell unknown uppercase initialisms",
+    )
+    parser.add_argument(
         "--generic-acronym-case",
         choices=("upper", "lower"),
         default="upper",
@@ -70,6 +77,7 @@ def main(argv: list[str] | None = None) -> int:
         normalize_whitespace=not args.keep_whitespace,
         symbol_mode=args.symbol_mode,
         keep_symbols=args.keep_symbols,
+        generic_acronym_mode=args.generic_acronym_mode.replace("-", "_"),
         generic_acronym_case=args.generic_acronym_case,
         strict=args.strict,
     )

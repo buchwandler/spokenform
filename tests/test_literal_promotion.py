@@ -14,6 +14,28 @@ def test_opt_in_literal_promotion_renders_url_email_and_version() -> None:
     assert "at" in result.spoken_text
 
 
+def test_literal_promotion_uses_typed_url_email_and_version_renderers() -> None:
+    result = prepare(
+        "Visit https://www.example.com/page1 and email support@company.com; update v3.1.4.",
+        language="en",
+        normalize_literals=True,
+        use_spacy=False,
+    )
+    assert "h t t p s colon slash slash w w w dot example dot com slash" in result.spoken_text
+    assert "support at company dot com" in result.spoken_text
+    assert "version three dot one dot four." in result.spoken_text
+
+
+def test_bare_domain_and_contextual_version_are_profile_scoped() -> None:
+    source = "Visit example.com/page1; version 5.0.1 is installed."
+    safe = prepare(source, language="en", use_spacy=False)
+    normalized = prepare(source, language="en", normalize_literals=True, use_spacy=False)
+    assert "example.com/page1" in safe.spoken_text
+    assert "version five dot zero dot one" in safe.spoken_text
+    assert "example dot com slash" in normalized.spoken_text
+    assert "version five dot zero dot one" in normalized.spoken_text
+
+
 def test_literal_promotion_remains_opt_in_for_defaults() -> None:
     source = "https://example.org/v1.2.3"
     default = prepare(source, language="en", use_spacy=False)

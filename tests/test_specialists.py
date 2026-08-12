@@ -36,6 +36,18 @@ def test_biology_specialist_claims_controlled_genus_species_shape() -> None:
     assert any(item.rule == "sequence.formula" for item in result.source_replacements)
 
 
+def test_contextual_roman_and_greek_symbol_rendering_are_typed() -> None:
+    assert prepare("George VI.", language="en", use_spacy=False).spoken_text == (
+        "George the sixth."
+    )
+    assert prepare("Año MMXXIV.", language="es", use_spacy=False).spoken_text == (
+        "Año dos mil veinticuatro."
+    )
+    greek = prepare("θ^2 = 1", language="en", use_spacy=False)
+    assert greek.spoken_text == "theta to the power of two equals one"
+    assert any(item.rule == "sequence.math" for item in greek.source_replacements)
+
+
 def test_biomedical_specialist_handles_codes_without_global_alphanumeric_claims() -> None:
     cases = {
         "MERS": "Mers",

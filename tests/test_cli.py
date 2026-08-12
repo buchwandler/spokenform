@@ -44,6 +44,8 @@ def test_cli_exposes_output_policies() -> None:
             "keep",
             "--keep-symbols",
             ":;,()-,.",
+            "--generic-acronyms",
+            "spell-unknown",
             "--generic-acronym-case",
             "lower",
             "ABC, test!",
@@ -51,6 +53,7 @@ def test_cli_exposes_output_policies() -> None:
     )
     assert args.symbol_mode == "keep"
     assert args.keep_symbols == ":;,()-,."
+    assert args.generic_acronym_mode == "spell-unknown"
     assert args.generic_acronym_case == "lower"
 
 
@@ -60,12 +63,13 @@ def test_cli_output_policies_work_end_to_end() -> None:
             sys.executable,
             "-m",
             "spokenform",
-            "--no-abbreviations",
             "--no-numbers",
             "--symbol-mode",
             "keep",
             "--keep-symbols",
             ":;,()-,.",
+            "--generic-acronyms",
+            "spell-unknown",
             "--generic-acronym-case",
             "lower",
             "ABC, test!",

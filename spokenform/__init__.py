@@ -9,7 +9,13 @@ except (ImportError, AttributeError):  # source tree before setuptools_scm gener
 
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
 from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
-from .config import NumberPolicy, PreparationConfig, number_policy_for_language
+from .config import (
+    GenericAcronymCase,
+    GenericAcronymMode,
+    NumberPolicy,
+    PreparationConfig,
+    number_policy_for_language,
+)
 from .language import (
     SUPPORTED_BASE_LANGUAGES,
     base_language,
@@ -41,6 +47,8 @@ from .structured import StageResult, iter_structured_replacements, normalize_str
 
 __all__ = [
     "PreparationConfig",
+    "GenericAcronymMode",
+    "GenericAcronymCase",
     "NumberPolicy",
     "number_policy_for_language",
     "SUPPORTED_BASE_LANGUAGES",

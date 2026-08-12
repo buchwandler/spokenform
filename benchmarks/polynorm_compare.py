@@ -23,6 +23,63 @@ def _failure_ids(directory: Path) -> set[str]:
     }
 
 
+def _rows(directory: Path) -> dict[str, dict[str, Any]]:
+    path = directory / "rows.jsonl"
+    if not path.is_file():
+        path = directory / "failures.jsonl"
+    if not path.is_file():
+        return {}
+    return {
+        row["id"]: row
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+        for row in (json.loads(line),)
+    }
+
+
+def _failed(row: dict[str, Any] | None) -> bool:
+    return bool(row and (row.get("error") or row.get("semantic_failure")))
+
+
+def _diff_rows(before: dict[str, dict[str, Any]], after: dict[str, dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    result: dict[str, list[dict[str, Any]]] = {key: [] for key in (
+        "fixed", "regressed", "unchanged_failure", "newly_changed_but_still_wrong", "presentation_only_change"
+    )}
+    for case_id in sorted(set(before) | set(after)):
+        old, new = before.get(case_id), after.get(case_id)
+        if old is None or new is None:
+            continue
+        old_failed, new_failed = _failed(old), _failed(new)
+        payload = {
+            "id": case_id,
+            "old_actual": old.get("actual", ""),
+            "new_actual": new.get("actual", ""),
+            "expected": new.get("expected", old.get("expected", "")),
+            "old_speech_wer": old.get("speech_wer", 0.0),
+            "new_speech_wer": new.get("speech_wer", 0.0),
+            "old_primary_rule": old.get("primary_rule"),
+            "new_primary_rule": new.get("primary_rule"),
+            "old_winning_span": old.get("winning_span"),
+            "new_winning_span": new.get("winning_span"),
+            "old_profile": old.get("profile"),
+            "new_profile": new.get("profile"),
+        }
+        if old_failed and not new_failed:
+            result["fixed"].append(payload)
+        elif not old_failed and new_failed:
+            result["regressed"].append(payload)
+        elif old_failed and new_failed:
+            if new.get("presentation_only") or (
+                old.get("speech_exact_equivalent") and new.get("speech_exact_equivalent")
+            ):
+                result["presentation_only_change"].append(payload)
+            elif old.get("actual") != new.get("actual"):
+                result["newly_changed_but_still_wrong"].append(payload)
+            else:
+                result["unchanged_failure"].append(payload)
+    return result
+
+
 def compare_runs(before: Path | str, after: Path | str) -> dict[str, Any]:
     """Return aggregate and case-id failure deltas for two benchmark runs."""
     before_dir = Path(before)
@@ -31,6 +88,7 @@ def compare_runs(before: Path | str, after: Path | str) -> dict[str, Any]:
     after_summary = _read_summary(after_dir)
     before_failures = _failure_ids(before_dir)
     after_failures = _failure_ids(after_dir)
+    diffs = _diff_rows(_rows(before_dir), _rows(after_dir))
     return {
         "before": str(before_dir),
         "after": str(after_dir),
@@ -47,6 +105,7 @@ def compare_runs(before: Path | str, after: Path | str) -> dict[str, Any]:
             "new_failures": sorted(after_failures - before_failures),
             "remaining": sorted(before_failures & after_failures),
         },
+        "diff_classification": diffs,
     }
 
 

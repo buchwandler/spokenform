@@ -261,7 +261,7 @@ def test_symbol_modes_are_explicit_and_unicode_aware() -> None:
 
     unicode_removed = prepare("a—b…c © d", **common, symbol_mode="remove")
     unicode_kept = prepare("a—b…c © d", **common, symbol_mode="keep", keep_symbols="—…")
-    assert unicode_removed.spoken_text == "abc d"
+    assert unicode_removed.spoken_text == "a b c d"
     assert unicode_kept.spoken_text == "a—b…c d"
 
 
@@ -284,6 +284,38 @@ def test_symbol_filter_respects_protection_and_mapping() -> None:
     assert result.map_output_span(10, 13) == (14, 17)
 
 
+def test_symbol_filter_preserves_boundaries_and_normalizes_prose_ampersands() -> None:
+    common = dict(
+        language="en",
+        use_spacy=False,
+        expand_abbreviations=False,
+        expand_structured=False,
+        expand_numbers=False,
+        symbol_mode="remove",
+    )
+    for source, expected in (
+        ("Sure Love—Single", "Sure Love Single"),
+        ("Serbia—People", "Serbia People"),
+        ("GIS/University", "GIS University"),
+        ("Press—MQUP", "Press MQUP"),
+        ('"foo"', "foo"),
+        ("foo, bar", "foo bar"),
+    ):
+        assert prepare(source, **common).spoken_text == expected
+    assert prepare("Foster & Partners", **common).spoken_text == "Foster and Partners"
+
+
+def test_symbol_filter_does_not_rewrite_protected_literals() -> None:
+    result = prepare(
+        "Visit https://example.com/a-b.",
+        language="en",
+        use_spacy=False,
+        normalize_literals=False,
+        symbol_mode="remove",
+    )
+    assert result.spoken_text == "Visit https://example.com/a-b."
+
+
 def test_symbol_filter_runs_after_semantic_recognition() -> None:
     result = prepare("12.5 50% €20", language="en", use_spacy=False, symbol_mode="remove")
 
@@ -299,6 +331,7 @@ def test_symbol_and_acronym_policies_are_config_driven() -> None:
         use_spacy=False,
         symbol_mode="keep",
         keep_symbols=".,",
+        generic_acronym_mode="spell_unknown",
         generic_acronym_case="lower",
     )
     result = prepare("ABC!.", config=config)

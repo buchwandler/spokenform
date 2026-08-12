@@ -24,6 +24,15 @@ _KEYWORD_YEAR_RE = re.compile(
     rf"(?P<year>{_YEAR})(?![\w./:-])",
     re.IGNORECASE,
 )
+_LEADING_YEAR_RE = re.compile(rf"(?<!\w)(?P<year>{_YEAR})(?=\s+[A-ZÀ-ÖØ-Þ])")
+_MONTH_YEAR_RE = re.compile(
+    rf"\b(?:January|February|March|April|May|June|July|August|September|October|November|December|"
+    rf"enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|"
+    rf"janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+"
+    rf"(?P<year>{_YEAR})(?![\w./:-])",
+    re.IGNORECASE,
+)
+_BIBLIO_YEAR_RE = re.compile(rf"(?:,\s*|\(\s*)(?P<year>{_YEAR})(?=\s*[),.;:]|$)")
 _RANGE_CONTEXT_RE = re.compile(
     r"\b(?:from|between|range|pages?|pp\.?|lines?|chapter|section|von|zwischen|seiten?|de|entre|páginas?|da|tra|pagine?)\b",
     re.IGNORECASE,
@@ -59,6 +68,10 @@ def _claimed(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bo
 def _is_safe_numeric_range(value: str, start: int, end: int, text: str) -> bool:
     """Reject source shapes owned by another typed recognizer."""
     if re.search(r"[./:]", value):
+        return False
+    if re.fullmatch(r"\d{3}\s*[-–]\s*\d{4}", value) and not _RANGE_CONTEXT_RE.search(
+        text[max(0, start - 48) : start]
+    ):
         return False
     before = text[max(0, start - 24) : start]
     after = text[end : end + 24]
@@ -105,7 +118,13 @@ def iter_replacements(
                 )
             )
 
-    for pattern in (_PAREN_YEAR_RE, _KEYWORD_YEAR_RE):
+    for pattern in (
+        _PAREN_YEAR_RE,
+        _KEYWORD_YEAR_RE,
+        _LEADING_YEAR_RE,
+        _MONTH_YEAR_RE,
+        _BIBLIO_YEAR_RE,
+    ):
         for match in pattern.finditer(text):
             start, end = match.span("year")
             if _claimed(start, end, protected):

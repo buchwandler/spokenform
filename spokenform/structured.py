@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Literal
 
+from .config import GenericAcronymCase, GenericAcronymMode
 from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
 from .models import ReservedSpan
@@ -26,7 +26,8 @@ def iter_structured_replacements(
     language: str,
     protected_ranges: Iterable[tuple[int, int]] = (),
     promote_literals: bool = False,
-    generic_acronym_case: Literal["upper", "lower"] = "upper",
+    generic_acronym_mode: GenericAcronymMode = "known_only",
+    generic_acronym_case: GenericAcronymCase = "upper",
 ) -> tuple[Replacement, ...]:
     """Return exact, non-overlapping semantic replacements for one language."""
     if not isinstance(text, str):
@@ -42,6 +43,7 @@ def iter_structured_replacements(
         language=language,
         protected_ranges=protected,
         promote_literals=promote_literals,
+        generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
     )
     if base == "en":
@@ -85,7 +87,8 @@ def normalize_structured(
     language: str,
     protected_ranges: Iterable[tuple[int, int]] = (),
     promote_literals: bool = False,
-    generic_acronym_case: Literal["upper", "lower"] = "upper",
+    generic_acronym_mode: GenericAcronymMode = "known_only",
+    generic_acronym_case: GenericAcronymCase = "upper",
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
     replacements = iter_structured_replacements(
@@ -93,6 +96,7 @@ def normalize_structured(
         language=language,
         protected_ranges=protected_ranges,
         promote_literals=promote_literals,
+        generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
     )
     from .mapping import apply_replacements
