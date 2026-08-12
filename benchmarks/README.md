@@ -1,4 +1,6 @@
-# PolyNorm benchmark
+# Benchmarks
+
+## PolyNorm benchmark
 
 `python -m benchmarks.polynorm --accept-license` runs the diagnostic adapter for
 the five locales shared by PolyNorm-Bench and Spokenform. The upstream data is
@@ -22,3 +24,13 @@ versions, PolyNorm dataset commit, locale mapping, Python version, and the
 available case count. The pinned snapshot currently contains 2,680 overlap
 cases; reports use the available count rather than assuming every locale has
 the same number of rows.
+
+See the detailed [PolyNorm documentation](../docs/polynorm.md).
+
+## Proteno benchmark
+
+`python -m benchmarks.proteno --accept-license` runs the pinned English and
+Spanish Proteno diagnostic benchmark. Data is cached under
+`.cache/proteno/<commit>/`; reports are written under
+`benchmark-results/proteno/<run-id>/`. The external data is never packaged or
+committed. See the detailed [Proteno documentation](../docs/proteno.md).
