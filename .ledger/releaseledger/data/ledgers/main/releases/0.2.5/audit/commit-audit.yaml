@@ -1,0 +1,242 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 2
+release_version: 0.2.5
+git_base_ref: v0.2.4
+git_base_sha: 191efc304a649d275c094a8b67f77b5393217281
+git_head_ref: HEAD
+git_head_sha: 859153dd9687c67093b175dee4500bb7d2e20016
+git_range: 191efc304a649d275c094a8b67f77b5393217281..859153dd9687c67093b175dee4500bb7d2e20016
+commit_count: 7
+rows:
+  - sha: 11f137c7698dfa2bb581bf1c8d238408d99798e7
+    source_ref: git:11f137c7698dfa2bb581bf1c8d238408d99798e7
+    short_sha: 11f137c
+    changed_paths:
+      - .gitignore
+      - benchmarks/README.md
+      - benchmarks/proteno.py
+      - benchmarks/proteno_compare.py
+      - benchmarks/proteno_data.py
+      - benchmarks/proteno_eval.py
+      - docs/proteno.md
+      - tests/test_proteno_data.py
+      - tests/test_proteno_eval.py
+    stats:
+      files_changed: 0
+      insertions: 1736
+      deletions: 1
+    inspected: true
+    inspected_paths:
+      - benchmarks/proteno.py
+      - benchmarks/proteno_eval.py
+      - docs/proteno.md
+    observed_behavior: Added Proteno benchmark suite with evaluation utilities
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: add proteno bechmark"
+    target_entry_key: entry-0001
+    notes: ""
+  - sha: 0527db47b84d25a381d89ad1f58cdca2ebec300b
+    source_ref: git:0527db47b84d25a381d89ad1f58cdca2ebec300b
+    short_sha: 0527db4
+    changed_paths:
+      - benchmarks/polynorm.py
+      - benchmarks/polynorm_eval.py
+      - benchmarks/proteno.py
+      - benchmarks/proteno_eval.py
+      - docs/polynorm.md
+      - docs/proteno.md
+      - tests/test_polynorm_eval.py
+      - tests/test_proteno_eval.py
+    stats:
+      files_changed: 0
+      insertions: 182
+      deletions: 6
+    inspected: true
+    inspected_paths:
+      - benchmarks/proteno_eval.py
+      - benchmarks/polynorm_eval.py
+    observed_behavior: Added WER threshold configuration for benchmarks
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: speech wer threshold for benchmark added"
+    target_entry_key: entry-0002
+    notes: ""
+  - sha: 0ac7cf7354673c05496c0fb53bdc18c134892df8
+    source_ref: git:0ac7cf7354673c05496c0fb53bdc18c134892df8
+    short_sha: 0ac7cf7
+    changed_paths:
+      - README.md
+      - benchmarks/proteno_eval.py
+      - docs/api.md
+      - docs/architecture.md
+      - docs/cli.md
+      - docs/proteno.md
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/config.py
+      - spokenform/recognizers/sequences.py
+      - spokenform/structured.py
+      - tests/test_api.py
+      - tests/test_cli.py
+      - tests/test_polynorm_eval.py
+      - tests/test_proteno_eval.py
+      - tests/test_sequences.py
+    stats:
+      files_changed: 0
+      insertions: 357
+      deletions: 18
+    inspected: true
+    inspected_paths:
+      - spokenform/api.py
+      - spokenform/config.py
+    observed_behavior: Added symbol handling parameters to prepare API
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: added symbol handling parameter"
+    target_entry_key: entry-0003
+    notes: ""
+  - sha: 99abb234839684b11855c4afb38674ca547fa71c
+    source_ref: git:99abb234839684b11855c4afb38674ca547fa71c
+    short_sha: 99abb23
+    changed_paths:
+      - benchmarks/README.md
+      - benchmarks/polynorm.py
+      - benchmarks/polynorm_eval.py
+      - benchmarks/proteno.py
+      - benchmarks/proteno_eval.py
+      - docs/polynorm.md
+      - docs/proteno.md
+      - spokenform/dates.py
+      - spokenform/locales/en.py
+      - spokenform/mapping.py
+      - spokenform/protection.py
+      - spokenform/recognizers/__init__.py
+      - spokenform/recognizers/biology.py
+      - spokenform/recognizers/ranges.py
+      - spokenform/recognizers/sequences.py
+      - tests/data/en_kokorog2p_parity.json
+      - tests/data/golden_s0.json
+      - tests/test_brief_reductions.py
+      - tests/test_dates.py
+      - tests/test_identifiers.py
+      - tests/test_kokorog2p_integration.py
+      - tests/test_polynorm_eval.py
+      - tests/test_proteno_eval.py
+      - tests/test_real_kokorog2p_integration.py
+      - tests/test_sequences.py
+      - tests/test_specialists.py
+    stats:
+      files_changed: 0
+      insertions: 993
+      deletions: 138
+    inspected: true
+    inspected_paths:
+      - spokenform/dates.py
+      - spokenform/locales/en.py
+    observed_behavior: Improved date rendering with source-order preservation
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: improve date rendering"
+    target_entry_key: entry-0004
+    notes: ""
+  - sha: 672bfe544658a58300f2ab13060eb5e08c078f99
+    source_ref: git:672bfe544658a58300f2ab13060eb5e08c078f99
+    short_sha: 672bfe5
+    changed_paths:
+      - .codecrate.toml
+      - README.md
+      - binder/requirements.txt
+      - binder/runtime.txt
+      - docs/examples.md
+      - notebooks/spokenform_playground.ipynb
+      - tests/test_notebook.py
+    stats:
+      files_changed: 0
+      insertions: 613
+      deletions: 0
+    inspected: true
+    inspected_paths:
+      - notebooks/spokenform_playground.ipynb
+      - binder/requirements.txt
+    observed_behavior: Added Binder example with Jupyter notebook
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: binder example with notebook"
+    target_entry_key: entry-0005
+    notes: ""
+  - sha: 30b9feab6ab13ce97e34ee0735a17959eea2fb03
+    source_ref: git:30b9feab6ab13ce97e34ee0735a17959eea2fb03
+    short_sha: 30b9fea
+    changed_paths:
+      - benchmarks/polynorm.py
+      - benchmarks/polynorm_compare.py
+      - benchmarks/polynorm_eval.py
+      - benchmarks/proteno.py
+      - benchmarks/proteno_compare.py
+      - benchmarks/proteno_eval.py
+      - notebooks/spokenform_playground.ipynb
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/config.py
+      - spokenform/locales/en.py
+      - spokenform/numbers.py
+      - spokenform/recognizers/ranges.py
+      - spokenform/recognizers/sequences.py
+      - spokenform/structured.py
+      - tests/test_addresses_phone.py
+      - tests/test_api.py
+      - tests/test_cli.py
+      - tests/test_en_structured.py
+      - tests/test_literal_promotion.py
+      - tests/test_notebook.py
+      - tests/test_packaging.py
+      - tests/test_sequence_precedence.py
+      - tests/test_sequences.py
+      - tests/test_specialists.py
+    stats:
+      files_changed: 0
+      insertions: 859
+      deletions: 86
+    inspected: true
+    inspected_paths:
+      - spokenform/numbers.py
+      - spokenform/locales/en.py
+    observed_behavior: Improved number detection in sequences
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: improved number detection"
+    target_entry_key: entry-0006
+    notes: ""
+  - sha: 859153dd9687c67093b175dee4500bb7d2e20016
+    source_ref: git:859153dd9687c67093b175dee4500bb7d2e20016
+    short_sha: 859153d
+    changed_paths:
+      - benchmarks/polynorm.py
+      - benchmarks/polynorm_compare.py
+      - benchmarks/proteno.py
+      - benchmarks/proteno_compare.py
+      - spokenform/locales/en.py
+      - spokenform/numbers.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_en_structured.py
+      - tests/test_sequence_precedence.py
+      - tests/test_sequences.py
+    stats:
+      files_changed: 0
+      insertions: 92
+      deletions: 38
+    inspected: true
+    inspected_paths:
+      - spokenform/locales/en.py
+    observed_behavior: Fixed pre-commit formatting issues
+    public_impact: internal
+    decision: internal
+    evidence_subject: "chore: pre-commit"
+    target_entry_key: entry-0007
+    notes: ""
