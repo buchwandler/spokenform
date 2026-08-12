@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 
 from .polynorm_data import POLYNORM_LOCALES, ensure_data, load_cases, selected_locales
-from .polynorm_eval import evaluate_and_write
+from .polynorm_eval import BENCHMARK_PROFILES, evaluate_and_write
 
 
 def _non_negative_float(value: str) -> float:
@@ -41,6 +41,12 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--refresh", action="store_true", help="Redownload selected pinned files.")
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument("--show-failures", choices=("none", "all"), default="none")
+    parser.add_argument("--profile", choices=BENCHMARK_PROFILES, default="default")
+    parser.add_argument(
+        "--normalize-literals",
+        action="store_true",
+        help="Alias for the extended profile; verbalize protected URL/email/version literals.",
+    )
     parser.add_argument("--cache-dir", type=Path, default=Path(".cache/polynorm-bench"))
     parser.add_argument("--results-dir", type=Path, default=Path("benchmark-results/polynorm"))
     return parser
@@ -66,8 +72,12 @@ def main(argv: list[str] | None = None) -> int:
         case_id=args.case_id,
         limit=args.limit,
     )
+    profile = "extended" if args.normalize_literals else args.profile
     output_dir, summary = evaluate_and_write(
-        cases, output_root=args.results_dir, speech_wer_threshold=args.speech_wer_threshold
+        cases,
+        output_root=args.results_dir,
+        speech_wer_threshold=args.speech_wer_threshold,
+        profile=profile,
     )
     print(f"PolyNorm cases: {summary['cases']}")
     print(f"Results: {output_dir}")

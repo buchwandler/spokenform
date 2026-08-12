@@ -44,7 +44,7 @@ def test_real_english_downstream_contract() -> None:
     prepared = prepare_for_kokorog2p(source, "en")
     assert prepared.spoken_text == (
         "Visit Saint Patrick at thirty seven degrees Celsius Pay "
-        "twelve dollars and fifty cents for ten inches World War II began in 1984, "
+        "twelve dollars and fifty cents for ten inches World War II began in nineteen eighty four, "
         "and first edition uses 1.02.3."
     )
     assert [
@@ -55,6 +55,7 @@ def test_real_english_downstream_contract() -> None:
         ("37 C.", "thirty seven degrees Celsius", "structured", "en.quantity"),
         ("$12.50", "twelve dollars and fifty cents", "structured", "en.currency"),
         ("10 in.", "ten inches", "structured", "en.quantity"),
+        ("1984", "nineteen eighty four", "structured", "sequence.year"),
     ]
     for item in prepared.source_replacements:
         assert source[item.source_start : item.source_end] == item.source
@@ -66,7 +67,7 @@ def test_real_english_downstream_contract() -> None:
         prepared.spoken_text[token._["char_start"] : token._["char_end"]] == token.text
         for token in tokens
     )
-    assert any(token.text == "1984" for token in tokens)
+    assert any(token.text == "nineteen" for token in tokens)
     assert any(token.text == "II" for token in tokens)
     assert any(token.text == "first" for token in tokens)
     assert any(token.text == "1.02.3" for token in tokens)

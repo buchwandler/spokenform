@@ -150,6 +150,20 @@ def test_environment_fingerprint_records_source_commit() -> None:
     assert fingerprint["spokenform_source_commit"]
 
 
+def test_extended_profile_is_explicit_and_promotes_literals() -> None:
+    case = PolyNormCase("en-US", "profile", "URL or Email", "https://example.org", "spoken")
+    calls: list[dict[str, object]] = []
+
+    def fake_prepare(text: str, **kwargs: object):
+        calls.append(kwargs)
+        return prepare(text, **kwargs)
+
+    summary, _ = evaluate_cases((case,), prepare_fn=fake_prepare, profile="extended")
+    assert summary["profile"] == "extended"
+    assert summary["normalize_literals"] is True
+    assert calls[0]["normalize_literals"] is True
+
+
 def test_compare_runs_reports_case_id_and_aggregate_deltas(tmp_path) -> None:
     before = tmp_path / "before"
     after = tmp_path / "after"

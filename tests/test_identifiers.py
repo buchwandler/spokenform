@@ -66,3 +66,39 @@ def test_locale_legal_reference_grammars_are_atomic() -> None:
     assert prepare("legge n. 145/2018", language="it", use_spacy=False).spoken_text == (
         "legge numero centoquarantacinque del duemiladiciotto"
     )
+
+
+def test_brief_legal_references_use_atomic_contextual_renderers() -> None:
+    docket = prepare("Docket No. 2022-5678", language="en", use_spacy=False)
+    assert docket.spoken_text == "Docket Number twenty twenty two dash five six seven eight"
+    assert any(item.rule == "sequence.legal" for item in docket.source_replacements)
+
+    case = prepare("Case No. 1:22-cv-00123", language="en", use_spacy=False)
+    assert (
+        case.spoken_text == "Case Number one colon twenty two dash c v dash zero zero one two three"
+    )
+
+    assert prepare("Sentencia 4567/2024", language="es", use_spacy=False).spoken_text == (
+        "sentencia cuatro mil quinientos sesenta y siete de dos mil veinticuatro"
+    )
+    assert prepare("regolamento n. 2017/745", language="it", use_spacy=False).spoken_text == (
+        "regolamento numero duemiladiciassette del settecentoquarantacinque"
+    )
+
+
+def test_strongly_labeled_codes_use_digitwise_policies() -> None:
+    assert prepare("barcode 123456789012", language="en", use_spacy=False).spoken_text == (
+        "barcode one two three four five six seven eight nine zero one two"
+    )
+    assert prepare("Matrikelnummer 1234567", language="de", use_spacy=False).spoken_text == (
+        "Matrikelnummer eins zwei drei vier fünf sechs sieben"
+    )
+    assert prepare("P/N 7890-12", language="en", use_spacy=False).spoken_text == (
+        "P N seven eight nine zero one two"
+    )
+    result = prepare("X5Y-7890", language="en", use_spacy=False)
+    assert result.spoken_text == "X five Y seven eight nine zero"
+    assert any(item.rule == "sequence.product" for item in result.source_replacements)
+
+    ordinary = prepare("2024 points", language="en", use_spacy=False)
+    assert not any(item.rule == "sequence.product" for item in ordinary.source_replacements)

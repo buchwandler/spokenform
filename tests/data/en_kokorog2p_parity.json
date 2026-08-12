@@ -247,13 +247,13 @@
   {
     "id": "dmy-date",
     "source": "14.05.2026",
-    "spoken": "May fourteenth, two thousand and twenty-six",
+    "spoken": "the fourteenth of May twenty twenty six",
     "rule": "en.date"
   },
   {
     "id": "iso-date",
     "source": "2026-05-14",
-    "spoken": "May fourteenth, two thousand and twenty-six",
+    "spoken": "May fourteenth twenty twenty six",
     "rule": "en.date"
   },
   {

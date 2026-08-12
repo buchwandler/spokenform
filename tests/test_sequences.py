@@ -26,7 +26,7 @@ def test_sequence_renderer_advances_past_whitespace() -> None:
 
 def test_german_legal_reference_with_whitespace_completes() -> None:
     result = prepare("Nach Art. 1 Abs. 1 GG.", language="de_DE", use_spacy=False)
-    assert result.spoken_text == "Nach A R T Punkt eins A B S Punkt eins G G."
+    assert result.spoken_text == "Nach Artikel eins Absatz eins G G."
 
 
 def test_sequence_policy_can_keep_alpha_runs_lexical() -> None:
@@ -57,17 +57,21 @@ def test_sequence_alpha_modes_are_distinct() -> None:
 
 def test_hashtag_and_mention_rendering_is_lexical() -> None:
     assert prepare("#TravelTips @JeanDupont", language="en", use_spacy=False).spoken_text == (
-        "hashtag TravelTips at Jean Dupont"
+        "hashtag Travel Tips at Jean Dupont"
     )
     assert (
-        prepare("#vacanze2024", language="it", use_spacy=False).spoken_text == "hashtag vacanze2024"
+        prepare("#vacanze2024", language="it", use_spacy=False).spoken_text
+        == "hashtag vacanze duemilaventiquattro"
     )
-    assert prepare("#Été2024", language="fr", use_spacy=False).spoken_text == "hashtag Été2024"
+    assert (
+        prepare("#Été2024", language="fr", use_spacy=False).spoken_text
+        == "hashtag Été deux mille vingt-quatre"
+    )
 
 
 def test_opaque_short_handles_use_letterwise_rendering() -> None:
-    assert prepare("#API2", language="en", use_spacy=False).spoken_text == "hashtag API2"
-    assert prepare("#E.", language="en", use_spacy=False).spoken_text == "hashtag E."
+    assert prepare("#API2", language="en", use_spacy=False).spoken_text == "hashtag a p i two"
+    assert prepare("#E.", language="en", use_spacy=False).spoken_text == "hashtag e."
 
 
 def test_coordinates_support_integer_precision_and_direction_words() -> None:
@@ -109,10 +113,10 @@ def test_fraction_and_acronym_policies_are_high_confidence_only() -> None:
     assert protected.spoken_text == "https://example.org/v1.2.3"
 
 
-def test_generic_uppercase_acronyms_are_grapheme_spaced() -> None:
+def test_unknown_uppercase_prose_is_preserved() -> None:
     result = prepare("ABC", language="en", use_spacy=False)
-    assert result.spoken_text == "A B C"
-    assert any(item.rule == "sequence.acronym" for item in result.source_replacements)
+    assert result.spoken_text == "ABC"
+    assert not any(item.rule == "sequence.acronym" for item in result.source_replacements)
 
 
 def test_generic_acronym_case_does_not_change_special_classes() -> None:
@@ -124,7 +128,7 @@ def test_generic_acronym_case_does_not_change_special_classes() -> None:
         generic_acronym_case="lower",
     )
 
-    assert upper.spoken_text == "A B C A A P L Nasa API"
+    assert upper.spoken_text == "ABC AAPL Nasa API"
     assert lower.spoken_text == "a b c a a p l Nasa API"
 
 
@@ -150,3 +154,33 @@ def test_fraction_does_not_claim_url_or_full_date_shape() -> None:
     date = prepare("2025/03/15", language="en", use_spacy=False)
     assert not any(item.rule == "sequence.fraction" for item in date.source_replacements)
     assert not any(item.rule == "sequence.phone" for item in date.source_replacements)
+
+
+def test_year_and_numeric_ranges_are_contextual_and_precedence_safe() -> None:
+    year = prepare("Ayers, Andrew (2004).", language="en", use_spacy=False)
+    assert year.spoken_text == "Ayers, Andrew (two thousand four)."
+    assert any(item.rule == "sequence.year" for item in year.source_replacements)
+
+    historical = prepare("1946-1975", language="en", use_spacy=False)
+    assert historical.spoken_text == "nineteen forty six to nineteen seventy five"
+    assert any(item.rule == "sequence.year-range" for item in historical.source_replacements)
+
+    for source, expected in (
+        ("33-38", "thirty three to thirty eight"),
+        ("93-102", "ninety three to one hundred two"),
+        ("1048-1049", "one thousand forty eight to one thousand forty nine"),
+    ):
+        result = prepare(source, language="en", use_spacy=False)
+        assert result.spoken_text == expected
+        assert any(item.rule == "sequence.numeric-range" for item in result.source_replacements)
+
+    for source in ("v3.1.4", "978-3-16-148410-0", "2024-05-31", "X5Y-7890", "-5"):
+        result = prepare(source, language="en", use_spacy=False)
+        assert not any("range" in (item.rule or "") for item in result.source_replacements)
+
+
+def test_unowned_dash_and_em_dash_text_remains_source_aligned() -> None:
+    for source in ("Sure Love—Single", "Sure Love - Single", "A—B"):
+        result = prepare(source, language="en", use_spacy=False)
+        assert result.spoken_text == source
+        assert all(stage.before == stage.after for stage in result.stages)

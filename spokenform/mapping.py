@@ -427,10 +427,15 @@ def _replacement_priority(replacement: Replacement) -> int:
         "sequence.currency",
         "sequence.currency-magnitude",
         "sequence.biology",
+        "sequence.biomedical",
+        "sequence.height",
+        "sequence.postal",
     }:
         return 90
     if rule in {"sequence.legal", "sequence.sports", "sequence.address"}:
         return 80
+    if rule in {"sequence.year-range"}:
+        return 76
     if rule.endswith(".date-range") or rule.endswith(".time-range"):
         return 75
     if rule.endswith(".date") or rule.endswith(".time") or rule == "sequence.roman":
@@ -441,6 +446,9 @@ def _replacement_priority(replacement: Replacement) -> int:
         "sequence.version",
         "sequence.hashtag",
         "sequence.mention",
+        "sequence.social-hashtag",
+        "sequence.social-mention",
+        "sequence.numeric-range",
     }:
         return 60
     if ".currency" in rule or ".quantity" in rule or "temperature" in rule:

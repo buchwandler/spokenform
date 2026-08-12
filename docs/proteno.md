@@ -95,3 +95,10 @@ python -m benchmarks.proteno_compare \
 The comparison reports aggregate deltas and `resolved`, `new_failures`, and
 `remaining` stable case-ID sets. Source-bearing reports should remain local and
 must not be committed.
+
+## Benchmark profiles
+
+Proteno reports default to `normalize_literals=False`. The extended profile is
+opt-in through `--profile extended` or `--normalize-literals` and is reported
+separately so protected literal behavior is not mixed into the conservative
+default score.

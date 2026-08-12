@@ -56,6 +56,8 @@ def discover_protected_spans(
                 continue
             if kind == "version" and _is_dotted_phone(match.group(0)):
                 continue
+            if kind == "version" and _is_biomedical_context(text, match.start(), match.end()):
+                continue
             if (
                 kind == "version"
                 and base in {"de", "es", "fr", "it"}
@@ -103,6 +105,17 @@ def _is_strong_sequence(text: str) -> bool:
 def _is_contextual_version(text: str, start: int) -> bool:
     prefix = text[max(0, start - 24) : start]
     return bool(re.search(r"(?:version|release|ver\.?|build)\s*[=:]?\s*$", prefix, re.IGNORECASE))
+
+
+def _is_biomedical_context(text: str, start: int, end: int) -> bool:
+    context = f"{text[max(0, start - 48) : start]} {text[end : end + 48]}"
+    return bool(
+        re.search(
+            r"\b(?:gene|strain|virus|variant|lineage|plasmid|ecotype|chromosome|isolate|serotype)\b",
+            context,
+            re.IGNORECASE,
+        )
+    )
 
 
 def coerce_protected_spans(

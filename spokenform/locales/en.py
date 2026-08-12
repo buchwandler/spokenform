@@ -12,12 +12,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
+from typing import Literal
 
 from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
-from ..dates import expand_year
+from ..dates import DateCandidate, expand_year, render_english_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -324,33 +325,45 @@ def _date_text(
     language: str = "en",
     *,
     year_digits: int | None = None,
+    source_order: Literal["mdy", "dmy", "ymd"] = "mdy",
 ) -> str:
-    dependency_language = resolve_num2words_language(language)
-    day_text = str(num2words(day, lang=dependency_language, to="ordinal"))
-    policy = numeric_speech_policy(language)
-    if policy.year_mode == "locale" and year_digits == 2:
-        year_text = _cardinal(year % 100, language)
-    elif policy.year_mode == "locale" and 2000 <= year < 2100:
-        century, remainder = divmod(year, 100)
-        year_text = _cardinal(century, language)
-        if remainder:
-            year_text = f"{year_text} {_cardinal(remainder, language)}"
-    elif policy.year_mode == "locale" and 1900 <= year < 2000:
-        century, remainder = divmod(year, 100)
-        prefix = _cardinal(century, language)
-        year_text = prefix if remainder == 0 else f"{prefix} {_cardinal(remainder, language)}"
-    elif 1900 <= year < 2000:
-        century, remainder = divmod(year, 100)
-        prefix = str(num2words(century, lang=dependency_language))
-        year_text = (
-            prefix
-            if remainder == 0
-            else f"{prefix} {'oh ' if remainder < 10 else ''}{num2words(remainder, lang=dependency_language)}"
+    return _render_date_candidate(
+        DateCandidate(
+            day=day,
+            month=month,
+            year=year,
+            year_digits=year_digits,
+            month_style="numeric",
+            source_order=source_order,
+            separator=None,
+        ),
+        language,
+    )
+
+
+def _ordinal_text(value: int, language: str = "en") -> str:
+    rendered = str(num2words(value, lang=resolve_num2words_language(language), to="ordinal"))
+    return " ".join(rendered.replace(",", " ").replace("-", " ").split())
+
+
+def _render_date_candidate(candidate: DateCandidate, language: str = "en") -> str:
+    """Render an English date without discarding its source ordering."""
+    day_text = _ordinal_text(candidate.day, language)
+    month_text = _MONTHS[candidate.month - 1]
+    if candidate.year is None:
+        return (
+            f"the {day_text} of {month_text}"
+            if candidate.source_order == "dmy"
+            else f"{month_text} {day_text}"
         )
-    else:
-        year_text = str(num2words(year, lang=dependency_language))
-    separator = " " if policy.year_mode == "locale" else ", "
-    return f"{_MONTHS[month - 1]} {day_text}{separator}{year_text}"
+    year_text = render_english_year(
+        candidate.year,
+        language=language,
+        source_digits=candidate.source_year_digits,
+    )
+    if candidate.source_order == "dmy":
+        return f"the {day_text} of {month_text} {year_text}"
+    return f"{month_text} {day_text} {year_text}"
 
 
 def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:
@@ -519,7 +532,18 @@ def iter_replacements(
             add(
                 match.start(),
                 match.end(),
-                f"{_MONTHS[month - 1]} {_spell(day, language, ordinal=True)}",
+                _render_date_candidate(
+                    DateCandidate(
+                        day=day,
+                        month=month,
+                        year=None,
+                        year_digits=None,
+                        month_style="numeric",
+                        source_order="mdy",
+                        separator=None,
+                    ),
+                    language,
+                ),
                 "en.date",
             )
     for match in _TEXT_DATE_DMY.finditer(text):
@@ -541,11 +565,33 @@ def iter_replacements(
         day = int(match["day"])
         if text_year is None or _valid_date(day, month_index, text_year):
             value = (
-                f"{_MONTHS[month_index - 1]} {_spell(day, language, ordinal=True)}"
+                _render_date_candidate(
+                    DateCandidate(
+                        day=day,
+                        month=month_index,
+                        year=None,
+                        year_digits=None,
+                        month_style="name",
+                        source_order="dmy",
+                        separator=None,
+                    ),
+                    language,
+                )
                 if text_year is None
-                else _date_text(day, month_index, text_year, language, year_digits=year_digits)
+                else _render_date_candidate(
+                    DateCandidate(
+                        day=day,
+                        month=month_index,
+                        year=text_year,
+                        year_digits=year_digits,
+                        month_style="name",
+                        source_order="dmy",
+                        separator=None,
+                    ),
+                    language,
+                )
             )
-            add(match.start(), match.end(), value, "en.date")
+            add(match.start(), match.end(), value, "en.date.dmy_text")
     for match in _TEXT_DATE_RANGE.finditer(text):
         month_name = match["month"].rstrip(".").title()
         month_index = next(
@@ -563,7 +609,7 @@ def iter_replacements(
             int(match["end"]), month_index, year
         ):
             if numeric_speech_policy(language).year_mode == "locale":
-                year_text = _date_text(1, month_index, year, language).split(" ", 2)[-1]
+                year_text = render_english_year(year, language=language)
                 value = f"{_MONTHS[month_index - 1]} {_spell(int(match['start']), language, ordinal=True)} through {_spell(int(match['end']), language, ordinal=True)} {year_text}"
             else:
                 value = f"{_MONTHS[month_index - 1]} {_spell(int(match['start']), language, ordinal=True)} through {_spell(int(match['end']), language, ordinal=True)}, {_spell(year, language)}"
@@ -584,10 +630,19 @@ def iter_replacements(
         if text_year is not None:
             text_year, _ = expand_year(match["year"])
         if text_year is None or _valid_date(int(match["day"]), month_index, text_year):
-            value = _date_text(int(match["day"]), month_index, text_year or 2000, language)
-            if text_year is None:
-                value = f"{_MONTHS[month_index - 1]} {_spell(int(match['day']), language, ordinal=True)}"
-            add(match.start(), match.end(), value, "en.date")
+            value = _render_date_candidate(
+                DateCandidate(
+                    day=int(match["day"]),
+                    month=month_index,
+                    year=text_year,
+                    year_digits=len(match["year"]) if match["year"] else None,
+                    month_style="name",
+                    source_order="mdy",
+                    separator=None,
+                ),
+                language,
+            )
+            add(match.start(), match.end(), value, "en.date.mdy_text")
 
     for match in _ORDINAL_SUFFIX.finditer(text):
         number = int(match["number"])
@@ -603,7 +658,19 @@ def iter_replacements(
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year, language), "en.date")
+                add(
+                    match.start(),
+                    match.end(),
+                    _date_text(
+                        day,
+                        month,
+                        year,
+                        language,
+                        year_digits=4,
+                        source_order="dmy" if pattern is _DATE_DMY else "mdy",
+                    ),
+                    "en.date",
+                )
 
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])

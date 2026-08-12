@@ -202,6 +202,26 @@ def test_failure_markdown_is_split_into_bounded_linked_shards(tmp_path):
         assert f"#### {failure['id']}" in rendered
 
 
+def test_extended_profile_is_explicit() -> None:
+    case = _case("en", 1, "https://example.org", "spoken")
+    calls: list[dict[str, object]] = []
+
+    def fake_prepare(text: str, **kwargs: object):
+        calls.append(kwargs)
+        return SimpleNamespace(
+            spoken_text="spoken",
+            warnings=(),
+            stages=(),
+            mapped_edits=(),
+            source_replacements=(),
+        )
+
+    summary, _ = evaluate_cases((case,), prepare_fn=fake_prepare, profile="extended")
+    assert summary["profile"] == "extended"
+    assert summary["normalize_literals"] is True
+    assert calls[0]["normalize_literals"] is True
+
+
 def test_compare_runs_reports_metrics_and_stable_case_deltas(tmp_path):
     before = tmp_path / "before"
     after = tmp_path / "after"

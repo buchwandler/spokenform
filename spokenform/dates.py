@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
+from num2words import num2words
+
+from .language import resolve_num2words_language
+
 
 @dataclass(frozen=True, slots=True)
 class ParsedDate:
@@ -87,10 +91,40 @@ def parsed_date(day: str, month: str, year: str | None = None) -> ParsedDate:
     return result
 
 
+def render_english_year(
+    year: int, *, language: str = "en", source_digits: int | None = None
+) -> str:
+    """Render a year using the reviewed conventional English year policy."""
+
+    dependency_language = resolve_num2words_language(language)
+
+    def cardinal(value: int) -> str:
+        return str(num2words(value, lang=dependency_language)).replace(",", "").replace("-", " ")
+
+    if source_digits == 2:
+        return cardinal(year % 100)
+    if 1000 <= year < 2000:
+        century, remainder = divmod(year, 100)
+        prefix = cardinal(century)
+        if remainder == 0:
+            return f"{prefix} hundred"
+        if remainder < 10:
+            return f"{prefix} oh {cardinal(remainder)}"
+        return f"{prefix} {cardinal(remainder)}"
+    if year == 2000:
+        return "two thousand"
+    if 2000 < year < 2010:
+        return f"two thousand {cardinal(year % 100)}"
+    if 2010 <= year < 2100:
+        return f"twenty {cardinal(year % 100)}"
+    return cardinal(year)
+
+
 __all__ = [
     "DateCandidate",
     "ParsedDate",
     "ParsedDateRange",
     "expand_year",
     "parsed_date",
+    "render_english_year",
 ]

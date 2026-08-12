@@ -18,7 +18,7 @@ def test_german_date_grammar_covers_short_text_hyphenated_and_ranges() -> None:
 
 def test_english_us_dates_cover_numeric_text_and_ranges() -> None:
     assert prepare("12/31/23", language="en_US", use_spacy=False).spoken_text == (
-        "December thirty-first twenty three"
+        "December thirty first twenty three"
     )
     assert prepare("January 5th, 2023", language="en_US", use_spacy=False).spoken_text == (
         "January fifth twenty twenty three"
@@ -80,7 +80,7 @@ def test_dotted_short_dates_are_not_auto_protected_as_versions() -> None:
 
 def test_iso_slash_dates_beat_fraction_and_phone_candidates() -> None:
     result = prepare("2025/03/15", language="en", use_spacy=False)
-    assert result.spoken_text == "March fifteenth, two thousand and twenty-five"
+    assert result.spoken_text == "March fifteenth twenty twenty five"
     assert any(item.rule == "en.date" for item in result.source_replacements)
 
 
@@ -88,8 +88,8 @@ def test_benchmark_date_shapes_and_no_year_dates_use_date_rules() -> None:
     cases = {
         ("11/30", "en_US"): "November thirtieth",
         ("06/10", "en_US"): "June tenth",
-        ("3rd July 1995", "en_US"): "July third nineteen ninety five",
-        ("31 Jan 2025", "en_US"): "January thirty-first twenty twenty five",
+        ("3rd July 1995", "en_US"): "the third of July nineteen ninety five",
+        ("31 Jan 2025", "en_US"): "the thirty first of January twenty twenty five",
         ("09/01/24", "en_US"): "September first twenty four",
         ("le 30/06", "fr_FR"): "le trente juin",
         ("il 31/12", "it_IT"): "il trentuno dicembre",
@@ -99,4 +99,4 @@ def test_benchmark_date_shapes_and_no_year_dates_use_date_rules() -> None:
     for (source, language), expected in cases.items():
         result = prepare(source, language=language, use_spacy=False)
         assert result.spoken_text == expected, (source, language)
-        assert any(item.rule.endswith(".date") for item in result.source_replacements)
+        assert any("date" in item.rule for item in result.source_replacements)

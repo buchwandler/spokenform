@@ -86,3 +86,12 @@ plain-number stages. URLs, e-mail addresses, versions, and contextual Roman
 numerals can be promoted with `normalize_literals=True`; caller-protected spans
 remain unchanged. Math, music, and biology use conservative context/shape
 grammars rather than corpus-specific branches.
+
+## Benchmark profiles
+
+The default report uses the public conservative contract with
+`normalize_literals=False`; URL/email and version rows remain protected and
+are reported separately from owned semantic failures. Use
+`--profile extended` (or `--normalize-literals`) to measure optional literal
+verbalization. Reports record the selected profile, ownership state, failure
+phase, primary rule, and render mode.

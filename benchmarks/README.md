@@ -11,10 +11,16 @@ committed.
 
 Use `--offline` after the cache has been populated. The adapter also supports
 `--locale`, `--category`, `--case`, `--limit`, `--refresh`, `--download-only`,
-and `--show-failures all`. Reports are written to
+`--profile default|extended`, `--normalize-literals`, and `--show-failures all`.
+Reports are written to
 `benchmark-results/polynorm/<run-id>/`. `summary.json` contains metrics and
 metadata only; the JSONL and Markdown failure reports contain source text and
 remain local.
+
+The default profile calls `prepare(..., normalize_literals=False)` and treats
+URL/email/version rows as protected ownership. The extended profile calls
+`normalize_literals=True` and measures optional literal verbalization. Keep
+the profile field when comparing reports.
 
 PolyNorm is a discovery tool, not a normal CI or release gate. The benchmark
 does not make unsupported PolyNorm locales part of Spokenform's public API.
@@ -32,5 +38,6 @@ See the detailed [PolyNorm documentation](../docs/polynorm.md).
 `python -m benchmarks.proteno --accept-license` runs the pinned English and
 Spanish Proteno diagnostic benchmark. Data is cached under
 `.cache/proteno/<commit>/`; reports are written under
-`benchmark-results/proteno/<run-id>/`. The external data is never packaged or
-committed. See the detailed [Proteno documentation](../docs/proteno.md).
+`benchmark-results/proteno/<run-id>/`. Use `--profile extended` or
+`--normalize-literals` for the opt-in literal profile. The external data is
+never packaged or committed. See the detailed [Proteno documentation](../docs/proteno.md).

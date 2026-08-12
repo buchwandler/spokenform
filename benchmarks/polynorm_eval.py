@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from statistics import mean, median
-from typing import Any
+from typing import Any, Literal
 
 from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
@@ -31,6 +31,8 @@ from .polynorm_data import (
 )
 
 SEMANTIC_SYMBOLS = frozenset("$€£%@/°+=#&")
+BENCHMARK_PROFILES = ("default", "extended")
+LiteralProfile = Literal["default", "extended"]
 
 # Reporting aliases intentionally do not alter the upstream category stored on
 # each case.  PolyNorm has changed capitalization and pluralization between
@@ -164,7 +166,9 @@ def source_commit() -> str | None:
     return commit or None
 
 
-def environment_fingerprint(locales: Iterable[str]) -> dict[str, object]:
+def environment_fingerprint(
+    locales: Iterable[str], *, profile: LiteralProfile = "default"
+) -> dict[str, object]:
     """Return reproducibility metadata for one benchmark configuration."""
     from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
 
@@ -187,7 +191,8 @@ def environment_fingerprint(locales: Iterable[str]) -> dict[str, object]:
         "platform": platform.platform(),
         "locale_mapping": resolution,
         "configuration": {
-            "prepare": {"use_spacy": False},
+            "prepare": {"use_spacy": False, "normalize_literals": profile == "extended"},
+            "profile": profile,
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
         },
     }
@@ -425,6 +430,7 @@ def evaluate_cases(
     cases: Iterable[PolyNormCase],
     *,
     prepare_fn: Callable[..., PreparedText] = prepare,
+    profile: LiteralProfile = "default",
 ) -> tuple[dict[str, Any], tuple[dict[str, Any], ...]]:
     """Evaluate cases and return metrics plus all inspectable failures."""
     rows: list[dict[str, Any]] = []
@@ -442,7 +448,10 @@ def evaluate_cases(
         structured_claimed = False
         result: PreparedText | Any = None
         try:
-            result = prepare_fn(case.original_text, language=language, use_spacy=False)
+            kwargs: dict[str, object] = {"language": language, "use_spacy": False}
+            if profile == "extended":
+                kwargs["normalize_literals"] = True
+            result = prepare_fn(case.original_text, **kwargs)
             actual = result.spoken_text
             warnings = list(result.warnings)
             changed_stages = tuple(stage.name for stage in result.stages if stage.changed)
@@ -540,6 +549,8 @@ def evaluate_cases(
         "reviewed": _metric_counts(reviewed_rows),
         "quarantine_count": len(rows) - len(reviewed_rows),
         "gate_metrics": _gate_metrics(rows),
+        "profile": profile,
+        "normalize_literals": profile == "extended",
     }
     return summary, tuple(failures)
 
@@ -587,10 +598,15 @@ def evaluate_and_write(
     *,
     output_root: Path | str = "benchmark-results/polynorm",
     speech_wer_threshold: float | None = None,
+    profile: LiteralProfile = "default",
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metrics plus local text-bearing failure reports."""
     case_list = tuple(cases)
-    summary, failures = evaluate_cases(case_list)
+    summary, failures = (
+        evaluate_cases(case_list, profile=profile)
+        if profile == "extended"
+        else evaluate_cases(case_list)
+    )
     stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
@@ -604,7 +620,11 @@ def evaluate_and_write(
         "spokenform_languages": sorted(
             {POLYNORM_TO_SPOKENFORM[case.polynorm_locale] for case in case_list}
         ),
-        "environment": environment_fingerprint(case.polynorm_locale for case in case_list),
+        "environment": environment_fingerprint(
+            (case.polynorm_locale for case in case_list), profile=profile
+        ),
+        "profile": profile,
+        "normalize_literals": profile == "extended",
         "speech_wer_threshold": speech_wer_threshold,
         "stored_failure_count": len(stored_failures),
         **summary,
@@ -621,6 +641,7 @@ def evaluate_and_write(
 
 __all__ = [
     "SEMANTIC_SYMBOLS",
+    "BENCHMARK_PROFILES",
     "evaluate_and_write",
     "evaluate_cases",
     "literal_key",

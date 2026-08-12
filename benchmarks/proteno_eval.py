@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 from statistics import mean, median
-from typing import Any
+from typing import Any, Literal
 
 from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
@@ -35,6 +35,8 @@ from .proteno_data import (
 )
 
 SEMANTIC_SYMBOLS = frozenset("$€£%@/°+=#&")
+BENCHMARK_PROFILES = ("default", "extended")
+LiteralProfile = Literal["default", "extended"]
 FAILURE_MARKDOWN_MAX_BYTES = 1024 * 1024
 
 
@@ -125,7 +127,9 @@ def source_commit() -> str | None:
     return commit or None
 
 
-def environment_fingerprint(languages: Iterable[str]) -> dict[str, object]:
+def environment_fingerprint(
+    languages: Iterable[str], *, profile: LiteralProfile = "default"
+) -> dict[str, object]:
     from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
 
     resolution = {
@@ -147,7 +151,12 @@ def environment_fingerprint(languages: Iterable[str]) -> dict[str, object]:
         "platform": platform.platform(),
         "locale_mapping": resolution,
         "configuration": {
-            "prepare": {"use_spacy": False, "symbol_mode": "remove"},
+            "prepare": {
+                "use_spacy": False,
+                "symbol_mode": "remove",
+                "normalize_literals": profile == "extended",
+            },
+            "profile": profile,
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
             "benchmark_commit": PROTENO_COMMIT,
         },
@@ -267,6 +276,7 @@ def evaluate_cases(
     cases: Iterable[ProtenoCase],
     *,
     prepare_fn: Callable[..., PreparedText] = prepare,
+    profile: LiteralProfile = "default",
 ) -> tuple[dict[str, Any], tuple[dict[str, Any], ...]]:
     """Evaluate cases while isolating individual runtime errors."""
     rows: list[dict[str, Any]] = []
@@ -281,12 +291,14 @@ def evaluate_cases(
         source_rules: tuple[str, ...] = ()
         structured_claimed = False
         try:
-            result = prepare_fn(
-                case.original_text,
-                language=language,
-                use_spacy=False,
-                symbol_mode="remove",
-            )
+            kwargs: dict[str, object] = {
+                "language": language,
+                "use_spacy": False,
+                "symbol_mode": "remove",
+            }
+            if profile == "extended":
+                kwargs["normalize_literals"] = True
+            result = prepare_fn(case.original_text, **kwargs)
             actual = result.spoken_text
             warnings = list(getattr(result, "warnings", ()) or ())
             changed_stages = tuple(
@@ -408,6 +420,8 @@ def evaluate_cases(
         "identity_mutation_count": sum(
             bool(not row["speech_exact_equivalent"]) for row in identity if not row["error"]
         ),
+        "profile": profile,
+        "normalize_literals": profile == "extended",
     }
     return summary, tuple(failures)
 
@@ -544,11 +558,16 @@ def evaluate_and_write(
     split: str = "all",
     output_root: Path | str = "benchmark-results/proteno",
     speech_wer_threshold: float | None = None,
+    profile: LiteralProfile = "default",
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metadata and local source-bearing reports."""
     case_list = tuple(cases)
     exclusion_list = tuple(exclusions)
-    summary, failures = evaluate_cases(case_list)
+    summary, failures = (
+        evaluate_cases(case_list, profile=profile)
+        if profile == "extended"
+        else evaluate_cases(case_list)
+    )
     stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     languages = sorted({case.proteno_language for case in case_list})
     output_dir = Path(output_root) / _run_id()
@@ -563,7 +582,9 @@ def evaluate_and_write(
         "spokenform_languages": sorted({PROTENO_TO_SPOKENFORM[language] for language in languages}),
         "split": split,
         "split_policy": split_policy(PROTENO_DATASET_COUNTS),
-        "environment": environment_fingerprint(languages),
+        "environment": environment_fingerprint(languages, profile=profile),
+        "profile": profile,
+        "normalize_literals": profile == "extended",
         "source_file_git_blobs": {
             language: {kind: file.git_blob_sha for kind, file in PROTENO_FILES[language].items()}
             for language in languages
@@ -598,6 +619,7 @@ def evaluate_and_write(
 
 __all__ = [
     "FAILURE_MARKDOWN_MAX_BYTES",
+    "BENCHMARK_PROFILES",
     "SEMANTIC_SYMBOLS",
     "environment_fingerprint",
     "evaluate_and_write",

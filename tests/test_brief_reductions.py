@@ -56,3 +56,12 @@ def test_typed_and_contextual_renderers_do_not_use_global_code_rules() -> None:
     assert prepare("E. coli strain K-12", language="en", use_spacy=False).spoken_text == (
         "e coli strain K twelve"
     )
+
+
+def test_typed_locale_numeric_cleanup_is_contextual() -> None:
+    assert prepare("1,80 m", language="de", use_spacy=False).spoken_text == ("ein Meter achtzig")
+    assert prepare("Código postal 03900", language="es", use_spacy=False).spoken_text == (
+        "Código postal cero tres nueve cero cero"
+    )
+    assert prepare("16.00%", language="es", use_spacy=False).spoken_text == ("dieciséis por ciento")
+    assert prepare("15ª", language="it", use_spacy=False).spoken_text == "quindicesima"

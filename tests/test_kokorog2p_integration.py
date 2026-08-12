@@ -78,7 +78,7 @@ def test_english_adapter_preserves_migrated_and_reserved_ownership() -> None:
     result = prepare_for_kokorog2p(source, "en")
     assert result.spoken_text == (
         "Visit Saint Patrick at thirty seven degrees Celsius Pay "
-        "twelve dollars and fifty cents for ten inches World War II began in 1984, "
+        "twelve dollars and fifty cents for ten inches World War II began in nineteen eighty four, "
         "and first edition uses 1.02.3."
     )
     assert [(item.source, item.rule) for item in result.source_replacements] == [
@@ -86,18 +86,20 @@ def test_english_adapter_preserves_migrated_and_reserved_ownership() -> None:
         ("37 C.", "en.quantity"),
         ("$12.50", "en.currency"),
         ("10 in.", "en.quantity"),
+        ("1984", "sequence.year"),
     ]
     assert [(item.source, item.replacement, item.kind) for item in result.source_replacements] == [
         ("St.", "Saint", "abbreviation"),
         ("37 C.", "thirty seven degrees Celsius", "structured"),
         ("$12.50", "twelve dollars and fifty cents", "structured"),
         ("10 in.", "ten inches", "structured"),
+        ("1984", "nineteen eighty four", "structured"),
     ]
     for item in result.source_replacements:
         assert source[item.source_start : item.source_end] == item.source
         assert result.spoken_text[item.output_start : item.output_end] == item.replacement
     tokens = _tokenize(result.spoken_text)
-    assert "1984" in tokens and "II" in tokens
+    assert "nineteen" in tokens and "II" in tokens
     assert "first" in result.spoken_text and "1.02.3" in result.spoken_text
     assert _phonemize(tokens) == [token.casefold() for token in tokens]
     assert "\ue000" not in result.spoken_text

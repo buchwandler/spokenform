@@ -7,7 +7,7 @@ import math
 from pathlib import Path
 
 from .proteno_data import ensure_data, load_cases_with_exclusions, selected_languages
-from .proteno_eval import evaluate_and_write
+from .proteno_eval import BENCHMARK_PROFILES, evaluate_and_write
 
 
 def _non_negative_float(value: str) -> float:
@@ -46,6 +46,12 @@ def _parser() -> argparse.ArgumentParser:
         default="none",
         help="Print the failure report index after evaluation.",
     )
+    parser.add_argument("--profile", choices=BENCHMARK_PROFILES, default="default")
+    parser.add_argument(
+        "--normalize-literals",
+        action="store_true",
+        help="Alias for the extended profile; verbalize protected URL/email/version literals.",
+    )
     parser.add_argument("--cache-dir", type=Path, default=Path(".cache/proteno"))
     parser.add_argument("--results-dir", type=Path, default=Path("benchmark-results/proteno"))
     return parser
@@ -71,12 +77,14 @@ def main(argv: list[str] | None = None) -> int:
         case_id=args.case_id,
         limit=args.limit,
     )
+    profile = "extended" if args.normalize_literals else args.profile
     output_dir, summary = evaluate_and_write(
         cases,
         exclusions=exclusions,
         split=args.split,
         output_root=args.results_dir,
         speech_wer_threshold=args.speech_wer_threshold,
+        profile=profile,
     )
     print(f"Proteno cases: {summary['cases']}")
     print(f"Excluded: {summary['excluded_count']}")
