@@ -76,6 +76,8 @@ _ITALIAN_SERIAL_RE = re.compile(
     r"\bnumero\s+di\s+serie\s*(?:è|:)?\s*(?P<value>\d+(?:-\d+)+)(?!\w)", re.IGNORECASE
 )
 _PLATE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{2,3}\d{1,4}[A-Z]{1,3})(?!\w)")
+_COMPACT_PLATE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{1,3}-[A-Z]{1,3}\d{1,4})(?!\w)")
+_COMPACT_VEHICLE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{1,3}\d{3,5})(?!\w)")
 _PLATE_CONTEXT_RE = re.compile(
     r"(?<!\w)(?:license\s+plate|kennzeichen|plaque\s+d['’]immatriculation|matrícula)\s*[:#-]?\s*"
     r"(?P<value>[A-Z]{1,3}-[A-Z]{1,3}\s*\d{1,4})(?!\w)",
@@ -121,18 +123,20 @@ _BARE_DOMAIN_RE = re.compile(
     re.IGNORECASE,
 )
 _ROMAN_CONTEXT_RE = re.compile(
-    r"(?P<context>\b(?:chapter|volume|part|section|century|page|king|queen|pope|super\s+bowl|kapitel|band|teil|abschnitt|siglo|página|pagina|capítulo|chapitre|capitolo)\s+)"
+    r"(?P<context>\b(?:article|act|scene|chapter|volume|part|section|century|page|king|queen|pope|super\s+bowl|kapitel|band|teil|abschnitt|siglo|página|pagina|capítulo|chapitre|capitolo)\s+)"
     r"(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])",
     re.IGNORECASE,
 )
 _ROMAN_YEAR_RE = re.compile(
-    r"(?P<context>\b(?:im\s+jahr|anno|año|year)\s+)(?P<value>[IVXLCDM]{2,12})(?![A-Za-z])",
+    r"(?P<context>\b(?:im\s+jahr|anno|año|year|olympic\s+games|games|edition|event)\s+)(?P<value>[IVXLCDM]{2,12})(?![A-Za-z])",
     re.IGNORECASE,
 )
 _MONARCH_RE = re.compile(
-    r"(?P<name>Heinrich|Wilhelm|Ludwig|Karl|Friedrich|Elizabeth|Charles|Henry|George)\s+(?P<value>[IVX]{1,12})\.(?![A-Za-z])",
+    r"(?P<name>(?:King|Queen|Pope)\s+)?(?:Heinrich|Wilhelm|Ludwig|Karl|Friedrich|Elizabeth|Charles|Henry|George)\s+(?P<value>[IVX]{1,12})\.?(?![A-Za-z])",
     re.IGNORECASE,
 )
+_PAREN_INITIALISM_RE = re.compile(r"(?<!\w)\((?P<value>[A-Z]{2,8})\)(?!\w)")
+_PAREN_TICKER_RE = re.compile(r"(?<!\w)\((?P<value>[A-Z])\)(?!\w)")
 _HASHTAG_RE = re.compile(r"(?<!\w)#(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?)", re.UNICODE)
 _MENTION_RE = re.compile(r"(?<!\w)@(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?)", re.UNICODE)
 _FORMULA_RE = re.compile(
@@ -169,6 +173,60 @@ _PRODUCT_RE = re.compile(
     r"(?<!\w)(?P<label>License\s+plate|Tax\s+identifier|Serial\s+number|Part\s+number|Product\s+code|Bar(?:code|\s+code)|Matrikelnummer|Seriennummer|Kennzeichen|Registration|Identifier|ID|Tag|Plate|License|Firmware|RFC|P/N|SN|S/N|Serial|SKU|Model|Modelo|VIN|IMEI|ICCID|PIN|Part|Product)\s*(?:[:#-]\s*|\s+)(?:No\.\s*)?(?P<value>[A-Za-z0-9][A-Za-z0-9.-]{1,})",
     re.IGNORECASE,
 )
+_STRONG_PRODUCT_LABELS = frozenset(
+    {
+        "vin",
+        "imei",
+        "iccid",
+        "pin",
+        "sku",
+        "s/n",
+        "sn",
+        "p/n",
+        "serial",
+        "serial number",
+        "part number",
+        "product code",
+        "tax identifier",
+        "matrikelnummer",
+        "seriennummer",
+        "kennzeichen",
+        "license plate",
+        "barcode",
+        "bar code",
+    }
+)
+_AMBIGUOUS_PRODUCT_LABELS = frozenset(
+    {
+        "registration",
+        "identifier",
+        "id",
+        "tag",
+        "plate",
+        "license",
+        "firmware",
+        "model",
+        "modelo",
+        "part",
+        "product",
+    }
+)
+
+
+def _valid_product_candidate(label: str, value: str) -> bool:
+    """Require code evidence even when a strong label is followed by prose."""
+    value = value.rstrip(".")
+    if not value:
+        return False
+    if any(character.isdigit() for character in value):
+        return True
+    if re.search(r"(?<=\w)[./-](?=\w)", value):
+        return True
+    if value.isupper() and value.isalnum() and len(value) >= 2:
+        return True
+    return False
+
+
 _LEGAL_RE = re.compile(
     r"(?<!\w)(?P<value>(?:§|Art\.?|Artikel)\s*\d+(?:\s+(?:Abs\.?\s*\d+|[IVXLCDM]+))?(?:\s+\d+)?\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})(?!\w)",
 )
@@ -201,6 +259,9 @@ _SPORTS_RE = re.compile(
     r"(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2}|\d{1,2}\s+(?:a|to|à)\s+\d{1,2})",
     re.IGNORECASE,
 )
+_SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2})(?![\w:-])")
+_CHAINED_SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}(?:\s*[-–]\s*\d{1,2}){2,})(?![\w:-])")
+_DURATION_RE = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d):(?P<second>[0-5]\d)(?!\w)")
 _ADDRESS_SUFFIX_RE = re.compile(
     r"(?<!\w)(?P<number>\d{1,4})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÄÖÜ][\wÄÖÜäöüß.-]*(?:\s+(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Blvd\.?))?)(?!\w)",
 )
@@ -541,6 +602,7 @@ _CODE_POLICIES = {
     "license": CodeRenderPolicy("grapheme", "digitwise", "omit"),
     "model": CodeRenderPolicy("grapheme", "cardinal", "omit"),
     "product": CodeRenderPolicy("grapheme", "digitwise", "omit"),
+    "vehicle": CodeRenderPolicy("grapheme", "cardinal", "omit"),
 }
 
 
@@ -1653,6 +1715,42 @@ def _score_text(value: str, language: str) -> str:
     return f"{_cardinal(int(left), language)} {connector} {_cardinal(int(right), language)}"
 
 
+def _score_is_plausible(value: str, text: str, start: int) -> bool:
+    """Use sports context for hyphen scores and allow compact colon scores."""
+    prefix = text[max(0, start - 64) : start]
+    if re.search(
+        r"\b(?:score|final|match|game|football|basketball|handball|volleyball|set|result|resultat|resultado)\b",
+        prefix,
+        re.IGNORECASE,
+    ):
+        return True
+    match = re.fullmatch(r"\s*(\d{1,2})\s*([:\-–])\s*(\d{1,2})\s*", value)
+    return bool(
+        match
+        and match[2] == ":"
+        and len(match[1]) == 1
+        and len(match[3]) == 1
+        and int(match[1]) <= 9
+        and int(match[3]) <= 9
+    )
+
+
+def _duration_text(hour: str, minute: str, second: str, language: str) -> str:
+    base = base_language(language)
+    labels = {
+        "en": ("hour", "hours", "minute", "minutes", "second", "seconds"),
+        "de": ("Stunde", "Stunden", "Minute", "Minuten", "Sekunde", "Sekunden"),
+        "es": ("hora", "horas", "minuto", "minutos", "segundo", "segundos"),
+        "fr": ("heure", "heures", "minute", "minutes", "seconde", "secondes"),
+        "it": ("ora", "ore", "minuto", "minuti", "secondo", "secondi"),
+    }.get(base, ("hour", "hours", "minute", "minutes", "second", "seconds"))
+    values = (int(hour), int(minute), int(second))
+    result: list[str] = []
+    for value, singular, plural in zip(values, labels[::2], labels[1::2], strict=True):
+        result.append(f"{_cardinal(value, language)} {singular if value == 1 else plural}")
+    return " ".join(result)
+
+
 def _legal_text(value: str, language: str) -> str:
     base = base_language(language)
     label_match = re.fullmatch(
@@ -1896,6 +1994,8 @@ def _add(
     if _claimed(match.start(), match.end(), protected):
         specificity = {
             "sequence.biology": 20,
+            "sequence.chained-score": 88,
+            "sequence.duration": 95,
             "sequence.formula": 20,
             "sequence.isbn": 30,
             "sequence.product": 15,
@@ -2262,7 +2362,7 @@ def iter_sequence_replacements(
         contextual = bool(
             re.search(r"\b(?:version|release|ver\.?|build)\s*[=:]?\s*$", prefix, re.IGNORECASE)
         )
-        if promote_literals or not contextual:
+        if promote_literals or (not contextual and not match["value"].casefold().startswith("v")):
             _add(
                 candidates,
                 match,
@@ -2406,6 +2506,42 @@ def iter_sequence_replacements(
                 "sequence.formula",
                 protected,
             )
+    for match in _PAREN_INITIALISM_RE.finditer(text):
+        start, end = match.span("value")
+        if _claimed(start, end, protected):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _grapheme_text(match["value"], language),
+                    "structured",
+                    language,
+                    "sequence.parenthesized-initialism",
+                    79,
+                )
+            )
+    for match in _PAREN_TICKER_RE.finditer(text):
+        prefix = text[max(0, match.start() - 48) : match.start()]
+        suffix = text[match.end() : match.end() + 48]
+        if not re.search(
+            r"\b(?:stock|share|ticker|symbol|aktie|acción|azione|action)\b",
+            f"{prefix} {suffix}",
+            re.IGNORECASE,
+        ):
+            continue
+        start, end = match.span("value")
+        if _claimed(start, end, protected):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _grapheme_text(match["value"], language),
+                    "structured",
+                    language,
+                    "sequence.parenthesized-ticker",
+                    80,
+                )
+            )
     for match in _TICKER_RE.finditer(text):
         value = f"dollar {_ticker_text(match['value'], language)}"
         _add(candidates, match, value, language, "sequence.ticker", protected)
@@ -2428,7 +2564,7 @@ def iter_sequence_replacements(
             )
     for match in _PRODUCT_RE.finditer(text):
         raw_value = match["value"]
-        if not re.search(r"\d|[A-ZÄÖÜÀ-Ý]|[-]", raw_value):
+        if not _valid_product_candidate(match["label"], raw_value):
             continue
         if len(raw_value.rstrip(".")) == 1 and raw_value.rstrip(".").isalpha():
             continue
@@ -2487,6 +2623,7 @@ def iter_sequence_replacements(
                 "tax identifier",
                 "identifier",
                 "id",
+                "p/n",
                 "tag",
             }
             else "model"
@@ -2536,10 +2673,11 @@ def iter_sequence_replacements(
                 )
             )
     for match in _CODE_RE.finditer(text):
+        code_category = "vehicle" if re.search(r"\d+[A-Z]+\d", match["value"]) else "product"
         _add(
             candidates,
             match,
-            _typed_code_text(match["value"], language, category="product"),
+            _typed_code_text(match["value"], language, category=code_category),
             language,
             "sequence.product",
             protected,
@@ -2551,6 +2689,24 @@ def iter_sequence_replacements(
             _typed_code_text(match["value"], language, category="license"),
             language,
             "sequence.plate",
+            protected,
+        )
+    for match in _COMPACT_PLATE_RE.finditer(text):
+        _add(
+            candidates,
+            match,
+            _typed_code_text(match["value"], language, category="license"),
+            language,
+            "sequence.plate",
+            protected,
+        )
+    for match in _COMPACT_VEHICLE_RE.finditer(text):
+        _add(
+            candidates,
+            match,
+            _typed_code_text(match["value"], language, category="vehicle"),
+            language,
+            "sequence.product",
             protected,
         )
     for match in _ACRONYM_RE.finditer(text):
@@ -2598,6 +2754,47 @@ def iter_sequence_replacements(
                 language,
                 "sequence.legal",
                 protected,
+            )
+    for match in _DURATION_RE.finditer(text):
+        _add(
+            candidates,
+            match,
+            _duration_text(match["hour"], match["minute"], match["second"], language),
+            language,
+            "sequence.duration",
+            protected,
+        )
+    for match in _CHAINED_SCORE_RE.finditer(text):
+        values = re.split(r"\s*[-–]\s*", match["value"])
+        if _claimed(match.start(), match.end(), protected):
+            connector = {"de": "zu", "es": "a", "fr": "à", "it": "a"}.get(
+                base_language(language), "to"
+            )
+            candidates.append(
+                Replacement(
+                    match.start(),
+                    match.end(),
+                    f" {connector} ".join(_cardinal(int(value), language) for value in values),
+                    "structured",
+                    language,
+                    "sequence.chained-score",
+                    88,
+                )
+            )
+    for match in _SCORE_RE.finditer(text):
+        if _score_is_plausible(match["value"], text, match.start()) and _claimed(
+            match.start(), match.end(), protected
+        ):
+            candidates.append(
+                Replacement(
+                    match.start(),
+                    match.end(),
+                    _score_text(match["value"], language),
+                    "structured",
+                    language,
+                    "sequence.sports",
+                    84,
+                )
             )
     for match in _SPORTS_RE.finditer(text):
         start, end = match.start("value"), match.end("value")

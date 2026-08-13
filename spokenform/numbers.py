@@ -739,7 +739,9 @@ def _render_numeric_lexeme(
     return result
 
 
-def _normalize_unified_plain_numbers(text: str, language: str) -> str:
+def _normalize_unified_plain_numbers(
+    text: str, language: str, *, long_number_mode: str = "preserve"
+) -> str:
     """Normalize plain numbers through the same lexeme parser as quantities."""
     protected = _protect_plain_numbers(text)
 
@@ -763,6 +765,7 @@ def _normalize_unified_plain_numbers(text: str, language: str) -> str:
             and "." not in unsigned
             and "," not in unsigned
             and len(unsigned) > 3
+            and long_number_mode == "preserve"
         ):
             return raw
         before = match.string[max(0, match.start() - 1) : match.start()]
@@ -784,18 +787,23 @@ def normalize_plain_numbers(
     *,
     language: str,
     protected_ranges: tuple[tuple[int, int], ...] = (),
+    long_number_mode: str = "preserve",
 ) -> str:
     """Verbalize only ordinary numbers, preserving all structured candidates."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     language = normalize_language(language)
+    if long_number_mode not in {"preserve", "cardinal"}:
+        raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
     base = _base_language(language)
     reserved = _protect_reserved_ranges(text, protected_ranges)
     working = reserved.text
     if base == "cs":
         result = _normalize_czech_plain_numbers(working, language)
     else:
-        result = _normalize_unified_plain_numbers(working, language)
+        result = _normalize_unified_plain_numbers(
+            working, language, long_number_mode=long_number_mode
+        )
     for index, value in enumerate(reserved.values):
         result = result.replace(chr(reserved.placeholder_start + index), value)
     return result

@@ -246,19 +246,23 @@ _MONTHS = (
     "November",
     "December",
 )
+_MONTH_NAME_RE = (
+    r"(?:January|February|March|April|May|June|July|August|September|October|November|December|"
+    r"Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)"
+)
 _TEXT_DATE = re.compile(
-    r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
+    rf"(?<![A-Za-z0-9])(?P<month>{_MONTH_NAME_RE})(?![A-Za-z])\s+"
     r"(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
 _TEXT_DATE_DMY = re.compile(
-    r"(?P<day>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+"
-    r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)"
+    rf"(?<![A-Za-z0-9])(?P<day>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+"
+    rf"(?P<month>{_MONTH_NAME_RE})(?![A-Za-z])"
     r"(?:,)?\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
 _TEXT_DATE_RANGE = re.compile(
-    r"(?P<month>January|February|March|April|May|June|July|August|September|October|November|December|Jan\.?|Feb\.?|Mar\.?|Apr\.?|Jun\.?|Jul\.?|Aug\.?|Sep\.?|Oct\.?|Nov\.?|Dec\.?)\s+"
+    rf"(?<![A-Za-z0-9])(?P<month>{_MONTH_NAME_RE})(?![A-Za-z])\s+"
     r"(?P<start>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?\s*[-–]\s*(?P<end>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})",
     re.IGNORECASE,
 )
@@ -416,6 +420,39 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "en") -> str | N
     if match.symbol.endswith(".") and _terminal_dot(text, match.end):
         result += "."
     return result
+
+
+def _quantity_is_plausible(match: UnitMatch, text: str) -> bool:
+    """Use abbr2words ambiguity metadata as semantic evidence, not decoration."""
+    ambiguity = getattr(match, "ambiguity", "none")
+    if ambiguity == "none":
+        return True
+    left = text[max(0, match.start - 48) : match.start]
+    right = text[match.end : match.end + 48]
+    if ambiguity == "lexical":
+        if re.search(r"\b(?:channel|album|age|record|rank)\s+\d+\s*$", left, re.IGNORECASE):
+            return False
+        if re.match(r"\s+(?:19|20)\d{2}\b", right):
+            return False
+        if re.match(r"\s+[A-Z][A-Za-z]+\b", right) and re.search(
+            r"\b(?:channel|album|age|record|rank)\s+\d+\s*$", left, re.IGNORECASE
+        ):
+            return False
+        return True
+    if ambiguity == "bare_symbol":
+        if re.search(
+            r"\b(?:part|model|product|identifier|registration|tag|plate|license|firmware|id)\s*$",
+            left,
+            re.IGNORECASE,
+        ):
+            return False
+        if re.match(r"\s*\d", right):
+            return False
+        formula_like = re.search(r"(?<!\w)[A-Z]\s+\d+\s+[A-Z]\s+\d+(?!\w)", text)
+        if formula_like and formula_like.start() <= match.start < formula_like.end():
+            return False
+        return True
+    return False
 
 
 def _currency_text(raw: str, canonical_id: str) -> str | None:
@@ -735,6 +772,8 @@ def iter_replacements(
 
     unit_protected = protected + tuple(plural_tens_spans) + tuple(decade_spans)
     for match in iter_unit_matches(text, dependency_language, protected_spans=unit_protected):
+        if not _quantity_is_plausible(match, text):
+            continue
         try:
             replacement = _quantity_text(match, text, language)
         except (TypeError, ValueError):

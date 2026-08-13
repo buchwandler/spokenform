@@ -19,8 +19,10 @@ from .annotations import (
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
+    LongNumberMode,
     NumberPolicy,
     PreparationConfig,
+    RegisteredAcronymMode,
     SymbolMode,
 )
 from .language import base_language, normalize_language, resolve_abbr2words_language
@@ -53,6 +55,10 @@ from .structured import normalize_structured
 _HORIZONTAL_SPACE_RE = re.compile(r"[\t\u00a0\u202f ]+")
 _LINE_SPACE_RE = re.compile(r" *\n *")
 _EXCESS_LINES_RE = re.compile(r"\n{3,}")
+_SOFT_VERSION_RE = re.compile(
+    r"(?<![\w.])(?:v\d+(?:\.\d+){1,}|\d+(?:\.\d+){2,})(?![\w.])",
+    re.IGNORECASE,
+)
 
 
 def normalize_spacing(
@@ -109,6 +115,8 @@ def prepare(
     keep_symbols: str = "",
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    long_number_mode: LongNumberMode = "preserve",
+    registered_acronym_mode: RegisteredAcronymMode = "expand",
     context: bool = True,
     strict: bool = False,
 ) -> PreparedText:
@@ -144,6 +152,8 @@ def prepare(
         keep_symbols = config.keep_symbols
         generic_acronym_mode = config.generic_acronym_mode
         generic_acronym_case = config.generic_acronym_case
+        long_number_mode = config.long_number_mode
+        registered_acronym_mode = config.registered_acronym_mode
         context = config.context
         strict = config.strict
     if not isinstance(keep_symbols, str):
@@ -161,6 +171,10 @@ def prepare(
         raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
     if generic_acronym_mode not in {"known_only", "spell_unknown"}:
         raise ValueError("generic_acronym_mode must be 'known_only' or 'spell_unknown'")
+    if long_number_mode not in {"preserve", "cardinal"}:
+        raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
+    if registered_acronym_mode not in {"expand", "spell"}:
+        raise ValueError("registered_acronym_mode must be 'expand' or 'spell'")
     if use_spacy is not None or spacy_model is not None:
         PreparationConfig(
             language=language,
@@ -183,6 +197,8 @@ def prepare(
             keep_symbols=keep_symbols,
             generic_acronym_mode=generic_acronym_mode,
             generic_acronym_case=generic_acronym_case,
+            long_number_mode=long_number_mode,
+            registered_acronym_mode=registered_acronym_mode,
             context=context,
             strict=strict,
         )
@@ -307,6 +323,8 @@ def prepare(
             )
             + tuple((item.start, item.end) for item in reserved_spans),
         }
+        if registered_acronym_mode != "expand":
+            abbreviation_kwargs["registered_initialism_mode"] = registered_acronym_mode
         if generic_acronym_mode == "spell_unknown" or generic_acronym_case != "upper":
             abbreviation_kwargs.update(
                 {
@@ -368,6 +386,7 @@ def prepare(
                 value,
                 language=language_code,
                 protected_ranges=internal_reserved_ranges,
+                long_number_mode=long_number_mode,
             ),
             restore=protected.restore,
         )
@@ -546,6 +565,8 @@ def _iter_symbol_replacements(
         return ()
     allowed = frozenset(keep_symbols) if mode == "keep" else frozenset()
     replacements: list[Replacement] = []
+    soft_versions = tuple((match.start(), match.end()) for match in _SOFT_VERSION_RE.finditer(text))
+    protected_ranges = tuple(protected_ranges) + soft_versions
 
     def protected_at(index: int) -> tuple[int, int] | None:
         return next(

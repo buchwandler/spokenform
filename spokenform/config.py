@@ -21,6 +21,8 @@ class NumberPolicy(str, Enum):
 SymbolMode = Literal["none", "remove", "keep"]
 GenericAcronymMode = Literal["known_only", "spell_unknown"]
 GenericAcronymCase = Literal["upper", "lower"]
+LongNumberMode = Literal["preserve", "cardinal"]
+RegisteredAcronymMode = Literal["expand", "spell"]
 
 
 def number_policy_for_language(language: str) -> NumberPolicy:
@@ -63,6 +65,8 @@ class PreparationConfig:
     keep_symbols: str = ""
     generic_acronym_mode: GenericAcronymMode = "known_only"
     generic_acronym_case: GenericAcronymCase = "upper"
+    long_number_mode: LongNumberMode = "preserve"
+    registered_acronym_mode: RegisteredAcronymMode = "expand"
     context: bool = True
     strict: bool = False
 
@@ -96,6 +100,10 @@ class PreparationConfig:
             raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
         if self.generic_acronym_mode not in {"known_only", "spell_unknown"}:
             raise ValueError("generic_acronym_mode must be 'known_only' or 'spell_unknown'")
+        if self.long_number_mode not in {"preserve", "cardinal"}:
+            raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
+        if self.registered_acronym_mode not in {"expand", "spell"}:
+            raise ValueError("registered_acronym_mode must be 'expand' or 'spell'")
         for name in (
             "expand_abbreviations",
             "expand_structured",
@@ -137,6 +145,8 @@ __all__ = [
     "GenericAcronymMode",
     "GenericAcronymCase",
     "NumberPolicy",
+    "LongNumberMode",
+    "RegisteredAcronymMode",
     "PreparationConfig",
     "SymbolMode",
     "number_policy_for_language",

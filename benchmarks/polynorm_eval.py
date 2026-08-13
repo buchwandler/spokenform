@@ -22,6 +22,7 @@ from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
 from spokenform.sequences import render_letters
 
+from .failure_reporting import failure_family, failure_family_counts
 from .polynorm_data import (
     POLYNORM_COMMIT,
     POLYNORM_DATASET_COMMIT,
@@ -56,34 +57,42 @@ POLYNORM_QUARANTINE: dict[str, dict[str, str]] = {
     "es-MX:86": {
         "reason": "Expected decimal spelling is inconsistent.",
         "classification": "questionable",
+        "reason_code": "questionable-target",
     },
     "es-MX:249": {
         "reason": "Expected text is unrelated to the source e-mail.",
         "classification": "malformed_ground_truth",
+        "reason_code": "malformed-ground-truth",
     },
     "es-MX:274": {
         "reason": "Expected hashtag marker contains a likely spelling error.",
         "classification": "questionable",
+        "reason_code": "questionable-target",
     },
     "fr-FR:208": {
         "reason": "Source contains alternatives/commentary rather than one normalization pair.",
         "classification": "malformed_ground_truth",
+        "reason_code": "malformed-ground-truth",
     },
     "fr-FR:310": {
         "reason": "Expected text is an instruction rather than normalized source text.",
         "classification": "malformed_ground_truth",
+        "reason_code": "malformed-ground-truth",
     },
     "fr-FR:316": {
         "reason": "Expected text is an instruction rather than normalized source text.",
         "classification": "malformed_ground_truth",
+        "reason_code": "malformed-ground-truth",
     },
     "de-DE:161": {
         "reason": "Expected text uses an inconsistent English punctuation word.",
         "classification": "questionable",
+        "reason_code": "questionable-target",
     },
     "de-DE:412": {
         "reason": "Expected coordinate appears to omit the hundred component.",
         "classification": "questionable",
+        "reason_code": "questionable-target",
     },
 }
 
@@ -193,6 +202,11 @@ def environment_fingerprint(
         "configuration": {
             "prepare": {"use_spacy": False, "normalize_literals": profile == "extended"},
             "profile": profile,
+            "acronym_policy": {
+                "generic_mode": "known_only",
+                "generic_case": "upper",
+                "registered_mode": "spell" if profile == "extended" else "expand",
+            },
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
         },
     }
@@ -273,6 +287,7 @@ def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:
         "median_speech_wer": median(wers) if wers else 0.0,
         "unchanged_count": unchanged_count,
         "error_count": error_count,
+        "failure_family_count": len(failure_family_counts(results)),
     }
 
 
@@ -450,7 +465,14 @@ def evaluate_cases(
         try:
             kwargs: dict[str, object] = {"language": language, "use_spacy": False}
             if profile == "extended":
-                kwargs["normalize_literals"] = True
+                kwargs.update(
+                    {
+                        "normalize_literals": True,
+                        "generic_acronym_mode": "known_only",
+                        "generic_acronym_case": "upper",
+                        "registered_acronym_mode": "spell",
+                    }
+                )
             result = prepare_fn(case.original_text, **kwargs)
             actual = result.spoken_text
             warnings = list(result.warnings)
@@ -502,6 +524,8 @@ def evaluate_cases(
             "structured_claimed": structured_claimed,
             **provenance,
         }
+        row["quarantine_reason_code"] = quarantine.get("reason_code") if quarantine else None
+        row["failure_family"] = failure_family(row)
         rows.append(row)
         if error or not literal_exact or not speech_exact:
             failures.append(
@@ -552,6 +576,13 @@ def evaluate_cases(
         },
         "reviewed": _metric_counts(reviewed_rows),
         "quarantine_count": len(rows) - len(reviewed_rows),
+        "quarantine_reason_codes": {
+            code: sum(row.get("quarantine_reason_code") == code for row in rows)
+            for code in sorted(
+                {row["quarantine_reason_code"] for row in rows if row["quarantine_reason_code"]}
+            )
+        },
+        "failure_families": failure_family_counts(rows),
         "gate_metrics": _gate_metrics(rows),
         "profile": profile,
         "normalize_literals": profile == "extended",

@@ -12,8 +12,10 @@ from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
+    LongNumberMode,
     NumberPolicy,
     PreparationConfig,
+    RegisteredAcronymMode,
     number_policy_for_language,
 )
 from .language import (
@@ -49,6 +51,8 @@ __all__ = [
     "PreparationConfig",
     "GenericAcronymMode",
     "GenericAcronymCase",
+    "LongNumberMode",
+    "RegisteredAcronymMode",
     "NumberPolicy",
     "number_policy_for_language",
     "SUPPORTED_BASE_LANGUAGES",

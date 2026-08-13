@@ -49,6 +49,11 @@ def discover_protected_spans(
         if not protect_literals:
             continue
         for match in pattern.finditer(text):
+            # Versions are soft semantic candidates.  Structured recognition
+            # must see them; the plain-number and symbol stages protect any
+            # candidate that remains unclaimed.
+            if kind == "version":
+                continue
             span = (match.start(), match.end())
             if kind == "version" and (
                 _is_strong_sequence(text) or _is_contextual_version(text, match.start())

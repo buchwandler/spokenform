@@ -20,7 +20,9 @@ _NUMERIC_RANGE_RE = re.compile(
 )
 _PAREN_YEAR_RE = re.compile(rf"(?<=\()(?P<year>{_YEAR})(?=\))")
 _KEYWORD_YEAR_RE = re.compile(
-    rf"\b(?:in|since|during|year|anno|im\s+jahr|en|desde|durante|año|année|anno)\s+"
+    rf"\b(?:in|since|during|year|before|after|by|from|to|until|through|around|circa|early|late|"
+    rf"born|died|founded|opened|closed|established|published|anno|im\s+jahr|en|desde|durante|"
+    rf"año|année|anno)\s+"
     rf"(?P<year>{_YEAR})(?![\w./:-])",
     re.IGNORECASE,
 )
@@ -33,8 +35,17 @@ _MONTH_YEAR_RE = re.compile(
     re.IGNORECASE,
 )
 _BIBLIO_YEAR_RE = re.compile(rf"(?:,\s*|\(\s*)(?P<year>{_YEAR})(?=\s*[),.;:]|$)")
+_BIBLIO_AUTHOR_YEAR_RE = re.compile(
+    rf"(?<!\w)(?:[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){{0,2}})\s+"
+    rf"(?P<year>{_YEAR})(?=\s*(?:,\s*(?:pp?\.?|vol\.?|edition\b)|[.;]|$))"
+)
+_CONTEXTUAL_YEAR_RE = re.compile(rf"(?<![\w./:-])(?P<year>{_YEAR})(?![\w./:-])")
 _RANGE_CONTEXT_RE = re.compile(
-    r"\b(?:from|between|range|pages?|pp\.?|lines?|chapter|section|von|zwischen|seiten?|de|entre|páginas?|da|tra|pagine?)\b",
+    r"\b(?:from|between|range|pages?|pp\.?|lines?|chapter|section|von|zwischen|seiten?|de|entre|páginas?|da|tra|pagine?|before|after|by|until|through|around|circa|born|died|founded|opened|closed|established|published|reigned|historical|century|war|king|queen|exhibition|exhibitions|year|years?)\b",
+    re.IGNORECASE,
+)
+_NON_YEAR_RANGE_CONTEXT_RE = re.compile(
+    r"\b(?:pages?|pp\.?|lines?|chapter|section|isbn|version|release|serial|sku|model|product|vin|phone|tel|code|identifier)\b",
     re.IGNORECASE,
 )
 
@@ -89,6 +100,34 @@ def _is_safe_numeric_range(value: str, start: int, end: int, text: str) -> bool:
     return left <= 999999 and right <= 999999
 
 
+def _has_year_context(text: str, start: int, end: int) -> bool:
+    """Require bounded temporal or bibliographic evidence for a plain year."""
+    left = text[max(0, start - 64) : start]
+    right = text[end : end + 32]
+    if _NON_YEAR_RANGE_CONTEXT_RE.search(left):
+        return False
+    if _RANGE_CONTEXT_RE.search(left) or _RANGE_CONTEXT_RE.search(right):
+        return True
+    if re.search(r"\b(?:and|or)\s*$", left) and re.search(r"\b\d{4}\b", left):
+        return True
+    if re.search(r"\b\d{4}\s*[,;]\s*$", left):
+        return True
+    return False
+
+
+def _is_year_range_context(text: str, start: int, end: int, left: int, right: int) -> bool:
+    """Classify historical ranges without stealing page/code ranges."""
+    left_context = text[max(0, start - 64) : start]
+    right_context = text[end : end + 32]
+    if _NON_YEAR_RANGE_CONTEXT_RE.search(left_context):
+        return False
+    if left >= 1800 and right >= 1800:
+        return True
+    if _RANGE_CONTEXT_RE.search(left_context) or _RANGE_CONTEXT_RE.search(right_context):
+        return True
+    return 1500 <= left < 1800 and 1500 <= right < 1800 and abs(right - left) <= 400
+
+
 def iter_replacements(
     text: str,
     *,
@@ -105,7 +144,7 @@ def iter_replacements(
         if not _claimed(start, end, protected):
             continue
         left, right = int(match["start"]), int(match["end"])
-        if left >= 1800 and right >= 1800:
+        if _is_year_range_context(text, start, end, left, right):
             candidates.append(
                 Replacement(
                     start,
@@ -124,6 +163,7 @@ def iter_replacements(
         _LEADING_YEAR_RE,
         _MONTH_YEAR_RE,
         _BIBLIO_YEAR_RE,
+        _BIBLIO_AUTHOR_YEAR_RE,
     ):
         for match in pattern.finditer(text):
             start, end = match.span("year")
@@ -140,6 +180,21 @@ def iter_replacements(
                         72,
                     )
                 )
+
+    for match in _CONTEXTUAL_YEAR_RE.finditer(text):
+        start, end = match.span("year")
+        if _claimed(start, end, protected) and _has_year_context(text, start, end):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _year_text(int(match["year"]), language),
+                    "structured",
+                    language,
+                    "sequence.year",
+                    71,
+                )
+            )
 
     for match in _NUMERIC_RANGE_RE.finditer(text):
         start, end = match.span()

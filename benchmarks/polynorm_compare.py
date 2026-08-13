@@ -7,6 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .failure_reporting import FAILURE_FAMILIES
+
 
 def _read_summary(directory: Path) -> dict[str, Any]:
     return json.loads((directory / "summary.json").read_text(encoding="utf-8"))
@@ -109,10 +111,24 @@ def compare_runs(before: Path | str, after: Path | str) -> dict[str, Any]:
             "literal_exact_count": after_summary["literal_exact_count"]
             - before_summary["literal_exact_count"],
         },
+        "failure_family_delta": {
+            family: after_summary.get("failure_families", {}).get(family, 0)
+            - before_summary.get("failure_families", {}).get(family, 0)
+            for family in FAILURE_FAMILIES
+            if (
+                after_summary.get("failure_families", {}).get(family, 0)
+                or before_summary.get("failure_families", {}).get(family, 0)
+            )
+        },
         "case_delta": {
             "resolved": sorted(before_failures - after_failures),
             "new_failures": sorted(after_failures - before_failures),
             "remaining": sorted(before_failures & after_failures),
+        },
+        "regression_delta": {
+            "resolved_count": len(before_failures - after_failures),
+            "new_failure_count": len(after_failures - before_failures),
+            "remaining_count": len(before_failures & after_failures),
         },
         "diff_classification": diffs,
     }

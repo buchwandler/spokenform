@@ -251,3 +251,18 @@ def test_compare_runs_reports_metrics_and_stable_case_deltas(tmp_path):
         "new_failures": ["en:00003"],
         "remaining": ["en:00002"],
     }
+    assert comparison["regression_delta"] == {
+        "resolved_count": 1,
+        "new_failure_count": 1,
+        "remaining_count": 1,
+    }
+
+
+def test_failure_family_reporting_and_quarantine_codes(tmp_path):
+    cases = (_case("en", 1, "5:3", "five to three"),)
+    exclusion = ProtenoExclusion("en:2", "en", 2, "train", "adapter_error", "bad row")
+    output_dir, summary = evaluate_and_write(cases, exclusions=(exclusion,), output_root=tmp_path)
+    assert summary["failure_families"] == {}
+    assert summary["excluded_by_reason_code"] == {"adapter-error": 1}
+    stored = json.loads((output_dir / "excluded.jsonl").read_text().strip())
+    assert stored["reason_code"] == "adapter-error"

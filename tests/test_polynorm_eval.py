@@ -195,6 +195,22 @@ def test_compare_runs_reports_case_id_and_aggregate_deltas(tmp_path) -> None:
         "new_failures": ["en-US:4"],
         "remaining": ["en-US:2"],
     }
+    assert comparison["regression_delta"] == {
+        "resolved_count": 2,
+        "new_failure_count": 1,
+        "remaining_count": 1,
+    }
+
+
+def test_failure_family_and_quarantine_reason_codes_are_reported() -> None:
+    cases = (
+        PolyNormCase("es-MX", "86", "Decimal", "1,2", "one point two"),
+        PolyNormCase("en-US", "1", "Sports Score", "5:3", "five to three"),
+    )
+    summary, failures = evaluate_cases(cases)
+    assert summary["quarantine_reason_codes"] == {"questionable-target": 1}
+    assert failures[0]["quarantine_reason_code"] == "questionable-target"
+    assert failures[0]["failure_family"] == "dataset-quarantine"
 
 
 def test_reduction_fixture_covers_multiple_failure_families() -> None:

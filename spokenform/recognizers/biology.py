@@ -13,9 +13,10 @@ from ..sequences import render_letters, render_sequence
 
 _PATHOGEN_RE = re.compile(r"(?<!\w)(?P<value>MERS|COVID(?:-19)?|SARS)(?!\w)")
 _VIRUS_RE = re.compile(
-    r"(?<!\w)(?P<value>(?:(?:SARS)(?:-[A-Z]{1,4})?|(?:DENV|HIV|HCV))-\d+)(?!\w)",
+    r"(?<!\w)(?P<value>(?:(?:SARS)(?:-[A-Z]{1,4})?|(?:DENV|HIV|HCV|HPV|HBV|EBV|MMR))-\d+)(?!\w)",
     re.IGNORECASE,
 )
+_REVIEWED_BIO_TOKEN_RE = re.compile(r"(?<!\w)(?P<value>HPV|HBV|HIV|EBV|MMR)(?:-\d+)?(?!\w)")
 _GENE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{2,8}\d{1,4})(?!\w)")
 _MIXED_BIO_RE = re.compile(
     r"(?<!\w)(?P<value>(?:p[A-Z]{2,8}\d+|CRF\d{2}_[A-Z]{2,4}|Col-\d+))(?!\w)"
@@ -108,6 +109,8 @@ def iter_replacements(
     for match in _PATHOGEN_RE.finditer(text):
         add(match)
     for match in _VIRUS_RE.finditer(text):
+        add(match)
+    for match in _REVIEWED_BIO_TOKEN_RE.finditer(text):
         add(match)
     for match in _MIXED_BIO_RE.finditer(text):
         add(match, contextual=True)

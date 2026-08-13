@@ -22,6 +22,7 @@ from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
 from spokenform.sequences import render_letters
 
+from .failure_reporting import failure_family, failure_family_counts, reason_code
 from .proteno_data import (
     PROTENO_COMMIT,
     PROTENO_DATASET_COMMIT,
@@ -157,6 +158,11 @@ def environment_fingerprint(
                 "normalize_literals": profile == "extended",
             },
             "profile": profile,
+            "acronym_policy": {
+                "generic_mode": "known_only",
+                "generic_case": "lower" if profile == "extended" else "upper",
+                "registered_mode": "spell" if profile == "extended" else "expand",
+            },
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
             "benchmark_commit": PROTENO_COMMIT,
         },
@@ -184,6 +190,7 @@ def _metric_counts(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
         "median_speech_wer": median(wers) if wers else 0.0,
         "unchanged_count": sum(bool(item["unchanged"]) for item in values),
         "error_count": sum(bool(item["error"]) for item in values),
+        "failure_family_count": len(failure_family_counts(values)),
     }
 
 
@@ -297,7 +304,14 @@ def evaluate_cases(
                 "symbol_mode": "remove",
             }
             if profile == "extended":
-                kwargs["normalize_literals"] = True
+                kwargs.update(
+                    {
+                        "normalize_literals": True,
+                        "generic_acronym_mode": "known_only",
+                        "generic_acronym_case": "lower",
+                        "registered_acronym_mode": "spell",
+                    }
+                )
             result = prepare_fn(case.original_text, **kwargs)
             actual = result.spoken_text
             warnings = list(getattr(result, "warnings", ()) or ())
@@ -364,6 +378,7 @@ def evaluate_cases(
             "structured_claimed": structured_claimed,
             **provenance,
         }
+        row["failure_family"] = failure_family(row)
         rows.append(row)
         if error or not literal_exact or not speech_exact:
             failures.append(
@@ -424,6 +439,7 @@ def evaluate_cases(
         "identity_mutation_count": sum(
             bool(not row["speech_exact_equivalent"]) for row in identity if not row["error"]
         ),
+        "failure_families": failure_family_counts(rows),
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
@@ -606,6 +622,12 @@ def evaluate_and_write(
             reason: sum(item.reason == reason for item in exclusion_list)
             for reason in sorted({item.reason for item in exclusion_list})
         },
+        "excluded_by_reason_code": {
+            reason_code(item.reason): sum(
+                reason_code(other.reason) == reason_code(item.reason) for other in exclusion_list
+            )
+            for item in exclusion_list
+        },
         "speech_wer_threshold": speech_wer_threshold,
         "stored_failure_count": len(stored_failures),
         **summary,
@@ -618,7 +640,8 @@ def evaluate_and_write(
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     with (output_dir / "excluded.jsonl").open("w", encoding="utf-8") as handle:
         for exclusion in exclusion_list:
-            handle.write(json.dumps(exclusion.as_dict(), ensure_ascii=False, sort_keys=True) + "\n")
+            payload = {**exclusion.as_dict(), "reason_code": reason_code(exclusion.reason)}
+            handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
     summary_payload["failure_reports"] = _write_failures_markdown(stored_failures, output_dir)
     (output_dir / "summary.json").write_text(
         json.dumps(summary_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"

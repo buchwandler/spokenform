@@ -49,6 +49,12 @@ def _parser() -> argparse.ArgumentParser:
         help="Case for generic grapheme-spaced uppercase acronyms",
     )
     parser.add_argument(
+        "--registered-acronyms",
+        choices=("expand", "spell"),
+        default="expand",
+        help="Whether registered initialisms use their expansion or source letters",
+    )
+    parser.add_argument(
         "--strict",
         action="store_true",
         help="Raise on unavailable spaCy models and invalid protected spans",
@@ -79,6 +85,7 @@ def main(argv: list[str] | None = None) -> int:
         keep_symbols=args.keep_symbols,
         generic_acronym_mode=args.generic_acronym_mode.replace("-", "_"),
         generic_acronym_case=args.generic_acronym_case,
+        registered_acronym_mode=args.registered_acronyms,
         strict=args.strict,
     )
     if args.json:
