@@ -476,21 +476,21 @@ def iter_replacements(
             f"{_number(match['number'], language=language)} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}",
             "de.temperature",
         )
-    for match in iter_unit_matches(
+    for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
-        if match.category == "currency" or (match.start and text[match.start - 1] in ".,"):
+        if unit_match.category == "currency" or (unit_match.start and text[unit_match.start - 1] in ".,"):
             continue
-        if match.category == "magnitude":
-            tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[match.end :])
+        if unit_match.category == "magnitude":
+            tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[unit_match.end :])
             canonical_id = _currency_id(tail["symbol"], language) if tail else None
             if tail and canonical_id:
-                base = _quantity(match, text, language)
-                if base and not _overlaps(match.start, match.end + tail.end(), protected):
+                base = _quantity(unit_match, text, language)
+                if base and not _overlaps(unit_match.start, unit_match.end + tail.end(), protected):
                     candidates.append(
                         Replacement(
-                            match.start,
-                            match.end + tail.end(),
+                            unit_match.start,
+                            unit_match.end + tail.end(),
                             f"{base} {_currency_name(canonical_id)}",
                             "structured",
                             "de",
@@ -498,15 +498,15 @@ def iter_replacements(
                         )
                     )
                 continue
-        if not _overlaps(match.start, match.end, protected):
+        if not _overlaps(unit_match.start, unit_match.end, protected):
             try:
-                replacement = _quantity(match, text, language)
+                replacement = _quantity(unit_match, text, language)
             except (TypeError, ValueError):
                 replacement = None
             if replacement:
                 candidates.append(
                     Replacement(
-                        match.start, match.end, replacement, "structured", "de", "de.quantity"
+                        unit_match.start, unit_match.end, replacement, "structured", "de", "de.quantity"
                     )
                 )
     for match in _LABEL.finditer(text):

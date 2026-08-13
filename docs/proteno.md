@@ -84,6 +84,13 @@ literal comparison and word error rate are also reported. `unchanged` therefore
 means a likely miss for normalization cases but is generally desirable for
 identity cases.
 
+Each summary also exposes `diagnostic_aggregates` by primary rule, failure
+phase, ownership, and ambiguity family, plus an explicit per-row `outcome`
+(`semantic-mismatch`, `presentation-only`, `protected-by-profile`,
+`questionable-target`, `malformed-ground-truth`, or `runtime-error`). The local
+`PROTENO_QUARANTINE` table is intentionally separate from downloaded data and
+is populated only after a concrete source/target inconsistency is reviewed.
+
 Compare two local runs with:
 
 ```bash

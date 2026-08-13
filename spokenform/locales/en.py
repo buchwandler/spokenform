@@ -608,10 +608,10 @@ def iter_replacements(
         )
         if month_index is None:
             continue
-        text_year = None
-        year_digits = None
+        text_year: int | None = None
+        dmy_year_digits: int | None = None
         if match["year"]:
-            text_year, year_digits = expand_year(match["year"])
+            text_year, dmy_year_digits = expand_year(match["year"])
         day = int(match["day"])
         if text_year is None or _valid_date(day, month_index, text_year):
             value = (
@@ -633,7 +633,7 @@ def iter_replacements(
                         day=day,
                         month=month_index,
                         year=text_year,
-                        year_digits=year_digits,
+                    year_digits=dmy_year_digits,
                         month_style="name",
                         source_order="dmy",
                         separator=None,
@@ -676,15 +676,15 @@ def iter_replacements(
         )
         if month_index is None:
             continue
-        text_year: int | None = int(match["year"]) if match["year"] else None
-        if text_year is not None:
-            text_year, _ = expand_year(match["year"])
-        if text_year is None or _valid_date(int(match["day"]), month_index, text_year):
+        text_year_dmy: int | None = int(match["year"]) if match["year"] else None
+        if text_year_dmy is not None:
+            text_year_dmy, _ = expand_year(match["year"])
+        if text_year_dmy is None or _valid_date(int(match["day"]), month_index, text_year_dmy):
             value = _render_date_candidate(
                 DateCandidate(
                     day=int(match["day"]),
                     month=month_index,
-                    year=text_year,
+                    year=text_year_dmy,
                     year_digits=len(match["year"]) if match["year"] else None,
                     month_style="name",
                     source_order="mdy",
@@ -771,18 +771,18 @@ def iter_replacements(
             )
 
     unit_protected = protected + tuple(plural_tens_spans) + tuple(decade_spans)
-    for match in iter_unit_matches(text, dependency_language, protected_spans=unit_protected):
-        if not _quantity_is_plausible(match, text):
+    for unit_match in iter_unit_matches(text, dependency_language, protected_spans=unit_protected):
+        if not _quantity_is_plausible(unit_match, text):
             continue
         try:
-            replacement = _quantity_text(match, text, language)
+            replacement = _quantity_text(unit_match, text, language)
         except (TypeError, ValueError):
             replacement = None
         add(
-            match.start,
-            match.end,
+            unit_match.start,
+            unit_match.end,
             replacement,
-            "en.currency" if match.category == "currency" else "en.quantity",
+            "en.currency" if unit_match.category == "currency" else "en.quantity",
         )
 
     return tuple(candidates)

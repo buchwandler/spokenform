@@ -6,7 +6,7 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import replace
-from typing import cast
+from typing import Any, cast
 
 from abbr2words import abbr2words_with_replacements, iter_unit_matches
 
@@ -336,7 +336,10 @@ def prepare(
                     "initialism_case": generic_acronym_case,
                 }
             )
-        abbreviation_result = abbr2words_with_replacements(
+        # The released 0.2.8 API carries the precise keyword types, while this
+        # compatibility dictionary is assembled conditionally for the public
+        # Spokenform policy switches.
+        abbreviation_result = cast(Any, abbr2words_with_replacements)(
             protected.restore(current), **abbreviation_kwargs
         )
         abbreviation_replacements = convert_abbr_replacements(

@@ -22,7 +22,12 @@ from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
 from spokenform.sequences import render_letters
 
-from .failure_reporting import failure_family, failure_family_counts
+from .failure_reporting import (
+    diagnostic_aggregates,
+    failure_family,
+    failure_family_counts,
+    outcome_for_row,
+)
 from .polynorm_data import (
     POLYNORM_COMMIT,
     POLYNORM_DATASET_COMMIT,
@@ -525,6 +530,7 @@ def evaluate_cases(
             **provenance,
         }
         row["quarantine_reason_code"] = quarantine.get("reason_code") if quarantine else None
+        row["outcome"] = outcome_for_row(row)
         row["failure_family"] = failure_family(row)
         rows.append(row)
         if error or not literal_exact or not speech_exact:
@@ -583,6 +589,7 @@ def evaluate_cases(
             )
         },
         "failure_families": failure_family_counts(rows),
+        "diagnostic_aggregates": diagnostic_aggregates(rows),
         "gate_metrics": _gate_metrics(rows),
         "profile": profile,
         "normalize_literals": profile == "extended",

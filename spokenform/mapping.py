@@ -388,8 +388,8 @@ def resolve_replacements(
     ranked = sorted(
         enumerate(replacements),
         key=lambda item: (
-            item[1].start,
             -(_replacement_priority(item[1]) + item[1].specificity),
+            item[1].start,
             -(item[1].end - item[1].start),
             item[0],
         ),
@@ -408,6 +408,13 @@ def resolve_replacements(
 def _replacement_priority(replacement: Replacement) -> int:
     """Return the documented semantic precedence for candidate conflicts."""
     rule = replacement.rule or ""
+    from .precedence import priority_for_rule
+
+    centralized = priority_for_rule(rule)
+    if centralized != 20:
+        # Local specificity remains a tie-breaker, never a way for a generic
+        # recognizer to outrank a named semantic family.
+        return centralized * 100
     if rule in {
         "sequence.uuid",
         "sequence.ipv4",

@@ -22,7 +22,14 @@ from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
 from spokenform.sequences import render_letters
 
-from .failure_reporting import failure_family, failure_family_counts, reason_code
+from .failure_reporting import (
+    diagnostic_aggregates,
+    failure_family,
+    failure_family_counts,
+    outcome_for_row,
+    ownership_for_rule,
+    reason_code,
+)
 from .proteno_data import (
     PROTENO_COMMIT,
     PROTENO_DATASET_COMMIT,
@@ -39,6 +46,12 @@ SEMANTIC_SYMBOLS = frozenset("$€£%@/°+=#&")
 BENCHMARK_PROFILES = ("default", "extended")
 LiteralProfile = Literal["default", "extended"]
 FAILURE_MARKDOWN_MAX_BYTES = 1024 * 1024
+
+# Local benchmark-quality annotations.  Keep this mapping empty until a
+# concrete upstream row has been reviewed with a reproducible source/target
+# mismatch; adapter failures must never be quarantined merely because runtime
+# normalization currently disagrees.
+PROTENO_QUARANTINE: dict[str, dict[str, str]] = {}
 
 
 def literal_key(text: str) -> str:
@@ -378,6 +391,10 @@ def evaluate_cases(
             "structured_claimed": structured_claimed,
             **provenance,
         }
+        quarantine = PROTENO_QUARANTINE.get(case.case_id)
+        row["quarantine"] = quarantine
+        row["ownership"] = ownership_for_rule(row.get("primary_rule"), protected=False)
+        row["outcome"] = outcome_for_row(row)
         row["failure_family"] = failure_family(row)
         rows.append(row)
         if error or not literal_exact or not speech_exact:
@@ -440,6 +457,9 @@ def evaluate_cases(
             bool(not row["speech_exact_equivalent"]) for row in identity if not row["error"]
         ),
         "failure_families": failure_family_counts(rows),
+        "diagnostic_aggregates": diagnostic_aggregates(rows),
+        "reviewed": _metric_counts([row for row in rows if row["quarantine"] is None]),
+        "quarantine_count": sum(row["quarantine"] is not None for row in rows),
         "profile": profile,
         "normalize_literals": profile == "extended",
     }

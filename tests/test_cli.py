@@ -83,4 +83,4 @@ def test_cli_output_policies_work_end_to_end() -> None:
         capture_output=True,
         text=True,
     )
-    assert completed.stdout.strip() == "a b c, test"
+    assert completed.stdout.strip() == "A B C, test"

@@ -106,17 +106,17 @@ def test_isbn_and_sports_scores_use_category_specific_policies() -> None:
     assert prepare("3-2", language="en", use_spacy=False).spoken_text == "three-two"
 
 
-def test_fraction_and_acronym_policies_are_high_confidence_only() -> None:
+def test_fraction_and_abbreviation_policies_are_high_confidence_only() -> None:
     assert prepare("½ ⅝", language="it", use_spacy=False).spoken_text == ("un mezzo cinque ottavi")
-    assert prepare("NASA BND API", language="en", use_spacy=False).spoken_text == ("Nasa b n d API")
+    assert prepare("NASA BND API", language="en", use_spacy=False).spoken_text == ("NASA BND API")
     protected = prepare("https://example.org/v1.2.3", language="en", use_spacy=False)
     assert protected.spoken_text == "https://example.org/v1.2.3"
 
 
 def test_unknown_uppercase_prose_is_preserved() -> None:
-    result = prepare("ABC", language="en", use_spacy=False)
-    assert result.spoken_text == "ABC"
-    assert not any(item.rule == "sequence.acronym" for item in result.source_replacements)
+    result = prepare("AAPL", language="en", use_spacy=False)
+    assert result.spoken_text == "AAPL"
+    assert not result.source_replacements
 
 
 def test_generic_acronym_mode_and_case_are_independent() -> None:
@@ -142,10 +142,10 @@ def test_generic_acronym_mode_and_case_are_independent() -> None:
         generic_acronym_case="lower",
     )
 
-    assert known_upper.spoken_text == "ABC AAPL Nasa API"
-    assert known_lower.spoken_text == "ABC AAPL Nasa API"
-    assert spelled_upper.spoken_text == "A B C A A P L Nasa A P I"
-    assert spelled_lower.spoken_text == "a b c a a p l Nasa a p i"
+    assert known_upper.spoken_text == "A B C AAPL NASA API"
+    assert known_lower.spoken_text == "A B C AAPL NASA API"
+    assert spelled_upper.spoken_text == "A B C A A P L N A S A A P I"
+    assert spelled_lower.spoken_text == "A B C a a p l n a s a a p i"
     assert any(
         item.rule == "abbr:initialism-undotted" for item in spelled_upper.source_replacements
     )

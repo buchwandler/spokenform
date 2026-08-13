@@ -150,7 +150,7 @@ def test_registered_acronym_spelling_is_independent_from_generic_policy() -> Non
     )
     assert (
         expanded.spoken_text
-        == "chief executive officer D C Massachusetts Institute of Technology a b c"
+        == "chief executive officer D C Massachusetts Institute of Technology A B C"
     )
     assert spelled.spoken_text == "c e o d c m i t a b c"
 

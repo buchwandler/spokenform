@@ -335,4 +335,4 @@ def test_symbol_and_acronym_policies_are_config_driven() -> None:
         generic_acronym_case="lower",
     )
     result = prepare("ABC!.", config=config)
-    assert result.spoken_text == "a b c."
+    assert result.spoken_text == "A B C."

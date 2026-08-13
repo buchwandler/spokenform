@@ -377,20 +377,20 @@ def iter_replacements(
             _ordinal_text(int(match["number"]), match["suffix"], language),
             "fr.ordinal",
         )
-    for match in iter_unit_matches(
+    for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
         try:
-            replacement = _quantity_text(match, text, language)
+            replacement = _quantity_text(unit_match, text, language)
         except (InvalidOperation, TypeError, ValueError):
             # Dependency candidates are advisory; malformed numeric lexemes
             # must never make preparation fail for the whole sentence.
             replacement = None
         add(
-            match.start,
-            match.end,
+            unit_match.start,
+            unit_match.end,
             replacement,
-            "fr.currency" if match.category == "currency" else "fr.quantity",
+            "fr.currency" if unit_match.category == "currency" else "fr.quantity",
         )
 
     excluded = [match.span() for match in _DATE_CANDIDATE.finditer(text)]

@@ -360,18 +360,18 @@ def iter_replacements(
             value = f"{value[:-1]}a"
         add(match.start(), match.end(), value, "it.ordinal")
 
-    for match in iter_unit_matches(
+    for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
         try:
-            replacement = _quantity_text(match, text, language)
+            replacement = _quantity_text(unit_match, text, language)
         except (TypeError, ValueError):
             replacement = None
         add(
-            match.start,
-            match.end,
+            unit_match.start,
+            unit_match.end,
             replacement,
-            "it.currency" if match.category == "currency" else "it.quantity",
+            "it.currency" if unit_match.category == "currency" else "it.quantity",
         )
     return tuple(candidates)
 

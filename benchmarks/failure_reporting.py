@@ -72,6 +72,54 @@ def failure_family_counts(rows: Iterable[dict[str, Any]]) -> dict[str, int]:
     return {family: counts[family] for family in FAILURE_FAMILIES if counts[family]}
 
 
+def ownership_for_rule(rule: str | None, *, protected: bool = False) -> str:
+    """Classify runtime rule ownership for adapters without source categories."""
+    value = (rule or "").casefold()
+    if protected or ".url" in value or ".email" in value or ".version" in value:
+        return "protected"
+    if not value:
+        return "unrecognized"
+    if any(marker in value for marker in ("abbr", "acronym", "initialism")):
+        return "owned"
+    if any(marker in value for marker in ("year", "date", "time", "quantity", "reference")):
+        return "owned"
+    if value.startswith("sequence."):
+        return "extended-candidate"
+    return "downstream"
+
+
+def outcome_for_row(row: dict[str, Any]) -> str:
+    """Return an explicit diagnostic outcome without changing pass/fail gates."""
+    if row.get("quarantine") is not None:
+        return str(row.get("quarantine", {}).get("classification", "questionable-target"))
+    if row.get("error"):
+        return "runtime-error"
+    if row.get("presentation_only"):
+        return "presentation-only"
+    if row.get("protected") or row.get("ownership") == "protected":
+        return "protected-by-profile"
+    if row.get("semantic_failure"):
+        return "semantic-mismatch"
+    return "pass"
+
+
+def diagnostic_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    """Return stable failure counts by rule, phase, ownership, and family."""
+    values = tuple(rows)
+    failed = tuple(
+        row
+        for row in values
+        if row.get("error") or row.get("semantic_failure") or row.get("presentation_only")
+    )
+    dimensions = {
+        "by_rule": Counter(str(row.get("primary_rule") or "unrecognized") for row in failed),
+        "by_phase": Counter(str(row.get("failure_phase") or "unrecognized") for row in failed),
+        "by_ownership": Counter(str(row.get("ownership") or ownership_for_rule(row.get("primary_rule"))) for row in failed),
+        "by_ambiguity_family": Counter(failure_family(row) for row in failed),
+    }
+    return {name: dict(sorted(counts.items())) for name, counts in dimensions.items()}
+
+
 def reason_code(reason: str) -> str:
     """Map free-form exclusion text to a stable quarantine code."""
     value = reason.casefold()
@@ -84,4 +132,12 @@ def reason_code(reason: str) -> str:
     return "questionable-target"
 
 
-__all__ = ["FAILURE_FAMILIES", "failure_family", "failure_family_counts", "reason_code"]
+__all__ = [
+    "FAILURE_FAMILIES",
+    "failure_family",
+    "failure_family_counts",
+    "diagnostic_aggregates",
+    "ownership_for_rule",
+    "outcome_for_row",
+    "reason_code",
+]

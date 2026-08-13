@@ -117,6 +117,15 @@ sports, and address forms, dates and times, contextual sequences,
 quantities/currencies/temperatures, specialist music/math forms, and generic
 acronym/product candidates. Fractions and date/phone ambiguity are resolved by
 semantic candidate priority rather than regex iteration order.
-Unclaimed or ambiguous forms remain opaque. Every selected candidate is still an
+Unclaimed or ambiguous forms remain opaque. The concrete rule-family ordering is
+centralized in `spokenform.precedence.SequencePriority`; recognizers do not rely
+on source regex iteration order to resolve time/reference, ISBN/phone,
+version/decimal, version/IPv4, or year/identifier conflicts. Every selected candidate is still an
 exact `Replacement`, so precedence does not weaken source/output mapping or
 protected-span behavior.
+
+Address numbers use the library's stable default address policy: ordinary
+street numbers are rendered cardinally when the full address is recognized,
+while compact plates, suites, postal codes, and model identifiers retain their
+category-specific digitwise policies. Contradictory benchmark conventions are
+reported as data-quality evidence rather than encoded as row-specific rules.

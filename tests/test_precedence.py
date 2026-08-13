@@ -11,7 +11,7 @@ from spokenform import prepare
         ("1/2 cup", "en", "sequence.fraction", "1/2"),
         ("Section 12", "en", "sequence.legal", "Section 12"),
         ("final 3-2", "en", "sequence.sports", "3-2"),
-        ("CD", "en", "sequence.acronym", "CD"),
+        ("ABC", "en", "abbr:ABC", "ABC"),
         ("2 g/cm³", "en", "sequence.compound-unit", "2 g/cm³"),
         ("$25.50", "en", "en.currency", "$25.50"),
     ],

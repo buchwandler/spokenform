@@ -245,18 +245,18 @@ def iter_replacements(
                     "pt.date",
                 )
 
-    for match in iter_unit_matches(
+    for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
         try:
-            replacement = _quantity_text(match, text, language=language)
+            replacement = _quantity_text(unit_match, text, language=language)
         except (TypeError, ValueError):
             replacement = None
         add(
-            match.start,
-            match.end,
+            unit_match.start,
+            unit_match.end,
             replacement,
-            "pt.currency" if match.category == "currency" else "pt.quantity",
+            "pt.currency" if unit_match.category == "currency" else "pt.quantity",
         )
     return tuple(candidates)
 

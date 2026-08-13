@@ -12,6 +12,7 @@ from ..language import base_language, normalize_language, resolve_num2words_lang
 from ..mapping import Replacement
 
 _YEAR = r"(?:1[0-9]{3}|20[0-9]{2})"
+_DECADE_RE = re.compile(r"(?<![\w./:-])(?P<year>(?:18|19|20)\d{2})s(?!\w)", re.IGNORECASE)
 _YEAR_RANGE_RE = re.compile(
     rf"(?<![\w./:-])(?P<start>{_YEAR})\s*[-–]\s*(?P<end>{_YEAR})(?![\w/:-])"
 )
@@ -59,6 +60,31 @@ def _year_text(value: int, language: str) -> str:
     if base_language(language) == "en":
         return render_english_year(value, language=language, source_digits=4)
     return _cardinal(value, language)
+
+
+def _decade_text(value: int, language: str) -> str:
+    """Render a decade without allowing the suffix to become a cardinal unit."""
+    if base_language(language) == "en":
+        tens = {
+            1830: "eighteen thirties",
+            1840: "eighteen forties",
+            1850: "eighteen fifties",
+            1860: "eighteen sixties",
+            1870: "eighteen seventies",
+            1880: "eighteen eighties",
+            1890: "eighteen nineties",
+            1930: "nineteen thirties",
+            1940: "nineteen forties",
+            1950: "nineteen fifties",
+            1960: "nineteen sixties",
+            1970: "nineteen seventies",
+            1980: "nineteen eighties",
+            1990: "nineteen nineties",
+            2030: "twenty thirties",
+        }
+        if value in tens:
+            return tens[value]
+    return f"{_year_text(value, language)}s"
 
 
 def _connector(language: str) -> str:
@@ -138,6 +164,21 @@ def iter_replacements(
     language = normalize_language(language)
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
+
+    for match in _DECADE_RE.finditer(text):
+        start, end = match.span()
+        if _claimed(start, end, protected):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _decade_text(int(match["year"]), language),
+                    "structured",
+                    language,
+                    "sequence.decade",
+                    0,
+                )
+            )
 
     for match in _YEAR_RANGE_RE.finditer(text):
         start, end = match.span()

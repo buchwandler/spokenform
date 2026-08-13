@@ -431,11 +431,23 @@ def iter_replacements(
 
     for pattern in (_TIME_HOURS, _TIME_COLON):
         for match in pattern.finditer(text):
+            hour = int(match["hour"])
+            minute = int(match["minute"])
+            left = text[max(0, match.start() - 48) : match.start()]
+            right = text[match.end() : match.end() + 24]
+            # A clock hour is bounded, and citation/range punctuation is not a
+            # weak clock cue.  Explicit AM/PM/hour words remain sufficient.
+            period = match.groupdict().get("period")
+            explicit = bool(period) or bool(
+                re.search(r"\b(?:a\s+las|horas?|hrs?)\b", left, re.IGNORECASE)
+            )
+            if hour > 23 or (not explicit and re.search(r"[-–]\s*\d", right)):
+                continue
             add(
                 match.start(),
                 match.end(),
-                _time_text(int(match["hour"]), int(match["minute"]), match["period"], language)
-                if "period" in match.groupdict()
+                _time_text(hour, minute, period, language)
+                if period is not None
                 else _time_text(int(match["hour"]), int(match["minute"]), None, language),
                 "es.time",
             )
@@ -459,18 +471,18 @@ def iter_replacements(
             "es.currency",
         )
 
-    for match in iter_unit_matches(
+    for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
         try:
-            replacement = _quantity_text(match, text, language)
+            replacement = _quantity_text(unit_match, text, language)
         except (TypeError, ValueError):
             replacement = None
         add(
-            match.start,
-            match.end,
+            unit_match.start,
+            unit_match.end,
             replacement,
-            "es.currency" if match.category == "currency" else "es.quantity",
+            "es.currency" if unit_match.category == "currency" else "es.quantity",
         )
 
     return tuple(candidates)
