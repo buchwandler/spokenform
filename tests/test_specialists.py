@@ -84,6 +84,25 @@ def test_biology_and_math_specialists_fail_closed_on_abbreviations_and_codes() -
     assert not any(item.rule == "sequence.math" for item in result.source_replacements)
 
 
+def test_extended_semantic_families_keep_strict_boundaries() -> None:
+    assert any(
+        item.rule == "sequence.formula"
+        for item in prepare("Al(OH)3", language="en", use_spacy=False).source_replacements
+    )
+    assert not any(
+        item.rule == "sequence.formula"
+        for item in prepare("Al(OH3", language="en", use_spacy=False).source_replacements
+    )
+    assert not any(
+        item.rule == "sequence.music"
+        for item in prepare("The color is C", language="en", use_spacy=False).source_replacements
+    )
+    assert not any(
+        item.rule == "sequence.biology"
+        for item in prepare("A. general summary", language="en", use_spacy=False).source_replacements
+    )
+
+
 def test_math_and_music_words_follow_locale_without_promoting_literals() -> None:
     assert prepare("2+2=4", language="de", use_spacy=False).spoken_text == (
         "zwei plus zwei gleich vier"

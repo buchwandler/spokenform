@@ -174,11 +174,14 @@ def _render_mode(primary_rule: str | None, rules: Iterable[str]) -> str:
         ("address", "address"),
         ("coordinate", "coordinate"),
         ("legal", "legal_reference"),
+        ("formula", "chemical_formula"),
+        ("biology", "biological_classification"),
         ("sports", "sports_score"),
         ("hashtag", "literal_payload"),
         ("mention", "literal_payload"),
         ("roman", "roman"),
         ("math", "mathematical_expression"),
+        ("music", "musical_notation"),
     ):
         if marker in haystack:
             return mode

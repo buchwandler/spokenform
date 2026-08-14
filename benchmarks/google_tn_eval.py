@@ -13,7 +13,7 @@ from .google_tn_format import GoogleTNCase, GoogleTNRow
 from .text_metrics import literal_key, speech_key, speech_key_equivalent, word_error_rate
 
 BENCHMARK_PROFILES = ("default", "extended")
-LongNumberMode = Literal["preserve", "cardinal"]
+LongNumberMode = Literal["preserve", "contextual", "cardinal"]
 
 GOOGLE_CLASS_CATEGORIES = {
     "CARDINAL": "Cardinal",

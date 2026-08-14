@@ -1250,11 +1250,20 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
 
 def _formula_is_plausible(value: str) -> bool:
     tokens = re.findall(r"[A-Z][a-z]?", value)
+    if value.count("(") != value.count(")") or value.find(")") < value.find("("):
+        return False
     return (
         all(token in _ELEMENT_SYMBOLS for token in tokens)
         and (len(tokens) >= 2 or bool(re.search(r"[0-9₀-₉]", value)))
         and bool(re.search(r"[a-z]", value) or re.search(r"[0-9₀-₉]", value))
     )
+
+
+def _formula_context_is_balanced(text: str, start: int, end: int) -> bool:
+    """Do not salvage a formula fragment from an unmatched parenthesized span."""
+    before = text[:start]
+    after = text[end:]
+    return before.count("(") == before.count(")") and after.count(")") == after.count("(")
 
 
 def _isbn_shape_is_valid(value: str) -> bool:
@@ -2515,7 +2524,9 @@ def iter_sequence_replacements(
             protected,
         )
     for match in _FORMULA_RE.finditer(text):
-        if _formula_is_plausible(match["value"]):
+        if _formula_is_plausible(match["value"]) and _formula_context_is_balanced(
+            text, match.start("value"), match.end("value")
+        ):
             _add(
                 candidates,
                 match,
