@@ -307,7 +307,7 @@ def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> di
     else:
         failure_phase = "downstream_rendering"
 
-    return {
+    diagnostics = {
         "primary_rule": primary_rule,
         "claim_owner": ownership
         if primary_rule
@@ -319,6 +319,9 @@ def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> di
         "numeric_policy": asdict(numeric_speech_policy(language)),
         "render_mode": _render_mode_for_rule(primary_rule, rules),
     }
+    if primary_rule == "sequence.version":
+        diagnostics.update({"separator": ".", "separator_role": "version"})
+    return diagnostics
 
 
 def _render_mode_for_rule(primary_rule: str | None, rules: Iterable[str]) -> str:

@@ -237,3 +237,13 @@ def test_reviewed_biomedical_codes_beat_generic_code_claims() -> None:
         )
     ordinary = prepare("Model ABC123", language="en", use_spacy=False)
     assert not any(item.rule == "sequence.biomedical" for item in ordinary.source_replacements)
+
+
+def test_version_separators_are_semantic_points_in_every_locale() -> None:
+    for language in ("en", "es", "it", "fr", "de"):
+        result = prepare(
+            "Python 3.9.7", language=language, use_spacy=False, normalize_literals=True
+        )
+        assert "3.9.7" not in result.spoken_text
+        assert any(item.rule == "sequence.version" for item in result.source_replacements)
+        assert all(word not in result.spoken_text for word in ("coma", "virgola", "virgule"))

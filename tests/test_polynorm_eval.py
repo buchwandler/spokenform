@@ -118,6 +118,14 @@ def test_evaluation_reports_claim_provenance_and_gate_views() -> None:
     assert summary["gate_metrics"]["safety"]["protected_unchanged_rate"] == 1.0
 
 
+def test_version_provenance_names_separator_role() -> None:
+    case = PolyNormCase("en-US", "version", "Version Numbers", "Python 3.9.7", "spoken")
+    summary, failures = evaluate_cases((case,))
+    assert summary["cases"] == 1
+    assert failures[0]["separator"] == "."
+    assert failures[0]["separator_role"] == "version"
+
+
 def test_evaluation_aggregates_and_continues_after_exception() -> None:
     cases = (
         PolyNormCase("en-US", "1", "Cardinal", "2", "two"),

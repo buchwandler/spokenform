@@ -398,6 +398,10 @@ def iter_replacements(
     for match in _PLAIN_NUMBER.finditer(text):
         if any(left <= match.start() and match.end() <= right for left, right in excluded):
             continue
+        # Multi-dot release strings belong to the typed version recognizer;
+        # never send them through French decimal parsing.
+        if re.fullmatch(r"v?\d+(?:\.\d+){2,}", match["number"], re.IGNORECASE):
+            continue
         add(match.start(), match.end(), _number_text(match["number"], language), "fr.number")
     return tuple(candidates)
 

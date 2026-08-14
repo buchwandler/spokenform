@@ -232,13 +232,16 @@ def _provenance(
         phase = "downstream_rendering"
     else:
         phase = "downstream_rendering"
-    return {
+    diagnostics = {
         "primary_rule": primary_rule,
         "winning_span": winning_span,
         "failure_phase": phase,
         "render_mode": _render_mode(primary_rule, rules),
         "numeric_policy": asdict(numeric_speech_policy(language)),
     }
+    if primary_rule == "sequence.version":
+        diagnostics.update({"separator": ".", "separator_role": "version"})
+    return diagnostics
 
 
 def evaluate_cases(
