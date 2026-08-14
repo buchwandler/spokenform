@@ -193,8 +193,8 @@ def prepare(
             "generic_acronym_mode must be 'known_only', 'conservative_unknown', or "
             "'spell_unknown'"
         )
-    if long_number_mode not in {"preserve", "cardinal"}:
-        raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
+    if long_number_mode not in {"preserve", "contextual", "cardinal"}:
+        raise ValueError("long_number_mode must be 'preserve', 'contextual', or 'cardinal'")
     if registered_acronym_mode not in {"expand", "spell"}:
         raise ValueError("registered_acronym_mode must be 'expand' or 'spell'")
     if use_spacy is not None or spacy_model is not None:

@@ -180,6 +180,16 @@ _ENGLISH_PLAIN_NUMBER_RE = re.compile(
 _UNIFIED_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)+|[.,]\d+)|\d+)(?!\w)"
 )
+_LONG_NUMBER_POSITIVE_CONTEXT_RE = re.compile(
+    r"\b(?:there\s+are|population|total|amount|number\s+of|count\s+of|items?|users?|people|"
+    r"records?|entries|downloads?|views?|inhabitants?)\b",
+    re.IGNORECASE,
+)
+_LONG_NUMBER_IDENTIFIER_CONTEXT_RE = re.compile(
+    r"\b(?:pin|id|serial|number|code|account|isbn|phone|telephone|mobile|postal|zip|"
+    r"suite|unit|plate|model|product|sku|vin|imei|iccid|iban|registration)\b",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -768,6 +778,21 @@ def _normalize_unified_plain_numbers(
             and long_number_mode == "preserve"
         ):
             return raw
+        if (
+            long_number_mode == "contextual"
+            and "." not in unsigned
+            and "," not in unsigned
+            and len(unsigned) > 3
+        ):
+            if unsigned.startswith("0"):
+                return raw
+            left_context = match.string[max(0, match.start() - 64) : match.start()]
+            right_context = match.string[match.end() : match.end() + 32]
+            context = f"{left_context} {right_context}"
+            if _LONG_NUMBER_IDENTIFIER_CONTEXT_RE.search(
+                left_context
+            ) or not _LONG_NUMBER_POSITIVE_CONTEXT_RE.search(context):
+                return raw
         before = match.string[max(0, match.start() - 1) : match.start()]
         after = match.string[match.end() : match.end() + 1]
         fraction_tail = re.split(r"[.,]", unsigned)[-1]
@@ -793,8 +818,8 @@ def normalize_plain_numbers(
     if not isinstance(text, str):
         raise TypeError("text must be a string")
     language = normalize_language(language)
-    if long_number_mode not in {"preserve", "cardinal"}:
-        raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
+    if long_number_mode not in {"preserve", "contextual", "cardinal"}:
+        raise ValueError("long_number_mode must be 'preserve', 'contextual', or 'cardinal'")
     base = _base_language(language)
     reserved = _protect_reserved_ranges(text, protected_ranges)
     working = reserved.text

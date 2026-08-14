@@ -69,7 +69,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int)
     parser.add_argument("--profile", choices=BENCHMARK_PROFILES, default="default")
     parser.add_argument("--normalize-literals", action="store_true")
-    parser.add_argument("--long-number-mode", choices=("preserve", "cardinal"), default="preserve")
+    parser.add_argument(
+        "--long-number-mode",
+        choices=("preserve", "contextual", "cardinal"),
+        default="preserve",
+    )
     parser.add_argument("--speech-wer-threshold", type=_non_negative_float)
     parser.add_argument("--show-failures", choices=("none", "all"), default="none")
     parser.add_argument("--results-dir", type=Path, default=Path("benchmark-results/google-tn"))

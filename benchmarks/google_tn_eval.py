@@ -304,8 +304,8 @@ def evaluate(
     """Evaluate cases without using upstream classes as preparation hints."""
     if profile not in BENCHMARK_PROFILES:
         raise ValueError(f"unsupported benchmark profile {profile!r}")
-    if long_number_mode not in {"preserve", "cardinal"}:
-        raise ValueError("long_number_mode must be preserve or cardinal")
+    if long_number_mode not in {"preserve", "contextual", "cardinal"}:
+        raise ValueError("long_number_mode must be preserve, contextual, or cardinal")
     if normalize_literals is None:
         normalize_literals = profile == "extended"
     summary = _empty_summary(profile)

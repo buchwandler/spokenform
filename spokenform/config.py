@@ -21,7 +21,7 @@ class NumberPolicy(str, Enum):
 SymbolMode = Literal["none", "remove", "keep"]
 GenericAcronymMode = Literal["known_only", "conservative_unknown", "spell_unknown"]
 GenericAcronymCase = Literal["upper", "lower"]
-LongNumberMode = Literal["preserve", "cardinal"]
+LongNumberMode = Literal["preserve", "contextual", "cardinal"]
 RegisteredAcronymMode = Literal["expand", "spell"]
 
 
@@ -107,8 +107,8 @@ class PreparationConfig:
                 "generic_acronym_mode must be 'known_only', 'conservative_unknown', or "
                 "'spell_unknown'"
             )
-        if self.long_number_mode not in {"preserve", "cardinal"}:
-            raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
+        if self.long_number_mode not in {"preserve", "contextual", "cardinal"}:
+            raise ValueError("long_number_mode must be 'preserve', 'contextual', or 'cardinal'")
         if self.registered_acronym_mode not in {"expand", "spell"}:
             raise ValueError("registered_acronym_mode must be 'expand' or 'spell'")
         for name in (

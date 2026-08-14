@@ -131,6 +131,30 @@ def test_brief_long_cardinal_mode_is_explicit_and_preserves_default() -> None:
     assert configured.spoken_text == "eight hundred forty four thousand three hundred sixty one"
 
 
+def test_contextual_long_number_mode_requires_quantity_evidence() -> None:
+    assert prepare(
+        "there are 844361 items",
+        language="en",
+        use_spacy=False,
+        long_number_mode="contextual",
+    ).spoken_text == "there are eight hundred forty four thousand three hundred sixty one items"
+    for source in ("844361", "(844361)", "account 844361", "0001234"):
+        result = prepare(
+            source,
+            language="en",
+            use_spacy=False,
+            long_number_mode="contextual",
+        )
+        assert source in result.spoken_text
+    pin_result = prepare(
+        "PIN 844361",
+        language="en",
+        use_spacy=False,
+        long_number_mode="contextual",
+    )
+    assert "eight four four three six one" in pin_result.spoken_text
+
+
 def test_registered_acronym_spelling_is_independent_from_generic_policy() -> None:
     expanded = prepare(
         "CEO D.C. MIT ABC",
