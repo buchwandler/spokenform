@@ -5,10 +5,8 @@ from __future__ import annotations
 import json
 import platform
 import re
-import string
 import subprocess
 import sys
-import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import asdict
@@ -20,7 +18,6 @@ from typing import Any, Literal
 
 from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
-from spokenform.sequences import render_letters
 
 from .failure_reporting import (
     diagnostic_aggregates,
@@ -41,6 +38,7 @@ from .proteno_data import (
     ProtenoExclusion,
     split_policy,
 )
+from .text_metrics import literal_key, speech_key, speech_key_equivalent, word_error_rate
 
 SEMANTIC_SYMBOLS = frozenset("$€£%@/°+=#&")
 BENCHMARK_PROFILES = ("default", "extended")
@@ -54,56 +52,6 @@ FAILURE_MARKDOWN_MAX_BYTES = 1024 * 1024
 PROTENO_QUARANTINE: dict[str, dict[str, str]] = {}
 
 
-def literal_key(text: str) -> str:
-    """Normalize only Unicode and whitespace for literal comparison."""
-    normalized = unicodedata.normalize("NFC", text).strip()
-    return " ".join(normalized.split())
-
-
-def speech_key(text: str) -> tuple[str, ...]:
-    """Tokenize speech while retaining semantically meaningful symbols."""
-    characters: list[str] = []
-    for character in unicodedata.normalize("NFC", text).casefold():
-        if character in SEMANTIC_SYMBOLS:
-            characters.append(character)
-        elif unicodedata.category(character).startswith("P") or character in string.punctuation:
-            characters.append(" ")
-        else:
-            characters.append(character)
-    return tuple(" ".join("".join(characters).split()).split())
-
-
-def speech_key_equivalent(text: str, *, language: str = "en") -> tuple[str, ...]:
-    """Fold exact localized spoken letter names to their ASCII graphemes."""
-    reverse: dict[str, str] = {}
-    for character in "abcdefghijklmnopqrstuvwxyz":
-        rendered = speech_key(render_letters(character, language=language))
-        if len(rendered) == 1:
-            reverse.setdefault(rendered[0], character)
-    return tuple(reverse.get(token, token) for token in speech_key(text))
-
-
-def word_error_rate(reference: Iterable[str], hypothesis: Iterable[str]) -> float:
-    """Return word-level Levenshtein error rate."""
-    reference_words = tuple(reference)
-    hypothesis_words = tuple(hypothesis)
-    if not reference_words:
-        return 0.0 if not hypothesis_words else 1.0
-    previous = list(range(len(hypothesis_words) + 1))
-    for row, reference_word in enumerate(reference_words, 1):
-        current = [row]
-        for column, hypothesis_word in enumerate(hypothesis_words, 1):
-            current.append(
-                min(
-                    current[-1] + 1,
-                    previous[column] + 1,
-                    previous[column - 1] + (reference_word != hypothesis_word),
-                )
-            )
-        previous = current
-    return previous[-1] / len(reference_words)
-
-
 def residual_symbols(text: str) -> dict[str, int]:
     """Count source-like symbols left in generated speech."""
     return {
@@ -113,7 +61,7 @@ def residual_symbols(text: str) -> dict[str, int]:
         "degree": text.count("°"),
         "slash": text.count("/"),
         "multi_dot": len(re.findall(r"\.{2,}", text)),
-        "unicode_fraction": len(re.findall(r"[¼½¾⅓⅔⅛⅜⅝⅞]", text)),
+        "unicode_fraction": len(re.findall(r"[¼½¾⅓⅔⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚]", text)),
         "superscript_subscript": len(re.findall(r"[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]", text)),
         "url_or_email": len(re.findall(r"https?://\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text)),
     }

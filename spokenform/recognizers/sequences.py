@@ -19,7 +19,7 @@ from .biology import iter_replacements as iter_biomedical_replacements
 from .ranges import iter_replacements as iter_range_replacements
 from .references import iter_replacements as iter_reference_replacements
 
-_FRACTION_CHARS = "½⅓⅔¼¾⅛⅜⅝⅞"
+_FRACTION_CHARS = "½⅓⅔¼¾⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚"
 _FRACTION_RE = re.compile(rf"(?<!\w)(?P<whole>\d+)?(?P<fraction>[{_FRACTION_CHARS}])(?!\w)")
 _SLASH_FRACTION_RE = re.compile(
     r"(?<![\w/])(?P<whole>\d+)\s+(?P<numerator>\d+)\s*/\s*(?P<denominator>\d+)(?![\w/])|"
@@ -347,6 +347,12 @@ _FRACTIONS: dict[str, Fraction] = {
     "⅜": Fraction(3, 8),
     "⅝": Fraction(5, 8),
     "⅞": Fraction(7, 8),
+    "⅕": Fraction(1, 5),
+    "⅖": Fraction(2, 5),
+    "⅗": Fraction(3, 5),
+    "⅘": Fraction(4, 5),
+    "⅙": Fraction(1, 6),
+    "⅚": Fraction(5, 6),
 }
 _FRACTION_WORDS = {
     "en": {
@@ -614,7 +620,9 @@ def _ip_text(value: str, language: str) -> str:
 def _fraction_text(whole: str | None, symbol: str, language: str) -> str:
     base = base_language(language)
     fraction = _FRACTIONS[symbol]
-    fraction_text = _FRACTION_WORDS.get(base, _FRACTION_WORDS["en"]).get(fraction, symbol)
+    fraction_text = _FRACTION_WORDS.get(base, _FRACTION_WORDS["en"]).get(fraction)
+    if fraction_text is None:
+        fraction_text = _fraction_word(fraction.numerator, fraction.denominator, language)
     if whole is None:
         return fraction_text
     connector = {"de": "und", "es": "y", "fr": "et", "it": "e"}.get(base, "and")

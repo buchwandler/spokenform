@@ -20,6 +20,7 @@ protection
 mapping
 examples
 limitations
+google_tn
 release-checklist
 changelog
 ```

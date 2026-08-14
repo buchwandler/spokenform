@@ -41,3 +41,21 @@ Spanish Proteno diagnostic benchmark. Data is cached under
 `benchmark-results/proteno/<run-id>/`. Use `--profile extended` or
 `--normalize-literals` for the opt-in literal profile. The external data is
 never packaged or committed. See the detailed [Proteno documentation](../docs/proteno.md).
+
+## Google TN benchmark
+
+`python -m benchmarks.google_tn --data-dir /path/to/en_with_types` runs the
+offline English Google TN / NeMo-compatible TSV diagnostic benchmark. The
+default uses the official `output-00099-of-00100` evaluation shard and first
+100002 physical lines, maps English to `en_US`, and does not download or vendor
+the corpus. Use `--split test-full|all`, `--class`, `--case`, `--limit`,
+`--profile extended`, and explicit `--long-number-mode` options for focused
+experiments.
+
+The benchmark preserves upstream semiotic classes as evaluation metadata only;
+it never passes gold classes to `prepare()`. Reports distinguish transform
+misses, wrong transforms, identity mutations, presentation-only differences,
+and ambiguous mappings, and record source-file SHA256 provenance. Google TN is
+a diagnostic rather than a human-gold oracle, normal CI gate, or release gate.
+Source-bearing reports remain local under `benchmark-results/google-tn/`.
+See the detailed [Google TN documentation](../docs/google_tn.md).

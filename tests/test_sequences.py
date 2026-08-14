@@ -113,6 +113,43 @@ def test_fraction_and_abbreviation_policies_are_high_confidence_only() -> None:
     assert protected.spoken_text == "https://example.org/v1.2.3"
 
 
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("⅕", "one fifth"),
+        ("⅖", "two fifths"),
+        ("⅗", "three fifths"),
+        ("⅘", "four fifths"),
+        ("⅙", "one sixth"),
+        ("⅚", "five sixths"),
+        ("1⅕", "one and one fifth"),
+        ("2⅙", "two and one sixth"),
+    ],
+)
+def test_unicode_fifths_and_sixths_use_generic_fraction_rendering(
+    source: str, expected: str
+) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == expected
+    assert [item.rule for item in result.source_replacements] == ["sequence.fraction"]
+    replacement = result.source_replacements[0]
+    assert replacement.source == source
+    assert result.map_source_span(replacement.source_start, replacement.source_end) == (
+        replacement.output_start,
+        replacement.output_end,
+    )
+    assert prepare(result.spoken_text, language="en", use_spacy=False).spoken_text == result.spoken_text
+
+
+@pytest.mark.parametrize("language", ["de", "es", "fr", "it"])
+def test_unicode_fifths_and_sixths_are_supported_by_existing_denominator_vocab(
+    language: str,
+) -> None:
+    result = prepare("⅕ ⅖ ⅙ ⅚", language=language, use_spacy=False)
+    assert all(word not in result.spoken_text for word in ("⅕", "⅖", "⅙", "⅚"))
+    assert len([item for item in result.source_replacements if item.rule == "sequence.fraction"]) == 4
+
+
 def test_unknown_uppercase_prose_is_preserved() -> None:
     result = prepare("AAPL", language="en", use_spacy=False)
     assert result.spoken_text == "AAPL"
