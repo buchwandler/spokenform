@@ -210,6 +210,7 @@ def test_typed_code_digit_modes_distinguish_identifiers_and_products() -> None:
     assert prepare("WH-1000XM4", language="en", use_spacy=False).spoken_text == (
         "W H one thousand X M four"
     )
+    assert prepare("ABC123", language="en", use_spacy=False).spoken_text == "ABC123"
 
 
 def test_scores_and_durations_use_specific_precedence() -> None:

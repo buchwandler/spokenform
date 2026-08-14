@@ -99,6 +99,7 @@ def test_strongly_labeled_codes_use_digitwise_policies() -> None:
     result = prepare("X5Y-7890", language="en", use_spacy=False)
     assert result.spoken_text == "X five Y seven eight nine zero"
     assert any(item.rule == "sequence.product" for item in result.source_replacements)
+    assert prepare("ABC123", language="en", use_spacy=False).spoken_text == "ABC123"
 
     ordinary = prepare("2024 points", language="en", use_spacy=False)
     assert not any(item.rule == "sequence.product" for item in ordinary.source_replacements)

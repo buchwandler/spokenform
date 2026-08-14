@@ -81,6 +81,7 @@ _PLATE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{2,3}\d{1,4}[A-Z]{1,3})(?!\w)")
 _COMPACT_PLATE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{1,3}-[A-Z]{1,3}\d{1,4})(?!\w)")
 _SPACED_PLATE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{1,3}-[A-Z]{1,3}\s+\d{1,4})(?!\w)")
 _COMPACT_VEHICLE_RE = re.compile(r"(?<!\w)(?P<value>[A-Z]{1,3}\d{3,5})(?!\w)")
+_REVIEWED_VEHICLE_PREFIXES = frozenset({"BMW", "VW", "AUDI", "FORD", "TESLA"})
 _PLATE_CONTEXT_RE = re.compile(
     r"(?<!\w)(?:license\s+plate|kennzeichen|plaque\s+d['’]immatriculation|matrícula)\s*[:#-]?\s*"
     r"(?P<value>[A-Z]{1,3}-[A-Z]{1,3}\s*\d{1,4})(?!\w)",
@@ -563,15 +564,16 @@ class CodeRenderPolicy:
     letters: Literal["grapheme", "spoken_letter_name", "lexical"] = "grapheme"
     digits: Literal["digitwise", "cardinal", "year"] = "digitwise"
     separators: Literal["omit", "speak", "pause"] = "omit"
+    digit_mode: Literal["digits", "cardinal", "grouped", "mixed_product"] = "digits"
 
 
 _CODE_POLICIES = {
-    "serial": CodeRenderPolicy("grapheme", "digitwise", "omit"),
-    "vin": CodeRenderPolicy("grapheme", "digitwise", "omit"),
-    "license": CodeRenderPolicy("grapheme", "digitwise", "omit"),
-    "model": CodeRenderPolicy("grapheme", "cardinal", "omit"),
-    "product": CodeRenderPolicy("grapheme", "digitwise", "omit"),
-    "vehicle": CodeRenderPolicy("grapheme", "cardinal", "omit"),
+    "serial": CodeRenderPolicy("grapheme", "digitwise", "omit", "digits"),
+    "vin": CodeRenderPolicy("grapheme", "digitwise", "omit", "digits"),
+    "license": CodeRenderPolicy("grapheme", "digitwise", "omit", "digits"),
+    "model": CodeRenderPolicy("grapheme", "cardinal", "omit", "mixed_product"),
+    "product": CodeRenderPolicy("grapheme", "digitwise", "omit", "digits"),
+    "vehicle": CodeRenderPolicy("grapheme", "cardinal", "omit", "mixed_product"),
 }
 
 
@@ -2726,6 +2728,9 @@ def iter_sequence_replacements(
             protected,
         )
     for match in _COMPACT_VEHICLE_RE.finditer(text):
+        prefix = re.match(r"[A-Z]+", match["value"], re.IGNORECASE)
+        if prefix is None or prefix.group(0).upper() not in _REVIEWED_VEHICLE_PREFIXES:
+            continue
         _add(
             candidates,
             match,
