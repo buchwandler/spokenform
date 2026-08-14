@@ -37,7 +37,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--generic-acronyms",
-        choices=("known-only", "spell-unknown"),
+        choices=("known-only", "conservative-unknown", "spell-unknown"),
         default="known-only",
         dest="generic_acronym_mode",
         help="Whether to spell unknown uppercase initialisms",

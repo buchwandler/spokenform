@@ -62,6 +62,11 @@ def test_cli_exposes_registered_acronym_policy() -> None:
     assert args.registered_acronyms == "spell"
 
 
+def test_cli_exposes_conservative_generic_acronym_policy() -> None:
+    args = _parser().parse_args(["--generic-acronyms", "conservative-unknown"])
+    assert args.generic_acronym_mode == "conservative-unknown"
+
+
 def test_cli_output_policies_work_end_to_end() -> None:
     completed = subprocess.run(
         [

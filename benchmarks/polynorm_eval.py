@@ -201,7 +201,7 @@ def environment_fingerprint(
             "prepare": {"use_spacy": False, "normalize_literals": profile == "extended"},
             "profile": profile,
             "acronym_policy": {
-                "generic_mode": "known_only",
+                "generic_mode": "conservative_unknown" if profile == "extended" else "known_only",
                 "generic_case": "upper",
                 "registered_mode": "spell" if profile == "extended" else "expand",
             },
@@ -420,7 +420,7 @@ def evaluate_cases(
                 kwargs.update(
                     {
                         "normalize_literals": True,
-                        "generic_acronym_mode": "known_only",
+                        "generic_acronym_mode": "conservative_unknown",
                         "generic_acronym_case": "upper",
                         "registered_acronym_mode": "spell",
                     }

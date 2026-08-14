@@ -59,6 +59,21 @@ _SOFT_VERSION_RE = re.compile(
     r"(?<![\w.])(?:v\d+(?:\.\d+){1,}|\d+(?:\.\d+){2,})(?![\w.])",
     re.IGNORECASE,
 )
+_UPPER_TOKEN_RE = re.compile(r"\b[A-Z]{2,}\b")
+_CONSERVATIVE_LEXICAL_ACRONYMS = frozenset({"NASA", "NATO", "FIFA", "UNESCO"})
+
+
+def _conservative_initialism_protection(text: str) -> tuple[tuple[int, int], ...]:
+    """Protect lexical acronyms and all-uppercase headline runs for old abbr2words."""
+    matches = tuple(_UPPER_TOKEN_RE.finditer(text))
+    words = tuple(re.finditer(r"\b[A-Za-z]+\b", text))
+    headline = len(matches) >= 4 and len(matches) * 2 >= max(1, len(words))
+    protected = [
+        match.span()
+        for match in matches
+        if match.group(0) in _CONSERVATIVE_LEXICAL_ACRONYMS or headline
+    ]
+    return tuple(protected)
 
 
 def normalize_spacing(
@@ -169,8 +184,15 @@ def prepare(
         )
     if generic_acronym_case not in {"upper", "lower"}:
         raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
-    if generic_acronym_mode not in {"known_only", "spell_unknown"}:
-        raise ValueError("generic_acronym_mode must be 'known_only' or 'spell_unknown'")
+    if generic_acronym_mode not in {
+        "known_only",
+        "conservative_unknown",
+        "spell_unknown",
+    }:
+        raise ValueError(
+            "generic_acronym_mode must be 'known_only', 'conservative_unknown', or "
+            "'spell_unknown'"
+        )
     if long_number_mode not in {"preserve", "cardinal"}:
         raise ValueError("long_number_mode must be 'preserve' or 'cardinal'")
     if registered_acronym_mode not in {"expand", "spell"}:
@@ -312,36 +334,54 @@ def prepare(
                 for value in (protected_value_by_placeholder[character],)
             ),
         )
-        abbreviation_kwargs: dict[str, object] = {
-            "lang": resolve_abbr2words_language(language_code),
-            "context": context,
-            "annotations": to_abbr2words_annotations(visible_annotations),
-            "protected_spans": map_internal_protected_spans_to_visible(
+        abbreviation_protected_spans = (
+            map_internal_protected_spans_to_visible(
                 current,
                 protected.values,
                 protected.placeholders,
             )
-            + tuple((item.start, item.end) for item in reserved_spans),
+            + tuple((item.start, item.end) for item in reserved_spans)
+        )
+        if generic_acronym_mode == "conservative_unknown":
+            abbreviation_protected_spans += _conservative_initialism_protection(
+                protected.restore(current)
+            )
+        abbreviation_kwargs: dict[str, object] = {
+            "lang": resolve_abbr2words_language(language_code),
+            "context": context,
+            "annotations": to_abbr2words_annotations(visible_annotations),
+            "protected_spans": abbreviation_protected_spans,
         }
         if registered_acronym_mode != "expand":
             abbreviation_kwargs["registered_initialism_mode"] = registered_acronym_mode
-        if generic_acronym_mode == "spell_unknown" or generic_acronym_case != "upper":
+        if generic_acronym_mode in {"conservative_unknown", "spell_unknown"} or generic_acronym_case != "upper":
+            initialism_mode = {
+                "conservative_unknown": "conservative_undotted",
+                "spell_unknown": "spell_undotted",
+            }.get(generic_acronym_mode, "dotted_only")
             abbreviation_kwargs.update(
                 {
-                    "initialism_mode": (
-                        "spell_undotted"
-                        if generic_acronym_mode == "spell_unknown"
-                        else "dotted_only"
-                    ),
+                    "initialism_mode": initialism_mode,
                     "initialism_case": generic_acronym_case,
                 }
             )
         # The released 0.2.8 API carries the precise keyword types, while this
         # compatibility dictionary is assembled conditionally for the public
         # Spokenform policy switches.
-        abbreviation_result = cast(Any, abbr2words_with_replacements)(
-            protected.restore(current), **abbreviation_kwargs
-        )
+        try:
+            abbreviation_result = cast(Any, abbr2words_with_replacements)(
+                protected.restore(current), **abbreviation_kwargs
+            )
+        except ValueError as exc:
+            if generic_acronym_mode != "conservative_unknown" or "initialism_mode" not in str(exc):
+                raise
+            # abbr2words>=0.2.9 provides conservative_undotted. Keep the
+            # public Spokenform mode usable with the released 0.2.8 API while
+            # its compatibility spans above retain the conservative boundary.
+            abbreviation_kwargs["initialism_mode"] = "spell_undotted"
+            abbreviation_result = cast(Any, abbr2words_with_replacements)(
+                protected.restore(current), **abbreviation_kwargs
+            )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,
             language=language_code,

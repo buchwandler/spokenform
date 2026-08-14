@@ -1958,7 +1958,9 @@ def iter_sequence_replacements(
     language: str = "en",
     protected_ranges: Iterable[tuple[int, int]] = (),
     promote_literals: bool = False,
-    generic_acronym_mode: Literal["known_only", "spell_unknown"] = "known_only",
+    generic_acronym_mode: Literal[
+        "known_only", "conservative_unknown", "spell_unknown"
+    ] = "known_only",
     generic_acronym_case: Literal["upper", "lower"] = "upper",
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""

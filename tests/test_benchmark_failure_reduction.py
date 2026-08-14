@@ -155,6 +155,37 @@ def test_registered_acronym_spelling_is_independent_from_generic_policy() -> Non
     assert spelled.spoken_text == "c e o d c m i t a b c"
 
 
+def test_conservative_unknown_initialisms_preserve_lexical_and_headline_text() -> None:
+    result = prepare(
+        "NASA NGO",
+        language="en",
+        use_spacy=False,
+        generic_acronym_mode="conservative_unknown",
+        generic_acronym_case="lower",
+    )
+    assert result.spoken_text == "NASA n g o"
+    headline = prepare(
+        "WORLD FIRST FILM GETS TOP PRIZE AT CANNES",
+        language="en",
+        use_spacy=False,
+        generic_acronym_mode="conservative_unknown",
+    )
+    assert headline.spoken_text == "WORLD FIRST FILM GETS TOP PRIZE AT CANNES"
+
+
+def test_conservative_unknown_runs_after_structured_reservation() -> None:
+    result = prepare(
+        "Python 3.9.7 NGO",
+        language="en",
+        use_spacy=False,
+        generic_acronym_mode="conservative_unknown",
+        generic_acronym_case="lower",
+    )
+    assert "Python 3.9.7" not in result.spoken_text
+    assert "dot" in result.spoken_text
+    assert result.spoken_text.endswith("n g o")
+
+
 def test_contextual_parenthesized_initialisms_and_roman_numerals() -> None:
     result = prepare(
         "Apple (AAPL); stock (T); Article IX; Act III, Scene IV; King Henry VIII.",
