@@ -2767,8 +2767,11 @@ def iter_sequence_replacements(
             protected,
         )
     for match in _COMPACT_VEHICLE_RE.finditer(text):
-        prefix = re.match(r"[A-Z]+", match["value"], re.IGNORECASE)
-        if prefix is None or prefix.group(0).upper() not in _REVIEWED_VEHICLE_PREFIXES:
+        vehicle_prefix = re.match(r"[A-Z]+", match["value"], re.IGNORECASE)
+        if (
+            vehicle_prefix is None
+            or vehicle_prefix.group(0).upper() not in _REVIEWED_VEHICLE_PREFIXES
+        ):
             continue
         _add(
             candidates,

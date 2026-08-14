@@ -8,6 +8,8 @@ from benchmarks.polynorm import _parser
 from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
+    POLYNORM_DATASET_COMMIT,
+    POLYNORM_QUARANTINE,
     _filter_failures_by_speech_wer,
     environment_fingerprint,
     evaluate_and_write,
@@ -107,15 +109,34 @@ def test_evaluation_reports_claim_provenance_and_gate_views() -> None:
     assert set(summary["gate_metrics"]) == {
         "safety",
         "owned",
+        "dependency-abbr2words",
         "extended",
         "protected",
         "downstream",
         "unsupported",
+        "external-language",
+        "questionable-target",
         "quarantine",
         "locale",
     }
     assert summary["gate_metrics"]["protected"]["cases"] == 1
     assert summary["gate_metrics"]["safety"]["protected_unchanged_rate"] == 1.0
+
+
+def test_category_ownership_separates_dependency_and_extended_families() -> None:
+    cases = (
+        PolyNormCase("en-US", "initialism", "Initialism or Acronym", "NASA", "nasa"),
+        PolyNormCase("en-US", "fraction", "Fractions", "3/4", "three fourths"),
+        PolyNormCase("en-US", "unknown", "Unlisted Category", "x", "x"),
+    )
+
+    summary, failures = evaluate_cases(cases)
+
+    assert summary["by_ownership"]["dependency-abbr2words"]["cases"] == 1
+    assert summary["by_ownership"]["extended-candidate"]["cases"] == 1
+    assert summary["by_ownership"]["unsupported"]["cases"] == 1
+    initialism = next(row for row in failures if row["id"] == "en-US:initialism")
+    assert initialism["ownership"] == "dependency-abbr2words"
 
 
 def test_version_provenance_names_separator_role() -> None:
@@ -168,6 +189,20 @@ def test_environment_fingerprint_records_source_commit() -> None:
     fingerprint = environment_fingerprint(("en-US",))
     assert fingerprint["spokenform_source_commit"]
     assert fingerprint["config_hash"] == fingerprint["configuration"]["config_hash"]
+
+
+def test_summary_and_markdown_expose_outcome_buckets_and_identity(tmp_path) -> None:
+    cases = (
+        PolyNormCase("en-US", "1", "Initialism or Acronym", "NASA", "nasa spoken"),
+    )
+
+    output_dir, summary = evaluate_and_write(cases, output_root=tmp_path)
+
+    assert "outcome_counts" in summary
+    assert "dependency-mismatch" in summary["outcome_counts"]
+    markdown = (output_dir / "failures.md").read_text(encoding="utf-8")
+    assert "## Run identity" in markdown
+    assert "abbr2words_version" in markdown
 
 
 def test_extended_profile_is_explicit_and_promotes_literals() -> None:
@@ -271,6 +306,24 @@ def test_failure_family_and_quarantine_reason_codes_are_reported() -> None:
     assert summary["quarantine_reason_codes"] == {"questionable-target": 1}
     assert failures[0]["quarantine_reason_code"] == "questionable-target"
     assert failures[0]["failure_family"] == "dataset-quarantine"
+
+
+def test_quarantine_entries_are_evidence_backed_and_do_not_hide_normal_failures() -> None:
+    assert set(POLYNORM_QUARANTINE) == {
+        "es-MX:86",
+        "es-MX:249",
+        "es-MX:274",
+        "fr-FR:208",
+        "fr-FR:310",
+        "fr-FR:316",
+    }
+    assert all(
+        entry["dataset"] == "PolyNorm-Bench"
+        and entry["dataset_commit"] == POLYNORM_DATASET_COMMIT
+        and entry["case_id"] == case_id
+        and entry["evidence"]
+        for case_id, entry in POLYNORM_QUARANTINE.items()
+    )
 
 
 def test_reduction_fixture_covers_multiple_failure_families() -> None:

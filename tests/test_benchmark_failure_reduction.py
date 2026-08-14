@@ -184,13 +184,13 @@ def test_registered_acronym_spelling_is_independent_from_generic_policy() -> Non
 
 def test_conservative_unknown_initialisms_preserve_lexical_and_headline_text() -> None:
     result = prepare(
-        "NASA NGO",
+        "NASA TST",
         language="en",
         use_spacy=False,
         generic_acronym_mode="conservative_unknown",
         generic_acronym_case="lower",
     )
-    assert result.spoken_text == "NASA n g o"
+    assert result.spoken_text == "NASA t s t"
     headline = prepare(
         "WORLD FIRST FILM GETS TOP PRIZE AT CANNES",
         language="en",
@@ -202,7 +202,7 @@ def test_conservative_unknown_initialisms_preserve_lexical_and_headline_text() -
 
 def test_conservative_unknown_runs_after_structured_reservation() -> None:
     result = prepare(
-        "Python 3.9.7 NGO",
+        "Python 3.9.7 TST",
         language="en",
         use_spacy=False,
         generic_acronym_mode="conservative_unknown",
@@ -210,7 +210,7 @@ def test_conservative_unknown_runs_after_structured_reservation() -> None:
     )
     assert "Python 3.9.7" not in result.spoken_text
     assert "dot" in result.spoken_text
-    assert result.spoken_text.endswith("n g o")
+    assert result.spoken_text.endswith("t s t")
 
 
 def test_contextual_parenthesized_initialisms_and_roman_numerals() -> None:

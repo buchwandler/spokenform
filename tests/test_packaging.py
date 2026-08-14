@@ -38,8 +38,16 @@ def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
     )["project"]
     dependencies = project["dependencies"]
 
-    assert "abbr2words>=0.2.8,<0.3.0" in dependencies
+    assert "abbr2words>=0.2.9,<0.3.0" in dependencies
     assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)
+
+
+def test_abbr2words_exposes_the_conservative_initialism_policy() -> None:
+    from inspect import signature
+
+    from abbr2words import abbr2words_with_replacements
+
+    assert "initialism_mode" in signature(abbr2words_with_replacements).parameters
 
 
 def test_scm_version_fallback_is_neutral() -> None:

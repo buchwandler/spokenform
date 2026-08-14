@@ -108,6 +108,11 @@ def test_spanish_projection_and_fail_closed_markup():
         == "uno dos tres"
     )
     assert data.project_spanish('A <lang id="en">Science</lang> B') == "A B"
+    projected, notes = data.project_spanish_with_metadata(
+        'A <lang id="en">Science</lang> <error what="dos">2</error>'
+    )
+    assert projected == "A dos"
+    assert notes == ("removed-lang-span", "replaced-error-span")
     with pytest.raises(ValueError, match="missing required what"):
         data.project_spanish("<error>300</error>")
     with pytest.raises(ValueError, match="Unknown Spanish"):

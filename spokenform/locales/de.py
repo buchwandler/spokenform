@@ -145,6 +145,14 @@ _TEXT_DATE = re.compile(
     r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Nov\.?|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)((?!\w))(?:\s+(?P<year>\d{2,4}))?",
     re.IGNORECASE,
 )
+_MIXED_TEXT_DATE = re.compile(
+    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])(?P<suffix>st|nd|rd|th)\s+"
+    r"(?P<month>Jan(?:uary)?\.?|Feb(?:ruary)?\.?|Mar(?:ch)?\.?|Apr(?:il)?\.?|"
+    r"May|Jun(?:e)?\.?|Jul(?:y)?\.?|Aug(?:ust)?\.?|Sep(?:tember)?\.?|"
+    r"Oct(?:ober)?\.?|Nov(?:ember)?\.?|Dec(?:ember)?\.?)"
+    r"(?:\s+(?P<year>\d{4})(?!\d))?",
+    re.IGNORECASE,
+)
 _TEXT_DATE_RANGE = re.compile(
     r"(?P<start>0?[1-9]|[12]\d|3[01])\.-(?P<end>0?[1-9]|[12]\d|3[01])\.\s+"
     r"(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)"
@@ -206,6 +214,31 @@ _MONTHS = {
     "nov": (11, "November"),
     "dezember": (12, "Dezember"),
     "dez": (12, "Dezember"),
+}
+_MIXED_MONTHS = {
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
 }
 
 
@@ -276,6 +309,15 @@ def _valid(day: int, month: int, year: int) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _valid_english_ordinal_suffix(day: int, suffix: str) -> bool:
+    """Require a valid English ordinal marker in the mixed-language shape."""
+    if 10 < day % 100 < 14:
+        expected = "th"
+    else:
+        expected = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+    return suffix.casefold() == expected
 
 
 def _terminal_dot(text: str, end: int) -> bool:
@@ -438,6 +480,18 @@ def iter_replacements(
                 else value,
                 "de.text-date",
             )
+    for match in _MIXED_TEXT_DATE.finditer(text):
+        day = int(match["day"])
+        month = _MIXED_MONTHS[match["month"].lower().rstrip(".")]
+        mixed_year: int | None = int(match["year"]) if match["year"] else None
+        if _valid_english_ordinal_suffix(day, match["suffix"]) and _valid(
+            day, month, mixed_year or 2000
+        ):
+            month_name = next(name for number, name in _MONTHS.values() if number == month)
+            value = f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}"
+            if mixed_year:
+                value += f" {_year(mixed_year, language)}"
+            add(match, value, "de.mixed-text-date")
     for match in _TIME_RANGE.finditer(text):
         start_hour = int(match["start_hour"] or match["start_hour_bis"])
         start_minute = int(match["start_minute"] or match["start_minute_bis"])

@@ -7,6 +7,7 @@ import platform
 import re
 import subprocess
 import sys
+import unicodedata
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import asdict
@@ -26,6 +27,7 @@ from .failure_reporting import (
     failure_family_counts,
     outcome_for_row,
     ownership_for_rule,
+    rank_provenance,
     reason_code,
 )
 from .proteno_data import (
@@ -66,6 +68,25 @@ def residual_symbols(text: str) -> dict[str, int]:
         "superscript_subscript": len(re.findall(r"[⁰¹²³⁴⁵⁶⁷⁸⁹₀₁₂₃₄₅₆₇₈₉]", text)),
         "url_or_email": len(re.findall(r"https?://\S+|[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text)),
     }
+
+
+def _foreign_script_characters(text: str) -> tuple[str, ...]:
+    """Return conservative non-Latin alphabetic characters for adapter triage."""
+    return tuple(
+        character
+        for character in text
+        if character.isalpha() and "LATIN" not in unicodedata.name(character, "")
+    )
+
+
+def _is_external_language_projection(case: ProtenoCase) -> bool:
+    """Identify lossy language/script projections without changing normalization."""
+    if case.had_lang_span:
+        return True
+    foreign = _foreign_script_characters(case.original_text)
+    if not foreign:
+        return False
+    return any(case.original_text.count(character) > case.normalized_text.count(character) for character in foreign)
 
 
 def _package_version(name: str) -> str:
@@ -207,45 +228,24 @@ def _provenance(
 ) -> dict[str, Any]:
     mapped_edits = tuple(getattr(result, "mapped_edits", ()) or ())
     replacements = tuple(getattr(result, "source_replacements", ()) or ())
-    candidates = [edit for edit in (*replacements, *mapped_edits) if getattr(edit, "rule", None)]
-    candidates.sort(
-        key=lambda edit: (
-            -(int(getattr(edit, "source_end", 0)) - int(getattr(edit, "source_start", 0))),
-            int(getattr(edit, "source_start", 0)),
-        )
+    diagnostics = rank_provenance(
+        (*replacements, *mapped_edits),
+        semantic_failure=semantic_failure,
+        presentation_only=presentation_only,
+        protected_spans=tuple(getattr(result, "protected_spans", ()) or ()),
     )
-    winner = candidates[0] if candidates else None
-    primary_rule = getattr(winner, "rule", None) if winner is not None else None
-    winning_span = (
-        None
-        if winner is None
-        else {
-            "start": int(getattr(winner, "source_start", 0)),
-            "end": int(getattr(winner, "source_end", 0)),
-            "source": str(getattr(winner, "source", "")),
-            "rule": primary_rule,
+    primary_rule = diagnostics["primary_rule"]
+    diagnostics.update(
+        {
+            "render_mode": _render_mode(
+                primary_rule,
+                (primary_rule, *diagnostics["secondary_rules"])
+                if primary_rule
+                else diagnostics["secondary_rules"],
+            ),
+            "numeric_policy": asdict(numeric_speech_policy(language)),
         }
     )
-    rules = tuple(str(edit.rule) for edit in mapped_edits if getattr(edit, "rule", None))
-    if presentation_only:
-        phase = "presentation_only"
-    elif primary_rule is None:
-        phase = "unrecognized"
-    elif any(getattr(edit, "stage", None) == "structured" for edit in mapped_edits):
-        phase = "structured_rendering"
-    elif any(getattr(edit, "stage", None) == "numbers" for edit in mapped_edits):
-        phase = "locale_rendering"
-    elif semantic_failure:
-        phase = "downstream_rendering"
-    else:
-        phase = "downstream_rendering"
-    diagnostics = {
-        "primary_rule": primary_rule,
-        "winning_span": winning_span,
-        "failure_phase": phase,
-        "render_mode": _render_mode(primary_rule, rules),
-        "numeric_policy": asdict(numeric_speech_policy(language)),
-    }
     if primary_rule == "sequence.version":
         diagnostics.update({"separator": ".", "separator_role": "version"})
     return diagnostics
@@ -348,11 +348,18 @@ def evaluate_cases(
             "changed_stages": changed_stages,
             "source_rules": source_rules,
             "structured_claimed": structured_claimed,
+            "had_lang_span": case.had_lang_span,
+            "had_error_span": case.had_error_span,
+            "projection_notes": case.projection_notes,
             **provenance,
         }
         quarantine = PROTENO_QUARANTINE.get(case.case_id)
         row["quarantine"] = quarantine
-        row["ownership"] = ownership_for_rule(row.get("primary_rule"), protected=False)
+        row["ownership"] = (
+            "external-language"
+            if _is_external_language_projection(case)
+            else ownership_for_rule(row.get("primary_rule"), protected=False)
+        )
         row["outcome"] = outcome_for_row(row)
         row["failure_family"] = failure_family(row)
         rows.append(row)
@@ -417,6 +424,7 @@ def evaluate_cases(
         ),
         "failure_families": failure_family_counts(rows),
         "diagnostic_aggregates": diagnostic_aggregates(rows),
+        "outcome_counts": diagnostic_aggregates(rows)["by_outcome"],
         "reviewed": _metric_counts([row for row in rows if row["quarantine"] is None]),
         "quarantine_count": sum(row["quarantine"] is not None for row in rows),
         "profile": profile,
@@ -432,10 +440,17 @@ def evaluate_cases(
             "protected_mutation_count": sum(bool(row.get("protected_mutation")) for row in rows),
         },
         "owned": _metric_counts(ownership_groups.get("owned", [])),
+        "dependency-abbr2words": _metric_counts(
+            ownership_groups.get("dependency-abbr2words", [])
+        ),
         "extended": _metric_counts(ownership_groups.get("extended-candidate", [])),
         "protected": _metric_counts(ownership_groups.get("protected", [])),
         "downstream": _metric_counts(ownership_groups.get("downstream", [])),
         "unsupported": _metric_counts(ownership_groups.get("unsupported", [])),
+        "external-language": _metric_counts(ownership_groups.get("external-language", [])),
+        "questionable-target": _metric_counts(
+            ownership_groups.get("questionable-target", [])
+        ),
         "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
     }
     summary["_rows"] = tuple(rows)
@@ -474,6 +489,7 @@ def _write_failures_markdown(
     output_dir: Path,
     *,
     max_bytes: int = FAILURE_MARKDOWN_MAX_BYTES,
+    identity: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Write a small Markdown index and bounded, source-bearing detail shards."""
     if max_bytes <= 1024:
@@ -532,13 +548,22 @@ def _write_failures_markdown(
     lines = [
         "# Proteno failures",
         "",
+        "## Run identity",
+        "",
+    ]
+    if identity:
+        lines.extend(f"- {key}: `{value}`" for key, value in sorted(identity.items()))
+    else:
+        lines.append("Identity metadata is available in summary.json.")
+    lines.extend([
+        "",
         "Failure details are split into source-bearing Markdown shards so each "
         "file remains manageable in an editor.",
         "",
         f"- Total failures: {sum(report['failure_count'] for report in reports):,}",
         f"- Maximum shard size: {max_bytes:,} bytes",
         "",
-    ]
+    ])
     if reports:
         lines.extend(["## Reports", ""])
         for report in reports:
@@ -648,7 +673,9 @@ def evaluate_and_write(
         for exclusion in exclusion_list:
             payload = {**exclusion.as_dict(), "reason_code": reason_code(exclusion.reason)}
             handle.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
-    summary_payload["failure_reports"] = _write_failures_markdown(stored_failures, output_dir)
+    summary_payload["failure_reports"] = _write_failures_markdown(
+        stored_failures, output_dir, identity=summary_payload["identity"]
+    )
     (output_dir / "summary.json").write_text(
         json.dumps(summary_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )

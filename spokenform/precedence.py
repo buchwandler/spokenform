@@ -59,6 +59,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.compound-unit": SequencePriority.TYPED_CODE,
     "en.decade": 80,
     "sequence.decade": 78,
+    "de.mixed-text-date": SequencePriority.EXPLICIT_DATE,
 }
 
 

@@ -63,4 +63,4 @@ def test_contextual_roman_numerals_do_not_claim_standalone_codes() -> None:
     chapter = prepare("Chapter IV", language="en", use_spacy=False)
     standalone = prepare("IV CD DVD", language="en", use_spacy=False)
     assert chapter.spoken_text == "Chapter four"
-    assert standalone.spoken_text == "IV CD DVD"
+    assert standalone.spoken_text == "IV C D D V D"

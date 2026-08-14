@@ -178,6 +178,18 @@ def test_report_privacy_layout_and_metadata(tmp_path):
     assert "original_text" not in (output_dir / "failures.md").read_text(encoding="utf-8")
 
 
+def test_proteno_summary_and_markdown_expose_outcome_buckets_and_identity(tmp_path):
+    cases = (_case("en", 1, "2", "wrong"),)
+
+    output_dir, summary = evaluate_and_write(cases, output_root=tmp_path)
+
+    assert "outcome_counts" in summary
+    assert "semantic-mismatch" in summary["outcome_counts"]
+    markdown = (output_dir / "failures.md").read_text(encoding="utf-8")
+    assert "## Run identity" in markdown
+    assert "abbr2words_version" in markdown
+
+
 def test_failure_markdown_is_split_into_bounded_linked_shards(tmp_path):
     failures = tuple(_markdown_failure(f"en:{index:05d}") for index in range(1, 13)) + (
         _markdown_failure("es:00001", language="es", case_kind="identity"),
@@ -266,3 +278,21 @@ def test_failure_family_reporting_and_quarantine_codes(tmp_path):
     assert summary["excluded_by_reason_code"] == {"adapter-error": 1}
     stored = json.loads((output_dir / "excluded.jsonl").read_text().strip())
     assert stored["reason_code"] == "adapter-error"
+
+
+def test_external_language_projection_is_reported_separately() -> None:
+    case = ProtenoCase(
+        "en",
+        1,
+        "train",
+        ("日本語",),
+        "日本語",
+        "Japanese",
+        True,
+    )
+
+    summary, failures = evaluate_cases((case,))
+
+    assert summary["cases"] == 1
+    assert failures[0]["ownership"] == "external-language"
+    assert failures[0]["outcome"] == "external-language"

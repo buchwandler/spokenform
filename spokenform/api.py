@@ -59,22 +59,6 @@ _SOFT_VERSION_RE = re.compile(
     r"(?<![\w.])(?:v\d+(?:\.\d+){1,}|\d+(?:\.\d+){2,})(?![\w.])",
     re.IGNORECASE,
 )
-_UPPER_TOKEN_RE = re.compile(r"\b[A-Z]{2,}\b")
-_CONSERVATIVE_LEXICAL_ACRONYMS = frozenset({"NASA", "NATO", "FIFA", "UNESCO"})
-
-
-def _conservative_initialism_protection(text: str) -> tuple[tuple[int, int], ...]:
-    """Protect lexical acronyms and all-uppercase headline runs for old abbr2words."""
-    matches = tuple(_UPPER_TOKEN_RE.finditer(text))
-    words = tuple(re.finditer(r"\b[A-Za-z]+\b", text))
-    headline = len(matches) >= 4 and len(matches) * 2 >= max(1, len(words))
-    protected = [
-        match.span()
-        for match in matches
-        if match.group(0) in _CONSERVATIVE_LEXICAL_ACRONYMS or headline
-    ]
-    return tuple(protected)
-
 
 def normalize_spacing(
     text: str,
@@ -338,10 +322,6 @@ def prepare(
             protected.values,
             protected.placeholders,
         ) + tuple((item.start, item.end) for item in reserved_spans)
-        if generic_acronym_mode == "conservative_unknown":
-            abbreviation_protected_spans += _conservative_initialism_protection(
-                protected.restore(current)
-            )
         abbreviation_kwargs: dict[str, object] = {
             "lang": resolve_abbr2words_language(language_code),
             "context": context,
@@ -364,23 +344,13 @@ def prepare(
                     "initialism_case": generic_acronym_case,
                 }
             )
-        # The released 0.2.8 API carries the precise keyword types, while this
-        # compatibility dictionary is assembled conditionally for the public
-        # Spokenform policy switches.
-        try:
-            abbreviation_result = cast(Any, abbr2words_with_replacements)(
-                protected.restore(current), **abbreviation_kwargs
-            )
-        except ValueError as exc:
-            if generic_acronym_mode != "conservative_unknown" or "initialism_mode" not in str(exc):
-                raise
-            # abbr2words>=0.2.9 provides conservative_undotted. Keep the
-            # public Spokenform mode usable with the released 0.2.8 API while
-            # its compatibility spans above retain the conservative boundary.
-            abbreviation_kwargs["initialism_mode"] = "spell_undotted"
-            abbreviation_result = cast(Any, abbr2words_with_replacements)(
-                protected.restore(current), **abbreviation_kwargs
-            )
+        # abbr2words 0.2.9 is the first release containing the reviewed
+        # conservative initialism policy. It is the sole policy owner here;
+        # Spokenform deliberately has no compatibility fallback or duplicate
+        # acronym heuristic.
+        abbreviation_result = cast(Any, abbr2words_with_replacements)(
+            protected.restore(current), **abbreviation_kwargs
+        )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,
             language=language_code,

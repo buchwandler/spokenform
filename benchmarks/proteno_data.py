@@ -85,6 +85,9 @@ class ProtenoCase:
     original_text: str
     normalized_text: str
     has_normalization: bool
+    had_lang_span: bool = False
+    had_error_span: bool = False
+    projection_notes: tuple[str, ...] = ()
 
     @property
     def case_id(self) -> str:
@@ -108,6 +111,8 @@ class ProtenoExclusion:
 
     def as_dict(self) -> dict[str, object]:
         return {
+            "dataset": "Proteno",
+            "dataset_commit": PROTENO_DATASET_COMMIT,
             "id": self.id,
             "language": self.language,
             "index": self.index,
@@ -339,6 +344,9 @@ class _SpanishProjectionParser(HTMLParser):
         super().__init__(convert_charrefs=True)
         self._stack: list[tuple[str, str | None]] = []
         self._parts: list[str] = []
+        self.had_lang_span = False
+        self.had_error_span = False
+        self.projection_notes: list[str] = []
 
     def _inside(self, tag: str) -> bool:
         return any(name == tag for name, _ in self._stack)
@@ -351,6 +359,8 @@ class _SpanishProjectionParser(HTMLParser):
             raise ValueError(f"Nested Spanish Proteno <{tag}> tags are not supported")
         values = {key: value for key, value in attrs}
         if tag == "error":
+            self.had_error_span = True
+            self.projection_notes.append("replaced-error-span")
             if values.get("what") is None:
                 raise ValueError("Spanish Proteno <error> tag is missing required what")
             if any(key != "what" for key in values):
@@ -360,6 +370,8 @@ class _SpanishProjectionParser(HTMLParser):
             if not self._inside("lang"):
                 self._parts.append(what)
         else:
+            self.had_lang_span = True
+            self.projection_notes.append("removed-lang-span")
             self._stack.append((tag, None))
 
     def handle_endtag(self, tag: str) -> None:
@@ -384,6 +396,12 @@ class _SpanishProjectionParser(HTMLParser):
 
 def project_spanish(text: str) -> str:
     """Project Spanish ``error`` and ``lang`` annotations to expected speech."""
+    projected, _ = project_spanish_with_metadata(text)
+    return projected
+
+
+def project_spanish_with_metadata(text: str) -> tuple[str, tuple[str, ...]]:
+    """Project Spanish markup and return auditable adapter transformation notes."""
     parser = _SpanishProjectionParser()
     try:
         parser.feed(text)
@@ -392,7 +410,7 @@ def project_spanish(text: str) -> str:
         raise
     except Exception as exc:
         raise ValueError(f"Malformed Spanish Proteno markup: {exc}") from exc
-    return parser.finish()
+    return parser.finish(), tuple(dict.fromkeys(parser.projection_notes))
 
 
 _NO_SPACE_BEFORE = frozenset(".,;:!?%)]}»”’")
@@ -450,15 +468,22 @@ def _check_english_markers(text: str) -> None:
 
 
 def _normalized_text(language: str, value: str | tuple[str, ...]) -> str:
+    text, _ = _normalized_text_with_metadata(language, value)
+    return text
+
+
+def _normalized_text_with_metadata(
+    language: str, value: str | tuple[str, ...]
+) -> tuple[str, tuple[str, ...]]:
     if isinstance(value, str):
         text = minimal_text(value)
     else:
         text = detokenize(value)
     if language == "en":
         _check_english_markers(text)
+        return text, ()
     else:
-        text = project_spanish(text)
-    return text
+        return project_spanish_with_metadata(text)
 
 
 def split_name(index: int, total: int) -> str:
@@ -507,7 +532,7 @@ def load_cases_with_exclusions(
                 continue
             original = detokenize(source_tokens)
             try:
-                expected = _normalized_text(language, target_value)
+                expected, projection_notes = _normalized_text_with_metadata(language, target_value)
             except ValueError as exc:
                 exclusions.append(
                     ProtenoExclusion(
@@ -536,6 +561,9 @@ def load_cases_with_exclusions(
                     original,
                     expected,
                     minimal_text(original) != minimal_text(expected),
+                    "removed-lang-span" in projection_notes,
+                    "replaced-error-span" in projection_notes,
+                    projection_notes,
                 )
             )
             if limit is not None and len(cases) >= limit:
@@ -591,6 +619,7 @@ __all__ = [
     "load_pair",
     "minimal_text",
     "project_spanish",
+    "project_spanish_with_metadata",
     "selected_languages",
     "split_name",
     "split_policy",

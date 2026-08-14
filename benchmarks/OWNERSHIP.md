@@ -8,10 +8,13 @@ protected-span mutations, and new safety failures remain hard gates.
 | -------------------- | ----------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `safety/default`     | Identity and conservative default rows                                                    | Must not regress; identity mutations stay zero on the fresh baseline |
 | `owned`              | High-confidence semantics owned by Spokenform                                             | Primary correctness target                                           |
+| `dependency-abbr2words` | Reviewed abbreviations and initialisms delegated to abbr2words                         | Report separately from Spokenform-owned semantics                    |
 | `extended-candidate` | Strict coordinates, legal references, formula, math, music, biology, and similar families | Reviewed separately; no broad-shape expansion                        |
 | `protected`          | URLs, e-mail addresses, versions, caller-protected spans                                  | Must remain unchanged in the default profile                         |
 | `downstream`         | Phoneme-sensitive years, Roman numerals, phone/ID sequences, and model-owned rendering    | Not a Spokenform failure unless explicitly transferred               |
 | `unsupported`        | Outside the supported language/category contract                                          | Reported, never silently promoted to owned                           |
+| `questionable-target` | Target requires reviewed upstream/annotation evidence                                    | Visible and excluded from core-owned aggregates                      |
+| `external-language`  | Adapter/script-policy projection differs from conservative Spokenform preservation         | Visible and excluded from core-owned aggregates                      |
 | `quarantine`         | Reproducibly malformed or questionable upstream target                                    | Visible in raw reports, excluded from reviewed aggregates            |
 
 ## Profiles
@@ -43,3 +46,14 @@ formulae require element-symbol and balanced-parenthesis shape, mathematics
 requires operators, music requires context, and biology requires controlled
 genus/species shape. Ordinary words and unlabeled alphanumeric strings remain
 outside these families.
+
+## False-positive safety matrix
+
+The consolidated regression matrix lives in
+`tests/test_false_positive_safety.py`. It protects date/fraction/version,
+time/score/reference/duration, contextual year/identifier, product-code prose,
+ambiguous units, foreign text, and abbreviation/structured-span boundaries.
+These tests encode explicit non-goals: the core normalizer must not delete
+foreign text, spell arbitrary title-case words as letters, guess years or times
+from shape alone, treat every slash as a date, or rewrite ordinary prose as a
+typed code.

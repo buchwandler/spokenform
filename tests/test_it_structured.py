@@ -83,7 +83,7 @@ def test_italian_protection_is_fail_closed_for_literals_and_partial_quantity() -
         protected_spans=[(partial, partial + 2)],
     )
     assert result.spoken_text == (
-        "URL https://example.org/2kg email dev2@example.org v1.2.3 2 kg e tre chilogrammi"
+        "U R L https://example.org/2kg email dev2@example.org v1.2.3 2 kg e tre chilogrammi"
     )
 
 

@@ -34,8 +34,8 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  # 0.2.8 supplies the reviewed initialism registry and explicit provenance.
-  "abbr2words>=0.2.8,<0.3.0",
+  # 0.2.9 owns the reviewed conservative-initialism policy.
+  "abbr2words>=0.2.9,<0.3.0",
   "num2words>=0.5.14,<0.6",
 ]
 

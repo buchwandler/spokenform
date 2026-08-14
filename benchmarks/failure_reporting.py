@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from typing import Any
 
 FAILURE_FAMILIES = (
@@ -23,6 +23,145 @@ FAILURE_FAMILIES = (
     "unrecognized",
     "other",
 )
+
+OWNERSHIP_STATES = (
+    "owned",
+    "dependency-abbr2words",
+    "extended-candidate",
+    "protected",
+    "downstream",
+    "unsupported",
+    "questionable-target",
+    "external-language",
+)
+
+OUTCOME_BUCKETS = (
+    "pass",
+    "semantic-mismatch",
+    "presentation-only",
+    "dependency-mismatch",
+    "protected-by-profile",
+    "extended-candidate",
+    "unsupported",
+    "external-language",
+    "questionable-target",
+    "runtime-error",
+    "identity-mutation",
+)
+
+
+def _edit_rank(edit: Any, *, protected: bool = False) -> int:
+    """Rank an edit by semantic diagnostic value, not replacement size."""
+    rule = str(getattr(edit, "rule", "") or "").casefold()
+    stage = str(getattr(edit, "stage", "") or "").casefold()
+    if protected or any(marker in rule for marker in ("url", "email", "version")):
+        return 700
+    if stage == "structured" or any(
+        marker in rule
+        for marker in (
+            "sequence.",
+            ".date",
+            ".time",
+            ".year",
+            ".ordinal",
+            ".quantity",
+            ".currency",
+            ".reference",
+        )
+    ):
+        return 600
+    if any(marker in rule for marker in ("abbr", "acronym", "initialism")):
+        return 500
+    if stage == "numbers" or any(marker in rule for marker in ("decimal", "number")):
+        return 400
+    if any(marker in rule or marker in stage for marker in ("symbol", "punctuation")):
+        return 200
+    if "space" in rule or "whitespace" in stage:
+        return 100
+    return 300
+
+
+def rank_provenance(
+    edits: Iterable[Any],
+    *,
+    semantic_failure: bool,
+    presentation_only: bool,
+    error: bool = False,
+    protected_spans: Sequence[Any] = (),
+) -> dict[str, Any]:
+    """Select truthful benchmark provenance while preserving all rule evidence."""
+    candidates = tuple(edit for edit in edits if getattr(edit, "rule", None))
+    protected = tuple(protected_spans)
+
+    def overlaps_protected(edit: Any) -> bool:
+        start = int(getattr(edit, "source_start", 0))
+        end = int(getattr(edit, "source_end", 0))
+        return any(
+            start < int(getattr(span, "end", 0))
+            and int(getattr(span, "start", 0)) < end
+            for span in protected
+        )
+
+    ranked = sorted(
+        candidates,
+        key=lambda edit: (
+            -_edit_rank(edit, protected=overlaps_protected(edit)),
+            -(int(getattr(edit, "source_end", 0)) - int(getattr(edit, "source_start", 0))),
+            int(getattr(edit, "source_start", 0)),
+        ),
+    )
+    rules = tuple(dict.fromkeys(str(edit.rule) for edit in ranked))
+    winner = ranked[0] if ranked else None
+    winner_is_cleanup = winner is not None and _edit_rank(winner) <= 200
+    if error:
+        primary = None
+        reason = "runtime-error"
+    elif semantic_failure and (winner is None or winner_is_cleanup):
+        primary = None
+        reason = "unrecognized-semantic-material"
+    elif presentation_only:
+        primary = getattr(winner, "rule", None) if winner is not None else None
+        reason = "presentation-only"
+    elif winner is None:
+        primary = None
+        reason = "pass"
+    else:
+        primary = str(getattr(winner, "rule", ""))
+        if any(marker in primary.casefold() for marker in ("abbr", "acronym", "initialism")):
+            reason = "dependency-initialism"
+        elif _edit_rank(winner, protected=overlaps_protected(winner)) >= 600:
+            reason = "semantic-rule"
+        elif _edit_rank(winner) >= 400:
+            reason = "locale-rendering"
+        else:
+            reason = "presentation-cleanup"
+    span = (
+        None
+        if winner is None
+        else {
+            "start": int(getattr(winner, "source_start", 0)),
+            "end": int(getattr(winner, "source_end", 0)),
+            "source": str(getattr(winner, "source", "")),
+            "rule": getattr(winner, "rule", None),
+        }
+    )
+    if winner is not None and any(overlaps_protected(edit) for edit in ranked[:1]):
+        phase = "protected"
+    elif primary is None:
+        phase = "runtime_error" if error else "unrecognized"
+    elif _edit_rank(winner) >= 600:
+        phase = "structured_rendering"
+    elif _edit_rank(winner) >= 400:
+        phase = "locale_rendering"
+    else:
+        phase = "downstream_rendering"
+    return {
+        "primary_rule": primary,
+        "secondary_rules": list(rules[1:] if primary is not None else rules),
+        "winning_span": span,
+        "failure_phase": phase,
+        "reason_code": reason,
+    }
 
 
 def failure_family(row: dict[str, Any]) -> str:
@@ -48,6 +187,8 @@ def failure_family(row: dict[str, Any]) -> str:
         return "year"
     if "quantity" in rule or "unit" in category:
         return "quantity-ambiguity"
+    if any(marker in category for marker in ("initialism", "acronym", "abbreviation")):
+        return "acronym"
     if any(marker in rule for marker in ("acronym", "initialism", "abbr")):
         return "acronym"
     if any(marker in rule for marker in ("product", "plate", "vin", "serial", "isbn")):
@@ -80,7 +221,7 @@ def ownership_for_rule(rule: str | None, *, protected: bool = False) -> str:
     if not value:
         return "unrecognized"
     if any(marker in value for marker in ("abbr", "acronym", "initialism")):
-        return "owned"
+        return "dependency-abbr2words"
     if any(marker in value for marker in ("year", "date", "time", "quantity", "reference")):
         return "owned"
     if value.startswith("sequence."):
@@ -91,13 +232,26 @@ def ownership_for_rule(rule: str | None, *, protected: bool = False) -> str:
 def outcome_for_row(row: dict[str, Any]) -> str:
     """Return an explicit diagnostic outcome without changing pass/fail gates."""
     if row.get("quarantine") is not None:
-        return str(row.get("quarantine", {}).get("classification", "questionable-target"))
+        return str(row.get("quarantine", {}).get("reason_code", "questionable-target"))
     if row.get("error"):
         return "runtime-error"
+    if row.get("case_kind") == "identity" and not row.get("speech_exact_equivalent", True):
+        return "identity-mutation"
     if row.get("presentation_only"):
         return "presentation-only"
-    if row.get("protected") or row.get("ownership") == "protected":
+    ownership = row.get("ownership")
+    if row.get("protected") or ownership == "protected":
         return "protected-by-profile"
+    if ownership == "external-language":
+        return "external-language"
+    if ownership == "unsupported":
+        return "unsupported"
+    if ownership == "extended-candidate" and row.get("semantic_failure"):
+        return "extended-candidate"
+    if ownership == "dependency-abbr2words" and row.get("semantic_failure"):
+        return "dependency-mismatch"
+    if ownership == "questionable-target":
+        return "questionable-target"
     if row.get("semantic_failure"):
         return "semantic-mismatch"
     return "pass"
@@ -119,6 +273,7 @@ def diagnostic_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str,
             for row in failed
         ),
         "by_ambiguity_family": Counter(failure_family(row) for row in failed),
+        "by_outcome": Counter(outcome_for_row(row) for row in values),
     }
     return {name: dict(sorted(counts.items())) for name, counts in dimensions.items()}
 
@@ -137,10 +292,13 @@ def reason_code(reason: str) -> str:
 
 __all__ = [
     "FAILURE_FAMILIES",
+    "OWNERSHIP_STATES",
+    "OUTCOME_BUCKETS",
     "failure_family",
     "failure_family_counts",
     "diagnostic_aggregates",
     "ownership_for_rule",
     "outcome_for_row",
     "reason_code",
+    "rank_provenance",
 ]

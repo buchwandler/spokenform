@@ -21,10 +21,12 @@ from spokenform.numeric_lexeme import numeric_speech_policy
 
 from .compare_common import with_configuration_hash
 from .failure_reporting import (
+    OWNERSHIP_STATES,
     diagnostic_aggregates,
     failure_family,
     failure_family_counts,
     outcome_for_row,
+    rank_provenance,
 )
 from .polynorm_data import (
     POLYNORM_COMMIT,
@@ -53,50 +55,74 @@ _CATEGORY_ALIASES = {
     "units": "Unit",
     "sports score": "Sports Score",
     "sports scores": "Sports Score",
+    "initialism or acronym": "Initialism or Acronym",
+    "initialism or acronyms": "Initialism or Acronym",
+    "abbreviation": "Abbreviation",
+    "abbreviations": "Abbreviation",
+    "biological classification": "Biological Classification",
+    "biological classifications": "Biological Classification",
+    "musical notation": "Musical Notation",
+    "musical notations": "Musical Notation",
+    "fractions": "Fractions",
+    "fraction": "Fractions",
 }
 
 # These are local annotations about benchmark quality/ownership.  They are
 # deliberately separate from the upstream corpus and never rewrite its text.
 POLYNORM_QUARANTINE: dict[str, dict[str, str]] = {
     "es-MX:86": {
-        "reason": "Expected decimal spelling is inconsistent.",
-        "classification": "questionable",
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "es-MX:86",
+        "reason": "Target omits the source's final decimal digit and misspells the remaining value.",
+        "evidence": "raw: 3.1416 (Pi). => Tres punto catorce diecisés",
+        "classification": "questionable-target",
         "reason_code": "questionable-target",
     },
     "es-MX:249": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "es-MX:249",
         "reason": "Expected text is unrelated to the source e-mail.",
-        "classification": "malformed_ground_truth",
+        "evidence": "raw: Soporte: ayuda@servicio.com. => Blog: triple doble u, punto blog punto com punto eme equis.",
+        "classification": "questionable-target",
         "reason_code": "malformed-ground-truth",
     },
     "es-MX:274": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "es-MX:274",
         "reason": "Expected hashtag marker contains a likely spelling error.",
-        "classification": "questionable",
+        "evidence": "raw: Evento #Tecnología2024. => Evento Hastag Tecnología dos mil veinticuatro.",
+        "classification": "questionable-target",
         "reason_code": "questionable-target",
     },
     "fr-FR:208": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "fr-FR:208",
         "reason": "Source contains alternatives/commentary rather than one normalization pair.",
-        "classification": "malformed_ground_truth",
+        "evidence": "raw source contains three alternative basketball-score sentences and commentary.",
+        "classification": "questionable-target",
         "reason_code": "malformed-ground-truth",
     },
     "fr-FR:310": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "fr-FR:310",
         "reason": "Expected text is an instruction rather than normalized source text.",
-        "classification": "malformed_ground_truth",
+        "evidence": "raw: La BBC diffuse un documentaire. => La BBC should be pronounced in English.",
+        "classification": "questionable-target",
         "reason_code": "malformed-ground-truth",
     },
     "fr-FR:316": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "fr-FR:316",
         "reason": "Expected text is an instruction rather than normalized source text.",
-        "classification": "malformed_ground_truth",
+        "evidence": "raw: Le MIT est une université prestigieuse. => Le MIT should be pronounced in English.",
+        "classification": "questionable-target",
         "reason_code": "malformed-ground-truth",
-    },
-    "de-DE:161": {
-        "reason": "Expected text uses an inconsistent English punctuation word.",
-        "classification": "questionable",
-        "reason_code": "questionable-target",
-    },
-    "de-DE:412": {
-        "reason": "Expected coordinate appears to omit the hundred component.",
-        "classification": "questionable",
-        "reason_code": "questionable-target",
     },
 }
 
@@ -122,6 +148,12 @@ _OWNERSHIP: dict[str, str] = {
     "Address": "extended-candidate",
     "Sports Score": "extended-candidate",
     "Legal Reference": "extended-candidate",
+    "Initialism or Acronym": "dependency-abbr2words",
+    "Abbreviation": "dependency-abbr2words",
+    "Biological Classification": "extended-candidate",
+    "Musical Notation": "extended-candidate",
+    "Mathematical Expression": "extended-candidate",
+    "Fractions": "extended-candidate",
 }
 
 
@@ -133,6 +165,11 @@ def canonical_category(category: str) -> str:
 def ownership_state(category: str) -> str:
     """Classify a category for diagnostic reporting, not release gating."""
     return _OWNERSHIP.get(canonical_category(category), "unsupported")
+
+
+def ownership_states() -> tuple[str, ...]:
+    """Return the complete stable ownership vocabulary used by reports."""
+    return OWNERSHIP_STATES
 
 
 def residual_symbols(text: str) -> dict[str, int]:
@@ -253,31 +290,18 @@ def _residual_symbol_counts(results: Iterable[dict[str, Any]]) -> dict[str, int]
     return dict(sorted(totals.items()))
 
 
-def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> dict[str, Any]:
+def _provenance_diagnostics(
+    result: Any,
+    *,
+    ownership: str,
+    language: str,
+    semantic_failure: bool = False,
+    presentation_only: bool = False,
+    error: bool = False,
+) -> dict[str, Any]:
     """Extract stable claim/provenance fields for benchmark triage."""
     mapped_edits = tuple(getattr(result, "mapped_edits", ()) or ())
     source_replacements = tuple(getattr(result, "source_replacements", ()) or ())
-    candidates = [
-        edit for edit in (*source_replacements, *mapped_edits) if getattr(edit, "rule", None)
-    ]
-    candidates.sort(
-        key=lambda edit: (
-            -int(getattr(edit, "source_end", 0)) + int(getattr(edit, "source_start", 0)),
-            int(getattr(edit, "source_start", 0)),
-        )
-    )
-    winner = candidates[0] if candidates else None
-    primary_rule = getattr(winner, "rule", None) if winner is not None else None
-    if winner is None:
-        winning_span = None
-    else:
-        winning_span = {
-            "start": int(getattr(winner, "source_start", 0)),
-            "end": int(getattr(winner, "source_end", 0)),
-            "source": str(getattr(winner, "source", "")),
-            "rule": primary_rule,
-        }
-
     protected_spans = tuple(getattr(result, "protected_spans", ()) or ())
     protected_mutation = any(
         int(getattr(edit, "source_start", 0)) < int(getattr(span, "end", 0))
@@ -299,30 +323,31 @@ def _provenance_diagnostics(result: Any, *, ownership: str, language: str) -> di
     else:
         protected_reason = None
 
-    rules = [str(getattr(edit, "rule", "")) for edit in mapped_edits if getattr(edit, "rule", None)]
-    if ownership == "protected" and protected_spans:
-        failure_phase = "protected"
-    elif primary_rule is None:
-        failure_phase = "unrecognized"
-    elif any(getattr(edit, "stage", None) == "numbers" for edit in mapped_edits):
-        failure_phase = "locale_rendering"
-    elif any(getattr(edit, "stage", None) == "structured" for edit in mapped_edits):
-        failure_phase = "structured_rendering"
-    else:
-        failure_phase = "downstream_rendering"
-
-    diagnostics = {
-        "primary_rule": primary_rule,
-        "claim_owner": ownership
+    diagnostics = rank_provenance(
+        (*source_replacements, *mapped_edits),
+        semantic_failure=semantic_failure,
+        presentation_only=presentation_only,
+        error=error,
+        protected_spans=protected_spans,
+    )
+    primary_rule = diagnostics["primary_rule"]
+    rules = tuple(
+        (primary_rule, *diagnostics["secondary_rules"])
         if primary_rule
-        else ("protection" if protected_spans else "unclaimed"),
-        "failure_phase": failure_phase,
-        "winning_span": winning_span,
+        else diagnostics["secondary_rules"]
+    )
+    diagnostics.update(
+        {
+            "claim_owner": ownership
+            if primary_rule
+            else ("protection" if protected_spans else "unclaimed"),
+        "winning_span": diagnostics["winning_span"],
         "protected_reason": protected_reason,
         "protected_mutation": protected_mutation,
         "numeric_policy": asdict(numeric_speech_policy(language)),
         "render_mode": _render_mode_for_rule(primary_rule, rules),
-    }
+        }
+    )
     if primary_rule == "sequence.version":
         diagnostics.update({"separator": ".", "separator_role": "version"})
     return diagnostics
@@ -388,10 +413,17 @@ def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "safety": safety,
         "owned": _metric_counts(grouped_ownership.get("owned", [])),
+        "dependency-abbr2words": _metric_counts(
+            grouped_ownership.get("dependency-abbr2words", [])
+        ),
         "extended": _metric_counts(grouped_ownership.get("extended-candidate", [])),
         "protected": _metric_counts(protected),
         "downstream": _metric_counts(grouped_ownership.get("downstream", [])),
         "unsupported": _metric_counts(grouped_ownership.get("unsupported", [])),
+        "external-language": _metric_counts(grouped_ownership.get("external-language", [])),
+        "questionable-target": _metric_counts(
+            grouped_ownership.get("questionable-target", [])
+        ),
         "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
         "locale": {
             locale: _metric_counts(locale_rows)
@@ -452,7 +484,14 @@ def evaluate_cases(
             if not error
             else 0.0
         )
-        provenance = _provenance_diagnostics(result, ownership=ownership, language=language)
+        provenance = _provenance_diagnostics(
+            result,
+            ownership=ownership,
+            language=language,
+            semantic_failure=semantic_failure,
+            presentation_only=presentation_only,
+            error=bool(error),
+        )
         if error:
             provenance["failure_phase"] = "parse_error"
         row = {
@@ -544,6 +583,11 @@ def evaluate_cases(
         },
         "failure_families": failure_family_counts(rows),
         "diagnostic_aggregates": diagnostic_aggregates(rows),
+        "outcome_counts": {
+            outcome: sum(row.get("outcome") == outcome for row in rows)
+            for outcome in sorted({row.get("outcome") for row in rows})
+            if outcome
+        },
         "gate_metrics": _gate_metrics(rows),
         "profile": profile,
         "normalize_literals": profile == "extended",
@@ -556,11 +600,21 @@ def _run_id() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
-def _write_failures_markdown(failures: tuple[dict[str, Any], ...], path: Path) -> None:
+def _write_failures_markdown(
+    failures: tuple[dict[str, Any], ...],
+    path: Path,
+    *,
+    identity: dict[str, Any] | None = None,
+) -> None:
     grouped: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
     for failure in failures:
         grouped[failure["polynorm_locale"]][failure["category"]].append(failure)
-    lines = ["# PolyNorm failures", ""]
+    lines = ["# PolyNorm failures", "", "## Run identity", ""]
+    if identity:
+        lines.extend(f"- {key}: `{value}`" for key, value in sorted(identity.items()))
+    else:
+        lines.append("Identity metadata is available in summary.json.")
+    lines.append("")
     for locale, categories in sorted(grouped.items()):
         lines.extend([f"## {locale}", ""])
         for category, category_failures in sorted(categories.items()):
@@ -647,13 +701,18 @@ def evaluate_and_write(
     with (output_dir / "rows.jsonl").open("w", encoding="utf-8") as handle:
         for row in all_rows:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
-    _write_failures_markdown(stored_failures, output_dir / "failures.md")
+    _write_failures_markdown(
+        stored_failures,
+        output_dir / "failures.md",
+        identity=summary_payload["identity"],
+    )
     return output_dir, summary_payload
 
 
 __all__ = [
     "SEMANTIC_SYMBOLS",
     "BENCHMARK_PROFILES",
+    "ownership_states",
     "evaluate_and_write",
     "evaluate_cases",
     "literal_key",
