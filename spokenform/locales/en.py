@@ -744,6 +744,10 @@ def iter_replacements(
         start, end = match.span()
         if _overlaps(start, end, protected):
             continue
+        # A decade embedded in a hyphenated model/name is an identifier
+        # component, not a historical decade (for example ``1830s-model``).
+        if (start and text[start - 1] in "-_") or (end < len(text) and text[end] in "-_"):
+            continue
         decade_spans.append((start, end))
         add(start, end, _decade_text(int(match["value"])), "en.decade")
     for match in _PLURAL_TENS.finditer(text):

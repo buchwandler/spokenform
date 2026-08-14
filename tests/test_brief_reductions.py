@@ -38,6 +38,11 @@ def test_contextual_years_and_decades_do_not_claim_identifiers() -> None:
     decade = prepare("Late 1830s", language="en", use_spacy=False)
     assert decade.spoken_text == "Late eighteen thirties"
     assert any(item.rule in {"en.decade", "sequence.decade"} for item in decade.source_replacements)
+    for source in ("ABC1830s", "1830s-model", "model-1830s"):
+        result = prepare(source, language="en", use_spacy=False)
+        assert not any(
+            item.rule in {"sequence.year", "sequence.decade"} for item in result.source_replacements
+        )
     for source in ("PIN 1858", "product code 1858", "192.168.1.1"):
         result = prepare(source, language="en", use_spacy=False)
         assert not any(item.rule in {"sequence.year", "sequence.decade"} for item in result.source_replacements)
