@@ -25,10 +25,10 @@ identity below is the durable checkpoint.
 - PolyNorm dataset commit: `f3c67e047bea6b7c40bc2466c0fdaad51d8ce67d`
 
 Default uses `normalize_literals=False`, `generic_acronym_mode=known_only`,
-registered expansion, and `long_number_mode=preserve`. Extended enables literal
-promotion and registered spelling; the current pre-brief evaluator still uses
-`generic_acronym_mode=known_only` and `long_number_mode=preserve`, which are
-explicit follow-up changes in commits 3 and 8.
+registered expansion, and `long_number_mode=preserve`. This baseline predates
+the ten implementation commits; later compatible runs must record their own
+identity and configuration hash rather than being compared to these rows as if
+they were same-configuration results.
 
 ## Stale supplied rows
 
@@ -40,6 +40,6 @@ the reported examples for contextual years (`in 1858`, `since 1972`, `until
 fixtures, but are excluded from new-rule selection unless a fresh compatible
 run reproduces them.
 
-The remaining failure totals are diagnostic only. Ownership and safety gates
-will be added in commit 2 so protected, downstream, unsupported, extended, and
-owned families are not conflated.
+The remaining failure totals are diagnostic only. Ownership and safety gates are
+implemented in the follow-up commits, so protected, downstream, unsupported,
+extended, and owned families are no longer conflated in new reports.

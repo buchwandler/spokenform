@@ -108,4 +108,12 @@ must not be committed.
 Proteno reports default to `normalize_literals=False`. The extended profile is
 opt-in through `--profile extended` or `--normalize-literals` and is reported
 separately so protected literal behavior is not mixed into the conservative
-default score.
+default score. Extended runs use conservative unknown-acronym handling and
+registered source-letter spelling; contextual long-number normalization is an
+explicit experiment, never the public default. The caller-level aggressive
+combination (`spell_unknown` plus cardinal long numbers) is not a release
+profile.
+
+See [the benchmark ownership table](../benchmarks/OWNERSHIP.md) for the
+safety, owned, extended-candidate, protected, downstream, unsupported, and
+quarantine gates.

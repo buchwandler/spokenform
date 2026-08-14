@@ -52,6 +52,9 @@ Release-facing metrics are split into `safety/default`, `owned`, `extended`,
 reductions in protected or unsupported families do not replace the identity
 and new-failure gates.
 
+The full ownership table, profile contract, quarantine policy, and residual
+non-goals are in [OWNERSHIP.md](OWNERSHIP.md).
+
 See the detailed [PolyNorm documentation](../docs/polynorm.md).
 
 ## Proteno benchmark

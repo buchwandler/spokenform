@@ -43,6 +43,13 @@ natural-language address, legal, mathematical, musical, and biological parsing
 remains outside the core contract. Unlabeled ambiguous alphanumeric strings
 remain unchanged rather than being memorized as product codes.
 
+Benchmark profiles do not change that boundary: `default` is the release-safe
+contract, `extended` is an opt-in diagnostic profile, and an aggressive caller
+experiment is not a release gate. Compare only compatible report identities;
+questionable upstream targets remain quarantined and visible rather than being
+used to justify a normalization rule. See
+[benchmarks/OWNERSHIP.md](../benchmarks/OWNERSHIP.md).
+
 # Limitations and readiness gates
 
 spokenform is a one-language written-to-spoken layer. Callers own language
