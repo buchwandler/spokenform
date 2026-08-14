@@ -66,6 +66,8 @@ def test_spaced_isbn_labels_claim_validated_values_before_phone() -> None:
     assert any(item.rule == "sequence.phone" for item in phone.source_replacements)
     unlabeled = prepare("84-8442-724-2", language="es", use_spacy=False)
     assert not any(item.rule == "sequence.isbn" for item in unlabeled.source_replacements)
+    invalid = prepare("i s b n 84-8442-724-3", language="es", use_spacy=False)
+    assert not any(item.rule == "sequence.isbn" for item in invalid.source_replacements)
 
 
 def test_typed_versions_beat_decimal_and_ipv4_without_breaking_protection() -> None:

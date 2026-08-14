@@ -175,6 +175,16 @@ _TIME_HOURS = re.compile(
     r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)\s*(?:hrs?\.?|horas?)(?!\w)",
     re.IGNORECASE,
 )
+
+
+def _time_context_is_explicit(left: str, period: str | None) -> bool:
+    """Return whether nearby Spanish text explicitly names a clock time."""
+    return bool(period) or bool(re.search(r"\b(?:a\s+las|horas?|hrs?)\b", left, re.IGNORECASE))
+
+
+def _time_context_is_range_or_reference(right: str) -> bool:
+    """Reject colon candidates followed by a range delimiter."""
+    return bool(re.search(r"[-–]\s*\d", right))
 _MONTHS = (
     "enero",
     "febrero",
@@ -438,10 +448,10 @@ def iter_replacements(
             # A clock hour is bounded, and citation/range punctuation is not a
             # weak clock cue.  Explicit AM/PM/hour words remain sufficient.
             period = match.groupdict().get("period")
-            explicit = bool(period) or bool(
-                re.search(r"\b(?:a\s+las|horas?|hrs?)\b", left, re.IGNORECASE)
-            )
-            if hour > 23 or (not explicit and re.search(r"[-–]\s*\d", right)):
+            explicit = _time_context_is_explicit(left, period)
+            if hour > 23 or (
+                not explicit and _time_context_is_range_or_reference(right)
+            ):
                 continue
             add(
                 match.start(),
