@@ -12,9 +12,7 @@ from ..language import base_language, normalize_language, resolve_num2words_lang
 from ..mapping import Replacement
 
 _YEAR = r"(?:1[0-9]{3}|20[0-9]{2})"
-_DECADE_RE = re.compile(
-    r"(?<![\w./:-])(?P<year>(?:18|19|20)\d{2})s(?![\w./:-])", re.IGNORECASE
-)
+_DECADE_RE = re.compile(r"(?<![\w./:-])(?P<year>(?:18|19|20)\d{2})s(?![\w./:-])", re.IGNORECASE)
 _YEAR_RANGE_RE = re.compile(
     rf"(?<![\w./:-])(?P<start>{_YEAR})\s*[-–]\s*(?P<end>{_YEAR})(?![\w/:-])"
 )

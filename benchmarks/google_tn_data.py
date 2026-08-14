@@ -7,7 +7,7 @@ import re
 from collections.abc import Iterable, Iterator
 from pathlib import Path
 
-from .google_tn_format import GoogleTNCase, SURFACE_POLICY, assemble_case, iter_tsv_sentences
+from .google_tn_format import SURFACE_POLICY, GoogleTNCase, assemble_case, iter_tsv_sentences
 
 GOOGLE_TN_REPOSITORY = "https://github.com/rwsproat/text-normalization-data"
 GOOGLE_TN_LANGUAGE = "en"

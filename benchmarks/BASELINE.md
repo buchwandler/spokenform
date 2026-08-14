@@ -6,12 +6,12 @@ any changes for this brief. The result directories are intentionally ignored
 because their JSONL/Markdown files contain benchmark source text; the run
 identity below is the durable checkpoint.
 
-| Benchmark | Profile | Cases | Semantic failures | Identity mutations | Run |
-| --- | --- | ---: | ---: | ---: | --- |
-| Proteno | default | 29,348 | 5,968 | 0 | `20260814T074449Z` |
-| Proteno | extended | 29,348 | 5,938 | 0 | `20260814T074731Z` |
-| PolyNorm | default | 2,680 | 1,086 | n/a | `20260814T074745Z` |
-| PolyNorm | extended | 2,680 | 1,056 | n/a | `20260814T074756Z` |
+| Benchmark | Profile  |  Cases | Semantic failures | Identity mutations | Run                |
+| --------- | -------- | -----: | ----------------: | -----------------: | ------------------ |
+| Proteno   | default  | 29,348 |             5,968 |                  0 | `20260814T074449Z` |
+| Proteno   | extended | 29,348 |             5,938 |                  0 | `20260814T074731Z` |
+| PolyNorm  | default  |  2,680 |             1,086 |                n/a | `20260814T074745Z` |
+| PolyNorm  | extended |  2,680 |             1,056 |                n/a | `20260814T074756Z` |
 
 ## Identity
 
@@ -34,8 +34,7 @@ they were same-configuration results.
 
 The supplied failure reports are not treated as current defects until they are
 reproduced under this identity. Existing regression coverage already resolves
-the reported examples for contextual years (`in 1858`, `since 1972`, `until
-1994`), `Late 1830s`, spaced Spanish ISBN labels, and typed versions such as
+the reported examples for contextual years (`in 1858`, `since 1972`, `until 1994`), `Late 1830s`, spaced Spanish ISBN labels, and typed versions such as
 `Python 3.9.7` and `GTK+ 2.18.2.30`. Those rows remain useful as regression
 fixtures, but are excluded from new-rule selection unless a fresh compatible
 run reproduces them.

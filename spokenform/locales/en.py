@@ -633,7 +633,7 @@ def iter_replacements(
                         day=day,
                         month=month_index,
                         year=text_year,
-                    year_digits=dmy_year_digits,
+                        year_digits=dmy_year_digits,
                         month_style="name",
                         source_order="dmy",
                         separator=None,

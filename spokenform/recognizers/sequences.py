@@ -68,7 +68,9 @@ _ISBN_RE = re.compile(
     re.IGNORECASE,
 )
 _ISBN_LABEL_RE = re.compile(r"(?<!\w)(?P<label>ISBN(?:-1[03])?)(?!\w)", re.IGNORECASE)
-_SPACED_ISBN_LABEL_RE = re.compile(r"(?<!\w)(?P<label>I\s+S\s+B\s+N(?:\s*[-–]?\s*1[03])?)(?!\w)", re.IGNORECASE)
+_SPACED_ISBN_LABEL_RE = re.compile(
+    r"(?<!\w)(?P<label>I\s+S\s+B\s+N(?:\s*[-–]?\s*1[03])?)(?!\w)", re.IGNORECASE
+)
 _ISBN_VALUE_RE = re.compile(r"(?<!\w)(?P<value>(?:97[89][ -]?)?\d(?:[\d -]*\d|X|x))(?!\w)")
 _CODE_RE = re.compile(
     r"(?<!\w)(?P<value>(?=[A-Z0-9-]*[A-Z])[A-Z0-9]{1,8}-\d{1,8}(?:[A-Z]{1,4}\d{1,4})?(?:-[A-Z0-9]{1,8})*)(?!\w)"
@@ -1877,7 +1879,9 @@ def _legal_text(value: str, language: str) -> str:
         "pt": ("parágrafo", "artigo"),
     }
     legal_heading_pair = legal_headings.get(base, legal_headings["en"])
-    legal_heading = legal_heading_pair[0] if value.lstrip().startswith("§") else legal_heading_pair[1]
+    legal_heading = (
+        legal_heading_pair[0] if value.lstrip().startswith("§") else legal_heading_pair[1]
+    )
     legal_result: list[str] = [legal_heading, _cardinal(int(match.group(1)), language)]
     for group in match.groups()[1:3]:
         if group:
@@ -1982,7 +1986,9 @@ def iter_sequence_replacements(
         iter_biomedical_replacements(text, language=language, protected_ranges=protected)
     )
     candidates.extend(iter_range_replacements(text, language=language, protected_ranges=protected))
-    candidates.extend(iter_reference_replacements(text, language=language, protected_ranges=protected))
+    candidates.extend(
+        iter_reference_replacements(text, language=language, protected_ranges=protected)
+    )
     if base_language(language) == "de":
         for match in _HEIGHT_RE.finditer(text):
             if _claimed(match.start(), match.end(), protected):
@@ -2409,14 +2415,36 @@ def iter_sequence_replacements(
             )
             article = "die" if match["context"].casefold() in {"königin", "elisabeth"} else "der"
             candidates.append(
-                Replacement(start, end, f"{article} {ordinal[:1].upper()}{ordinal[1:]}", "structured", language, "sequence.roman", 2)
+                Replacement(
+                    start,
+                    end,
+                    f"{article} {ordinal[:1].upper()}{ordinal[1:]}",
+                    "structured",
+                    language,
+                    "sequence.roman",
+                    2,
+                )
             )
     for match in _SUPERSCRIPT_RE.finditer(text):
         if _claimed(match.start(), match.end(), protected):
-            _add(candidates, match, _math_text(match.group(0), language), language, "sequence.math", protected)
+            _add(
+                candidates,
+                match,
+                _math_text(match.group(0), language),
+                language,
+                "sequence.math",
+                protected,
+            )
     for match in _GREEK_TOKEN_RE.finditer(text):
         if _claimed(match.start(), match.end(), protected):
-            _add(candidates, match, _GREEK_NAMES[match["value"]], language, "sequence.symbol", protected)
+            _add(
+                candidates,
+                match,
+                _GREEK_NAMES[match["value"]],
+                language,
+                "sequence.symbol",
+                protected,
+            )
     for pattern in (_ROMAN_YEAR_RE,):
         for match in pattern.finditer(text):
             if _roman_is_valid(match["value"]):

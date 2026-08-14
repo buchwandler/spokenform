@@ -19,13 +19,13 @@ from typing import Any, Literal
 from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
 
+from .compare_common import with_configuration_hash
 from .failure_reporting import (
     diagnostic_aggregates,
     failure_family,
     failure_family_counts,
     outcome_for_row,
 )
-from .compare_common import with_configuration_hash
 from .polynorm_data import (
     POLYNORM_COMMIT,
     POLYNORM_DATASET_COMMIT,
@@ -187,27 +187,31 @@ def environment_fingerprint(
         }
         for locale in sorted(set(locales))
     }
-    return with_configuration_hash({
-        "dataset_repository": POLYNORM_REPOSITORY,
-        "dataset_commit": POLYNORM_DATASET_COMMIT,
-        "spokenform_version": _package_version("spokenform"),
-        "spokenform_source_commit": source_commit(),
-        "abbr2words_version": _package_version("abbr2words"),
-        "num2words_version": _package_version("num2words"),
-        "python_version": sys.version.split()[0],
-        "platform": platform.platform(),
-        "locale_mapping": resolution,
-        "configuration": {
-            "prepare": {"use_spacy": False, "normalize_literals": profile == "extended"},
-            "profile": profile,
-            "acronym_policy": {
-                "generic_mode": "conservative_unknown" if profile == "extended" else "known_only",
-                "generic_case": "upper",
-                "registered_mode": "spell" if profile == "extended" else "expand",
+    return with_configuration_hash(
+        {
+            "dataset_repository": POLYNORM_REPOSITORY,
+            "dataset_commit": POLYNORM_DATASET_COMMIT,
+            "spokenform_version": _package_version("spokenform"),
+            "spokenform_source_commit": source_commit(),
+            "abbr2words_version": _package_version("abbr2words"),
+            "num2words_version": _package_version("num2words"),
+            "python_version": sys.version.split()[0],
+            "platform": platform.platform(),
+            "locale_mapping": resolution,
+            "configuration": {
+                "prepare": {"use_spacy": False, "normalize_literals": profile == "extended"},
+                "profile": profile,
+                "acronym_policy": {
+                    "generic_mode": "conservative_unknown"
+                    if profile == "extended"
+                    else "known_only",
+                    "generic_case": "upper",
+                    "registered_mode": "spell" if profile == "extended" else "expand",
+                },
+                "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
             },
-            "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
-        },
-    })
+        }
+    )
 
 
 def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:

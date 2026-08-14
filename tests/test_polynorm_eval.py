@@ -242,11 +242,15 @@ def test_compare_runs_refuses_incompatible_profiles_unless_overridden(tmp_path) 
         "speech_exact_equivalent_count": 0,
         "literal_exact_count": 0,
     }
-    other = {**base, "profile": "extended", "environment": {
-        **base["environment"],
-        "configuration": {"profile": "extended", "config_hash": "hash-extended"},
-        "config_hash": "hash-extended",
-    }}
+    other = {
+        **base,
+        "profile": "extended",
+        "environment": {
+            **base["environment"],
+            "configuration": {"profile": "extended", "config_hash": "hash-extended"},
+            "config_hash": "hash-extended",
+        },
+    }
     (before / "summary.json").write_text(json.dumps(base), encoding="utf-8")
     (after / "summary.json").write_text(json.dumps(other), encoding="utf-8")
     (before / "failures.jsonl").write_text("", encoding="utf-8")

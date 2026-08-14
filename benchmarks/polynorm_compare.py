@@ -7,8 +7,8 @@ import json
 from pathlib import Path
 from typing import Any
 
-from .failure_reporting import FAILURE_FAMILIES
 from .compare_common import ensure_compatible
+from .failure_reporting import FAILURE_FAMILIES
 
 
 def _read_summary(directory: Path) -> dict[str, Any]:

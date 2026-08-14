@@ -132,12 +132,15 @@ def test_brief_long_cardinal_mode_is_explicit_and_preserves_default() -> None:
 
 
 def test_contextual_long_number_mode_requires_quantity_evidence() -> None:
-    assert prepare(
-        "there are 844361 items",
-        language="en",
-        use_spacy=False,
-        long_number_mode="contextual",
-    ).spoken_text == "there are eight hundred forty four thousand three hundred sixty one items"
+    assert (
+        prepare(
+            "there are 844361 items",
+            language="en",
+            use_spacy=False,
+            long_number_mode="contextual",
+        ).spoken_text
+        == "there are eight hundred forty four thousand three hundred sixty one items"
+    )
     for source in ("844361", "(844361)", "account 844361", "0001234"):
         result = prepare(
             source,

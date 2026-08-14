@@ -190,8 +190,7 @@ def prepare(
         "spell_unknown",
     }:
         raise ValueError(
-            "generic_acronym_mode must be 'known_only', 'conservative_unknown', or "
-            "'spell_unknown'"
+            "generic_acronym_mode must be 'known_only', 'conservative_unknown', or 'spell_unknown'"
         )
     if long_number_mode not in {"preserve", "contextual", "cardinal"}:
         raise ValueError("long_number_mode must be 'preserve', 'contextual', or 'cardinal'")
@@ -334,14 +333,11 @@ def prepare(
                 for value in (protected_value_by_placeholder[character],)
             ),
         )
-        abbreviation_protected_spans = (
-            map_internal_protected_spans_to_visible(
-                current,
-                protected.values,
-                protected.placeholders,
-            )
-            + tuple((item.start, item.end) for item in reserved_spans)
-        )
+        abbreviation_protected_spans = map_internal_protected_spans_to_visible(
+            current,
+            protected.values,
+            protected.placeholders,
+        ) + tuple((item.start, item.end) for item in reserved_spans)
         if generic_acronym_mode == "conservative_unknown":
             abbreviation_protected_spans += _conservative_initialism_protection(
                 protected.restore(current)
@@ -354,7 +350,10 @@ def prepare(
         }
         if registered_acronym_mode != "expand":
             abbreviation_kwargs["registered_initialism_mode"] = registered_acronym_mode
-        if generic_acronym_mode in {"conservative_unknown", "spell_unknown"} or generic_acronym_case != "upper":
+        if (
+            generic_acronym_mode in {"conservative_unknown", "spell_unknown"}
+            or generic_acronym_case != "upper"
+        ):
             initialism_mode = {
                 "conservative_unknown": "conservative_undotted",
                 "spell_unknown": "spell_undotted",

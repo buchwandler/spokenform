@@ -138,7 +138,10 @@ def test_unicode_fifths_and_sixths_use_generic_fraction_rendering(
         replacement.output_start,
         replacement.output_end,
     )
-    assert prepare(result.spoken_text, language="en", use_spacy=False).spoken_text == result.spoken_text
+    assert (
+        prepare(result.spoken_text, language="en", use_spacy=False).spoken_text
+        == result.spoken_text
+    )
 
 
 @pytest.mark.parametrize("language", ["de", "es", "fr", "it"])
@@ -147,7 +150,9 @@ def test_unicode_fifths_and_sixths_are_supported_by_existing_denominator_vocab(
 ) -> None:
     result = prepare("⅕ ⅖ ⅙ ⅚", language=language, use_spacy=False)
     assert all(word not in result.spoken_text for word in ("⅕", "⅖", "⅙", "⅚"))
-    assert len([item for item in result.source_replacements if item.rule == "sequence.fraction"]) == 4
+    assert (
+        len([item for item in result.source_replacements if item.rule == "sequence.fraction"]) == 4
+    )
 
 
 def test_unknown_uppercase_prose_is_preserved() -> None:

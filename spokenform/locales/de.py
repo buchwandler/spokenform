@@ -479,7 +479,9 @@ def iter_replacements(
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
-        if unit_match.category == "currency" or (unit_match.start and text[unit_match.start - 1] in ".,"):
+        if unit_match.category == "currency" or (
+            unit_match.start and text[unit_match.start - 1] in ".,"
+        ):
             continue
         if unit_match.category == "magnitude":
             tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[unit_match.end :])
@@ -506,7 +508,12 @@ def iter_replacements(
             if replacement:
                 candidates.append(
                     Replacement(
-                        unit_match.start, unit_match.end, replacement, "structured", "de", "de.quantity"
+                        unit_match.start,
+                        unit_match.end,
+                        replacement,
+                        "structured",
+                        "de",
+                        "de.quantity",
                     )
                 )
     for match in _LABEL.finditer(text):

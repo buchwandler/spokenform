@@ -114,7 +114,10 @@ def diagnostic_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str,
     dimensions = {
         "by_rule": Counter(str(row.get("primary_rule") or "unrecognized") for row in failed),
         "by_phase": Counter(str(row.get("failure_phase") or "unrecognized") for row in failed),
-        "by_ownership": Counter(str(row.get("ownership") or ownership_for_rule(row.get("primary_rule"))) for row in failed),
+        "by_ownership": Counter(
+            str(row.get("ownership") or ownership_for_rule(row.get("primary_rule")))
+            for row in failed
+        ),
         "by_ambiguity_family": Counter(failure_family(row) for row in failed),
     }
     return {name: dict(sorted(counts.items())) for name, counts in dimensions.items()}

@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from collections import Counter, defaultdict
-from collections.abc import Callable, Iterable, Iterator
+from collections import Counter
+from collections.abc import Callable, Iterable
 from typing import Any, Literal
 
 from spokenform import PreparedText, prepare
@@ -44,9 +44,7 @@ def _source_rules(result: PreparedText, row: GoogleTNRow) -> tuple[str, ...]:
     rules = {
         edit.rule
         for edit in result.source_replacements
-        if edit.rule
-        and edit.source_start < row.source_end
-        and edit.source_end > row.source_start
+        if edit.rule and edit.source_start < row.source_end and edit.source_end > row.source_start
     }
     return tuple(sorted(rules))
 
@@ -110,14 +108,20 @@ def _row_record(
         actual = result.spoken_text[output_start:output_end]
         changed_stages = _changed_stages(result)
     speech_exact = not error and speech_key(actual) == speech_key(expected)
-    speech_equivalent = not error and speech_key_equivalent(actual) == speech_key_equivalent(expected)
-    outcome = "runtime-error" if error else _row_outcome(
-        row,
-        actual=actual,
-        expected=expected,
-        speech_exact=speech_exact,
-        speech_exact_equivalent=speech_equivalent,
-        ambiguous=ambiguous,
+    speech_equivalent = not error and speech_key_equivalent(actual) == speech_key_equivalent(
+        expected
+    )
+    outcome = (
+        "runtime-error"
+        if error
+        else _row_outcome(
+            row,
+            actual=actual,
+            expected=expected,
+            speech_exact=speech_exact,
+            speech_exact_equivalent=speech_equivalent,
+            ambiguous=ambiguous,
+        )
     )
     record: dict[str, Any] = {
         "case_id": case.case_id,
@@ -140,9 +144,9 @@ def _row_record(
         "primary_rule": source_rules[0] if source_rules else None,
         "changed_stages": list(changed_stages),
         "error": error,
-            "warnings": list(getattr(result, "warnings", ()))
-            if result is not None and error is None
-            else [],
+        "warnings": list(getattr(result, "warnings", ()))
+        if result is not None and error is None
+        else [],
     }
     record["failure_family"] = failure_family(record)
     record["ownership"] = ownership_for_rule(record["primary_rule"])
@@ -158,7 +162,9 @@ def _sentence_record(
     actual = result.spoken_text if result is not None and error is None else case.original_text
     literal_exact = not error and literal_key(actual) == literal_key(case.normalized_text)
     speech_exact = not error and speech_key(actual) == speech_key(case.normalized_text)
-    equivalent = not error and speech_key_equivalent(actual) == speech_key_equivalent(case.normalized_text)
+    equivalent = not error and speech_key_equivalent(actual) == speech_key_equivalent(
+        case.normalized_text
+    )
     presentation_only = bool(not error and not speech_exact and equivalent)
     semantic_failure = bool(not error and not equivalent)
     row_records = tuple(_row_record(case, row, result, error=error) for row in case.rows)
@@ -199,8 +205,7 @@ def _sentence_record(
         "failed_spans": [
             row
             for row in row_records
-            if row["normalization_outcome"]
-            not in {"correct-transform", "identity-preserved"}
+            if row["normalization_outcome"] not in {"correct-transform", "identity-preserved"}
         ],
     }
     record["primary_rule"] = record["source_rules"][0] if record["source_rules"] else None
@@ -242,10 +247,19 @@ def _empty_summary(profile: str) -> dict[str, Any]:
     }
 
 
-def _increment_summary(summary: dict[str, Any], record: dict[str, Any], rows: Iterable[dict[str, Any]]) -> None:
+def _increment_summary(
+    summary: dict[str, Any], record: dict[str, Any], rows: Iterable[dict[str, Any]]
+) -> None:
     summary["evaluated"] += 1
     summary["exceptions"] += int(bool(record["error"]))
-    for key in ("literal_exact", "speech_exact", "speech_exact_equivalent", "presentation_only", "semantic_failure", "unchanged"):
+    for key in (
+        "literal_exact",
+        "speech_exact",
+        "speech_exact_equivalent",
+        "presentation_only",
+        "semantic_failure",
+        "unchanged",
+    ):
         summary[key] += int(bool(record[key]))
     summary["speech_wer"] += float(record["speech_wer"])
     if record["normalization_sentences"]:
@@ -264,15 +278,22 @@ def _increment_summary(summary: dict[str, Any], record: dict[str, Any], rows: It
             summary["span_speech_exact_count"] += int(row["speech_exact"])
             summary["span_speech_exact_equivalent_count"] += int(row["speech_exact_equivalent"])
         outcome = row["normalization_outcome"]
-        key = {"runtime-error": "runtime_error_count"}.get(outcome, f"{outcome.replace('-', '_')}_count")
+        key = {"runtime-error": "runtime_error_count"}.get(
+            outcome, f"{outcome.replace('-', '_')}_count"
+        )
         if key in summary:
             summary[key] += 1
         by_class = summary["by_semiotic_class"].setdefault(row["semiotic_class"], {"count": 0})
         by_class["count"] += 1
         for count_key in (
-            "correct_transform_count", "transform_miss_count", "wrong_transform_count",
-            "identity_preserved_count", "identity_mutation_count", "runtime_error_count",
-            "presentation_only_count", "mapping_ambiguous_count",
+            "correct_transform_count",
+            "transform_miss_count",
+            "wrong_transform_count",
+            "identity_preserved_count",
+            "identity_mutation_count",
+            "runtime_error_count",
+            "presentation_only_count",
+            "mapping_ambiguous_count",
         ):
             if outcome == count_key.removesuffix("_count").replace("_", "-"):
                 by_class[count_key] = by_class.get(count_key, 0) + 1

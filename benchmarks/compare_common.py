@@ -119,7 +119,11 @@ def compare_runs(before: str | Path, after: str | Path) -> dict[str, Any]:
     }
 
     def outcome_counts(rows: tuple[dict[str, Any], ...]) -> dict[str, int]:
-        return dict(Counter(row["normalization_outcome"] for row in rows if row.get("record_type") == "span"))
+        return dict(
+            Counter(
+                row["normalization_outcome"] for row in rows if row.get("record_type") == "span"
+            )
+        )
 
     def class_counts(rows: tuple[dict[str, Any], ...]) -> dict[str, dict[str, int]]:
         grouped: dict[str, Counter[str]] = defaultdict(Counter)
@@ -133,9 +137,7 @@ def compare_runs(before: str | Path, after: str | Path) -> dict[str, Any]:
     ) -> dict[str, dict[str, int]]:
         classes = set(before_values) | set(after_values)
         return {
-            class_name: delta(
-                before_values.get(class_name, {}), after_values.get(class_name, {})
-            )
+            class_name: delta(before_values.get(class_name, {}), after_values.get(class_name, {}))
             for class_name in sorted(classes)
         }
 
@@ -151,8 +153,13 @@ def compare_runs(before: str | Path, after: str | Path) -> dict[str, Any]:
         "aggregate_delta": {
             key: after_summary.get(key, 0) - before_summary.get(key, 0)
             for key in (
-                "evaluated", "literal_exact", "speech_exact", "speech_exact_equivalent",
-                "transform_miss_count", "wrong_transform_count", "identity_mutation_count",
+                "evaluated",
+                "literal_exact",
+                "speech_exact",
+                "speech_exact_equivalent",
+                "transform_miss_count",
+                "wrong_transform_count",
+                "identity_mutation_count",
             )
         },
         "outcome_delta": delta(outcome_counts(before_rows), outcome_counts(after_rows)),

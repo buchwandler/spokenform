@@ -14,7 +14,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("before", type=Path)
     parser.add_argument("after", type=Path)
     args = parser.parse_args(argv)
-    print(json.dumps(compare_runs(args.before, args.after), ensure_ascii=False, indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            compare_runs(args.before, args.after), ensure_ascii=False, indent=2, sort_keys=True
+        )
+    )
     return 0
 
 

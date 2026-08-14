@@ -46,7 +46,11 @@ def test_ids_are_stable_when_class_and_limit_filters_change(tmp_path) -> None:
     _write_shard(tmp_path, GOOGLE_TN_TEST_FILE, 3)
     all_cases = list(iter_cases(tmp_path, split="test-full"))
     date_cases = list(iter_cases(tmp_path, split="test-full", semiotic_class="DATE", limit=1))
-    assert [case.case_id for case in all_cases] == ["en:099:000000", "en:099:000001", "en:099:000002"]
+    assert [case.case_id for case in all_cases] == [
+        "en:099:000000",
+        "en:099:000001",
+        "en:099:000002",
+    ]
     assert date_cases[0].case_id == all_cases[0].case_id
 
 

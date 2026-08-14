@@ -99,7 +99,9 @@ def test_extended_semantic_families_keep_strict_boundaries() -> None:
     )
     assert not any(
         item.rule == "sequence.biology"
-        for item in prepare("A. general summary", language="en", use_spacy=False).source_replacements
+        for item in prepare(
+            "A. general summary", language="en", use_spacy=False
+        ).source_replacements
     )
 
 

@@ -27,7 +27,9 @@ def test_ambiguous_numeric_ownership_prefers_typed_semantics() -> None:
     )
     assert any(
         item.rule == "sequence.isbn"
-        for item in prepare("ISBN 978-3-16-148410-0", language="en", use_spacy=False).source_replacements
+        for item in prepare(
+            "ISBN 978-3-16-148410-0", language="en", use_spacy=False
+        ).source_replacements
     )
 
 
@@ -45,7 +47,9 @@ def test_contextual_years_and_decades_do_not_claim_identifiers() -> None:
         )
     for source in ("PIN 1858", "product code 1858", "192.168.1.1"):
         result = prepare(source, language="en", use_spacy=False)
-        assert not any(item.rule in {"sequence.year", "sequence.decade"} for item in result.source_replacements)
+        assert not any(
+            item.rule in {"sequence.year", "sequence.decade"} for item in result.source_replacements
+        )
 
 
 def test_reference_and_spanish_time_candidates_respect_context() -> None:
@@ -56,7 +60,10 @@ def test_reference_and_spanish_time_candidates_respect_context() -> None:
     assert not any(item.rule == "es.time" for item in range_like.source_replacements)
     explicit = prepare("1:45 p.m.", language="es", use_spacy=False)
     assert any(item.rule == "es.time" for item in explicit.source_replacements)
-    assert not any(item.rule == "es.time" for item in prepare("3:81", language="es", use_spacy=False).source_replacements)
+    assert not any(
+        item.rule == "es.time"
+        for item in prepare("3:81", language="es", use_spacy=False).source_replacements
+    )
 
 
 def test_spaced_isbn_labels_claim_validated_values_before_phone() -> None:

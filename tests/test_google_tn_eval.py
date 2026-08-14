@@ -134,7 +134,14 @@ def test_replacement_crossing_row_boundary_is_explicitly_ambiguous() -> None:
             "two thousand five .",
             source_replacements=(
                 SourceReplacement(
-                    0, 6, 0, 20, "2005 .", "two thousand five .", ("structured",), rule="sequence.date"
+                    0,
+                    6,
+                    0,
+                    20,
+                    "2005 .",
+                    "two thousand five .",
+                    ("structured",),
+                    rule="sequence.date",
                 ),
             ),
         )

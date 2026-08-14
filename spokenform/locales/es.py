@@ -185,6 +185,8 @@ def _time_context_is_explicit(left: str, period: str | None) -> bool:
 def _time_context_is_range_or_reference(right: str) -> bool:
     """Reject colon candidates followed by a range delimiter."""
     return bool(re.search(r"[-–]\s*\d", right))
+
+
 _MONTHS = (
     "enero",
     "febrero",
@@ -449,9 +451,7 @@ def iter_replacements(
             # weak clock cue.  Explicit AM/PM/hour words remain sufficient.
             period = match.groupdict().get("period")
             explicit = _time_context_is_explicit(left, period)
-            if hour > 23 or (
-                not explicit and _time_context_is_range_or_reference(right)
-            ):
+            if hour > 23 or (not explicit and _time_context_is_range_or_reference(right)):
                 continue
             add(
                 match.start(),

@@ -13,18 +13,21 @@ def test_cli_writes_summary_rows_and_failure_reports(tmp_path, capsys) -> None:
         encoding="utf-8",
     )
     results_dir = tmp_path / "results"
-    assert main(
-        [
-            "--data-dir",
-            str(data_dir),
-            "--split",
-            "test-full",
-            "--limit",
-            "1",
-            "--results-dir",
-            str(results_dir),
-        ]
-    ) == 0
+    assert (
+        main(
+            [
+                "--data-dir",
+                str(data_dir),
+                "--split",
+                "test-full",
+                "--limit",
+                "1",
+                "--results-dir",
+                str(results_dir),
+            ]
+        )
+        == 0
+    )
     output = capsys.readouterr().out
     run_dir = results_dir / next(path.name for path in results_dir.iterdir())
     summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))

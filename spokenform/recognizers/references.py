@@ -44,10 +44,10 @@ def _render(volume: str, page: str, year: str | None, language: str) -> str:
     volume_label = {"es": "volumen", "de": "Band", "fr": "volume", "it": "volume"}.get(
         base, "volume"
     )
-    page_label = {"es": "página", "de": "Seite", "fr": "page", "it": "pagina"}.get(
-        base, "page"
+    page_label = {"es": "página", "de": "Seite", "fr": "page", "it": "pagina"}.get(base, "page")
+    result = (
+        f"{volume_label} {_cardinal(int(volume), language)} {page_label} {_page(page, language)}"
     )
-    result = f"{volume_label} {_cardinal(int(volume), language)} {page_label} {_page(page, language)}"
     if year is not None:
         result += f" ({_year(int(year), language)})"
     return result

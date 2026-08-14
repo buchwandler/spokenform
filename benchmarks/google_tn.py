@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import platform
 import subprocess
@@ -18,8 +17,8 @@ from .google_tn_data import (
     GOOGLE_TN_TEST_LINE_LIMIT,
     GOOGLE_TN_TO_SPOKENFORM,
     discover_source_files,
-    source_metadata,
     iter_cases,
+    source_metadata,
 )
 from .google_tn_eval import BENCHMARK_PROFILES, evaluate
 
