@@ -75,6 +75,7 @@ fallback_version = "0+unknown"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
+pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["spokenform"]
