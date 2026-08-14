@@ -60,6 +60,7 @@ _SOFT_VERSION_RE = re.compile(
     re.IGNORECASE,
 )
 
+
 def normalize_spacing(
     text: str,
     *,

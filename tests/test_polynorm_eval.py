@@ -192,9 +192,7 @@ def test_environment_fingerprint_records_source_commit() -> None:
 
 
 def test_summary_and_markdown_expose_outcome_buckets_and_identity(tmp_path) -> None:
-    cases = (
-        PolyNormCase("en-US", "1", "Initialism or Acronym", "NASA", "nasa spoken"),
-    )
+    cases = (PolyNormCase("en-US", "1", "Initialism or Acronym", "NASA", "nasa spoken"),)
 
     output_dir, summary = evaluate_and_write(cases, output_root=tmp_path)
 

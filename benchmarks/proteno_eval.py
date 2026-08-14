@@ -86,7 +86,10 @@ def _is_external_language_projection(case: ProtenoCase) -> bool:
     foreign = _foreign_script_characters(case.original_text)
     if not foreign:
         return False
-    return any(case.original_text.count(character) > case.normalized_text.count(character) for character in foreign)
+    return any(
+        case.original_text.count(character) > case.normalized_text.count(character)
+        for character in foreign
+    )
 
 
 def _package_version(name: str) -> str:
@@ -440,17 +443,13 @@ def evaluate_cases(
             "protected_mutation_count": sum(bool(row.get("protected_mutation")) for row in rows),
         },
         "owned": _metric_counts(ownership_groups.get("owned", [])),
-        "dependency-abbr2words": _metric_counts(
-            ownership_groups.get("dependency-abbr2words", [])
-        ),
+        "dependency-abbr2words": _metric_counts(ownership_groups.get("dependency-abbr2words", [])),
         "extended": _metric_counts(ownership_groups.get("extended-candidate", [])),
         "protected": _metric_counts(ownership_groups.get("protected", [])),
         "downstream": _metric_counts(ownership_groups.get("downstream", [])),
         "unsupported": _metric_counts(ownership_groups.get("unsupported", [])),
         "external-language": _metric_counts(ownership_groups.get("external-language", [])),
-        "questionable-target": _metric_counts(
-            ownership_groups.get("questionable-target", [])
-        ),
+        "questionable-target": _metric_counts(ownership_groups.get("questionable-target", [])),
         "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
     }
     summary["_rows"] = tuple(rows)
@@ -555,15 +554,17 @@ def _write_failures_markdown(
         lines.extend(f"- {key}: `{value}`" for key, value in sorted(identity.items()))
     else:
         lines.append("Identity metadata is available in summary.json.")
-    lines.extend([
-        "",
-        "Failure details are split into source-bearing Markdown shards so each "
-        "file remains manageable in an editor.",
-        "",
-        f"- Total failures: {sum(report['failure_count'] for report in reports):,}",
-        f"- Maximum shard size: {max_bytes:,} bytes",
-        "",
-    ])
+    lines.extend(
+        [
+            "",
+            "Failure details are split into source-bearing Markdown shards so each "
+            "file remains manageable in an editor.",
+            "",
+            f"- Total failures: {sum(report['failure_count'] for report in reports):,}",
+            f"- Maximum shard size: {max_bytes:,} bytes",
+            "",
+        ]
+    )
     if reports:
         lines.extend(["## Reports", ""])
         for report in reports:

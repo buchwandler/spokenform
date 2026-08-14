@@ -341,11 +341,11 @@ def _provenance_diagnostics(
             "claim_owner": ownership
             if primary_rule
             else ("protection" if protected_spans else "unclaimed"),
-        "winning_span": diagnostics["winning_span"],
-        "protected_reason": protected_reason,
-        "protected_mutation": protected_mutation,
-        "numeric_policy": asdict(numeric_speech_policy(language)),
-        "render_mode": _render_mode_for_rule(primary_rule, rules),
+            "winning_span": diagnostics["winning_span"],
+            "protected_reason": protected_reason,
+            "protected_mutation": protected_mutation,
+            "numeric_policy": asdict(numeric_speech_policy(language)),
+            "render_mode": _render_mode_for_rule(primary_rule, rules),
         }
     )
     if primary_rule == "sequence.version":
@@ -413,17 +413,13 @@ def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "safety": safety,
         "owned": _metric_counts(grouped_ownership.get("owned", [])),
-        "dependency-abbr2words": _metric_counts(
-            grouped_ownership.get("dependency-abbr2words", [])
-        ),
+        "dependency-abbr2words": _metric_counts(grouped_ownership.get("dependency-abbr2words", [])),
         "extended": _metric_counts(grouped_ownership.get("extended-candidate", [])),
         "protected": _metric_counts(protected),
         "downstream": _metric_counts(grouped_ownership.get("downstream", [])),
         "unsupported": _metric_counts(grouped_ownership.get("unsupported", [])),
         "external-language": _metric_counts(grouped_ownership.get("external-language", [])),
-        "questionable-target": _metric_counts(
-            grouped_ownership.get("questionable-target", [])
-        ),
+        "questionable-target": _metric_counts(grouped_ownership.get("questionable-target", [])),
         "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
         "locale": {
             locale: _metric_counts(locale_rows)

@@ -97,8 +97,7 @@ def rank_provenance(
         start = int(getattr(edit, "source_start", 0))
         end = int(getattr(edit, "source_end", 0))
         return any(
-            start < int(getattr(span, "end", 0))
-            and int(getattr(span, "start", 0)) < end
+            start < int(getattr(span, "end", 0)) and int(getattr(span, "start", 0)) < end
             for span in protected
         )
 
