@@ -26,10 +26,31 @@ PolyNorm is a discovery tool, not a normal CI or release gate. The benchmark
 does not make unsupported PolyNorm locales part of Spokenform's public API.
 
 Fresh runs record the resolved Spokenform, `abbr2words`, and `num2words`
-versions, PolyNorm dataset commit, locale mapping, Python version, and the
-available case count. The pinned snapshot currently contains 2,680 overlap
-cases; reports use the available count rather than assuming every locale has
-the same number of rows.
+versions, source and dataset commits, locale mapping, profile, and a stable
+configuration hash. Each report also contains a machine-readable `identity`
+block. The pinned snapshot currently contains 2,680 overlap cases; reports use
+the available count rather than assuming every locale has the same number of
+rows.
+
+## Fresh comparison workflow
+
+Use the same pinned inputs and profile for every comparison:
+
+```text
+baseline -> patch -> rerun same profile -> compare -> inspect new failures
+```
+
+`benchmarks.proteno_compare` and `benchmarks.polynorm_compare` refuse to
+compare runs with different dataset commits, locale mappings, profiles, or
+critical configuration hashes. For an intentional cross-profile experiment,
+pass `--allow-incompatible`; the resulting JSON records the mismatch and the
+override explicitly. Do not compare an old failure Markdown file manually
+against a new checkout.
+
+Release-facing metrics are split into `safety/default`, `owned`, `extended`,
+`protected`, `downstream`, `unsupported`, and `quarantine`. Raw failure-count
+reductions in protected or unsupported families do not replace the identity
+and new-failure gates.
 
 See the detailed [PolyNorm documentation](../docs/polynorm.md).
 

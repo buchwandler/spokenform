@@ -27,6 +27,7 @@ from .failure_reporting import (
     ownership_for_rule,
     reason_code,
 )
+from .compare_common import with_configuration_hash
 from .proteno_data import (
     PROTENO_COMMIT,
     PROTENO_DATASET_COMMIT,
@@ -102,7 +103,7 @@ def environment_fingerprint(
         }
         for language in sorted(set(languages))
     }
-    return {
+    return with_configuration_hash({
         "dataset_repository": PROTENO_REPOSITORY,
         "dataset_commit": PROTENO_DATASET_COMMIT,
         "spokenform_version": _package_version("spokenform"),
@@ -127,7 +128,7 @@ def environment_fingerprint(
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
             "benchmark_commit": PROTENO_COMMIT,
         },
-    }
+    })
 
 
 def _metric_counts(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
@@ -411,6 +412,22 @@ def evaluate_cases(
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
+    ownership_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        ownership_groups[str(row["ownership"])].append(row)
+    summary["gate_metrics"] = {
+        "safety": {
+            "identity_cases": len(identity),
+            "identity_mutation_count": summary["identity_mutation_count"],
+            "protected_mutation_count": sum(bool(row.get("protected_mutation")) for row in rows),
+        },
+        "owned": _metric_counts(ownership_groups.get("owned", [])),
+        "extended": _metric_counts(ownership_groups.get("extended-candidate", [])),
+        "protected": _metric_counts(ownership_groups.get("protected", [])),
+        "downstream": _metric_counts(ownership_groups.get("downstream", [])),
+        "unsupported": _metric_counts(ownership_groups.get("unsupported", [])),
+        "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
+    }
     summary["_rows"] = tuple(rows)
     return summary, tuple(failures)
 
@@ -562,6 +579,7 @@ def evaluate_and_write(
     languages = sorted({case.proteno_language for case in case_list})
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
+    environment = environment_fingerprint(languages, profile=profile)
     summary_payload: dict[str, Any] = {
         "benchmark": "Proteno",
         "repository": PROTENO_REPOSITORY,
@@ -572,7 +590,17 @@ def evaluate_and_write(
         "spokenform_languages": sorted({PROTENO_TO_SPOKENFORM[language] for language in languages}),
         "split": split,
         "split_policy": split_policy(PROTENO_DATASET_COUNTS),
-        "environment": environment_fingerprint(languages, profile=profile),
+        "environment": environment,
+        "identity": {
+            "benchmark": "Proteno",
+            "dataset_commit": PROTENO_DATASET_COMMIT,
+            "spokenform_source_commit": environment["spokenform_source_commit"],
+            "abbr2words_version": environment["abbr2words_version"],
+            "num2words_version": environment["num2words_version"],
+            "profile": profile,
+            "config_hash": environment["config_hash"],
+            "locale_mapping": environment["locale_mapping"],
+        },
         "profile": profile,
         "normalize_literals": profile == "extended",
         "source_file_git_blobs": {

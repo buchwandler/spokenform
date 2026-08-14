@@ -4,8 +4,89 @@ from __future__ import annotations
 
 import json
 from collections import Counter, defaultdict
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
+
+
+def configuration_hash(configuration: dict[str, Any]) -> str:
+    """Return a stable hash for settings that affect normalization."""
+    payload = json.dumps(
+        configuration, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return sha256(payload).hexdigest()
+
+
+def with_configuration_hash(environment: dict[str, Any]) -> dict[str, Any]:
+    """Add a stable configuration hash to an environment fingerprint."""
+    enriched = dict(environment)
+    configuration = dict(enriched.get("configuration", {}))
+    configuration["config_hash"] = configuration_hash(configuration)
+    enriched["configuration"] = configuration
+    enriched["config_hash"] = configuration["config_hash"]
+    return enriched
+
+
+def report_identity(summary: dict[str, Any]) -> dict[str, Any]:
+    """Extract comparable identity fields from a benchmark summary."""
+    environment = summary.get("environment", {})
+    configuration = environment.get("configuration", {})
+    return {
+        "benchmark": summary.get("benchmark"),
+        "dataset_repository": environment.get("dataset_repository"),
+        "dataset_commit": summary.get("dataset_commit", environment.get("dataset_commit")),
+        "spokenform_source_commit": environment.get("spokenform_source_commit"),
+        "spokenform_version": environment.get("spokenform_version"),
+        "abbr2words_version": environment.get("abbr2words_version"),
+        "num2words_version": environment.get("num2words_version"),
+        "locale_mapping": environment.get("locale_mapping"),
+        "profile": summary.get("profile", configuration.get("profile")),
+        "config_hash": environment.get("config_hash", configuration.get("config_hash")),
+    }
+
+
+def identity_mismatches(before: dict[str, Any], after: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Return fields that make a before/after comparison unsafe."""
+    mismatches: dict[str, dict[str, Any]] = {}
+    for field in (
+        "benchmark",
+        "dataset_repository",
+        "dataset_commit",
+        "locale_mapping",
+        "profile",
+        "config_hash",
+    ):
+        old, new = before.get(field), after.get(field)
+        if old is None and new is None:
+            continue
+        if old != new:
+            mismatches[field] = {"before": old, "after": new}
+    return mismatches
+
+
+def ensure_compatible(
+    before_summary: dict[str, Any],
+    after_summary: dict[str, Any],
+    *,
+    allow_incompatible: bool = False,
+) -> dict[str, Any]:
+    """Validate run identity, optionally allowing an intentional comparison."""
+    before = report_identity(before_summary)
+    after = report_identity(after_summary)
+    mismatches = identity_mismatches(before, after)
+    if mismatches and not allow_incompatible:
+        fields = ", ".join(sorted(mismatches))
+        raise ValueError(
+            "incompatible benchmark runs; mismatched identity fields: "
+            f"{fields}. Pass allow_incompatible=True only for an intentional cross-profile comparison."
+        )
+    return {
+        "compatible": not mismatches,
+        "overridden": bool(mismatches and allow_incompatible),
+        "mismatches": mismatches,
+        "before": before,
+        "after": after,
+    }
 
 
 def load_run(path: str | Path) -> tuple[dict[str, Any], tuple[dict[str, Any], ...]]:

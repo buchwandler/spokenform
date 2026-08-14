@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from benchmarks.polynorm import _parser
 from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
@@ -102,7 +104,16 @@ def test_evaluation_reports_claim_provenance_and_gate_views() -> None:
     assert quantity["winning_span"]["source"] == "42 kg"
     assert quantity["failure_phase"] == "structured_rendering"
     assert quantity["render_mode"] == "quantity"
-    assert set(summary["gate_metrics"]) == {"safety", "owned", "extended", "protected", "locale"}
+    assert set(summary["gate_metrics"]) == {
+        "safety",
+        "owned",
+        "extended",
+        "protected",
+        "downstream",
+        "unsupported",
+        "quarantine",
+        "locale",
+    }
     assert summary["gate_metrics"]["protected"]["cases"] == 1
     assert summary["gate_metrics"]["safety"]["protected_unchanged_rate"] == 1.0
 
@@ -148,6 +159,7 @@ def test_evaluate_and_write_separates_metrics_from_text_reports(tmp_path) -> Non
 def test_environment_fingerprint_records_source_commit() -> None:
     fingerprint = environment_fingerprint(("en-US",))
     assert fingerprint["spokenform_source_commit"]
+    assert fingerprint["config_hash"] == fingerprint["configuration"]["config_hash"]
 
 
 def test_extended_profile_is_explicit_and_promotes_literals() -> None:
@@ -200,6 +212,42 @@ def test_compare_runs_reports_case_id_and_aggregate_deltas(tmp_path) -> None:
         "new_failure_count": 1,
         "remaining_count": 1,
     }
+
+
+def test_compare_runs_refuses_incompatible_profiles_unless_overridden(tmp_path) -> None:
+    before = tmp_path / "before"
+    after = tmp_path / "after"
+    before.mkdir()
+    after.mkdir()
+    base = {
+        "benchmark": "PolyNorm-Bench",
+        "dataset_commit": "dataset-1",
+        "profile": "default",
+        "environment": {
+            "dataset_repository": "repo",
+            "dataset_commit": "dataset-1",
+            "locale_mapping": {"en-US": {"spokenform": "en_US"}},
+            "configuration": {"profile": "default", "config_hash": "hash-default"},
+            "config_hash": "hash-default",
+        },
+        "semantic_failure_count": 0,
+        "speech_exact_equivalent_count": 0,
+        "literal_exact_count": 0,
+    }
+    other = {**base, "profile": "extended", "environment": {
+        **base["environment"],
+        "configuration": {"profile": "extended", "config_hash": "hash-extended"},
+        "config_hash": "hash-extended",
+    }}
+    (before / "summary.json").write_text(json.dumps(base), encoding="utf-8")
+    (after / "summary.json").write_text(json.dumps(other), encoding="utf-8")
+    (before / "failures.jsonl").write_text("", encoding="utf-8")
+    (after / "failures.jsonl").write_text("", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="incompatible benchmark runs"):
+        compare_runs(before, after)
+    comparison = compare_runs(before, after, allow_incompatible=True)
+    assert comparison["identity"]["overridden"] is True
 
 
 def test_failure_family_and_quarantine_reason_codes_are_reported() -> None:

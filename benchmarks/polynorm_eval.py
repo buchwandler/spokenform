@@ -25,6 +25,7 @@ from .failure_reporting import (
     failure_family_counts,
     outcome_for_row,
 )
+from .compare_common import with_configuration_hash
 from .polynorm_data import (
     POLYNORM_COMMIT,
     POLYNORM_DATASET_COMMIT,
@@ -186,7 +187,7 @@ def environment_fingerprint(
         }
         for locale in sorted(set(locales))
     }
-    return {
+    return with_configuration_hash({
         "dataset_repository": POLYNORM_REPOSITORY,
         "dataset_commit": POLYNORM_DATASET_COMMIT,
         "spokenform_version": _package_version("spokenform"),
@@ -206,7 +207,7 @@ def environment_fingerprint(
             },
             "semantic_symbols": "".join(sorted(SEMANTIC_SYMBOLS)),
         },
-    }
+    })
 
 
 def _metric_counts(results: list[dict[str, Any]]) -> dict[str, Any]:
@@ -382,6 +383,9 @@ def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "owned": _metric_counts(grouped_ownership.get("owned", [])),
         "extended": _metric_counts(grouped_ownership.get("extended-candidate", [])),
         "protected": _metric_counts(protected),
+        "downstream": _metric_counts(grouped_ownership.get("downstream", [])),
+        "unsupported": _metric_counts(grouped_ownership.get("unsupported", [])),
+        "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
         "locale": {
             locale: _metric_counts(locale_rows)
             for locale, locale_rows in sorted(grouped_locale.items())
@@ -597,6 +601,9 @@ def evaluate_and_write(
     stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
+    environment = environment_fingerprint(
+        (case.polynorm_locale for case in case_list), profile=profile
+    )
     summary_payload = {
         "benchmark": "PolyNorm-Bench",
         "repository": POLYNORM_REPOSITORY,
@@ -607,9 +614,17 @@ def evaluate_and_write(
         "spokenform_languages": sorted(
             {POLYNORM_TO_SPOKENFORM[case.polynorm_locale] for case in case_list}
         ),
-        "environment": environment_fingerprint(
-            (case.polynorm_locale for case in case_list), profile=profile
-        ),
+        "environment": environment,
+        "identity": {
+            "benchmark": "PolyNorm-Bench",
+            "dataset_commit": POLYNORM_DATASET_COMMIT,
+            "spokenform_source_commit": environment["spokenform_source_commit"],
+            "abbr2words_version": environment["abbr2words_version"],
+            "num2words_version": environment["num2words_version"],
+            "profile": profile,
+            "config_hash": environment["config_hash"],
+            "locale_mapping": environment["locale_mapping"],
+        },
         "profile": profile,
         "normalize_literals": profile == "extended",
         "speech_wer_threshold": speech_wer_threshold,

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .failure_reporting import FAILURE_FAMILIES
+from .compare_common import ensure_compatible
 
 
 def _read_summary(directory: Path) -> dict[str, Any]:
@@ -89,12 +90,17 @@ def _diff_rows(
     return result
 
 
-def compare_runs(before: Path | str, after: Path | str) -> dict[str, Any]:
+def compare_runs(
+    before: Path | str, after: Path | str, *, allow_incompatible: bool = False
+) -> dict[str, Any]:
     """Return requested metric and stable case-ID deltas."""
     before_dir = Path(before)
     after_dir = Path(after)
     before_summary = _read_summary(before_dir)
     after_summary = _read_summary(after_dir)
+    identity = ensure_compatible(
+        before_summary, after_summary, allow_incompatible=allow_incompatible
+    )
     before_failures = _failure_ids(before_dir)
     after_failures = _failure_ids(after_dir)
     diffs = _diff_rows(_rows(before_dir), _rows(after_dir))
@@ -108,6 +114,7 @@ def compare_runs(before: Path | str, after: Path | str) -> dict[str, Any]:
     return {
         "before": str(before_dir),
         "after": str(after_dir),
+        "identity": identity,
         "summary_delta": {
             field: after_summary.get(field, 0) - before_summary.get(field, 0) for field in fields
         },
@@ -138,8 +145,19 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("before", type=Path)
     parser.add_argument("after", type=Path)
+    parser.add_argument(
+        "--allow-incompatible",
+        action="store_true",
+        help="Allow intentional cross-profile or cross-dataset comparisons.",
+    )
     args = parser.parse_args(argv)
-    print(json.dumps(compare_runs(args.before, args.after), indent=2, sort_keys=True))
+    print(
+        json.dumps(
+            compare_runs(args.before, args.after, allow_incompatible=args.allow_incompatible),
+            indent=2,
+            sort_keys=True,
+        )
+    )
     return 0
 
 
