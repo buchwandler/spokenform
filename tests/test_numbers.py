@@ -12,6 +12,26 @@ def test_english_direct_number_api_preserves_explicit_decimal_precision() -> Non
     assert normalize_numbers(".02", language="en") == "point zero two"
 
 
+def test_english_leading_decimal_in_sentence() -> None:
+    result = prepare(
+        "He hesitated for .02 seconds.",
+        language="en",
+        use_spacy=False,
+    )
+    assert result.spoken_text == "He hesitated for point zero two seconds."
+    assert not any(
+        item.rule
+        in {
+            "sequence.version",
+            "sequence.time",
+            "sequence.duration",
+            "sequence.sports",
+            "sequence.chained-score",
+        }
+        for item in result.source_replacements
+    )
+
+
 @pytest.mark.parametrize("punctuation", [".", ",", "!", "?"])
 def test_english_plain_decimal_allows_terminal_punctuation(punctuation: str) -> None:
     result = prepare(f"The value is 2.0{punctuation}", language="en", use_spacy=False)

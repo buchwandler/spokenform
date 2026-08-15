@@ -13,6 +13,8 @@ def test_structured_precedence_is_named_and_stable() -> None:
     assert priority_for_rule("sequence.isbn") > priority_for_rule("sequence.phone")
     assert priority_for_rule("sequence.version") > priority_for_rule("sequence.ipv4")
     assert priority_for_rule("sequence.duration") > priority_for_rule("sequence.time")
+    assert priority_for_rule("sequence.countdown") > priority_for_rule("sequence.numeric-range")
+    assert SequencePriority.REFERENCE > SequencePriority.COUNTDOWN > SequencePriority.SCORE
     assert SequencePriority.NUMERIC_RANGE > SequencePriority.PHONE_AMBIGUOUS
 
 

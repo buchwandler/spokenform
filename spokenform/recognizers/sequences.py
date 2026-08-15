@@ -286,8 +286,26 @@ _SPORTS_RE = re.compile(
     r"(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2}|\d{1,2}\s+(?:a|to|à)\s+\d{1,2})",
     re.IGNORECASE,
 )
+_SPORTS_CONTEXT_RE = re.compile(
+    r"\b(?:score|final|match|game|football|basketball|handball|volleyball|set|"
+    r"result|resultat|resultado|satz|ergebnis|endergebnis|gewann|spiel|marcador|"
+    r"punteggio|partido|termin[oó]|victoria|ganaron|résultat|ganó|gagné|vinto)\b",
+    re.IGNORECASE,
+)
 _SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2})(?![\w:-])")
 _CHAINED_SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}(?:\s*[-–]\s*\d{1,2}){2,})(?![\w:-])")
+_COUNTDOWN_CONTEXT_RE = re.compile(
+    r"\b(?:"
+    r"countdown(?:\s+(?:is|from))?|"
+    r"count(?:ing)?\s+down(?:\s+from)?|"
+    r"start(?:s|ed|ing)?|"
+    r"begin(?:s|ning)?|"
+    r"launch(?:es|ed|ing)?|"
+    r"initiat(?:e|es|ed|ing)|"
+    r"go"
+    r")\s+(?:in\s+)?$",
+    re.IGNORECASE,
+)
 _DURATION_RE = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d):(?P<second>[0-5]\d)(?!\w)")
 _ADDRESS_SUFFIX_RE = re.compile(
     r"(?<!\w)(?P<number>\d{1,4})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÄÖÜ][\wÄÖÜäöüß.-]*(?:\s+(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Blvd\.?))?)(?!\w)",
@@ -1671,14 +1689,34 @@ def _score_text(value: str, language: str) -> str:
     return f"{_cardinal(int(left), language)} {connector} {_cardinal(int(right), language)}"
 
 
+def _has_sports_context(text: str, start: int) -> bool:
+    """Return whether a bounded prefix provides positive sports evidence."""
+    prefix = text[max(0, start - 64) : start]
+    return bool(_SPORTS_CONTEXT_RE.search(prefix))
+
+
+def _countdown_is_plausible(text: str, start: int, language: str) -> bool:
+    """Require English countdown wording immediately before a numeric chain."""
+    if base_language(language) != "en":
+        return False
+    prefix = text[max(0, start - 64) : start]
+    return bool(_COUNTDOWN_CONTEXT_RE.search(prefix))
+
+
+def _countdown_text(value: str, language: str) -> str:
+    """Render a contextual countdown without adding source punctuation."""
+    values = re.split(r"\s*[-–]\s*", value)
+    return " ".join(_cardinal(int(item), language) for item in values)
+
+
+def _chained_score_is_plausible(text: str, start: int) -> bool:
+    """Require positive sports context for a three-or-more-part chain."""
+    return _has_sports_context(text, start)
+
+
 def _score_is_plausible(value: str, text: str, start: int) -> bool:
     """Use sports context for hyphen scores and allow compact colon scores."""
-    prefix = text[max(0, start - 64) : start]
-    if re.search(
-        r"\b(?:score|final|match|game|football|basketball|handball|volleyball|set|result|resultat|resultado)\b",
-        prefix,
-        re.IGNORECASE,
-    ):
+    if _has_sports_context(text, start):
         return True
     match = re.fullmatch(r"\s*(\d{1,2})\s*([:\-–])\s*(\d{1,2})\s*", value)
     return bool(
@@ -1952,6 +1990,7 @@ def _add(
     if _claimed(match.start(), match.end(), protected):
         specificity = {
             "sequence.biology": 20,
+            "sequence.countdown": 90,
             "sequence.chained-score": 88,
             "sequence.duration": 95,
             "sequence.formula": 20,
@@ -2821,21 +2860,27 @@ def iter_sequence_replacements(
             protected,
         )
     for match in _CHAINED_SCORE_RE.finditer(text):
-        values = re.split(r"\s*[-–]\s*", match["value"])
-        if _claimed(match.start(), match.end(), protected):
+        if _countdown_is_plausible(text, match.start(), language):
+            _add(
+                candidates,
+                match,
+                _countdown_text(match["value"], language),
+                language,
+                "sequence.countdown",
+                protected,
+            )
+        elif _chained_score_is_plausible(text, match.start()):
+            values = re.split(r"\s*[-–]\s*", match["value"])
             connector = {"de": "zu", "es": "a", "fr": "à", "it": "a"}.get(
                 base_language(language), "to"
             )
-            candidates.append(
-                Replacement(
-                    match.start(),
-                    match.end(),
-                    f" {connector} ".join(_cardinal(int(value), language) for value in values),
-                    "structured",
-                    language,
-                    "sequence.chained-score",
-                    88,
-                )
+            _add(
+                candidates,
+                match,
+                f" {connector} ".join(_cardinal(int(value), language) for value in values),
+                language,
+                "sequence.chained-score",
+                protected,
             )
     for match in _SCORE_RE.finditer(text):
         if _score_is_plausible(match["value"], text, match.start()) and _claimed(

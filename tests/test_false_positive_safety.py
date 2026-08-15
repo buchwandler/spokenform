@@ -28,6 +28,21 @@ def test_time_does_not_steal_scores_references_or_durations() -> None:
     assert "sequence.duration" in _rules("duration 2:15:30")
 
 
+@pytest.mark.parametrize(
+    "source",
+    [
+        "10-7-3",
+        "version 3-2-1",
+        "Section 3-2-1",
+        "room 3-2-1",
+    ],
+)
+def test_ambiguous_numeric_chains_are_not_scores(source: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert not any(item.rule == "sequence.chained-score" for item in result.source_replacements)
+
+
 @pytest.mark.parametrize("source", ("ISO-1994", "Model 1858", "PIN 1972", "serial 2014-ABC"))
 def test_contextual_identifier_shapes_do_not_become_years(source: str) -> None:
     assert "sequence.year" not in _rules(source)
@@ -62,3 +77,27 @@ def test_abbreviations_delegate_without_stealing_structured_spans() -> None:
     }
     version = prepare("Python 3.9.7", language="en", use_spacy=False)
     assert any(item.rule == "sequence.version" for item in version.source_replacements)
+
+
+def test_ambiguous_uppercase_art_is_not_guessed_as_an_initialism() -> None:
+    source = "He is called ART. ARTs body is from metal."
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == source
+    assert not any(
+        item.rule
+        in {
+            "abbr:initialism",
+            "abbr:initialism-conservative",
+            "abbr:initialism-undotted",
+        }
+        for item in result.source_replacements
+    )
+
+    conservative = prepare(
+        source,
+        language="en",
+        use_spacy=False,
+        generic_acronym_mode="conservative_unknown",
+    )
+    assert conservative.spoken_text == source

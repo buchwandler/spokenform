@@ -19,6 +19,7 @@ class SequencePriority(IntEnum):
     EXPLICIT_TIME = 100
     DURATION = 115
     REFERENCE = 95
+    COUNTDOWN = 92
     SCORE = 90
     VERSION = 85
     TYPED_CODE = 80
@@ -40,6 +41,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.version": SequencePriority.VERSION,
     "sequence.reference": SequencePriority.REFERENCE,
     "sequence.legal": SequencePriority.LABELED_IDENTIFIER,
+    "sequence.countdown": SequencePriority.COUNTDOWN,
     "sequence.sports": SequencePriority.SCORE,
     "sequence.chained-score": SequencePriority.SCORE,
     "sequence.time": SequencePriority.EXPLICIT_TIME,

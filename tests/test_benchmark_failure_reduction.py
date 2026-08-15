@@ -248,8 +248,8 @@ def test_scores_and_durations_use_specific_precedence() -> None:
     repeated = prepare("6:3, 6:2", language="en", use_spacy=False)
     assert repeated.spoken_text == "six to three, six to two"
     assert sum(item.rule == "sequence.sports" for item in repeated.source_replacements) == 2
-    chained = prepare("10-7-3", language="en", use_spacy=False)
-    assert chained.spoken_text == "ten to seven to three"
+    chained = prepare("final 10-7-3", language="en", use_spacy=False)
+    assert chained.spoken_text == "final ten to seven to three"
     assert any(item.rule == "sequence.chained-score" for item in chained.source_replacements)
     duration = prepare("2:15:30", language="en", use_spacy=False)
     assert duration.spoken_text == "two hours fifteen minutes thirty seconds"

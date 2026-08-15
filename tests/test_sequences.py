@@ -106,6 +106,37 @@ def test_isbn_and_sports_scores_use_category_specific_policies() -> None:
     assert prepare("3-2", language="en", use_spacy=False).spoken_text == "three-two"
 
 
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("I initiate in 3-2-1.", "I initiate in three two one."),
+        ("We launch in 5-4-3-2-1.", "We launch in five four three two one."),
+        ("Starting in 3-2-1.", "Starting in three two one."),
+        ("Countdown 3-2-1.", "Countdown three two one."),
+        ("Counting down from 3-2-1.", "Counting down from three two one."),
+    ],
+)
+def test_english_contextual_countdowns(source: str, expected: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == expected
+    assert sum(item.rule == "sequence.countdown" for item in result.source_replacements) == 1
+    assert not any(
+        item.rule in {"sequence.chained-score", "sequence.sports", "sequence.numeric-range"}
+        for item in result.source_replacements
+    )
+
+
+def test_contextual_chained_scores_remain_scores() -> None:
+    for source, expected in (
+        ("final 10-7-3", "final ten to seven to three"),
+        ("score 3-2-1", "score three to two to one"),
+    ):
+        result = prepare(source, language="en", use_spacy=False)
+        assert result.spoken_text == expected
+        assert any(item.rule == "sequence.chained-score" for item in result.source_replacements)
+
+
 def test_fraction_and_abbreviation_policies_are_high_confidence_only() -> None:
     assert prepare("½ ⅝", language="it", use_spacy=False).spoken_text == ("un mezzo cinque ottavi")
     assert prepare("NASA BND API", language="en", use_spacy=False).spoken_text == ("NASA BND API")
