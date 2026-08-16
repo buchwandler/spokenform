@@ -100,5 +100,5 @@ experiment. Neither profile turns arbitrary long integers, unknown acronyms,
 formula-looking words, or unlabeled product codes into spoken output without
 the corresponding context and shape checks.
 
-See [the benchmark ownership table](../benchmarks/OWNERSHIP.md) for comparison
+See [the benchmark ownership table](https://github.com/buchwandler/spokenform/blob/main/benchmarks/OWNERSHIP.md) for comparison
 compatibility, quarantine handling, and the residual non-goals.

@@ -114,6 +114,6 @@ explicit experiment, never the public default. The caller-level aggressive
 combination (`spell_unknown` plus cardinal long numbers) is not a release
 profile.
 
-See [the benchmark ownership table](../benchmarks/OWNERSHIP.md) for the
+See [the benchmark ownership table](https://github.com/buchwandler/spokenform/blob/main/benchmarks/OWNERSHIP.md) for the
 safety, owned, extended-candidate, protected, downstream, unsupported, and
 quarantine gates.

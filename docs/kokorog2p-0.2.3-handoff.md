@@ -3,7 +3,7 @@
 After the first fixed `spokenform` patch is published, the kokorog2p adapter
 should require:
 
-```toml
+```text
 spokenform>=0.2.3,<0.3.0
 abbr2words>=0.2.4,<0.3.0
 ```

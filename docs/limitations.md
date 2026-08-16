@@ -48,7 +48,7 @@ contract, `extended` is an opt-in diagnostic profile, and an aggressive caller
 experiment is not a release gate. Compare only compatible report identities;
 questionable upstream targets remain quarantined and visible rather than being
 used to justify a normalization rule. See
-[benchmarks/OWNERSHIP.md](../benchmarks/OWNERSHIP.md).
+[benchmarks/OWNERSHIP.md](https://github.com/buchwandler/spokenform/blob/main/benchmarks/OWNERSHIP.md).
 
 # Limitations and readiness gates
 
