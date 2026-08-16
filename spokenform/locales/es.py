@@ -10,14 +10,13 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
-from ..dates import expand_year
+from ..dates import _valid_date, expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -150,7 +149,6 @@ QUANTITY_GRAMMAR.update(
     }
 )
 
-_NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s\u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|,\d+)"
 _CURRENCY_SYMBOL = re.compile(
     r"(?<!\w)(?P<symbol>[$€£])\s*(?P<number>[+\-−]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?![.,]\d)(?!\w)"
 )
@@ -165,8 +163,6 @@ _DATE_DMY_NO_YEAR = re.compile(
 _DATE_DMY_HYPHEN = re.compile(
     r"(?<![\w.])(?P<day>\d{1,2})-(?P<month>\d{1,2})-(?P<year>\d{2,4})(?!\d)"
 )
-_DATE_CANDIDATE = re.compile(r"(?<![\w.])(?:\d{1,2}[./]){2}\d{4}(?!\d)")
-_TIME_CANDIDATE = re.compile(r"(?<![\w.])\d{1,2}:\d{2}(?!\d)")
 _TIME_COLON = re.compile(
     r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?:\s*(?P<period>a\.?\s*m\.?|p\.?\s*m\.?))?(?!\w)",
     re.IGNORECASE,
@@ -270,14 +266,6 @@ def _number_text(
             _spell(int(group), language) for group in fraction_digit_groups(fraction, language)
         )
     return f"menos {result}" if negative else result
-
-
-def _valid_date(day: int, month: int, year: int) -> bool:
-    try:
-        date(year, month, day)
-    except ValueError:
-        return False
-    return True
 
 
 def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:

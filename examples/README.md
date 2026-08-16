@@ -25,4 +25,7 @@ python examples/injected_pipeline.py
 an already loaded pipeline with `nlp=...` or request an installed model with
 `spacy_model=...`.
 
-The spaCy examples demonstrate model loading, injection, and annotation alignment. With `abbr2words` 0.2.0, bundled rules do not yet require POS labels, so the spoken output can be unchanged unless the shared abbreviation registry contains custom POS-guarded entries.
+The spaCy examples demonstrate model loading, injection, and annotation alignment.
+spaCy supplies POS annotations only to rules that declare POS guards. Installing
+spaCy therefore does not guarantee different default output; its effect depends
+on the active abbreviation registry and custom rules.

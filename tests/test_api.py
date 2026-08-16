@@ -223,6 +223,56 @@ def test_removed_prepare_arguments_fail_with_type_error() -> None:
         prepare("hello", language="en", detect_language=True)  # type: ignore[call-arg]
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("use_spacy", "yes"),
+        ("expand_abbreviations", "yes"),
+        ("expand_structured", 1),
+        ("normalize_literals", "no"),
+        ("expand_numbers", []),
+        ("normalize_whitespace", "yes"),
+        ("normalize_unicode", 1),
+        ("strip_outer_whitespace", None),
+        ("collapse_horizontal_whitespace", "yes"),
+        ("normalize_line_whitespace", 1),
+        ("collapse_blank_lines", object()),
+        ("preserve_run_boundaries", "yes"),
+        ("model_punctuation", 1),
+        ("context", "yes"),
+        ("strict", 1),
+    ],
+)
+def test_prepare_validates_boolean_options_like_preparation_config(
+    field: str, value: object
+) -> None:
+    with pytest.raises(TypeError, match=field):
+        prepare("hello", **{field: value})  # type: ignore[arg-type]
+
+
+def test_prepare_rejects_invalid_number_policy_type() -> None:
+    with pytest.raises(TypeError, match="number_policy"):
+        prepare("12", number_policy="plain")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "error"),
+    [
+        ("symbol_mode", "invalid", ValueError),
+        ("generic_acronym_mode", "invalid", ValueError),
+        ("generic_acronym_case", "invalid", ValueError),
+        ("long_number_mode", "invalid", ValueError),
+        ("registered_acronym_mode", "invalid", ValueError),
+        ("keep_symbols", None, TypeError),
+    ],
+)
+def test_prepare_policy_validation_matches_preparation_config(
+    field: str, value: object, error: type[Exception]
+) -> None:
+    with pytest.raises(error, match=field):
+        prepare("hello", **{field: value})  # type: ignore[arg-type]
+
+
 def test_preparation_config_validates_spacy_options() -> None:
     with pytest.raises(TypeError, match="use_spacy"):
         PreparationConfig(language="en", use_spacy="yes")  # type: ignore[arg-type]

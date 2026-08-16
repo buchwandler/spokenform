@@ -35,6 +35,82 @@ only generic grapheme-spaced uppercase acronyms; lexical acronyms, preserved
 terms, known initialisms, identifiers, and mixed-case tokens keep their normal
 policies.
 
+## Configuration policy modes
+
+The policy modes below are passed through the selected language's `abbr2words`
+registry where abbreviation or initialism data is involved. They are available
+for every language profile, but the exact recognized vocabulary and number
+grammar remain locale-specific. They are safety controls: conservative modes
+prefer leaving an ambiguous token unchanged, while expansive modes can create
+false positives in identifiers, product names, headlines, years, and other
+uppercase or digit-heavy text.
+
+### Generic acronyms
+
+`generic_acronym_mode="known_only"` is the default. It lets registered or
+otherwise known initialisms follow their registry policy and leaves unknown
+uppercase words alone. For example, an unknown `TST` remains unchanged while a
+known entry such as `ABC` can be rendered according to the registry.
+
+`"conservative_unknown"` additionally spells unknown uppercase initialisms
+when the context provides abbreviation evidence, reducing accidental changes
+to ordinary uppercase prose. `"spell_unknown"` is the broadest mode: eligible
+unknown uppercase initialisms are spelled even without as much contextual
+evidence, so it is useful for abbreviation-heavy input but has the highest
+false-positive risk.
+
+```python
+PreparationConfig(language="en", generic_acronym_mode="known_only")
+PreparationConfig(
+    language="en",
+    generic_acronym_mode="spell_unknown",
+    generic_acronym_case="upper",
+)
+```
+
+For example, with `use_spacy=False`, `prepare("ABC TST", generic_acronym_mode="conservative_unknown")`
+produces `"A B C T S T"` in the current English registry, while the default
+keeps the unknown `TST` unchanged. `generic_acronym_case="lower"` changes only
+generic grapheme-spaced output (`"a b c t s t"` in that example); it does not
+lowercase lexical acronyms or registered terms. These modes are delegated to
+`abbr2words`' initialism policy rather than implemented as a second local
+abbreviation registry.
+
+### Registered acronyms
+
+`registered_acronym_mode="expand"` is the default and uses the registered
+initialism expansion supplied by `abbr2words`. Set it to `"spell"` when the
+letters of registered initialisms are preferable to their lexical expansion,
+for example `CEO MIT` -> `C E O M I T` in English. This mode has lower lexical
+interpretation risk but may be less natural for acronyms whose full names are
+well known. It affects registered entries, not arbitrary unknown uppercase
+words, and is forwarded to `abbr2words` as `registered_initialism_mode`.
+
+```python
+PreparationConfig(language="en", registered_acronym_mode="spell")
+```
+
+### Long numbers
+
+`long_number_mode="preserve"` is the default. It leaves long ungrouped digit
+strings alone when they could be years, identifiers, account numbers, or other
+downstream-owned sequences. `"contextual"` verbalizes a long number when
+quantity evidence makes cardinal reading safe, such as `844361 items`, while
+continuing to protect identifier-like uses. `"cardinal"` requests cardinal
+verbalization for eligible long numbers regardless of that contextual evidence;
+it is useful for prose known to contain quantities but carries a higher risk of
+rewriting IDs and years. The number grammar and rendered words are selected by
+the active language, and this policy is independent of `abbr2words`' lexical
+abbreviation registry.
+
+```python
+PreparationConfig(language="en", long_number_mode="contextual")
+```
+
+For English, `prepare("844361 items", long_number_mode="preserve")` keeps the
+digits, while `"contextual"` and `"cardinal"` produce
+`"eight hundred forty four thousand three hundred sixty one items"`.
+
 ```{autoclass} spokenform.PreparationConfig
 :members:
 ```

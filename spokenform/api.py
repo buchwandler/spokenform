@@ -25,7 +25,7 @@ from .config import (
     RegisteredAcronymMode,
     SymbolMode,
 )
-from .language import base_language, normalize_language, resolve_abbr2words_language
+from .language import base_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
     Replacement,
@@ -53,7 +53,6 @@ from .stages import (
 from .structured import normalize_structured
 
 _HORIZONTAL_SPACE_RE = re.compile(r"[\t\u00a0\u202f ]+")
-_LINE_SPACE_RE = re.compile(r" *\n *")
 _EXCESS_LINES_RE = re.compile(r"\n{3,}")
 _SOFT_VERSION_RE = re.compile(
     r"(?<![\w.])(?:v\d+(?:\.\d+){1,}|\d+(?:\.\d+){2,})(?![\w.])",
@@ -131,117 +130,66 @@ def prepare(
     if not isinstance(text, str):
         raise TypeError("text must be a string")
 
-    if config is not None:
-        language = config.language
-        use_spacy = config.use_spacy
-        spacy_model = config.spacy_model
-        expand_abbreviations = config.expand_abbreviations
-        expand_structured = config.expand_structured
-        normalize_literals = config.normalize_literals
-        expand_numbers = config.expand_numbers
-        normalize_whitespace = config.normalize_whitespace
-        normalize_unicode = config.normalize_unicode
-        strip_outer_whitespace = config.strip_outer_whitespace
-        collapse_horizontal_whitespace = config.collapse_horizontal_whitespace
-        normalize_line_whitespace = config.normalize_line_whitespace
-        collapse_blank_lines = config.collapse_blank_lines
-        number_policy = config.number_policy
-        preserve_run_boundaries = config.preserve_run_boundaries
-        model_punctuation = config.model_punctuation
-        symbol_mode = config.symbol_mode
-        keep_symbols = config.keep_symbols
-        generic_acronym_mode = config.generic_acronym_mode
-        generic_acronym_case = config.generic_acronym_case
-        long_number_mode = config.long_number_mode
-        registered_acronym_mode = config.registered_acronym_mode
-        context = config.context
-        strict = config.strict
-    if not isinstance(keep_symbols, str):
-        raise TypeError("keep_symbols must be a string")
-    if symbol_mode not in {"none", "remove", "keep"}:
-        raise ValueError("symbol_mode must be 'none', 'remove', or 'keep'")
-    if symbol_mode != "keep" and keep_symbols:
-        raise ValueError("keep_symbols is only valid when symbol_mode='keep'")
-    if symbol_mode == "keep" and not keep_symbols:
-        raise ValueError(
-            "keep_symbols must not be empty when symbol_mode='keep'; "
-            "use symbol_mode='remove' to remove all symbols"
-        )
-    if generic_acronym_case not in {"upper", "lower"}:
-        raise ValueError("generic_acronym_case must be 'upper' or 'lower'")
-    if generic_acronym_mode not in {
-        "known_only",
-        "conservative_unknown",
-        "spell_unknown",
-    }:
-        raise ValueError(
-            "generic_acronym_mode must be 'known_only', 'conservative_unknown', or 'spell_unknown'"
-        )
-    if long_number_mode not in {"preserve", "contextual", "cardinal"}:
-        raise ValueError("long_number_mode must be 'preserve', 'contextual', or 'cardinal'")
-    if registered_acronym_mode not in {"expand", "spell"}:
-        raise ValueError("registered_acronym_mode must be 'expand' or 'spell'")
-    if use_spacy is not None or spacy_model is not None:
-        PreparationConfig(
-            language=language,
-            use_spacy=use_spacy,
-            spacy_model=spacy_model,
-            expand_abbreviations=expand_abbreviations,
-            expand_structured=expand_structured,
-            normalize_literals=normalize_literals,
-            expand_numbers=expand_numbers,
-            normalize_whitespace=normalize_whitespace,
-            normalize_unicode=normalize_unicode,
-            strip_outer_whitespace=strip_outer_whitespace,
-            collapse_horizontal_whitespace=collapse_horizontal_whitespace,
-            normalize_line_whitespace=normalize_line_whitespace,
-            collapse_blank_lines=collapse_blank_lines,
-            number_policy=number_policy,
-            preserve_run_boundaries=preserve_run_boundaries,
-            model_punctuation=model_punctuation,
-            symbol_mode=symbol_mode,
-            keep_symbols=keep_symbols,
-            generic_acronym_mode=generic_acronym_mode,
-            generic_acronym_case=generic_acronym_case,
-            long_number_mode=long_number_mode,
-            registered_acronym_mode=registered_acronym_mode,
-            context=context,
-            strict=strict,
-        )
+    selected = config or PreparationConfig(
+        language=language,
+        use_spacy=use_spacy,
+        spacy_model=spacy_model,
+        expand_abbreviations=expand_abbreviations,
+        expand_structured=expand_structured,
+        normalize_literals=normalize_literals,
+        expand_numbers=expand_numbers,
+        normalize_whitespace=normalize_whitespace,
+        normalize_unicode=normalize_unicode,
+        strip_outer_whitespace=strip_outer_whitespace,
+        collapse_horizontal_whitespace=collapse_horizontal_whitespace,
+        normalize_line_whitespace=normalize_line_whitespace,
+        collapse_blank_lines=collapse_blank_lines,
+        number_policy=number_policy,
+        preserve_run_boundaries=preserve_run_boundaries,
+        model_punctuation=model_punctuation,
+        symbol_mode=symbol_mode,
+        keep_symbols=keep_symbols,
+        generic_acronym_mode=generic_acronym_mode,
+        generic_acronym_case=generic_acronym_case,
+        long_number_mode=long_number_mode,
+        registered_acronym_mode=registered_acronym_mode,
+        context=context,
+        strict=strict,
+    )
 
     clean_text = text
-    language_code = normalize_language(language)
+    language_code = selected.language
     structured_numbers_enabled, plain_numbers_enabled, policy_warnings = _resolve_number_options(
         language_code,
-        expand_structured=expand_structured,
-        expand_numbers=expand_numbers,
-        number_policy=number_policy,
-        model_punctuation=model_punctuation,
+        expand_structured=selected.expand_structured,
+        expand_numbers=selected.expand_numbers,
+        number_policy=selected.number_policy,
+        model_punctuation=selected.model_punctuation,
     )
 
     protected, merged_protected, protection_warnings = _prepare_protected_text(
         clean_text,
-        language=language,
+        language=selected.language,
         protected_spans=protected_spans,
-        protect_literals=not normalize_literals,
-        strict=strict,
+        protect_literals=not selected.normalize_literals,
+        strict=selected.strict,
     )
     current_annotations, spacy_warnings = _prepare_annotations(
         clean_text,
         protected,
         annotations=annotations,
         nlp=nlp,
-        use_spacy=use_spacy,
-        spacy_model=spacy_model,
+        use_spacy=selected.use_spacy,
+        spacy_model=selected.spacy_model,
         language_code=language_code,
-        strict=strict,
+        strict=selected.strict,
     )
 
     stages: list[PreparationStage] = []
     current = protected.text
     reserved_spans: tuple[ReservedSpan, ...] = ()
 
-    if normalize_unicode:
+    if selected.normalize_unicode:
         before = current
         normalized = unicodedata.normalize("NFC", current)
         if normalized != current:
@@ -278,9 +226,9 @@ def prepare(
                 protected.values,
                 protected.placeholders,
             ),
-            promote_literals=normalize_literals,
-            generic_acronym_mode=generic_acronym_mode,
-            generic_acronym_case=generic_acronym_case,
+            promote_literals=selected.normalize_literals,
+            generic_acronym_mode=selected.generic_acronym_mode,
+            generic_acronym_case=selected.generic_acronym_case,
         )
         if structured.replacements:
             internal_replacements = map_visible_replacements_to_internal(
@@ -305,7 +253,7 @@ def prepare(
                 ((item.start, item.end, len(item.text)) for item in internal_replacements),
             )
 
-    if expand_abbreviations:
+    if selected.expand_abbreviations:
         protected_value_by_placeholder = dict(
             zip(protected.placeholders, protected.values, strict=True)
         )
@@ -325,24 +273,24 @@ def prepare(
         ) + tuple((item.start, item.end) for item in reserved_spans)
         abbreviation_kwargs: dict[str, object] = {
             "lang": resolve_abbr2words_language(language_code),
-            "context": context,
+            "context": selected.context,
             "annotations": to_abbr2words_annotations(visible_annotations),
             "protected_spans": abbreviation_protected_spans,
         }
-        if registered_acronym_mode != "expand":
-            abbreviation_kwargs["registered_initialism_mode"] = registered_acronym_mode
+        if selected.registered_acronym_mode != "expand":
+            abbreviation_kwargs["registered_initialism_mode"] = selected.registered_acronym_mode
         if (
-            generic_acronym_mode in {"conservative_unknown", "spell_unknown"}
-            or generic_acronym_case != "upper"
+            selected.generic_acronym_mode in {"conservative_unknown", "spell_unknown"}
+            or selected.generic_acronym_case != "upper"
         ):
             initialism_mode = {
                 "conservative_unknown": "conservative_undotted",
                 "spell_unknown": "spell_undotted",
-            }.get(generic_acronym_mode, "dotted_only")
+            }.get(selected.generic_acronym_mode, "dotted_only")
             abbreviation_kwargs.update(
                 {
                     "initialism_mode": initialism_mode,
-                    "initialism_case": generic_acronym_case,
+                    "initialism_case": selected.generic_acronym_case,
                 }
             )
         # abbr2words 0.2.9 is the first release containing the reviewed
@@ -399,7 +347,7 @@ def prepare(
                 value,
                 language=language_code,
                 protected_ranges=internal_reserved_ranges,
-                long_number_mode=long_number_mode,
+                long_number_mode=selected.long_number_mode,
             ),
             restore=protected.restore,
         )
@@ -425,13 +373,13 @@ def prepare(
         reserved_spans = _remap_reserved_spans(reserved_spans, number_map)
         stages[-1] = replace(stages[-1], reserved=reserved_spans)
 
-    if symbol_mode != "none":
+    if selected.symbol_mode != "none":
         before = current
         visible_before = protected.restore(current)
         symbol_replacements = _iter_symbol_replacements(
             visible_before,
-            mode=symbol_mode,
-            keep_symbols=keep_symbols,
+            mode=selected.symbol_mode,
+            keep_symbols=selected.keep_symbols,
             language=language_code,
             protected_ranges=(
                 map_internal_protected_spans_to_visible(
@@ -471,7 +419,7 @@ def prepare(
         reserved_spans = _remap_reserved_spans(reserved_spans, symbol_map)
         stages[-1] = replace(stages[-1], reserved=reserved_spans)
 
-    if normalize_whitespace:
+    if selected.normalize_whitespace:
         before = current
         current = apply_stage(
             stages,
@@ -480,12 +428,18 @@ def prepare(
             lambda value: normalize_spacing(
                 value,
                 normalize_unicode=False,
-                strip_outer_whitespace=strip_outer_whitespace and not preserve_run_boundaries,
-                collapse_horizontal_whitespace=(
-                    collapse_horizontal_whitespace and not preserve_run_boundaries
+                strip_outer_whitespace=(
+                    selected.strip_outer_whitespace and not selected.preserve_run_boundaries
                 ),
-                normalize_line_whitespace=normalize_line_whitespace and not preserve_run_boundaries,
-                collapse_blank_lines=collapse_blank_lines and not preserve_run_boundaries,
+                collapse_horizontal_whitespace=(
+                    selected.collapse_horizontal_whitespace and not selected.preserve_run_boundaries
+                ),
+                normalize_line_whitespace=(
+                    selected.normalize_line_whitespace and not selected.preserve_run_boundaries
+                ),
+                collapse_blank_lines=(
+                    selected.collapse_blank_lines and not selected.preserve_run_boundaries
+                ),
             ),
             restore=protected.restore,
         )

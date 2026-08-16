@@ -155,6 +155,9 @@ The filter runs after semantic recognition and does not modify protected spans.
 For generic uppercase acronyms, `generic_acronym_case="lower"` renders `ABC`
 as `a b c`; the default and `"upper"` render it as `A B C`. Lexical acronyms,
 preserved terms, and known initialisms retain their existing policies.
+The [`API policy reference`](docs/api.md#configuration-policy-modes) explains
+the `generic_acronym_mode`, `registered_acronym_mode`, and `long_number_mode`
+choices, including their false-positive tradeoffs.
 
 ## spaCy support
 
@@ -331,11 +334,12 @@ language detection, markup parsing, and phoneme generation.
 ## Release versioning
 
 `setuptools-scm` derives versions from Git tags and writes
-`spokenform/_version.py` during builds. Use annotated tags such as `v0.2.2`.
+`spokenform/_version.py` during builds. Create an annotated tag for the target
+release, for example `vX.Y.Z`.
 The source-tree fallback when SCM metadata has not been generated is the neutral
 version `0+unknown`; release builds derive their version from the annotated tag.
 
-Before publishing, ensure the released `abbr2words>=0.2.4` prerequisite exists
+Before publishing, ensure the released `abbr2words>=0.2.9,<0.3.0` prerequisite exists
 on the target package index and run the checklist in
 [`docs/release-checklist.md`](docs/release-checklist.md).
 

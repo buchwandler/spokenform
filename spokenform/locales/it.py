@@ -9,14 +9,13 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
-from ..dates import expand_year
+from ..dates import _valid_date, expand_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -201,14 +200,6 @@ def _number_text(raw: str, *, singular_article: str | None = None, language: str
             _spell(int(group), language) for group in fraction_digit_groups(fraction, language)
         )
     return f"meno {result}" if negative else result
-
-
-def _valid_date(day: int, month: int, year: int) -> bool:
-    try:
-        date(year, month, day)
-    except ValueError:
-        return False
-    return True
 
 
 def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:

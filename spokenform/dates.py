@@ -11,6 +11,15 @@ from num2words import num2words
 from .language import resolve_num2words_language
 
 
+def _valid_date(day: int, month: int, year: int) -> bool:
+    """Return whether the components form a real Gregorian calendar date."""
+    try:
+        date(year, month, day)
+    except ValueError:
+        return False
+    return True
+
+
 @dataclass(frozen=True, slots=True)
 class ParsedDate:
     """A validated calendar date retaining the source year width."""
@@ -33,11 +42,7 @@ class ParsedDate:
     def valid(self) -> bool:
         if self.year is None:
             return 1 <= self.day <= 31 and 1 <= self.month <= 12
-        try:
-            date(self.year, self.month, self.day)
-        except ValueError:
-            return False
-        return True
+        return _valid_date(self.day, self.month, self.year)
 
 
 @dataclass(frozen=True, slots=True)

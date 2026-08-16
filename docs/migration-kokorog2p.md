@@ -53,7 +53,7 @@ This audit intentionally does not port language detection, markup parsing, mixed
 language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model
 specific quote/dash behavior into spokenform. French, Spanish, Italian, and
 Portuguese are
-ready for downstream handoff only with the released `abbr2words>=0.2.4`
+ready for downstream handoff only with the released `abbr2words>=0.2.9,<0.3.0`
 prerequisite and their real parity gates; package publication remains the release
 workflow boundary. Spanish, Italian, Portuguese, and Czech time ownership is
 intentionally deferred until reviewed time corpora exist. English semantic

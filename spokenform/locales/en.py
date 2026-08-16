@@ -10,7 +10,6 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
 from decimal import Decimal, InvalidOperation
 from typing import Literal
 
@@ -18,7 +17,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
-from ..dates import DateCandidate, expand_year, render_english_year
+from ..dates import DateCandidate, _valid_date, expand_year, render_english_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -325,14 +324,6 @@ def _decimal(raw: str) -> Decimal:
         return Decimal(value)
     except (InvalidOperation, ValueError) as exc:
         raise ValueError(f"Cannot parse English number {raw!r}") from exc
-
-
-def _valid_date(day: int, month: int, year: int) -> bool:
-    try:
-        date(year, month, day)
-    except ValueError:
-        return False
-    return True
 
 
 def _date_text(

@@ -10,13 +10,13 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import date
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
 from num2words import num2words
 
 from ..config import NumberPolicy
+from ..dates import _valid_date
 from ..language import normalize_language, resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 
@@ -156,14 +156,6 @@ def _number_text(raw: str, *, language: str, gender: str | None = None) -> str:
             _spell(int(digit), language) for digit in fraction
         )
     return f"menos {result}" if negative else result
-
-
-def _valid_date(day: int, month: int, year: int) -> bool:
-    try:
-        date(year, month, day)
-    except ValueError:
-        return False
-    return True
 
 
 def _date_text(day: int, month: int, year: int, *, language: str) -> str:

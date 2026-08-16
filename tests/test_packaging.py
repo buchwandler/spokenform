@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import spokenform
@@ -32,6 +33,16 @@ def test_declared_package_files_exist() -> None:
     assert (root / "tests" / "data" / "golden_s0.json").is_file()
 
 
+def test_manifest_literal_includes_exist() -> None:
+    root = Path(__file__).parents[1]
+    manifest = (root / "MANIFEST.in").read_text(encoding="utf-8")
+    entries = re.findall(r"^include\s+([^\s#]+)\s*$", manifest, flags=re.MULTILINE)
+
+    assert entries
+    missing = [entry for entry in entries if not (root / entry).is_file()]
+    assert not missing, f"MANIFEST.in includes missing files: {missing}"
+
+
 def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
     project = tomllib.loads(
         (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
@@ -48,6 +59,14 @@ def test_abbr2words_exposes_the_conservative_initialism_policy() -> None:
     from abbr2words import abbr2words_with_replacements
 
     assert "initialism_mode" in signature(abbr2words_with_replacements).parameters
+
+
+def test_abbr2words_units_module_exposes_supported_unit_entries() -> None:
+    from abbr2words.units import unit_entries
+
+    entries = unit_entries("en")
+    assert entries
+    assert any(entry.canonical_id == "length-meter" for entry in entries)
 
 
 def test_scm_version_fallback_is_neutral() -> None:
