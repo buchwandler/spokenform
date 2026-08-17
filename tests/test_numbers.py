@@ -1,6 +1,8 @@
 import pytest
 
 from spokenform import normalize_numbers, prepare
+from spokenform.numbers import normalize_plain_numbers
+from spokenform.numeric_lexeme import parse_numeric_lexeme
 
 
 def test_german_decimal_and_unit_ready_text() -> None:
@@ -19,6 +21,67 @@ def test_english_leading_decimal_in_sentence() -> None:
         use_spacy=False,
     )
     assert result.spoken_text == "He hesitated for point zero two seconds."
+    assert not any(
+        item.rule
+        in {
+            "sequence.version",
+            "sequence.time",
+            "sequence.duration",
+            "sequence.sports",
+            "sequence.chained-score",
+        }
+        for item in result.source_replacements
+    )
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        (".3", "point three"),
+        (".02", "point zero two"),
+        ("-.3", "minus point three"),
+        ("+.3", "plus point three"),
+        ("0.3", "zero point three"),
+        ("0.02", "zero point zero two"),
+    ),
+)
+def test_english_leading_decimal_contract(source: str, expected: str) -> None:
+    assert normalize_plain_numbers(source, language="en") == expected
+
+
+def test_english_leading_decimal_parser_invariant() -> None:
+    lexeme = parse_numeric_lexeme(".3", "en", context="plain")
+
+    assert lexeme is not None
+    assert lexeme.integer_digits == "0"
+    assert lexeme.fraction_digits == "3"
+    assert lexeme.decimal_separator == "."
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        (
+            "It took nearly .3 seconds.",
+            "It took nearly point three seconds.",
+        ),
+        (
+            "After .02 seconds",
+            "After point zero two seconds",
+        ),
+    ),
+)
+def test_english_leading_decimals_in_prose(source: str, expected: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == expected
+    decimal_source = ".3" if ".3" in source else ".02"
+    decimal_replacements = [
+        item for item in result.source_replacements if item.source == decimal_source
+    ]
+    assert len(decimal_replacements) == 1
+    assert decimal_replacements[0].stages == ("numbers",)
+    assert decimal_replacements[0].rule is None
     assert not any(
         item.rule
         in {

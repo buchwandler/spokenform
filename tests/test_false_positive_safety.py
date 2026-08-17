@@ -101,3 +101,27 @@ def test_ambiguous_uppercase_art_is_not_guessed_as_an_initialism() -> None:
         generic_acronym_mode="conservative_unknown",
     )
     assert conservative.spoken_text == source
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "IDs",
+        "resident IDs",
+        "It was locked to resident IDs.",
+        "PCs",
+        "ICs",
+    ),
+)
+def test_plural_initialism_shapes_are_not_claimed_as_chemical_formulas(source: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert result.spoken_text == source
+    assert not any(item.rule == "sequence.formula" for item in result.source_replacements)
+
+
+@pytest.mark.parametrize("source", ("NaCl", "H2O", "H₂O", "H5N1", "Al(OH)3", "CO2", "Fe2O3"))
+def test_formula_plural_initialism_guard_preserves_real_formula_shapes(source: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+
+    assert any(item.rule == "sequence.formula" for item in result.source_replacements)

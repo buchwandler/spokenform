@@ -1231,6 +1231,12 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
 
 
 def _formula_is_plausible(value: str) -> bool:
+    # Mixed-case plural initialisms such as IDs, PCs, and ICs can accidentally
+    # segment into valid element symbols (I + Ds, P + Cs, I + Cs). Prefer
+    # ordinary-language safety for this ambiguous shape.
+    if re.fullmatch(r"[A-Z]{2,8}s", value):
+        return False
+
     tokens = re.findall(r"[A-Z][a-z]?", value)
     if value.count("(") != value.count(")") or value.find(")") < value.find("("):
         return False

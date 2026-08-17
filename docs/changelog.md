@@ -10,6 +10,8 @@
 
 - Fixed direct prepare() keyword validation to match PreparationConfig
 - Removed stale package manifest metadata and added distribution-content checks
+- Fixed plural initialism shapes such as IDs being misclassified as chemical formulas
+- Fixed explicit English leading-decimal signs and digit-wise precision for readings such as .3 and .02
 
 ### Documentation
 

@@ -707,6 +707,7 @@ def _render_numeric_lexeme(
     mode: NumberRenderMode = NumberRenderMode.CARDINAL,
 ) -> str:
     """Render a parsed lexeme without reparsing its punctuation."""
+    positive = lexeme.raw.startswith("+")
     if mode is NumberRenderMode.DIGIT_SEQUENCE:
         result = " ".join(
             str(num2words(int(digit), lang=resolve_num2words_language(language)))
@@ -746,6 +747,8 @@ def _render_numeric_lexeme(
         )
     if lexeme.negative:
         return f"{_negative_word(language)} {result}"
+    if positive:
+        return f"plus {result}"
     return result
 
 
