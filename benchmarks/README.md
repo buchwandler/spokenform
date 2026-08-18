@@ -102,14 +102,8 @@ The dashboard clearly separates deterministic Spokenform text metrics from publi
 
 ## Spokenform Gold benchmark
 
-`python -m benchmarks.spokenform_gold --gold-root /path/to/release --split test`
-runs the experimental Spokenform Gold adapter against a built Gold release. The
-Gold corpus remains a diagnostic benchmark rather than a stable release gate:
-it measures current coverage and correctness without redefining Spokenform's
-public support contract.
+`python -m benchmarks.spokenform_gold` downloads the reviewed Spokenform Gold repository at pinned commit `ba55d631a45a0fe8b3d87ad58beef2843c617151`, builds and verifies the experimental `0.1.0-exp` release, evaluates the default `test` split, and writes a self-contained HTML report. The source and materialized release are cached under `.cache/spokenform-gold/<commit>/`; cached data is not packaged with Spokenform.
 
-The adapter imports `spokenform_gold.benchmark`, so install the sibling
-`spokenform-gold` repository or otherwise make the package importable first.
-Reports are written under `benchmark-results/spokenform-gold/<run-id>/` and
-record Spokenform version/commit, Gold version/manifest hash, profile, split,
-and scoring mode.
+Use `--offline` to reuse a populated cache, `--refresh` to repopulate it, `--download-only` to populate and verify without scoring, `--cache-dir` to choose another cache, `--gold-root /path/to/release` to use an explicit local release, `--split test|dev|all`, `--mode canonical|accepted`, and `--report html|none`. Results are written under `benchmark-results/spokenform-gold/<run-id>/` with `summary.json`, `predictions.jsonl`, `rows.jsonl`, `failures.jsonl`, `failures.md`, and, by default, `report.html`.
+
+The Gold corpus remains a diagnostic benchmark rather than a stable release gate. The adapter records source provenance and uses Gold's own scoring, release verification, and materialization policy. It does not automatically hydrate restricted PolyNorm or Proteno sources.
