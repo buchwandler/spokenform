@@ -36,6 +36,27 @@ def test_numeric_lexeme_distinguishes_grouping_and_mixed_decimal_forms() -> None
     assert english.grouping_separators == (",",)
 
 
+def test_spanish_currency_accepts_comma_grouping_without_reclassifying_decimals() -> None:
+    grouped = parse_numeric_lexeme("1,250,000", "es", context="currency")
+    short_grouped = parse_numeric_lexeme("1,250", "es", context="currency")
+    decimal = parse_numeric_lexeme("1,25", "es", context="currency")
+
+    assert grouped is not None and grouped.integer_digits == "1250000"
+    assert grouped.fraction_digits is None
+    assert short_grouped is not None and short_grouped.integer_digits == "1250"
+    assert short_grouped.fraction_digits is None
+    assert decimal is not None and decimal.integer_digits == "1"
+    assert decimal.fraction_digits == "25"
+
+
+def test_spanish_math_accepts_long_dot_decimal_fraction() -> None:
+    lexeme = parse_numeric_lexeme("3.1416", "es", context="math")
+
+    assert lexeme is not None
+    assert lexeme.integer_digits == "3"
+    assert lexeme.fraction_digits == "1416"
+
+
 def test_numeric_lexeme_fails_closed_for_date_and_version_candidates() -> None:
     assert parse_numeric_lexeme("12.10.23", "de-DE", context="date_candidate") is None
     assert parse_numeric_lexeme("2024.1.2", "en-US", context="version") is None

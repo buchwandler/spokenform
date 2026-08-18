@@ -46,6 +46,9 @@ def test_spanish_currency_prefix_suffix_and_fraction_precision() -> None:
     assert prepare("10 USD y 5 GBP", language="es", use_spacy=False).spoken_text == (
         "Diez dólares y cinco libras esterlinas"
     )
+    assert prepare("$1,250,000", language="es", use_spacy=False).spoken_text == (
+        "Un millón doscientos cincuenta mil dólares"
+    )
 
 
 def test_spanish_structured_replacements_are_exact_and_non_overlapping() -> None:

@@ -336,7 +336,7 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "es") -> str | N
 
 
 def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
-    negative, integer, fraction = _parts(raw, language)
+    negative, integer, fraction = _parts(raw, language, context="currency")
     names = {
         "currency-euro": ("euro", "euros", "céntimo", "céntimos"),
         "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),

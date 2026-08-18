@@ -210,7 +210,11 @@ def parse_numeric_lexeme(
         separator = separators[0]
         positions = _separator_positions(unsigned, separator)
         if len(positions) > 1:
-            if separator in policy.grouping_separators and _grouping_is_valid(unsigned, separator):
+            valid_grouping = _grouping_is_valid(unsigned, separator)
+            currency_grouping = (
+                context == "currency" and separator == policy.decimal_separator and valid_grouping
+            )
+            if (separator in policy.grouping_separators or currency_grouping) and valid_grouping:
                 grouping_separators.append(separator)
             else:
                 return None
@@ -228,10 +232,13 @@ def parse_numeric_lexeme(
                 head = "0"
             if separator == policy.decimal_separator:
                 if context == "currency" and len(tail) > 2:
-                    return None
-                decimal_separator = separator
+                    if len(tail) != 3 or not _grouping_is_valid(unsigned, separator):
+                        return None
+                    grouping_separators.append(separator)
+                else:
+                    decimal_separator = separator
             elif separator in policy.alternate_decimal_separators and (
-                len(tail) in {1, 2} or context == "coordinate"
+                len(tail) in {1, 2} or context in {"coordinate", "math"}
             ):
                 decimal_separator = separator
             elif len(tail) == 3 and separator in policy.grouping_separators:
