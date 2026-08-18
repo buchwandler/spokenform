@@ -33,6 +33,7 @@ python -m benchmarks.proteno --offline --split test
 python -m benchmarks.proteno --offline --language en --limit 100
 python -m benchmarks.proteno --offline --case en:00481 --show-failures all
 python -m benchmarks.proteno --offline --speech-wer-threshold 0.5
+python -m benchmarks.proteno --offline --report html
 ```
 
 Use `--refresh` to redownload selected pinned files. `--cache-dir` and
@@ -77,6 +78,9 @@ Reports are written to `benchmark-results/proteno/<UTC-run-id>/`:
   shards grouped by language and case kind. Each shard is capped at 1 MiB and
   contains local source, expected, actual, WER, and provenance evidence.
 - `excluded.jsonl` records adapter exclusions separately from Spokenform output.
+- `report.html` is a self-contained local dashboard with KPI, language,
+  normalization/identity, language × case-kind, diagnostics, failure, metadata,
+  and optional oracle views. Use `--report none` to skip HTML generation.
 
 Metrics separate normalization cases from identity cases. Semantic comparison
 uses speech-token exactness plus the localized-letter equivalence diagnostic;

@@ -98,9 +98,18 @@ metadata. Benchmark failures do not authorize broad runtime rule changes.
 
 `report.html` opens directly from a filesystem path. It has English,
 multilingual, failures, and metadata views, category search and threshold
-controls, language/category failure filters, source-stage details, and a
-reproducibility panel. It contains no CDN, external font, remote image, or
-server dependency. Dataset and runtime strings are HTML-escaped.
+controls, language/category/family/ownership/risk failure filters, live
+visible-row counts, source-stage details, and a reproducibility panel. It
+contains no CDN, external font, remote image, or server dependency. Dataset
+and runtime strings are HTML-escaped.
+
+The failure explorer separates authoritative sentence failures from unit-level
+diagnostics. Sentence rows always use sentence-level source, expected, and
+actual text. Unit rows expose projected expected and projected actual text as
+diagnostic views only. When a source edit crosses a unit boundary, the unit row
+is marked `mapping-ambiguous`; the raw projected text stays available in the
+diagnostic details, but it is never presented as an authoritative unit target
+or unit output and the unit remains unscorable.
 
 The published reference values come from the pinned overview/category JSON and
 represent the upstream audio/LLM judge methodology. Spokenform values are

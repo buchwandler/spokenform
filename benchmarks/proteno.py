@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import math
 from pathlib import Path
+from typing import Literal, cast
 
 from .proteno_data import ensure_data, load_cases_with_exclusions, selected_languages
 from .proteno_eval import BENCHMARK_PROFILES, evaluate_and_write
@@ -46,6 +47,7 @@ def _parser() -> argparse.ArgumentParser:
         default="none",
         help="Print the failure report index after evaluation.",
     )
+    parser.add_argument("--report", choices=("html", "none"), default="html")
     parser.add_argument(
         "--candidate-oracle",
         action="store_true",
@@ -82,7 +84,10 @@ def main(argv: list[str] | None = None) -> int:
         case_id=args.case_id,
         limit=args.limit,
     )
-    profile = "extended" if args.normalize_literals else args.profile
+    profile_name = "extended" if args.normalize_literals else args.profile
+    if profile_name not in BENCHMARK_PROFILES:
+        raise AssertionError(f"unsupported profile: {profile_name}")
+    profile = cast(Literal["default", "extended"], profile_name)
     output_dir, summary = evaluate_and_write(
         cases,
         exclusions=exclusions,
@@ -91,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
         speech_wer_threshold=args.speech_wer_threshold,
         profile=profile,
         candidate_oracle=args.candidate_oracle,
+        report=args.report,
     )
     print(
         f"Proteno profile: {summary['profile']} (normalize_literals={summary['normalize_literals']})"

@@ -266,7 +266,8 @@ def ensure_data(
     root = cache_path(cache_dir)
     root.mkdir(parents=True, exist_ok=True)
     metadata = _load_metadata(cache_dir)
-    recorded = metadata.get("files", {})
+    recorded_value = metadata.get("files", {})
+    recorded = recorded_value if isinstance(recorded_value, dict) else {}
     files: dict[str, dict[str, object]] = {
         str(key): dict(value) for key, value in recorded.items() if isinstance(value, dict)
     }
@@ -552,7 +553,8 @@ def source_metadata(
 ) -> dict[str, object]:
     """Return commit and selected file-hash provenance for a populated cache."""
     metadata = _load_metadata(cache_dir)
-    recorded = metadata.get("files", {})
+    recorded_value = metadata.get("files", {})
+    recorded = recorded_value if isinstance(recorded_value, dict) else {}
     selected = set(files) if files is not None else None
     file_metadata = {
         str(path): value for path, value in recorded.items() if selected is None or path in selected

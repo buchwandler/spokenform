@@ -25,6 +25,7 @@ python -m benchmarks.polynorm --offline --locale en-US --category Date
 python -m benchmarks.polynorm --offline --case en-US:1
 python -m benchmarks.polynorm --offline --show-failures all
 python -m benchmarks.polynorm --offline --speech-wer-threshold 0.5
+python -m benchmarks.polynorm --offline --report html
 ```
 
 Use `--speech-wer-threshold VALUE` to persist only failure entries whose word
@@ -57,6 +58,13 @@ equivalent speech is a parallel diagnostic. It continues after mismatches and in
 exceptions and does not add a score threshold to normal CI. Questionable
 upstream rows remain visible with quarantine reasons and are excluded only
 from reviewed metrics.
+
+Each run now also writes a self-contained `report.html` by default. The local
+dashboard includes KPI cards, a locale table, a canonical-category table, a
+locale × category view, a diagnostics/gate section, a filterable failure
+explorer, metadata, and an optional oracle section when `--candidate-oracle`
+data is present. Use `--report none` to skip HTML generation while keeping the
+existing JSONL, Markdown, and summary artifacts unchanged.
 
 The local quarantine annotations are intentionally limited to eight upstream
 rows whose expected text is malformed, questionable, or inconsistent with the

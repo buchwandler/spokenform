@@ -11,11 +11,14 @@ committed.
 
 Use `--offline` after the cache has been populated. The adapter also supports
 `--locale`, `--category`, `--case`, `--limit`, `--refresh`, `--download-only`,
-`--profile default|extended`, `--normalize-literals`, and `--show-failures all`.
+`--profile default|extended`, `--normalize-literals`, `--show-failures all`,
+and `--report html|none`.
 Reports are written to
 `benchmark-results/polynorm/<run-id>/`. `summary.json` contains metrics and
 metadata only; the JSONL and Markdown failure reports contain source text and
-remain local.
+remain local. `report.html` is a self-contained dashboard covering KPI,
+locale/category breakdowns, diagnostics, failures, metadata, and optional
+oracle views.
 
 The default profile calls `prepare(..., normalize_literals=False)` and treats
 URL/email/version rows as protected ownership. The extended profile calls
@@ -63,10 +66,12 @@ See the detailed [PolyNorm documentation](../docs/polynorm.md).
 `python -m benchmarks.proteno --accept-license` runs the pinned English and
 Spanish Proteno diagnostic benchmark. Data is cached under
 `.cache/proteno/<commit>/`; reports are written under
-`benchmark-results/proteno/<run-id>/`. Use `--profile extended` or
-`--normalize-literals` for the opt-in literal profile. Reports keep semantic,
-presentation-only, ownership, and risk-tier diagnostics separate. The external
-data is never packaged or committed. See the detailed
+`benchmark-results/proteno/<run-id>/`. Use `--profile extended`,
+`--normalize-literals`, or `--report none` for the opt-in literal profile and
+HTML toggle. `report.html` is a self-contained dashboard covering KPI,
+language/case-kind views, diagnostics, failures, metadata, and optional oracle
+details. Reports keep semantic, presentation-only, ownership, and risk-tier
+diagnostics separate. The external data is never packaged or committed. See the detailed
 [Proteno documentation](../docs/proteno.md).
 
 ## Google TN benchmark
@@ -93,7 +98,7 @@ See the detailed [Google TN documentation](../docs/google_tn.md).
 
 The multilingual suite supports `en`, `de`, `es`, `fr`, `it`, and `pt`; English maps to `en_US`. Each sentence is prepared once and annotated units are projected through source mappings. Ambiguous mappings and malformed source rows are quarantined rather than guessed. Results include explicit denominators, source hashes, JSONL records, Markdown failures, a static escaped HTML dashboard, and reference data from the pinned upstream category files.
 
-The dashboard clearly separates deterministic Spokenform text metrics from published upstream audio/LLM judge scores. It does not calculate a mixed-method winner. Compare compatible runs with `python -m benchmarks.async_tn_compare before after`; incompatible dataset or configuration identities are rejected by default. See the detailed [Async TN documentation](../docs/async_tn.md).
+The dashboard clearly separates deterministic Spokenform text metrics from published upstream audio/LLM judge scores. Its failure explorer uses authoritative sentence-level expected/actual values and treats unit projections as diagnostic-only when cross-boundary edits make them ambiguous. It does not calculate a mixed-method winner. Compare compatible runs with `python -m benchmarks.async_tn_compare before after`; incompatible dataset or configuration identities are rejected by default. See the detailed [Async TN documentation](../docs/async_tn.md).
 
 ## Spokenform Gold benchmark
 

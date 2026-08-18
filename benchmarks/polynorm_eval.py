@@ -273,7 +273,7 @@ def source_commit() -> str | None:
 
 def environment_fingerprint(
     locales: Iterable[str], *, profile: LiteralProfile = "default"
-) -> dict[str, object]:
+) -> dict[str, Any]:
     """Return reproducibility metadata for one benchmark configuration."""
     from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
 
@@ -726,8 +726,7 @@ def evaluate_cases(
         },
         "outcome_counts": {
             outcome: sum(row.get("outcome") == outcome for row in rows)
-            for outcome in sorted({row.get("outcome") for row in rows})
-            if outcome
+            for outcome in sorted({str(row.get("outcome")) for row in rows if row.get("outcome")})
         },
         "gate_metrics": _gate_metrics(rows),
         "numeric_gate": {
@@ -858,6 +857,7 @@ def evaluate_and_write(
     speech_wer_threshold: float | None = None,
     profile: LiteralProfile = "default",
     candidate_oracle: bool = False,
+    report: str = "html",
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metrics plus local text-bearing failure reports."""
     case_list = tuple(cases)
@@ -955,6 +955,10 @@ def evaluate_and_write(
             + "\n",
             encoding="utf-8",
         )
+    if report == "html":
+        from .polynorm_report import render_report
+
+        render_report(summary_payload, all_rows, output_dir / "report.html")
     return output_dir, summary_payload
 
 

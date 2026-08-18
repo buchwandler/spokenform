@@ -7,6 +7,7 @@ from itertools import product
 from typing import Any
 
 from spokenform import PreparedText
+from spokenform.config import GenericAcronymCase, GenericAcronymMode
 from spokenform.mapping import Replacement, apply_replacements, resolve_replacements
 from spokenform.models import SourceReplacement
 from spokenform.structured import (
@@ -355,8 +356,8 @@ def analyze_candidate_oracle(
     *,
     language: str,
     promote_literals: bool = False,
-    generic_acronym_mode: str = "known_only",
-    generic_acronym_case: str = "upper",
+    generic_acronym_mode: GenericAcronymMode = "known_only",
+    generic_acronym_case: GenericAcronymCase = "upper",
     max_component_paths: int = MAX_COMPONENT_PATHS,
     max_global_combinations: int = MAX_GLOBAL_COMBINATIONS,
 ) -> OracleAnalysis:
@@ -472,6 +473,7 @@ def analyze_candidate_oracle(
         combinations = tuple(candidate_combinations)
     scored: list[tuple[Any, ...]] = []
     for selected_paths in combinations:
+        candidate_text: str | None
         if all(
             _same_path(baseline, selected)
             for baseline, selected in zip(ambiguous_baseline_paths, selected_paths, strict=True)

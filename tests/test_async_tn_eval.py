@@ -127,6 +127,14 @@ def test_actual_projection_uses_prepared_source_mapping():
     assert not projection.ambiguous
 
 
+def test_actual_projection_crossing_unit_boundary_is_ambiguous():
+    result = real_prepare("7 AM", language="en_US")
+    item = unit("7 AM", "AM", 2)
+    projection = evaluator.project_actual_unit(result, item)
+    assert projection.text == "seven A M"
+    assert projection.ambiguous
+
+
 def test_evaluator_uses_one_runtime_call_without_category_oracle(monkeypatch):
     calls = []
     original_prepare = evaluator.prepare
@@ -162,6 +170,17 @@ def test_runtime_errors_are_isolated_per_case(monkeypatch):
     assert rows[1]["outcome"] == "runtime-error"
     assert summary["counts"]["runtime_error_cases"] == 1
     assert sum(item["outcome"] == "runtime-error" for item in units) == 1
+
+
+def test_ambiguous_unit_rows_keep_sentence_and_projection_values_separate():
+    item = unit("7 AM", "AM", 2)
+    summary, rows, units, _ = evaluator.evaluate_cases([case("7 AM", "seven A M", item)])
+    assert summary["counts"]["units_total"] == 1
+    assert rows[0]["actual"] == "seven A M"
+    assert units[0]["expected"] == "A M"
+    assert units[0]["actual"] == "seven A M"
+    assert units[0]["actual_mapping_ambiguous"] is True
+    assert units[0]["outcome"] == "mapping-ambiguous"
 
 
 def test_unit_and_sentence_metrics_keep_separate_denominators():

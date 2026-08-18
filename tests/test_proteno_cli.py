@@ -21,5 +21,18 @@ def test_candidate_oracle_flag_reaches_evaluator(monkeypatch, tmp_path) -> None:
 
     monkeypatch.setattr(cli, "evaluate_and_write", fake_evaluate_and_write)
 
-    assert cli.main(["--offline", "--candidate-oracle", "--results-dir", str(tmp_path)]) == 0
+    assert (
+        cli.main(
+            [
+                "--offline",
+                "--candidate-oracle",
+                "--report",
+                "none",
+                "--results-dir",
+                str(tmp_path),
+            ]
+        )
+        == 0
+    )
     assert calls[0]["candidate_oracle"] is True
+    assert calls[0]["report"] == "none"

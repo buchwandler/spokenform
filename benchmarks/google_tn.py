@@ -11,6 +11,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
+from typing import Literal, cast
 
 from .candidate_oracle import MAX_COMPONENT_PATHS, MAX_GLOBAL_COMBINATIONS
 from .google_tn_data import (
@@ -160,7 +161,10 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict]:
         semiotic_class=args.semiotic_class,
         case_id=args.case_id,
     )
-    profile = "extended" if args.normalize_literals else args.profile
+    profile_name = "extended" if args.normalize_literals else args.profile
+    if profile_name not in BENCHMARK_PROFILES:
+        raise AssertionError(f"unsupported profile: {profile_name}")
+    profile = cast(Literal["default", "extended"], profile_name)
     summary, rows, failures = evaluate(
         cases,
         profile=profile,

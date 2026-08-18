@@ -36,7 +36,7 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load_gold_benchmark():
+def _load_gold_benchmark() -> Any:
     try:
         return importlib.import_module("spokenform_gold.benchmark")
     except ModuleNotFoundError as exc:

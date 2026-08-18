@@ -128,7 +128,7 @@ def source_commit() -> str | None:
 
 def environment_fingerprint(
     languages: Iterable[str], *, profile: LiteralProfile = "default"
-) -> dict[str, object]:
+) -> dict[str, Any]:
     from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
 
     resolution = {
@@ -748,6 +748,7 @@ def evaluate_and_write(
     speech_wer_threshold: float | None = None,
     profile: LiteralProfile = "default",
     candidate_oracle: bool = False,
+    report: str = "html",
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metadata and local source-bearing reports."""
     case_list = tuple(cases)
@@ -868,6 +869,10 @@ def evaluate_and_write(
             + "\n",
             encoding="utf-8",
         )
+    if report == "html":
+        from .proteno_report import render_report
+
+        render_report(summary_payload, all_rows, output_dir / "report.html")
     return output_dir, summary_payload
 
 

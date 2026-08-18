@@ -42,6 +42,7 @@ def test_speech_wer_threshold_is_strict_and_optional() -> None:
     assert _filter_failures_by_speech_wer(failures, None) == failures
     assert _parser().parse_args(["--speech-wer-threshold", "0.5"]).speech_wer_threshold == 0.5
     assert _parser().parse_args(["--candidate-oracle"]).candidate_oracle is True
+    assert _parser().parse_args(["--report", "none"]).report == "none"
 
 
 def test_speech_wer_threshold_keeps_polynorm_summary_metrics(tmp_path, monkeypatch):
@@ -189,6 +190,15 @@ def test_evaluate_and_write_separates_metrics_from_text_reports(tmp_path) -> Non
     assert "original_text" not in json.dumps(summary_json)
     assert (output_dir / "failures.jsonl").read_text(encoding="utf-8") == ""
     assert "PolyNorm failures" in (output_dir / "failures.md").read_text(encoding="utf-8")
+    assert (output_dir / "report.html").is_file()
+
+
+def test_evaluate_and_write_skips_html_report_when_disabled(tmp_path) -> None:
+    cases = (PolyNormCase("en-US", "1", "Cardinal", "2", "two"),)
+
+    output_dir, _ = evaluate_and_write(cases, output_root=tmp_path, report="none")
+
+    assert not (output_dir / "report.html").exists()
 
 
 def test_candidate_oracle_writes_summary_and_row_fields(tmp_path) -> None:

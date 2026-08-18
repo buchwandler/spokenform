@@ -112,6 +112,25 @@ def test_offline_cli_writes_expected_artifacts(tmp_path):
     assert summary["environment"]["configuration"]["oracle_categories_passed_to_prepare"] is False
 
 
+def test_offline_cli_writes_html_report_by_default(tmp_path):
+    cache_dir = _cache(tmp_path / "cache")
+    args = cli._parser().parse_args(
+        [
+            "--suite",
+            "all",
+            "--cache-dir",
+            str(cache_dir),
+            "--results-dir",
+            str(tmp_path / "results"),
+            "--offline",
+            "--limit",
+            "2",
+        ]
+    )
+    run_dir, _ = cli.evaluate_and_write(args)
+    assert (run_dir / "report.html").is_file()
+
+
 def test_offline_cli_writes_oracle_artifacts(tmp_path):
     cache_dir = _cache(tmp_path / "cache")
     args = cli._parser().parse_args(

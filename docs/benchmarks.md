@@ -21,6 +21,12 @@ annotated TTS-normalization diagnostic. Their data and reports live under
 in the ownership document. See [Async TN](async_tn.md) for its mapping,
 methodology, and static dashboard contract.
 
+Async TN, PolyNorm, and Proteno now each write a self-contained local
+`report.html` dashboard by default. These dashboards reuse a shared static HTML
+shell, keep dataset/runtime strings escaped, expose local KPI and diagnostic
+views, and can be disabled with `--report none` when only the JSONL/Markdown
+artifacts are needed.
+
 All four benchmark CLIs also support a diagnostic `--candidate-oracle` mode.
 It keeps runtime normalization unchanged, enumerates bounded alternative
 structured-candidate selections, writes per-run `oracle_summary.json`, and can

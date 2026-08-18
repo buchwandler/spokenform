@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal, InvalidOperation
-from typing import Final
+from typing import Final, Literal
 
 from num2words import num2words
 
@@ -708,7 +708,7 @@ def _render_numeric_lexeme(
     language: str,
     *,
     mode: NumberRenderMode = NumberRenderMode.CARDINAL,
-    fraction_mode: str = "policy",
+    fraction_mode: Literal["policy", "digitwise"] = "policy",
 ) -> str:
     """Render a parsed lexeme without reparsing its punctuation."""
     positive = lexeme.raw.startswith("+")
