@@ -144,3 +144,9 @@ def test_spanish_generated_numeric_sentence_starts_are_capitalized() -> None:
 
 def test_spanish_generated_casing_does_not_recase_untouched_prose() -> None:
     assert prepare("hola 7 días.", language="es", use_spacy=False).spoken_text == "hola siete días."
+
+
+def test_spanish_hyphenated_month_dates_are_replaced_as_one_span() -> None:
+    assert prepare("15-Agosto-2023.", language="es_MX", use_spacy=False).spoken_text == (
+        "Quince de agosto de dos mil veintitrés."
+    )

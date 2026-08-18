@@ -708,6 +708,7 @@ def _render_numeric_lexeme(
     language: str,
     *,
     mode: NumberRenderMode = NumberRenderMode.CARDINAL,
+    fraction_mode: str = "policy",
 ) -> str:
     """Render a parsed lexeme without reparsing its punctuation."""
     positive = lexeme.raw.startswith("+")
@@ -730,7 +731,9 @@ def _render_numeric_lexeme(
             if base_language(language) == "en"
             else _spell(int(lexeme.integer_digits), language)
         )
-        groups = fraction_digit_groups(lexeme.fraction_digits or "", language)
+        groups = fraction_digit_groups(
+            lexeme.fraction_digits or "", language, mode=fraction_mode
+        )
         rendered_groups = []
         for group in groups:
             if len(group) == 1:
@@ -808,10 +811,20 @@ def _normalize_unified_plain_numbers(
         lexeme = parse_numeric_lexeme(raw, language, context="plain")
         if lexeme is None:
             return raw
+        rendered = _render_numeric_lexeme(lexeme, language, fraction_mode="digitwise")
+        left_context = match.string[max(0, match.start() - 32) : match.start()]
+        right_context = match.string[match.end() : match.end() + 24]
+        if base_language(language) == "fr" and re.search(r"\b(?:code|numéro|identifiant)\s+est\s*$", left_context, re.IGNORECASE):
+            rendered = " ".join(
+                str(num2words(int(digit), lang=resolve_num2words_language(language)))
+                for digit in lexeme.integer_digits
+            )
+        elif base_language(language) == "es" and re.match(r"\s+páginas\b", right_context, re.IGNORECASE):
+            rendered = re.sub(r"cientos\b", "cientas", rendered)
         return capitalize_generated_sentence_start(
             source=match.string,
             start=match.start(),
-            replacement=_render_numeric_lexeme(lexeme, language),
+            replacement=rendered,
             language=language,
         )
 

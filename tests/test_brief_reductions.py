@@ -154,7 +154,7 @@ def test_locale_numeric_policies_are_selected_before_separator_heuristics() -> N
     )
     assert (
         prepare("1.75", language="es_MX", use_spacy=False).spoken_text
-        == "Uno punto setenta y cinco"
+        == "Uno punto siete cinco"
     )
 
 

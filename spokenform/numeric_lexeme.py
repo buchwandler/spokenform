@@ -125,8 +125,15 @@ def numeric_punctuation_policy(language: str) -> NumericPunctuationPolicy:
     )
 
 
-def fraction_digit_groups(fraction_digits: str, language: str) -> tuple[str, ...]:
-    """Group fractional digits according to the locale speech policy."""
+def fraction_digit_groups(
+    fraction_digits: str,
+    language: str,
+    *,
+    mode: Literal["policy", "digitwise"] = "policy",
+) -> tuple[str, ...]:
+    """Group fractional digits according to the locale or render mode."""
+    if mode == "digitwise":
+        return tuple(fraction_digits)
     policy = numeric_speech_policy(language)
     if (
         policy.fraction_mode in {"two_digit_cardinal", "cardinal"}
@@ -232,6 +239,8 @@ def parse_numeric_lexeme(
                 head = "0"
             if separator == policy.decimal_separator:
                 if context == "currency" and len(tail) > 2:
+                    if separator not in policy.grouping_separators and base_language(language) != "es":
+                        return None
                     if len(tail) != 3 or not _grouping_is_valid(unsigned, separator):
                         return None
                     grouping_separators.append(separator)

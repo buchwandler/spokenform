@@ -226,9 +226,17 @@ def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:
     return day > 12 or bool(re.search(r"\b(?:le|du|au|date)\s*$", left))
 
 
-def _date_text(day: int, month: int, year: int, language: str = "fr") -> str:
+def _date_text(
+    day: int,
+    month: int,
+    year: int,
+    language: str = "fr",
+    *,
+    year_digits: int | None = None,
+) -> str:
     day_text = "premier" if day == 1 else _spell(day, language)
-    return f"{day_text} {_MONTHS[month - 1]} {_spell(year, language)}"
+    year_text = _spell(year % 100 if year_digits == 2 else year, language)
+    return f"{day_text} {_MONTHS[month - 1]} {year_text}"
 
 
 def _time_text(hour: int, minute: int, language: str = "fr") -> str:
@@ -331,7 +339,12 @@ def iter_replacements(
         year, _ = expand_year(match["year"])
         day, month = int(match["day"]), int(match["month"])
         if _valid_date(day, month, year):
-            add(match.start(), match.end(), _date_text(day, month, year, language), "fr.date")
+            add(
+                match.start(),
+                match.end(),
+                _date_text(day, month, year, language, year_digits=len(match["year"])),
+                "fr.date",
+            )
     aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
     aliases.update({"fev": 2, "aou": 8, "dec": 12})
     for match in _TEXT_DATE.finditer(text):
@@ -343,7 +356,13 @@ def iter_replacements(
             text_year, _ = expand_year(match["year"])
         day = int(match["day"])
         if text_year is None or _valid_date(day, text_month, text_year):
-            value = _date_text(day, text_month, text_year or 2000, language)
+            value = _date_text(
+                day,
+                text_month,
+                text_year or 2000,
+                language,
+                year_digits=len(match["year"]) if match["year"] else None,
+            )
             if text_year is None:
                 value = f"{_spell(day, language)} {_MONTHS[text_month - 1]}"
             add(match.start(), match.end(), value, "fr.date")

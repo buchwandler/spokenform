@@ -69,6 +69,31 @@ _CATEGORY_ALIASES = {
     "fraction": "Fractions",
 }
 
+NUMBER_RELATED_CATEGORIES = frozenset(
+    {
+        "Address",
+        "Cardinal",
+        "Chemical Formula",
+        "Currency",
+        "Date",
+        "Decimal",
+        "Fractions",
+        "Geographic Coordinates",
+        "ISBN",
+        "Legal Reference",
+        "License Plate or Serial Numbers",
+        "Mathematical Expression",
+        "Musical Notation",
+        "Ordinal",
+        "Phone Number",
+        "Sports Score",
+        "Time",
+        "Unit",
+        "Vehicle or Product Code",
+        "Version Numbers",
+    }
+)
+
 # These are local annotations about benchmark quality/ownership.  They are
 # deliberately separate from the upstream corpus and never rewrite its text.
 POLYNORM_QUARANTINE: dict[str, dict[str, str]] = {
@@ -172,6 +197,30 @@ def ownership_state(category: str) -> str:
 def ownership_states() -> tuple[str, ...]:
     """Return the complete stable ownership vocabulary used by reports."""
     return OWNERSHIP_STATES
+
+
+def numeric_category_failures(
+    rows: Iterable[dict[str, Any]],
+    *,
+    include_protected: bool = False,
+    include_quarantined: bool = False,
+) -> tuple[dict[str, Any], ...]:
+    """Return reviewed failures for the explicit numeric benchmark gate."""
+    failures = []
+    for row in rows:
+        if row.get("canonical_category") not in NUMBER_RELATED_CATEGORIES:
+            continue
+        if not include_quarantined and row.get("quarantine") is not None:
+            continue
+        if not include_protected and row.get("ownership") == "protected":
+            continue
+        if (
+            row.get("error")
+            or row.get("semantic_failure")
+            or row.get("residual_symbols", {}).get("digits", 0)
+        ):
+            failures.append(row)
+    return tuple(failures)
 
 
 def residual_symbols(text: str) -> dict[str, int]:
@@ -550,6 +599,7 @@ def evaluate_cases(
     reviewed_rows = [row for row in rows if row["quarantine"] is None]
     diagnostics = diagnostic_aggregates(rows)
     reported_failures = tuple(failures)
+    numeric_failures = numeric_category_failures(rows)
     summary = {
         **_metric_counts(rows),
         "by_locale": {key: _metric_counts(value) for key, value in sorted(grouped_locale.items())},
@@ -594,6 +644,17 @@ def evaluate_cases(
             if outcome
         },
         "gate_metrics": _gate_metrics(rows),
+        "numeric_gate": {
+            "categories": sorted(NUMBER_RELATED_CATEGORIES),
+            "reviewed_cases": sum(
+                row["canonical_category"] in NUMBER_RELATED_CATEGORIES
+                and row.get("quarantine") is None
+                and row.get("ownership") != "protected"
+                for row in rows
+            ),
+            "failure_count": len(numeric_failures),
+            "failure_case_ids": [row["id"] for row in numeric_failures],
+        },
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
@@ -734,6 +795,8 @@ __all__ = [
     "SEMANTIC_SYMBOLS",
     "BENCHMARK_PROFILES",
     "ownership_states",
+    "NUMBER_RELATED_CATEGORIES",
+    "numeric_category_failures",
     "evaluate_and_write",
     "evaluate_cases",
     "literal_key",

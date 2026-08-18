@@ -8,6 +8,7 @@ from benchmarks.polynorm import _parser
 from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
+    NUMBER_RELATED_CATEGORIES,
     POLYNORM_DATASET_COMMIT,
     POLYNORM_QUARANTINE,
     _filter_failures_by_speech_wer,
@@ -15,6 +16,7 @@ from benchmarks.polynorm_eval import (
     evaluate_and_write,
     evaluate_cases,
     literal_key,
+    numeric_category_failures,
     speech_key,
     speech_key_equivalent,
     word_error_rate,
@@ -341,3 +343,37 @@ def test_reduction_fixture_covers_multiple_failure_families() -> None:
         "Chemical Formula",
         "Phone Number",
     }
+
+
+def test_numeric_category_gate_ignores_quarantine_and_protected_rows() -> None:
+    rows = (
+        {
+            "canonical_category": "Decimal",
+            "quarantine": None,
+            "ownership": "owned",
+            "error": None,
+            "semantic_failure": True,
+            "residual_symbols": {"digits": 0},
+            "id": "es-MX:1",
+        },
+        {
+            "canonical_category": "Decimal",
+            "quarantine": {"reason_code": "questionable-target"},
+            "ownership": "owned",
+            "error": None,
+            "semantic_failure": True,
+            "residual_symbols": {"digits": 0},
+            "id": "es-MX:86",
+        },
+        {
+            "canonical_category": "Version Numbers",
+            "quarantine": None,
+            "ownership": "protected",
+            "error": None,
+            "semantic_failure": True,
+            "residual_symbols": {"digits": 3},
+            "id": "en-US:1",
+        },
+    )
+    assert "Decimal" in NUMBER_RELATED_CATEGORIES
+    assert [row["id"] for row in numeric_category_failures(rows)] == ["es-MX:1"]

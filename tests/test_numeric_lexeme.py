@@ -84,3 +84,15 @@ def test_numeric_speech_policy_is_locale_specific_and_immutable() -> None:
     assert numeric_speech_policy("fr-FR").fraction_mode == "two_digit_cardinal"
     assert fraction_digit_groups("75", "fr-FR") == ("75",)
     assert fraction_digit_groups("09", "fr-FR") == ("0", "9")
+
+
+def test_plain_decimal_rendering_is_digitwise_without_changing_quantity_policy() -> None:
+    assert prepare("9.58", language="es-MX", use_spacy=False).spoken_text == (
+        "Nueve punto cinco ocho"
+    )
+    assert prepare("9.58 segundos", language="es-MX", use_spacy=False).spoken_text == (
+        "Nueve punto cinco ocho segundos"
+    )
+    assert prepare("2.75 kg", language="it-IT", use_spacy=False).spoken_text == (
+        "due virgola settantacinque chilogrammi"
+    )

@@ -47,6 +47,11 @@ def _parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Alias for the extended profile; verbalize protected URL/email/version literals.",
     )
+    parser.add_argument(
+        "--numeric-gate",
+        action="store_true",
+        help="Exit nonzero when reviewed number-related cases fail the benchmark gate.",
+    )
     parser.add_argument("--cache-dir", type=Path, default=Path(".cache/polynorm-bench"))
     parser.add_argument("--results-dir", type=Path, default=Path("benchmark-results/polynorm"))
     return parser
@@ -84,6 +89,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     print(f"PolyNorm cases: {summary['cases']}")
     print(f"Results: {output_dir}")
+    if args.numeric_gate:
+        gate = summary["numeric_gate"]
+        print(
+            f"Numeric gate: {gate['failure_count']} failures / "
+            f"{gate['reviewed_cases']} reviewed cases"
+        )
+        if gate["failure_count"]:
+            return 1
     if args.show_failures == "all":
         failures_path = output_dir / "failures.md"
         print(failures_path.read_text(encoding="utf-8"))

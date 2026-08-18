@@ -381,7 +381,7 @@ def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:
     left = text[max(0, start - 32) : start].casefold()
     right = text[end : end + 32].casefold()
     if day > 12 or re.search(r"\b(?:on|by|from|until|date|dated)\s*$", left):
-        return not re.match(r"\s*(?:cup|kg|g|m|cm|in|of)\b", right)
+        return not re.match(r"\s*(?:cup|kg|g|m|cm|in|of|pieces|diluted)\b", right)
     return False
 
 

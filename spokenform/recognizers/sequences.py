@@ -114,11 +114,13 @@ _EMERGENCY_RE = re.compile(
     re.IGNORECASE,
 )
 _VERSION_CONTEXT_RE = re.compile(
-    r"(?P<label>\b(?:version|release|ver\.?|build)\s*[=:]?\s*)(?P<value>v?\d+(?:\.\d+){2,}(?:[a-z]+\d*)?)",
+    r"(?P<label>\b(?:software[- ]version|version|release|ver\.?|build)\s*"
+    r"(?:is|ist|est|es)?\s*[=:]?\s*)"
+    r"(?P<value>v?\d+(?:\.\d+){2,}(?:[a-z]+\d*)?)",
     re.IGNORECASE,
 )
 _SOFTWARE_VERSION_RE = re.compile(
-    r"(?P<label>\b(?:Python|iOS|Ubuntu|GTK\+|Qt|Node(?:\.js)?|Android|Fedora|Debian|Firefox)\s+)"
+    r"(?P<label>\b(?:Python|iOS|macOS|Ubuntu|GTK\+|Qt|Node(?:\.js)?|Android|Fedora|Debian|Firefox|WordPress)\s+)"
     r"(?P<value>\d+(?:\.\d+){1,}(?:[A-Za-z]+\d*)?)",
     re.IGNORECASE,
 )
@@ -244,14 +246,18 @@ _LEGAL_LABEL_RE = re.compile(
     re.IGNORECASE,
 )
 _SPORTS_RE = re.compile(
-    r"(?P<context>\b(?:score|final|match|game|football|basketball|handball|volleyball|set|satz|ergebnis|endergebnis|gewann|spiel|marcador|punteggio|partido|termin[oó]|victoria|ganaron|résultat|resultado|ganó|gagné|vinto)\b[^\d]{0,32})"
-    r"(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2}|\d{1,2}\s+(?:a|to|à)\s+\d{1,2})",
+    r"(?P<context>\b(?:score|final|match|game|team|won|wins|football|basketball|handball|volleyball|"
+    r"set|satz|ergebnis|endergebnis|gewann|gewannen|spiel|tabelle|statistik|torverhältnis|"
+    r"basketballer|cricket|baseball|hockey|tennis|rugby|marcador|punteggio|partido|termin[oó]|"
+    r"victoria|ganaron|empate|draw|résultat|resultado|ganó|gagné|vinto)\b[^\d]{0,32})"
+    r"(?P<value>\d{1,3}\s*(?::|[-–])\s*\d{1,3}|\d{1,3}\s+(?:a|to|à)\s+\d{1,3})",
     re.IGNORECASE,
 )
 _SPORTS_CONTEXT_RE = re.compile(
-    r"\b(?:score|final|match|game|football|basketball|handball|volleyball|set|"
-    r"result|resultat|resultado|satz|ergebnis|endergebnis|gewann|spiel|marcador|"
-    r"punteggio|partido|termin[oó]|victoria|ganaron|résultat|ganó|gagné|vinto)\b",
+    r"\b(?:score|final|match|game|team|won|wins|football|basketball|handball|volleyball|set|"
+    r"result|resultat|resultado|satz|ergebnis|endergebnis|gewann|gewannen|spiel|tabelle|"
+    r"statistik|torverhältnis|basketballer|cricket|baseball|hockey|tennis|rugby|marcador|"
+    r"punteggio|partido|termin[oó]|victoria|ganaron|empate|draw|résultat|ganó|gagné|vinto)\b",
     re.IGNORECASE,
 )
 _SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2})(?![\w:-])")
@@ -342,8 +348,8 @@ _FRACTION_WORDS = {
         Fraction(1, 2): "one half",
         Fraction(1, 3): "one third",
         Fraction(2, 3): "two thirds",
-        Fraction(1, 4): "one quarter",
-        Fraction(3, 4): "three quarters",
+        Fraction(1, 4): "one fourth",
+        Fraction(3, 4): "three fourths",
         Fraction(1, 8): "one eighth",
         Fraction(3, 8): "three eighths",
         Fraction(5, 8): "five eighths",
@@ -398,7 +404,7 @@ _DENOMINATOR_WORDS = {
     "en": {
         2: "half",
         3: "third",
-        4: "quarter",
+        4: "fourth",
         5: "fifth",
         6: "sixth",
         7: "seventh",
@@ -562,9 +568,9 @@ _CODE_POLICIES = {
 _ISBN_POLICIES = {
     "en": IsbnRenderPolicy("digitwise", "letters_and_kind"),
     "de": IsbnRenderPolicy("digitwise", "letters_and_kind"),
-    "es": IsbnRenderPolicy("digitwise", "letters_and_kind", "grupo", True),
-    "it": IsbnRenderPolicy("digitwise", "letters_and_kind", "gruppo", True),
-    "fr": IsbnRenderPolicy("cardinal", "letters_and_kind", "groupe", True),
+    "es": IsbnRenderPolicy("digitwise", "letters_and_kind", ", guión ", True),
+    "it": IsbnRenderPolicy("digitwise", "letters_and_kind", ", ", True),
+    "fr": IsbnRenderPolicy("cardinal", "letters_and_kind", ", ", True),
 }
 
 
@@ -605,12 +611,18 @@ def _fraction_text(whole: str | None, symbol: str, language: str) -> str:
     base = base_language(language)
     fraction = _FRACTIONS[symbol]
     fraction_text = _FRACTION_WORDS.get(base, _FRACTION_WORDS["en"]).get(fraction)
+    if base == "es" and whole == "1" and fraction == Fraction(1, 2):
+        fraction_text = "media"
+    if base == "es" and whole == "1":
+        whole_text = "Una"
+    else:
+        whole_text = _cardinal(int(whole), language) if whole is not None else ""
     if fraction_text is None:
         fraction_text = _fraction_word(fraction.numerator, fraction.denominator, language)
     if whole is None:
         return fraction_text
     connector = {"de": "und", "es": "y", "fr": "et", "it": "e"}.get(base, "and")
-    return f"{_cardinal(int(whole), language)} {connector} {fraction_text}"
+    return f"{whole_text} {connector} {fraction_text}"
 
 
 def _fraction_word(numerator: int, denominator: int, language: str) -> str:
@@ -646,9 +658,21 @@ def _slash_fraction_text(
 ) -> str | None:
     denominator_value = int(denominator)
     numerator_value = int(numerator)
-    if denominator_value <= 0 or numerator_value <= 0 or denominator_value > 99:
+    if denominator_value <= 0 or numerator_value <= 0 or denominator_value > 100:
         return None
+    if base_language(language) == "es" and whole is None and numerator_value == 1 and denominator_value == 2:
+        return "medio"
+    if base_language(language) == "fr" and whole is None and numerator_value == 1 and denominator_value == 2:
+        return "la moitié"
+    if base_language(language) == "fr" and whole is None and numerator_value == 1 and denominator_value == 100:
+        return "un centième"
+    if base_language(language) == "it" and whole is None and numerator_value == 1 and denominator_value == 2:
+        return "metà"
     fraction = _fraction_word(numerator_value, denominator_value, language)
+    if whole is not None and base_language(language) == "en" and numerator_value == 1 and denominator_value == 2:
+        fraction = "a half"
+    if whole is not None and base_language(language) == "en" and numerator_value == 1 and denominator_value == 4:
+        fraction = "a quarter"
     if whole is None:
         return fraction
     connector = {"de": "und", "es": "y", "fr": "et", "it": "e"}.get(base_language(language), "and")
@@ -1104,16 +1128,21 @@ def _phone_text(value: str, language: str) -> str:
     rendered: list[str] = []
     if value.lstrip().startswith("+"):
         rendered.append(policy.plus_word)
-    for group in groups:
-        if policy.preserve_leading_zero and group.startswith("0"):
+    for index, group in enumerate(groups):
+        if policy.preserve_leading_zero and group.startswith("0") and not (
+            base_language(language) == "es" and len(group) == 3
+        ):
             rendered.append(_digitwise(group, language))
-        elif policy.group_mode == "cardinal":
+        elif policy.group_mode == "cardinal" or (
+            base_language(language) == "es"
+            and (index == 0 and (len(group) == 3 or value.lstrip().startswith("+")))
+        ):
             rendered.append(_cardinal(int(group), language))
         elif policy.group_mode == "two_digit_cardinal" and len(group) == 2:
             rendered.append(_cardinal(int(group), language))
         else:
             rendered.append(_digitwise(group, language))
-    separator = ", " if base_language(language) == "it" and len(groups) > 1 else " "
+    separator = ", " if base_language(language) in {"es", "fr", "it"} and len(groups) > 1 else " "
     return separator.join(rendered)
 
 
@@ -1626,7 +1655,7 @@ def _isbn_text(value: str, language: str) -> str:
             rendered.append(_digitwise(group, language))
     separator = policy.separator_word or ""
     if policy.speak_group_boundaries and separator:
-        return f" {separator} ".join(rendered)
+        return separator.join(rendered)
     return " ".join(rendered)
 
 
@@ -1962,6 +1991,7 @@ def _add(
             "sequence.chained-score": 88,
             "sequence.duration": 95,
             "sequence.formula": 20,
+            "sequence.coordinate": 86,
             "sequence.isbn": 30,
             "sequence.product": 15,
             "sequence.plate": 15,
@@ -2942,7 +2972,7 @@ def iter_sequence_replacements(
         }
         number = (
             _digitwise(match["number"], language)
-            if base_language(language) in {"en", "fr"}
+            if base_language(language) in {"fr"}
             else _cardinal(int(re.sub(r"[A-Za-z]", "", match["number"])), language)
         )
         _add(

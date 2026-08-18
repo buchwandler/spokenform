@@ -30,7 +30,7 @@ def test_english_us_dates_cover_numeric_text_and_ranges() -> None:
 
 def test_romance_locales_cover_short_and_text_month_dates() -> None:
     assert prepare("12/10/23", language="es_MX", use_spacy=False).spoken_text == (
-        "Doce de octubre de dos mil veintitrés"
+        "Doce de octubre de veintitrés"
     )
     assert prepare("5 nov. 1990", language="fr", use_spacy=False).spoken_text == (
         "cinq novembre mille neuf cent quatre-vingt-dix"
@@ -74,7 +74,7 @@ def test_date_candidates_retain_source_shape_and_locale_extensions() -> None:
 
 def test_dotted_short_dates_are_not_auto_protected_as_versions() -> None:
     assert prepare("12.10.23", language="fr", use_spacy=False).spoken_text == (
-        "douze octobre deux mille vingt-trois"
+        "douze octobre vingt-trois"
     )
 
 

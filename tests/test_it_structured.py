@@ -140,6 +140,15 @@ def test_italian_plain_pass_protects_invalid_and_iso_date_candidates() -> None:
     assert prepare(source, language="it", use_spacy=False).spoken_text == source
 
 
+def test_italian_dotted_decimals_and_hyphenated_dates_are_atomic() -> None:
+    assert prepare("L'importo è 12.50 euro.", language="it_IT", use_spacy=False).spoken_text == (
+        "L'importo è dodici virgola cinque zero euro."
+    )
+    assert prepare("Il volo parte il 22-ott-2024.", language="it_IT", use_spacy=False).spoken_text == (
+        "Il volo parte il ventidue ottobre duemilaventiquattro."
+    )
+
+
 def test_spanish_parity_corpus_still_passes_after_shared_plain_refactor() -> None:
     spanish_path = Path(__file__).parent / "data" / "es_kokorog2p_parity.json"
     for case in json.loads(spanish_path.read_text(encoding="utf-8")):

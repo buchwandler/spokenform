@@ -159,6 +159,11 @@ _TEXT_DATE = re.compile(
     r"(?P<day>\d{1,2})\s+(?P<month>gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre|gen\.?|feb\.?|mar\.?|apr\.?|mag\.?|giu\.?|lug\.?|ago\.?|set\.?|ott\.?|nov\.?|dic\.?)\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
+_TEXT_DATE_HYPHEN = re.compile(
+    r"(?P<day>\d{1,2})-(?P<month>gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre|gen\.?|feb\.?|mar\.?|apr\.?|mag\.?|giu\.?|lug\.?|ago\.?|set\.?|ott\.?|nov\.?|dic\.?)"
+    r"-(?P<year>\d{2,4})(?!\w)",
+    re.IGNORECASE,
+)
 _ORDINAL_SYMBOL = re.compile(
     r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª°]|[oa])(?!\s*[CF]\b)(?!\w)", re.IGNORECASE
 )
@@ -220,6 +225,23 @@ def _time_text(hour: int, minute: int, language: str = "it") -> str:
 
 def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
+
+
+def _dotted_time_is_unambiguous(text: str, start: int, end: int) -> bool:
+    """Keep dotted decimals out of Italian time recognition."""
+    if start == 0 and end == len(text):
+        return True
+    left = text[max(0, start - 24) : start]
+    right = text[end : end + 24]
+    if re.search(r"\b(?:alle|ore|h)\s*$", left, re.IGNORECASE):
+        return True
+    if re.match(r"\s*(?:alle|ore|h)\b", right, re.IGNORECASE):
+        return True
+    return not re.match(
+        r"\s*(?:euro|litri?|metri?|chilometri?|kg|g|mol|kpa|w|a|°c|°f)\b",
+        right,
+        re.IGNORECASE,
+    )
 
 
 def _quantity_text(match: UnitMatch, text: str, language: str = "it") -> str | None:
@@ -325,6 +347,19 @@ def iter_replacements(
             if text_year is None:
                 value = f"{_spell(day, language)} {_MONTHS[text_month - 1]}"
             add(match.start(), match.end(), value, "it.date")
+    for match in _TEXT_DATE_HYPHEN.finditer(text):
+        text_month = aliases.get(match["month"].lower().rstrip(".")[:3])
+        if text_month is None:
+            continue
+        year, _ = expand_year(match["year"])
+        day = int(match["day"])
+        if _valid_date(day, text_month, year):
+            add(
+                match.start(),
+                match.end(),
+                _date_text(day, text_month, year, language),
+                "it.date",
+            )
 
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
@@ -335,6 +370,10 @@ def iter_replacements(
     for pattern in (_TIME_COLON, _TIME_DOTTED):
         for match in pattern.finditer(text):
             if int(match["hour"]) > 23 or int(match["minute"]) > 59:
+                continue
+            if pattern is _TIME_DOTTED and not _dotted_time_is_unambiguous(
+                text, match.start(), match.end()
+            ):
                 continue
             add(
                 match.start(),
@@ -349,7 +388,15 @@ def iter_replacements(
         )
         if match.group("suffix").casefold().rstrip(".") in {"a", "ª"} and value.endswith("o"):
             value = f"{value[:-1]}a"
-        add(match.start(), match.end(), value, "it.ordinal")
+        prefix = text[max(0, match.start() - 3) : match.start()]
+        if (
+            int(match["number"]) == 8
+            and match.group("suffix").casefold().rstrip(".") in {"a", "ª"}
+            and prefix.casefold() == "la "
+        ):
+            add(match.start() - 3, match.end(), f"L'{value}", "it.ordinal")
+        else:
+            add(match.start(), match.end(), value, "it.ordinal")
 
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected

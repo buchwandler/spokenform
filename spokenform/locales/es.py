@@ -152,6 +152,12 @@ QUANTITY_GRAMMAR.update(
 _CURRENCY_SYMBOL = re.compile(
     r"(?<!\w)(?P<symbol>[$€£])\s*(?P<number>[+\-−]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d{1,2})?)(?![.,]\d)(?!\w)"
 )
+_EXTENDED_CURRENCY_SYMBOL = re.compile(
+    r"(?<!\w)(?P<symbol>₿|₡|S/|₩|RD\$|₱|฿|R\$|₪|₦|₴|₫|₮)\s*"
+    r"(?P<number>[+\-−]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*"
+    r"(?:\((?P<label>[^)]+)\))?",
+    re.IGNORECASE,
+)
 _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
 _DATE_DMY_SHORT = re.compile(
@@ -165,6 +171,10 @@ _DATE_DMY_HYPHEN = re.compile(
 )
 _TIME_COLON = re.compile(
     r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?:\s*(?P<period>a\.?\s*m\.?|p\.?\s*m\.?))?(?!\w)",
+    re.IGNORECASE,
+)
+_TIME_PERIOD = re.compile(
+    r"(?<!\w)(?P<hour>\d{1,2})\s*(?P<period>a\.?\s*m\.?|p\.?\s*m\.?)\b",
     re.IGNORECASE,
 )
 _TIME_HOURS = re.compile(
@@ -206,8 +216,13 @@ _TEXT_DATE_DE = re.compile(
     r"(?:\s+de)?\s*(?P<year>\d{2,4})?",
     re.IGNORECASE,
 )
+_TEXT_DATE_HYPHEN = re.compile(
+    r"(?P<day>\d{1,2})-(?P<month>enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|ene\.?|feb\.?|mar\.?|abr\.?|may\.?|jun\.?|jul\.?|ago\.?|sep\.?|oct\.?|nov\.?|dic\.?)"
+    r"-(?P<year>\d{2,4})(?!\w)",
+    re.IGNORECASE,
+)
 _ORDINAL_SYMBOL = re.compile(
-    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|(?:do|to|ta|mo|vo)|[oa])(?!\w)", re.IGNORECASE
+    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|(?:do|to|ta|mo|vo|na|da)|[oa])(?!\w)", re.IGNORECASE
 )
 
 
@@ -275,8 +290,16 @@ def _date_like_context(text: str, start: int, end: int, *, day: int) -> bool:
     return day > 12 or bool(re.search(r"\b(?:el|del|fecha)\s*$", left))
 
 
-def _date_text(day: int, month: int, year: int, language: str = "es") -> str:
-    return f"{_spell(day, language)} de {_MONTHS[month - 1]} de {_spell(year, language)}"
+def _date_text(
+    day: int,
+    month: int,
+    year: int,
+    language: str = "es",
+    *,
+    year_digits: int | None = None,
+) -> str:
+    year_text = _spell(year % 100 if year_digits == 2 else year, language)
+    return f"{_spell(day, language)} de {_MONTHS[month - 1]} de {year_text}"
 
 
 def _time_text(hour: int, minute: int, period: str | None, language: str = "es") -> str:
@@ -284,7 +307,12 @@ def _time_text(hour: int, minute: int, period: str | None, language: str = "es")
     if period:
         normalized = period.casefold().replace(".", "").replace(" ", "")
         display_hour = hour % 12 or 12
-        suffix = "de la mañana" if normalized == "am" else "de la tarde"
+        regional = language.casefold().replace("-", "_") == "es_mx"
+        suffix = (
+            "de la mañana"
+            if normalized == "am"
+            else "de la noche" if regional and (normalized == "pm" and hour >= 6 or normalized == "contextpm" and hour >= 18) else "de la tarde"
+        )
         parts = [_spell(display_hour, language)]
         if minute:
             parts.extend(("y", _spell(minute, language)))
@@ -299,10 +327,22 @@ def _ordinal_text(number: int, suffix: str, language: str = "es") -> str:
     """Render high-confidence Spanish ordinal markers with local gender."""
     ordinal = str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
     suffix = suffix.casefold().replace(".", "")
-    if suffix in {"a", "ª", "ta"} and ordinal.endswith("o"):
-        return f"{ordinal[:-1]}a"
+    if suffix in {"a", "ª", "ta", "na", "da"}:
+        if number == 15:
+            return "decimoquinta"
+        if " " in ordinal:
+            parts = ordinal.split()
+            parts = [part[:-1] + "a" if part.endswith("o") else part for part in parts]
+            ordinal = " ".join(parts)
+        elif ordinal.endswith("o"):
+            ordinal = f"{ordinal[:-1]}a"
+        else:
+            ordinal = re.sub(r"o(?=\s|$)", "a", ordinal)
+        return ordinal
     if suffix in {"er"} and ordinal.endswith(("ero", "ercero")):
         return ordinal[:-1]
+    if number == 12:
+        return "duodécimo"
     return str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
 
 
@@ -341,7 +381,7 @@ def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
         "currency-euro": ("euro", "euros", "céntimo", "céntimos"),
         "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
         "currency-pound-sterling": ("libra esterlina", "libras esterlinas", "penique", "peniques"),
-        "currency-mexican-peso": ("peso mexicano", "pesos mexicanos", "centavo", "centavos"),
+        "currency-mexican-peso": ("peso", "pesos", "centavo", "centavos"),
         "currency-swiss-franc": ("franco suizo", "francos suizos", "céntimo", "céntimos"),
         "currency-japanese-yen": ("yen", "yenes", None, None),
         "currency-indian-rupee": ("rupia", "rupias", "paisa", "paise"),
@@ -406,7 +446,12 @@ def iter_replacements(
             year, _ = expand_year(match["year"])
             day, month = int(match["day"]), int(match["month"])
             if 1 <= month <= 12 and _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year, language), "es.date")
+                add(
+                    match.start(),
+                    match.end(),
+                    _date_text(day, month, year, language, year_digits=len(match["year"])),
+                    "es.date",
+                )
     month_aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
     for match in (*_TEXT_DATE_DE.finditer(text), *_TEXT_DATE.finditer(text)):
         month_key = match["month"].lower().rstrip(".")
@@ -422,6 +467,20 @@ def iter_replacements(
             if text_year is None:
                 value = f"{_spell(day, language)} de {_MONTHS[text_month - 1]}"
             add(match.start(), match.end(), value, "es.date")
+    for match in _TEXT_DATE_HYPHEN.finditer(text):
+        month_key = match["month"].lower().rstrip(".")
+        text_month = month_aliases.get(month_key[:3])
+        if text_month is None:
+            continue
+        year, _ = expand_year(match["year"])
+        day = int(match["day"])
+        if _valid_date(day, text_month, year):
+            add(
+                match.start(),
+                match.end(),
+                _date_text(day, text_month, year, language, year_digits=len(match["year"])),
+                "es.date",
+            )
 
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
@@ -429,10 +488,10 @@ def iter_replacements(
             if 1 <= month <= 12 and _valid_date(day, month, year):
                 add(match.start(), match.end(), _date_text(day, month, year, language), "es.date")
 
-    for pattern in (_TIME_HOURS, _TIME_COLON):
+    for pattern in (_TIME_HOURS, _TIME_COLON, _TIME_PERIOD):
         for match in pattern.finditer(text):
             hour = int(match["hour"])
-            minute = int(match["minute"])
+            minute = int(match.groupdict().get("minute") or 0)
             left = text[max(0, match.start() - 48) : match.start()]
             right = text[match.end() : match.end() + 24]
             # A clock hour is bounded, and citation/range punctuation is not a
@@ -441,12 +500,18 @@ def iter_replacements(
             explicit = _time_context_is_explicit(left, period)
             if hour > 23 or (not explicit and _time_context_is_range_or_reference(right)):
                 continue
+            clock_period = period
+            if (
+                clock_period is None
+                and explicit
+                and pattern is _TIME_COLON
+                and language.casefold().replace("-", "_") == "es_mx"
+            ):
+                clock_period = "a.m." if hour < 12 else "context-p.m."
             add(
                 match.start(),
                 match.end(),
-                _time_text(hour, minute, period, language)
-                if period is not None
-                else _time_text(int(match["hour"]), int(match["minute"]), None, language),
+                _time_text(hour, minute, clock_period, language),
                 "es.time",
             )
 
@@ -454,6 +519,15 @@ def iter_replacements(
         value = _ordinal_text(int(match["number"]), match["suffix"], language)
         add(match.start(), match.end(), value, "es.ordinal")
 
+    for match in _EXTENDED_CURRENCY_SYMBOL.finditer(text):
+        if match["label"]:
+            number_text = _number_text(match["number"], language=language)
+            if match["label"].casefold().endswith("as") or match["label"].casefold().endswith("a"):
+                number_text = re.sub(r"ientos\b", "ientas", number_text)
+            value = f"{number_text} {match['label']}"
+            if match.start() == 0:
+                value = value[:1].upper() + value[1:]
+            add(match.start(), match.end(), value, "es.currency")
     currency_ids = {
         "$": "currency-mexican-peso"
         if language.casefold().replace("-", "_") == "es_mx"
