@@ -14,10 +14,21 @@ from spokenform import PreparedText, prepare
 from spokenform.mapping import OffsetMap, Replacement, apply_replacements, replacements_from_diff
 
 from .async_tn_data import AsyncTNCase, AsyncTNUnit
+from .candidate_oracle import (
+    MAX_COMPONENT_PATHS,
+    MAX_GLOBAL_COMBINATIONS,
+    analyze_candidate_oracle,
+)
+from .candidate_oracle import (
+    analysis_fields as candidate_oracle_fields,
+)
 from .failure_reporting import (
+    RISK_TIERS,
     diagnostic_aggregates,
     failure_family,
     failure_family_counts,
+    oracle_aggregates,
+    oracle_gap_type,
     ownership_for_rule,
     rank_provenance,
     risk_tier_for_row,
@@ -93,8 +104,7 @@ def project_actual_unit(result: PreparedText, unit: AsyncTNUnit) -> UnitProjecti
     overlapping = tuple(
         replacement
         for replacement in replacements
-        if replacement.source_start < unit.source_end
-        and replacement.source_end > unit.source_start
+        if replacement.source_start < unit.source_end and replacement.source_end > unit.source_start
     )
     ambiguous = any(
         replacement.source_start < unit.source_start or replacement.source_end > unit.source_end
@@ -133,13 +143,31 @@ def _changed_stages(result: PreparedText | None) -> tuple[str, ...]:
 def _category_ownership(category: str, language: str) -> str:
     if language not in {"en", "de", "es", "fr", "it", "pt"}:
         return "external-language"
-    if category in {"api_token", "file_path", "ip_address", "password_token", "promo_code", "social_handle", "url_or_email", "version"}:
+    if category in {
+        "api_token",
+        "file_path",
+        "ip_address",
+        "password_token",
+        "promo_code",
+        "social_handle",
+        "url_or_email",
+        "version",
+    }:
         return "protected"
     if category in {"abbreviation", "acronym"}:
         return "dependency-abbr2words"
     if category in {
-        "cardinal", "currency", "date", "decimal", "fraction", "measurement_unit",
-        "ordinal", "quantity", "range", "score_percent", "time",
+        "cardinal",
+        "currency",
+        "date",
+        "decimal",
+        "fraction",
+        "measurement_unit",
+        "ordinal",
+        "quantity",
+        "range",
+        "score_percent",
+        "time",
     }:
         return "owned"
     return "extended-candidate"
@@ -182,6 +210,70 @@ def _metric_values(actual: str, expected: str, language: str) -> dict[str, Any]:
     }
 
 
+def _candidate_oracle_kwargs(*, normalize_literals: bool) -> dict[str, Any]:
+    return {
+        "promote_literals": normalize_literals,
+        "generic_acronym_mode": "known_only",
+        "generic_acronym_case": "upper",
+        "max_component_paths": MAX_COMPONENT_PATHS,
+        "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+    }
+
+
+def _oracle_row_fields(
+    row: dict[str, Any],
+    result: PreparedText | None,
+    case: AsyncTNCase,
+    *,
+    normalize_literals: bool,
+) -> dict[str, Any]:
+    if row["error"] or result is None:
+        fields = {
+            "candidate_count": 0,
+            "ambiguous_component_count": 0,
+            "alternative_path_count": 0,
+            "combinations_evaluated": 0,
+            "actual_speech_wer": float(row["speech_wer"]),
+            "oracle_speech_wer": float(row["speech_wer"]),
+            "selector_regret": 0.0,
+            "actual_speech_equivalent": bool(row["speech_exact_equivalent"]),
+            "oracle_speech_equivalent": bool(row["speech_exact_equivalent"]),
+            "oracle_literal_exact": bool(row["literal_exact"]),
+            "oracle_rules": [],
+            "oracle_spans": [],
+            "baseline_structured_rules": [],
+            "oracle_changed_rules": [],
+            "oracle_scorable": False,
+            "oracle_truncated": False,
+            "oracle_reason": "runtime-error",
+            "oracle_internal_gap_type": "oracle-unscorable",
+        }
+    else:
+        fields = candidate_oracle_fields(
+            analyze_candidate_oracle(
+                case.original_text,
+                case.normalized_text,
+                result,
+                language=case.spokenform_language,
+                **_candidate_oracle_kwargs(normalize_literals=normalize_literals),
+            )
+        )
+    merged = {**row, **fields}
+    gap_type = oracle_gap_type(merged)
+    fields["oracle_gap_type"] = gap_type
+    fields["eligible_for_selector"] = gap_type not in {
+        "dependency",
+        "policy",
+        "presentation",
+        "runtime-error",
+    }
+    fields["selection_gap"] = gap_type == "selection"
+    fields["fully_recoverable_selection_gap"] = gap_type == "selection" and bool(
+        fields["oracle_speech_equivalent"]
+    )
+    return fields
+
+
 def _unit_outcome(
     unit: AsyncTNUnit, actual: str, expected: str, metrics: dict[str, Any], ambiguous: bool
 ) -> str:
@@ -208,17 +300,27 @@ def _unit_record(
     error: str | None = None,
 ) -> dict[str, Any]:
     expected = expected_projection.text if expected_projection else ""
-    actual = actual_projection.text if actual_projection else case.original_text[unit.source_start : unit.source_end]
+    actual = (
+        actual_projection.text
+        if actual_projection
+        else case.original_text[unit.source_start : unit.source_end]
+    )
     ambiguous_expected = bool(expected_projection and expected_projection.ambiguous)
     ambiguous_actual = bool(actual_projection and actual_projection.ambiguous)
     ambiguous = ambiguous_expected or ambiguous_actual
-    metrics = _metric_values(actual, expected, case.source_language) if not error else {
-        "literal_exact": False,
-        "speech_exact": False,
-        "speech_equivalent": False,
-        "speech_wer": 1.0,
-    }
-    outcome = "runtime-error" if error else _unit_outcome(unit, actual, expected, metrics, ambiguous)
+    metrics = (
+        _metric_values(actual, expected, case.source_language)
+        if not error
+        else {
+            "literal_exact": False,
+            "speech_exact": False,
+            "speech_equivalent": False,
+            "speech_wer": 1.0,
+        }
+    )
+    outcome = (
+        "runtime-error" if error else _unit_outcome(unit, actual, expected, metrics, ambiguous)
+    )
     row: dict[str, Any] = {
         "record_type": "unit",
         "unit_id": case.unit_id(unit.index),
@@ -256,12 +358,16 @@ def _sentence_record(
     error: str | None = None,
 ) -> dict[str, Any]:
     actual = result.spoken_text if result is not None and error is None else case.original_text
-    metrics = _metric_values(actual, case.normalized_text, case.source_language) if not error else {
-        "literal_exact": False,
-        "speech_exact": False,
-        "speech_equivalent": False,
-        "speech_wer": 1.0,
-    }
+    metrics = (
+        _metric_values(actual, case.normalized_text, case.source_language)
+        if not error
+        else {
+            "literal_exact": False,
+            "speech_exact": False,
+            "speech_equivalent": False,
+            "speech_wer": 1.0,
+        }
+    )
     outcome = (
         "runtime-error"
         if error
@@ -285,7 +391,8 @@ def _sentence_record(
         "categories": list(case.categories),
         "units_total": len(unit_records),
         "units_scorable": sum(bool(item["scorable"]) for item in unit_records),
-        "all_units_correct": bool(unit_records) and all(
+        "all_units_correct": bool(unit_records)
+        and all(
             item["outcome"] in {"correct-transform", "identity-preserved", "presentation-only"}
             for item in unit_records
             if item["scorable"]
@@ -314,8 +421,17 @@ def _profile_normalize_literals(profile: str, normalize_literals: bool | None) -
 
 
 def evaluate_cases(
-    cases: Iterable[AsyncTNCase], *, profile: str = "default", normalize_literals: bool | None = None
-) -> tuple[dict[str, Any], tuple[dict[str, Any], ...], tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
+    cases: Iterable[AsyncTNCase],
+    *,
+    profile: str = "default",
+    normalize_literals: bool | None = None,
+    candidate_oracle: bool = False,
+) -> tuple[
+    dict[str, Any],
+    tuple[dict[str, Any], ...],
+    tuple[dict[str, Any], ...],
+    tuple[dict[str, Any], ...],
+]:
     """Evaluate cases and return summary, sentence rows, unit rows, and failures."""
     use_literals = _profile_normalize_literals(profile, normalize_literals)
     sentence_rows: list[dict[str, Any]] = []
@@ -344,6 +460,28 @@ def evaluate_cases(
             for unit in case.units
         )
         sentence = _sentence_record(case, result, units, error=error)
+        if candidate_oracle:
+            sentence.update(
+                _oracle_row_fields(
+                    sentence,
+                    result,
+                    case,
+                    normalize_literals=use_literals,
+                )
+            )
+            changed_spans = tuple(tuple(span) for span in sentence["oracle_spans"])
+            units = tuple(
+                {
+                    **unit_record,
+                    "oracle_changed_span": any(
+                        unit_record["source_start"] < span_end
+                        and span_start < unit_record["source_end"]
+                        for span_start, span_end in changed_spans
+                    ),
+                    "oracle_gap_type": sentence["oracle_gap_type"],
+                }
+                for unit_record in units
+            )
         sentence["profile"] = profile
         for unit_record in units:
             unit_record["profile"] = profile
@@ -354,16 +492,29 @@ def evaluate_cases(
         for row in sentence_rows
         if row["error"] or not row["speech_equivalent"] or row["presentation_only"]
     )
-    summary = _aggregate(sentence_rows, unit_rows, profile=profile, normalize_literals=use_literals)
+    summary = _aggregate(
+        sentence_rows,
+        unit_rows,
+        profile=profile,
+        normalize_literals=use_literals,
+        candidate_oracle=candidate_oracle,
+    )
     return summary, tuple(sentence_rows), tuple(unit_rows), failures
 
 
 def evaluate(
-    cases: Iterable[AsyncTNCase], *, profile: str = "default", normalize_literals: bool | None = None
+    cases: Iterable[AsyncTNCase],
+    *,
+    profile: str = "default",
+    normalize_literals: bool | None = None,
+    candidate_oracle: bool = False,
 ) -> tuple[dict[str, Any], tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
     """Compatibility wrapper returning summary, rows, and sentence failures."""
     summary, rows, units, failures = evaluate_cases(
-        cases, profile=profile, normalize_literals=normalize_literals
+        cases,
+        profile=profile,
+        normalize_literals=normalize_literals,
+        candidate_oracle=candidate_oracle,
     )
     summary["unit_records"] = units
     return summary, rows, failures
@@ -388,11 +539,18 @@ def _metric_summary(rows: Iterable[dict[str, Any]], *, scorable: bool = True) ->
 
 
 def _aggregate(
-    sentence_rows: list[dict[str, Any]], unit_rows: list[dict[str, Any]], *, profile: str, normalize_literals: bool
+    sentence_rows: list[dict[str, Any]],
+    unit_rows: list[dict[str, Any]],
+    *,
+    profile: str,
+    normalize_literals: bool,
+    candidate_oracle: bool,
 ) -> dict[str, Any]:
     categories: dict[str, list[dict[str, Any]]] = defaultdict(list)
     languages: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    language_categories: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: defaultdict(list))
+    language_categories: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(
+        lambda: defaultdict(list)
+    )
     for row in unit_rows:
         categories[row["category"]].append(row)
         languages[row["source_language"]].append(row)
@@ -458,9 +616,58 @@ def _aggregate(
     for key, value in unit_metrics.items():
         summary[key] = value
     summary["semantic_failure_count"] = sum(row["semantic_failure"] for row in sentence_rows)
-    summary["speech_exact_equivalent_count"] = sum(row["speech_equivalent"] for row in sentence_rows)
+    summary["speech_exact_equivalent_count"] = sum(
+        row["speech_equivalent"] for row in sentence_rows
+    )
     summary["literal_exact_count"] = sum(row["literal_exact"] for row in sentence_rows)
     summary["failure_families"] = summary["diagnostics"]["failure_families"]
+    if candidate_oracle:
+        sentence_languages: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        sentence_categories: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for row in sentence_rows:
+            sentence_languages[str(row["source_language"])].append(row)
+            sentence_categories[str(row["category"])].append(row)
+        summary["candidate_oracle"] = {
+            **oracle_aggregates(sentence_rows),
+            "by_language": {
+                language: oracle_aggregates(rows)
+                for language, rows in sorted(sentence_languages.items())
+            },
+            "by_category": {
+                category: oracle_aggregates(rows)
+                for category, rows in sorted(sentence_categories.items())
+            },
+            "by_ownership": {
+                ownership: oracle_aggregates(
+                    [row for row in sentence_rows if str(row.get("ownership")) == ownership]
+                )
+                for ownership in sorted({str(row.get("ownership")) for row in sentence_rows})
+            },
+            "by_risk_tier": {
+                tier: oracle_aggregates(
+                    [row for row in sentence_rows if str(row.get("risk_tier")) == tier]
+                )
+                for tier in RISK_TIERS
+            },
+            "by_primary_rule": {
+                rule: oracle_aggregates(
+                    [
+                        row
+                        for row in sentence_rows
+                        if str(row.get("primary_rule") or "unrecognized") == rule
+                    ]
+                )
+                for rule in sorted(
+                    {str(row.get("primary_rule") or "unrecognized") for row in sentence_rows}
+                )
+            },
+            "by_failure_family": {
+                family: oracle_aggregates(
+                    [row for row in sentence_rows if str(row.get("failure_family")) == family]
+                )
+                for family in sorted({str(row.get("failure_family")) for row in sentence_rows})
+            },
+        }
     return summary
 
 

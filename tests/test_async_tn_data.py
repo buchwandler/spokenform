@@ -122,7 +122,10 @@ def test_genuinely_ambiguous_span_is_quarantined():
     [
         (english_record(units=[]), "missing-unit-annotations"),
         (english_record(units=None), "missing-unit-annotations"),
-        (english_record(units=[{"text": "missing", "norm_category": "date"}]), "unit-source-span-not-found"),
+        (
+            english_record(units=[{"text": "missing", "norm_category": "date"}]),
+            "unit-source-span-not-found",
+        ),
         (
             english_record(
                 original_text="77",
@@ -161,7 +164,9 @@ def test_filters_preserve_ids():
 
 def test_cache_download_records_hashes_and_commit(monkeypatch, tmp_path):
     payloads = {
-        name.rsplit("/", 1)[-1]: json.dumps([]).encode() if name.endswith("sentences.json") else b"{}"
+        name.rsplit("/", 1)[-1]: json.dumps([]).encode()
+        if name.endswith("sentences.json")
+        else b"{}"
         for name in data._required_files((data.ENGLISH_SUITE,))
     }
 

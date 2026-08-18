@@ -144,9 +144,9 @@ def test_italian_dotted_decimals_and_hyphenated_dates_are_atomic() -> None:
     assert prepare("L'importo è 12.50 euro.", language="it_IT", use_spacy=False).spoken_text == (
         "L'importo è dodici virgola cinque zero euro."
     )
-    assert prepare("Il volo parte il 22-ott-2024.", language="it_IT", use_spacy=False).spoken_text == (
-        "Il volo parte il ventidue ottobre duemilaventiquattro."
-    )
+    assert prepare(
+        "Il volo parte il 22-ott-2024.", language="it_IT", use_spacy=False
+    ).spoken_text == ("Il volo parte il ventidue ottobre duemilaventiquattro.")
 
 
 def test_spanish_parity_corpus_still_passes_after_shared_plain_refactor() -> None:

@@ -20,3 +20,9 @@ annotated TTS-normalization diagnostic. Their data and reports live under
 `benchmarks/` and should be interpreted with the safety and quarantine guidance
 in the ownership document. See [Async TN](async_tn.md) for its mapping,
 methodology, and static dashboard contract.
+
+All four benchmark CLIs also support a diagnostic `--candidate-oracle` mode.
+It keeps runtime normalization unchanged, enumerates bounded alternative
+structured-candidate selections, writes per-run `oracle_summary.json`, and can
+be used to measure selector headroom before attempting any learned ranking or
+selection project.

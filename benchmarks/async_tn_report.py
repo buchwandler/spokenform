@@ -41,7 +41,14 @@ def _kpis(summary: dict[str, Any]) -> str:
     sentence = summary.get("sentence_metrics", {})
     unit = summary.get("unit_metrics", {})
     values = (
-        ("Sentence speech-equivalent", _percent(sentence.get("speech_equivalent", 0) / sentence.get("total", 1) if sentence.get("total") else 0)),
+        (
+            "Sentence speech-equivalent",
+            _percent(
+                sentence.get("speech_equivalent", 0) / sentence.get("total", 1)
+                if sentence.get("total")
+                else 0
+            ),
+        ),
         ("Unit speech-equivalent", _percent(unit.get("accuracy", 0))),
         ("Mean speech WER", f"{float(unit.get('mean_speech_wer', 0)):.4f}"),
         ("Total units", f"{int(counts.get('units_total', 0)):,}"),
@@ -58,7 +65,10 @@ def _kpis(summary: dict[str, Any]) -> str:
 def _english_table(summary: dict[str, Any], reference: dict[str, Any]) -> str:
     models = _reference_models(reference, "english")
     model_map = _reference_category_map(reference, "english")
-    headers = "".join(f"<th>{_escape(model.get('display_name', model.get('model_id', 'reference')))}</th>" for model in models)
+    headers = "".join(
+        f"<th>{_escape(model.get('display_name', model.get('model_id', 'reference')))}</th>"
+        for model in models
+    )
     rows: list[str] = []
     for category, values in sorted(summary.get("categories", {}).items()):
         refs = model_map.get(category, {})
@@ -81,14 +91,15 @@ def _english_table(summary: dict[str, Any], reference: dict[str, Any]) -> str:
     )
 
 
-def _multilingual_table(summary: dict[str, Any], reference: dict[str, Any], *, published: bool) -> str:
+def _multilingual_table(
+    summary: dict[str, Any], reference: dict[str, Any], *, published: bool
+) -> str:
     languages = sorted(summary.get("languages", {}))
     if not languages:
         languages = ["en", "de", "es", "fr", "it", "pt"]
     model_map = _reference_category_map(reference, "multilingual")
     categories = sorted(
-        set(summary.get("categories", {}))
-        | set(_reference_category_map(reference, "multilingual"))
+        set(summary.get("categories", {})) | set(_reference_category_map(reference, "multilingual"))
     )
     headers = "".join(f"<th>{_escape(language)}</th>" for language in languages)
     rows: list[str] = []
@@ -103,7 +114,9 @@ def _multilingual_table(summary: dict[str, Any], reference: dict[str, Any], *, p
                 cells.append(
                     f"<td><strong>{_percent(value.get('accuracy'))}</strong><small>{int(value.get('units_scorable', 0)):,} / {int(value.get('units_total', 0)):,}</small></td>"
                 )
-        rows.append(f'<tr class="category-row" data-category="{_escape(category)}"><th>{_escape(category)}</th>{"".join(cells)}</tr>')
+        rows.append(
+            f'<tr class="category-row" data-category="{_escape(category)}"><th>{_escape(category)}</th>{"".join(cells)}</tr>'
+        )
     title = "Published Async Flash v1.5 reference" if published else "Spokenform"
     return f"<h3>{_escape(title)}</h3><table><thead><tr><th>Category</th>{headers}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
 
@@ -120,11 +133,15 @@ def _failure_table(units: Iterable[dict[str, Any]]) -> str:
             f"<td>{_escape(row.get('unit_id', ''))}</td><td>{_escape(row.get('source_text', ''))}</td><td>{_escape(category)}</td>"
             f"<td>{_escape(row.get('expected', ''))}</td><td>{_escape(row.get('actual', ''))}</td><td>{_escape(outcome)}</td>"
             f"<td>{_escape(row.get('failure_family', ''))}</td><td>{_escape(row.get('ownership', ''))}</td><td>{_escape(row.get('risk_tier', ''))}</td>"
-            f"<td>{_escape(row.get('expected_mapping_ambiguous', False))} / { _escape(row.get('actual_mapping_ambiguous', False))}</td></tr>"
+            f"<td>{_escape(row.get('expected_mapping_ambiguous', False))} / {_escape(row.get('actual_mapping_ambiguous', False))}</td></tr>"
         )
     if not rows:
         rows.append('<tr><td colspan="10">No selected failures.</td></tr>')
-    return '<table id="failures"><thead><tr><th>Unit</th><th>Source</th><th>Category</th><th>Expected</th><th>Actual</th><th>Outcome</th><th>Family</th><th>Ownership</th><th>Risk</th><th>Mapping expected / actual</th></tr></thead><tbody>' + "".join(rows) + "</tbody></table>"
+    return (
+        '<table id="failures"><thead><tr><th>Unit</th><th>Source</th><th>Category</th><th>Expected</th><th>Actual</th><th>Outcome</th><th>Family</th><th>Ownership</th><th>Risk</th><th>Mapping expected / actual</th></tr></thead><tbody>'
+        + "".join(rows)
+        + "</tbody></table>"
+    )
 
 
 def render_report(
@@ -148,7 +165,7 @@ def render_report(
         "config_hash": summary.get("environment", {}).get("config_hash"),
         "spokenform_source_commit": summary.get("environment", {}).get("spokenform_source_commit"),
     }
-    html_document = f'''<!doctype html>
+    html_document = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Async Voice TTS Normalization Benchmark</title>
 <style>
@@ -161,7 +178,7 @@ table {{ border-collapse: collapse; width:100%; margin-top: .8rem; background:wh
 .controls {{ display:flex; flex-wrap:wrap; gap:.7rem; align-items:center; }} input,select {{ padding:.45rem; }} pre {{ overflow:auto; white-space:pre-wrap; word-break:break-word; }}
 @media (prefers-color-scheme: dark) {{ body {{ background:#121820;color:#edf2f7; }} header,.panel,table {{ background:#1b2530; }} th {{ background:#293746; }} .notice {{ background:#3b2c15; }} .kpi {{ background:#20334d; }} }}
 </style></head><body><main>
-<header><h1>Async Voice TTS Normalization Benchmark</h1><p class="muted">Spokenform {_escape(summary.get('environment',{}).get('spokenform_version','unknown'))} | run {_escape(summary.get('run_id','unknown'))} | profile {_escape(summary.get('profile','default'))}</p><p>Upstream commit: <code>{_escape(metadata['source_commit'])}</code></p></header>
+<header><h1>Async Voice TTS Normalization Benchmark</h1><p class="muted">Spokenform {_escape(summary.get("environment", {}).get("spokenform_version", "unknown"))} | run {_escape(summary.get("run_id", "unknown"))} | profile {_escape(summary.get("profile", "default"))}</p><p>Upstream commit: <code>{_escape(metadata["source_commit"])}</code></p></header>
 <section class="panel"><div class="kpis">{_kpis(summary)}</div></section>
 <section class="panel notice"><strong>Methodology notice:</strong> Published TTS reference values use the upstream audio/LLM adjudication methodology. Spokenform is scored deterministically against normalized text. These percentages are displayed together for context and are not a like-for-like model ranking.</section>
 <nav class="tabs" aria-label="Report sections"><button data-tab="english">English Benchmark</button><button data-tab="multilingual">Multilingual</button><button data-tab="failures">Failures</button><button data-tab="metadata">Run Metadata</button></nav>
@@ -176,7 +193,7 @@ function filterCategories(){{const query=document.querySelector('#category-searc
 ['#category-search','#min-units','#show-all'].forEach(selector=>document.querySelector(selector).addEventListener('input',filterCategories));
 function filterFailures(){{const search=document.querySelector('#failure-search').value.toLowerCase(); const outcome=document.querySelector('#failure-outcome').value.toLowerCase(); const category=document.querySelector('#failure-category').value.toLowerCase(); document.querySelectorAll('.failure-row').forEach(row=>{{row.hidden=!row.textContent.toLowerCase().includes(search)||!row.dataset.outcome.includes(outcome)||!row.dataset.category.includes(category);}});}}
 ['#failure-search','#failure-outcome','#failure-category'].forEach(selector=>document.querySelector(selector).addEventListener('input',filterFailures)); filterCategories();
-</script></main></body></html>'''
+</script></main></body></html>"""
     output_path.write_text(html_document, encoding="utf-8")
     return output_path
 

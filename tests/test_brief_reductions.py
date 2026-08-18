@@ -152,10 +152,7 @@ def test_locale_numeric_policies_are_selected_before_separator_heuristics() -> N
     assert (
         prepare("45,000", language="es_MX", use_spacy=False).spoken_text == "Cuarenta y cinco mil"
     )
-    assert (
-        prepare("1.75", language="es_MX", use_spacy=False).spoken_text
-        == "Uno punto siete cinco"
-    )
+    assert prepare("1.75", language="es_MX", use_spacy=False).spoken_text == "Uno punto siete cinco"
 
 
 def test_typed_and_contextual_renderers_do_not_use_global_code_rules() -> None:

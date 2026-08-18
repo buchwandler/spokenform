@@ -63,10 +63,10 @@ def test_repeated_values_use_source_coordinates():
         ("x 5", "5", 2, 3, "5"),
         ("x 5 y", "x five y", 2, 3, "five"),
     ],
- )
+)
 def test_insertions_deletions_and_outside_edits_shift_coordinates(
     source: str, expected: str, start: int, end: int, text: str
- ):
+):
     item = unit(source, source[start:end], start)
     projection = project_expected_unit(case(source, expected, item), item)
     assert projection.text == text
@@ -117,7 +117,6 @@ def test_mapping_reproduces_expected_text():
     mapping = build_expected_mapping("a 5 b", "a five b")
     assert mapping.expected_text == "a five b"
     assert mapping.offset_map.map_source_span(2, 3) == (2, 6)
-
 
 
 def test_actual_projection_uses_prepared_source_mapping():
@@ -183,3 +182,12 @@ def test_profile_changes_configuration_without_changing_category_arguments():
     extended, _, _, _ = evaluator.evaluate_cases([test_case], profile="extended")
     assert default["normalize_literals"] is False
     assert extended["normalize_literals"] is True
+
+
+def test_candidate_oracle_adds_sentence_level_fields():
+    test_case = case("5", "five", unit("5", "5", 0))
+    summary, rows, units, _ = evaluator.evaluate_cases([test_case], candidate_oracle=True)
+    assert "candidate_count" in rows[0]
+    assert "oracle_gap_type" in rows[0]
+    assert "oracle_changed_span" in units[0]
+    assert summary["candidate_oracle"]["enabled"] is True

@@ -39,7 +39,9 @@ def _cache(tmp_path):
         path = root / relative_path
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(value), encoding="utf-8")
-    data.ensure_data((data.ENGLISH_SUITE, data.MULTILINGUAL_SUITE), cache_dir=tmp_path, offline=True)
+    data.ensure_data(
+        (data.ENGLISH_SUITE, data.MULTILINGUAL_SUITE), cache_dir=tmp_path, offline=True
+    )
     return tmp_path
 
 
@@ -108,6 +110,29 @@ def test_offline_cli_writes_expected_artifacts(tmp_path):
     assert (run_dir / "reference.json").is_file()
     assert not (run_dir / "report.html").exists()
     assert summary["environment"]["configuration"]["oracle_categories_passed_to_prepare"] is False
+
+
+def test_offline_cli_writes_oracle_artifacts(tmp_path):
+    cache_dir = _cache(tmp_path / "cache")
+    args = cli._parser().parse_args(
+        [
+            "--suite",
+            "all",
+            "--cache-dir",
+            str(cache_dir),
+            "--results-dir",
+            str(tmp_path / "results"),
+            "--offline",
+            "--report",
+            "none",
+            "--limit",
+            "2",
+            "--candidate-oracle",
+        ]
+    )
+    run_dir, summary = cli.evaluate_and_write(args)
+    assert summary["candidate_oracle"]["enabled"] is True
+    assert (run_dir / "oracle_summary.json").is_file()
 
 
 def test_download_only_does_not_evaluate(monkeypatch, tmp_path):

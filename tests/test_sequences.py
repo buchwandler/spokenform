@@ -316,12 +316,10 @@ def test_numeric_benchmark_contexts_use_category_specific_renderers() -> None:
     assert prepare("The team won 7-0.", language="en", use_spacy=False).spoken_text == (
         "The team won seven to zero."
     )
-    assert prepare("Die Basketballer gewannen 102:98.", language="de", use_spacy=False).spoken_text == (
-        "Die Basketballer gewannen einhundertzwei zu achtundneunzig."
-    )
     assert prepare(
-        "ISBN 978-3-16-148410-0", language="es_MX", use_spacy=False
-    ).spoken_text == (
+        "Die Basketballer gewannen 102:98.", language="de", use_spacy=False
+    ).spoken_text == ("Die Basketballer gewannen einhundertzwei zu achtundneunzig.")
+    assert prepare("ISBN 978-3-16-148410-0", language="es_MX", use_spacy=False).spoken_text == (
         "I S B N nueve siete ocho, guión tres, guión uno seis, guión uno cuatro ocho cuatro uno cero, guión cero"
     )
     assert prepare("Necesito 1/2 litro", language="es_MX", use_spacy=False).spoken_text == (

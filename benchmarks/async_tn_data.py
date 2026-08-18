@@ -10,10 +10,7 @@ from pathlib import Path
 from tempfile import NamedTemporaryFile
 from urllib.request import urlopen
 
-SOURCE_REPO = (
-    "https://huggingface.co/spaces/"
-    "async-vocie-ai/text-to-speech-normalization-benchmark"
-)
+SOURCE_REPO = "https://huggingface.co/spaces/async-vocie-ai/text-to-speech-normalization-benchmark"
 SOURCE_COMMIT = "516dfbf54c8f85db865b65de4272b1f4280ad1dd"
 SOURCE_LICENSE = "Apache-2.0"
 SOURCE_RAW_BASE = f"{SOURCE_REPO}/resolve/{SOURCE_COMMIT}"
@@ -152,9 +149,7 @@ def cache_path(cache_dir: Path | str = ".cache/async-tn") -> Path:
     return Path(cache_dir) / SOURCE_COMMIT
 
 
-def data_path(
-    relative_path: str, *, cache_dir: Path | str = ".cache/async-tn"
-) -> Path:
+def data_path(relative_path: str, *, cache_dir: Path | str = ".cache/async-tn") -> Path:
     if relative_path not in SOURCE_FILES:
         raise ValueError(f"unsupported Async TN source file {relative_path!r}")
     return cache_path(cache_dir) / relative_path
@@ -188,7 +183,11 @@ def _download(relative_path: str, destination: Path) -> dict[str, object]:
         payload = response.read()
     _validate_json(payload, relative_path)
     with NamedTemporaryFile(
-        mode="wb", dir=destination.parent, prefix=f"{destination.name}.", suffix=".part", delete=False
+        mode="wb",
+        dir=destination.parent,
+        prefix=f"{destination.name}.",
+        suffix=".part",
+        delete=False,
     ) as handle:
         temporary = Path(handle.name)
         handle.write(payload)
@@ -248,6 +247,7 @@ def _required_files(suites: Sequence[str]) -> tuple[str, ...]:
         result.extend(REFERENCE_FILES[suite])
     return tuple(dict.fromkeys(result))
 
+
 def required_files(suites: Sequence[str]) -> tuple[str, ...]:
     """Return canonical source and reference files for selected suites."""
     return _required_files(suites)
@@ -286,7 +286,9 @@ def ensure_data(
     if missing and offline:
         raise FileNotFoundError("Offline Async TN cache is missing: " + ", ".join(missing))
     for relative_path in missing:
-        files[relative_path] = _download(relative_path, data_path(relative_path, cache_dir=cache_dir))
+        files[relative_path] = _download(
+            relative_path, data_path(relative_path, cache_dir=cache_dir)
+        )
     _write_metadata(cache_dir, files)
     return root
 
@@ -330,7 +332,11 @@ def _resolve_units(
         category = raw_unit.get("norm_category", raw_unit.get("category"))
         if not isinstance(category, str) or not category:
             return (), AsyncTNExclusion(
-                case_id, suite, language, "invalid-source-record", f"missing category at unit {index}"
+                case_id,
+                suite,
+                language,
+                "invalid-source-record",
+                f"missing category at unit {index}",
             )
         start = raw_unit.get("start", raw_unit.get("source_start"))
         end = raw_unit.get("end", raw_unit.get("source_end"))
@@ -342,7 +348,11 @@ def _resolve_units(
             else:
                 candidates = _find_occurrences(original, text, cursor)
                 if len(candidates) != 1:
-                    reason = "unit-source-span-not-found" if not candidates else "unit-source-span-ambiguous"
+                    reason = (
+                        "unit-source-span-not-found"
+                        if not candidates
+                        else "unit-source-span-ambiguous"
+                    )
                     return (), AsyncTNExclusion(case_id, suite, language, reason)
                 resolved_start, resolved_end = candidates[0]
         else:
@@ -369,21 +379,31 @@ def _parse_case(
     payload: object, *, suite: str, language: str, position: int, source_id: str | None = None
 ) -> tuple[AsyncTNCase | None, AsyncTNExclusion | None]:
     if not isinstance(payload, dict):
-        case_id = make_case_id(suite, source_id or f"row-{position}", language if suite == MULTILINGUAL_SUITE else None)
-        return None, AsyncTNExclusion(case_id, suite, language, "invalid-source-record", "record is not an object")
+        case_id = make_case_id(
+            suite, source_id or f"row-{position}", language if suite == MULTILINGUAL_SUITE else None
+        )
+        return None, AsyncTNExclusion(
+            case_id, suite, language, "invalid-source-record", "record is not an object"
+        )
     source_id = source_id or _record_id(payload, position)
     case_id = make_case_id(suite, source_id, language if suite == MULTILINGUAL_SUITE else None)
     original = payload.get("original_text")
     normalized = payload.get("normalized_text")
     if not isinstance(original, str) or not isinstance(normalized, str):
-        return None, AsyncTNExclusion(case_id, suite, language, "invalid-source-record", "missing sentence text")
+        return None, AsyncTNExclusion(
+            case_id, suite, language, "invalid-source-record", "missing sentence text"
+        )
     units, exclusion = _resolve_units(
         original, _unit_payloads(payload), case_id=case_id, suite=suite, language=language
     )
     if exclusion is not None:
         return None, exclusion
     raw_categories = payload.get("categories")
-    categories = tuple(str(value) for value in raw_categories if isinstance(value, str)) if isinstance(raw_categories, list) else ()
+    categories = (
+        tuple(str(value) for value in raw_categories if isinstance(value, str))
+        if isinstance(raw_categories, list)
+        else ()
+    )
     if not categories:
         categories = tuple(dict.fromkeys(unit.category for unit in units))
     return (
@@ -409,9 +429,7 @@ def parse_english(payload: object) -> tuple[tuple[AsyncTNCase, ...], tuple[Async
     cases: list[AsyncTNCase] = []
     exclusions: list[AsyncTNExclusion] = []
     for position, record in enumerate(payload, 1):
-        case, exclusion = _parse_case(
-            record, suite=ENGLISH_SUITE, language="en", position=position
-        )
+        case, exclusion = _parse_case(record, suite=ENGLISH_SUITE, language="en", position=position)
         if case is not None:
             cases.append(case)
         if exclusion is not None:
@@ -430,7 +448,9 @@ def parse_multilingual(
     exclusions: list[AsyncTNExclusion] = []
     for position, record in enumerate(payload, 1):
         if not isinstance(record, dict) or not isinstance(record.get("languages"), dict):
-            source_id = _record_id(record, position) if isinstance(record, dict) else f"row-{position}"
+            source_id = (
+                _record_id(record, position) if isinstance(record, dict) else f"row-{position}"
+            )
             exclusions.append(
                 AsyncTNExclusion(
                     make_case_id(MULTILINGUAL_SUITE, source_id, "unknown"),
@@ -480,12 +500,20 @@ def load_cases(
         cache_dir=cache_dir,
     )
     payload = json.loads(path.read_text(encoding="utf-8"))
-    return parse_english(payload) if suite == ENGLISH_SUITE else parse_multilingual(payload, languages=languages)
+    return (
+        parse_english(payload)
+        if suite == ENGLISH_SUITE
+        else parse_multilingual(payload, languages=languages)
+    )
 
 
 def filter_cases(
-    cases: Iterable[AsyncTNCase], *, language: str | None = None, category: str | None = None,
-    case_id: str | None = None, limit: int | None = None
+    cases: Iterable[AsyncTNCase],
+    *,
+    language: str | None = None,
+    category: str | None = None,
+    case_id: str | None = None,
+    limit: int | None = None,
 ) -> tuple[AsyncTNCase, ...]:
     """Apply filters after parsing, preserving source-derived IDs."""
     if limit is not None and limit < 0:
@@ -494,33 +522,40 @@ def filter_cases(
         case
         for case in cases
         if (language is None or case.source_language == language)
-        and (category is None or category.casefold() in {item.casefold() for item in case.categories})
+        and (
+            category is None or category.casefold() in {item.casefold() for item in case.categories}
+        )
         and (case_id is None or case.case_id == case_id)
     ]
     return tuple(selected[:limit] if limit is not None else selected)
 
 
 def iter_cases(
-    suite: str, *, cache_dir: Path | str = ".cache/async-tn", language: str | None = None,
-    category: str | None = None, case_id: str | None = None, limit: int | None = None
+    suite: str,
+    *,
+    cache_dir: Path | str = ".cache/async-tn",
+    language: str | None = None,
+    category: str | None = None,
+    case_id: str | None = None,
+    limit: int | None = None,
 ) -> Iterator[AsyncTNCase]:
     cases, _ = load_cases(suite, cache_dir=cache_dir, languages=(language,) if language else None)
-    yield from filter_cases(cases, language=language, category=category, case_id=case_id, limit=limit)
+    yield from filter_cases(
+        cases, language=language, category=category, case_id=case_id, limit=limit
+    )
 
 
 def source_metadata(
     cache_dir: Path | str = ".cache/async-tn",
     *,
     files: Iterable[str] | None = None,
- ) -> dict[str, object]:
+) -> dict[str, object]:
     """Return commit and selected file-hash provenance for a populated cache."""
     metadata = _load_metadata(cache_dir)
     recorded = metadata.get("files", {})
     selected = set(files) if files is not None else None
     file_metadata = {
-        str(path): value
-        for path, value in recorded.items()
-        if selected is None or path in selected
+        str(path): value for path, value in recorded.items() if selected is None or path in selected
     }
     return {
         "benchmark": "async_tn",

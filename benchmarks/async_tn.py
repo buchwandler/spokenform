@@ -26,6 +26,7 @@ from .async_tn_data import (
     source_metadata,
 )
 from .async_tn_eval import BENCHMARK_PROFILES, evaluate_cases
+from .candidate_oracle import MAX_COMPONENT_PATHS, MAX_GLOBAL_COMBINATIONS
 from .compare_common import with_configuration_hash
 
 FAILURE_MODES = ("none", "semantic", "all")
@@ -77,6 +78,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument("--show-failures", choices=FAILURE_MODES, default="none")
     parser.add_argument("--report", choices=("html", "none"), default="html")
+    parser.add_argument(
+        "--candidate-oracle",
+        action="store_true",
+        help="Measure structured-candidate selection headroom and write oracle artifacts.",
+    )
     return parser
 
 
@@ -137,14 +143,26 @@ def _reference(cache_dir: Path, suites: tuple[str, ...]) -> dict[str, Any]:
         target = payload[suite]
         for relative_path in REFERENCE_FILES[suite]:
             key = Path(relative_path).stem
-            target[key] = json.loads(data_path(relative_path, cache_dir=cache_dir).read_text(encoding="utf-8"))
+            target[key] = json.loads(
+                data_path(relative_path, cache_dir=cache_dir).read_text(encoding="utf-8")
+            )
     return payload
 
 
 def _failure_markdown(rows: Iterable[dict[str, Any]], units: Iterable[dict[str, Any]]) -> str:
     failed_rows = [row for row in rows if row.get("error") or not row.get("speech_equivalent")]
-    failed_units = [row for row in units if row.get("outcome") not in {"correct-transform", "identity-preserved"}]
-    lines = ["# Async TN failures", "", f"- Failed sentences: {len(failed_rows):,}", f"- Failed units: {len(failed_units):,}", ""]
+    failed_units = [
+        row
+        for row in units
+        if row.get("outcome") not in {"correct-transform", "identity-preserved"}
+    ]
+    lines = [
+        "# Async TN failures",
+        "",
+        f"- Failed sentences: {len(failed_rows):,}",
+        f"- Failed units: {len(failed_units):,}",
+        "",
+    ]
     for row in failed_rows:
         lines.extend(
             [
@@ -174,7 +192,10 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     cases, exclusions = _load_selected_cases(args)
     profile = "extended" if args.normalize_literals else args.profile
     summary, rows, units, failures = evaluate_cases(
-        cases, profile=profile, normalize_literals=args.normalize_literals or None
+        cases,
+        profile=profile,
+        normalize_literals=args.normalize_literals or None,
+        candidate_oracle=args.candidate_oracle,
     )
     metadata = source_metadata(args.cache_dir, files=required_files(suites))
     configuration = {
@@ -187,13 +208,19 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         "normalize_literals": summary["normalize_literals"],
         "speech_wer_threshold": args.speech_wer_threshold,
         "oracle_categories_passed_to_prepare": False,
+        "candidate_oracle_enabled": args.candidate_oracle,
+        "candidate_oracle_schema_version": 1 if args.candidate_oracle else None,
+        "max_component_paths": MAX_COMPONENT_PATHS if args.candidate_oracle else None,
+        "max_global_combinations": MAX_GLOBAL_COMBINATIONS if args.candidate_oracle else None,
     }
     environment = dict(summary["environment"])
     environment.update(
         {
             "dataset_repository": metadata["source_repo"],
             "dataset_commit": SOURCE_COMMIT,
-            "locale_mapping": {language: "en_US" if language == "en" else language for language in SOURCE_LANGUAGES},
+            "locale_mapping": {
+                language: "en_US" if language == "en" else language for language in SOURCE_LANGUAGES
+            },
             "spokenform_source_commit": _source_commit(),
             "configuration": configuration,
         }
@@ -222,12 +249,18 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     _write_jsonl(run_dir / "units.jsonl", units)
     selected_failures = list(failures)
     if args.speech_wer_threshold is not None:
-        selected_failures = [row for row in selected_failures if row["speech_wer"] > args.speech_wer_threshold]
+        selected_failures = [
+            row for row in selected_failures if row["speech_wer"] > args.speech_wer_threshold
+        ]
     if args.show_failures == "semantic":
-        selected_failures = [row for row in selected_failures if row["semantic_failure"] or row["error"]]
+        selected_failures = [
+            row for row in selected_failures if row["semantic_failure"] or row["error"]
+        ]
     _write_jsonl(run_dir / "failures.jsonl", selected_failures)
     _write_jsonl(run_dir / "exclusions.jsonl", exclusions)
-    (run_dir / "failures.md").write_text(_failure_markdown(selected_failures, units), encoding="utf-8")
+    (run_dir / "failures.md").write_text(
+        _failure_markdown(selected_failures, units), encoding="utf-8"
+    )
     reference = _reference(args.cache_dir, suites)
     (run_dir / "reference.json").write_text(
         json.dumps(reference, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -235,6 +268,36 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     (run_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    if args.candidate_oracle and "candidate_oracle" in summary:
+        (run_dir / "oracle_summary.json").write_text(
+            json.dumps(
+                {
+                    "benchmark": summary["benchmark"],
+                    "profile": profile,
+                    "generated_at": summary["created_at"],
+                    "identity": {
+                        "benchmark": summary["benchmark"],
+                        "dataset_commit": summary["dataset_commit"],
+                        "spokenform_source_commit": summary["environment"][
+                            "spokenform_source_commit"
+                        ],
+                        "abbr2words_version": summary["environment"]["abbr2words_version"],
+                        "num2words_version": summary["environment"]["num2words_version"],
+                        "profile": profile,
+                        "config_hash": summary["environment"]["config_hash"],
+                        "candidate_oracle_schema_version": 1,
+                        "max_component_paths": MAX_COMPONENT_PATHS,
+                        "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+                    },
+                    "candidate_oracle": summary["candidate_oracle"],
+                },
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     if args.report == "html":
         from .async_tn_report import render_report
 
@@ -248,7 +311,9 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     print(f"Units: {summary['counts']['units_total']:,} total")
     print(f"Scorable: {summary['counts']['units_scorable']:,}")
     print(f"Quarantined: {summary['counts']['units_quarantined']:,}")
-    print(f"Sentence speech-equivalent: {summary['sentence_metrics']['speech_equivalent'] / len(rows) * 100 if rows else 0:.2f}%")
+    print(
+        f"Sentence speech-equivalent: {summary['sentence_metrics']['speech_equivalent'] / len(rows) * 100 if rows else 0:.2f}%"
+    )
     print(f"Unit speech-equivalent: {summary['unit_metrics']['accuracy'] * 100:.2f}%")
     print(f"Results: {run_dir}")
     return run_dir, summary

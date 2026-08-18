@@ -46,6 +46,11 @@ def _parser() -> argparse.ArgumentParser:
         default="none",
         help="Print the failure report index after evaluation.",
     )
+    parser.add_argument(
+        "--candidate-oracle",
+        action="store_true",
+        help="Measure structured-candidate selection headroom and write oracle artifacts.",
+    )
     parser.add_argument("--profile", choices=BENCHMARK_PROFILES, default="default")
     parser.add_argument(
         "--normalize-literals",
@@ -85,6 +90,7 @@ def main(argv: list[str] | None = None) -> int:
         output_root=args.results_dir,
         speech_wer_threshold=args.speech_wer_threshold,
         profile=profile,
+        candidate_oracle=args.candidate_oracle,
     )
     print(
         f"Proteno profile: {summary['profile']} (normalize_literals={summary['normalize_literals']})"

@@ -660,18 +660,48 @@ def _slash_fraction_text(
     numerator_value = int(numerator)
     if denominator_value <= 0 or numerator_value <= 0 or denominator_value > 100:
         return None
-    if base_language(language) == "es" and whole is None and numerator_value == 1 and denominator_value == 2:
+    if (
+        base_language(language) == "es"
+        and whole is None
+        and numerator_value == 1
+        and denominator_value == 2
+    ):
         return "medio"
-    if base_language(language) == "fr" and whole is None and numerator_value == 1 and denominator_value == 2:
+    if (
+        base_language(language) == "fr"
+        and whole is None
+        and numerator_value == 1
+        and denominator_value == 2
+    ):
         return "la moitié"
-    if base_language(language) == "fr" and whole is None and numerator_value == 1 and denominator_value == 100:
+    if (
+        base_language(language) == "fr"
+        and whole is None
+        and numerator_value == 1
+        and denominator_value == 100
+    ):
         return "un centième"
-    if base_language(language) == "it" and whole is None and numerator_value == 1 and denominator_value == 2:
+    if (
+        base_language(language) == "it"
+        and whole is None
+        and numerator_value == 1
+        and denominator_value == 2
+    ):
         return "metà"
     fraction = _fraction_word(numerator_value, denominator_value, language)
-    if whole is not None and base_language(language) == "en" and numerator_value == 1 and denominator_value == 2:
+    if (
+        whole is not None
+        and base_language(language) == "en"
+        and numerator_value == 1
+        and denominator_value == 2
+    ):
         fraction = "a half"
-    if whole is not None and base_language(language) == "en" and numerator_value == 1 and denominator_value == 4:
+    if (
+        whole is not None
+        and base_language(language) == "en"
+        and numerator_value == 1
+        and denominator_value == 4
+    ):
         fraction = "a quarter"
     if whole is None:
         return fraction
@@ -1129,8 +1159,10 @@ def _phone_text(value: str, language: str) -> str:
     if value.lstrip().startswith("+"):
         rendered.append(policy.plus_word)
     for index, group in enumerate(groups):
-        if policy.preserve_leading_zero and group.startswith("0") and not (
-            base_language(language) == "es" and len(group) == 3
+        if (
+            policy.preserve_leading_zero
+            and group.startswith("0")
+            and not (base_language(language) == "es" and len(group) == 3)
         ):
             rendered.append(_digitwise(group, language))
         elif policy.group_mode == "cardinal" or (

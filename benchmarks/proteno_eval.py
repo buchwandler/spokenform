@@ -20,12 +20,22 @@ from typing import Any, Literal
 from spokenform import PreparedText, prepare
 from spokenform.numeric_lexeme import numeric_speech_policy
 
+from .candidate_oracle import (
+    MAX_COMPONENT_PATHS,
+    MAX_GLOBAL_COMBINATIONS,
+    analyze_candidate_oracle,
+)
+from .candidate_oracle import (
+    analysis_fields as candidate_oracle_fields,
+)
 from .compare_common import with_configuration_hash
 from .failure_reporting import (
     RISK_TIERS,
     diagnostic_aggregates,
     failure_family,
     failure_family_counts,
+    oracle_aggregates,
+    oracle_gap_type,
     outcome_for_row,
     ownership_for_rule,
     rank_provenance,
@@ -256,11 +266,77 @@ def _provenance(
     return diagnostics
 
 
+def _candidate_oracle_kwargs(profile: LiteralProfile) -> dict[str, Any]:
+    return {
+        "promote_literals": profile == "extended",
+        "generic_acronym_mode": "conservative_unknown" if profile == "extended" else "known_only",
+        "generic_acronym_case": "lower" if profile == "extended" else "upper",
+        "max_component_paths": MAX_COMPONENT_PATHS,
+        "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+    }
+
+
+def _oracle_row_fields(
+    row: dict[str, Any],
+    result: PreparedText | Any,
+    *,
+    expected: str,
+    language: str,
+    profile: LiteralProfile,
+) -> dict[str, Any]:
+    if row["error"] or result is None:
+        fields = {
+            "candidate_count": 0,
+            "ambiguous_component_count": 0,
+            "alternative_path_count": 0,
+            "combinations_evaluated": 0,
+            "actual_speech_wer": float(row["speech_wer"]),
+            "oracle_speech_wer": float(row["speech_wer"]),
+            "selector_regret": 0.0,
+            "actual_speech_equivalent": bool(row["speech_exact_equivalent"]),
+            "oracle_speech_equivalent": bool(row["speech_exact_equivalent"]),
+            "oracle_literal_exact": bool(row["literal_exact"]),
+            "oracle_rules": [],
+            "oracle_spans": [],
+            "baseline_structured_rules": [],
+            "oracle_changed_rules": [],
+            "oracle_scorable": False,
+            "oracle_truncated": False,
+            "oracle_reason": "runtime-error",
+            "oracle_internal_gap_type": "oracle-unscorable",
+        }
+    else:
+        fields = candidate_oracle_fields(
+            analyze_candidate_oracle(
+                row["original_text"],
+                expected,
+                result,
+                language=language,
+                **_candidate_oracle_kwargs(profile),
+            )
+        )
+    merged = {**row, **fields}
+    gap_type = oracle_gap_type(merged)
+    fields["oracle_gap_type"] = gap_type
+    fields["eligible_for_selector"] = gap_type not in {
+        "dependency",
+        "policy",
+        "presentation",
+        "runtime-error",
+    }
+    fields["selection_gap"] = gap_type == "selection"
+    fields["fully_recoverable_selection_gap"] = gap_type == "selection" and bool(
+        fields["oracle_speech_equivalent"]
+    )
+    return fields
+
+
 def evaluate_cases(
     cases: Iterable[ProtenoCase],
     *,
     prepare_fn: Callable[..., PreparedText] = prepare,
     profile: LiteralProfile = "default",
+    candidate_oracle: bool = False,
 ) -> tuple[dict[str, Any], tuple[dict[str, Any], ...]]:
     """Evaluate cases while isolating individual runtime errors."""
     rows: list[dict[str, Any]] = []
@@ -358,6 +434,17 @@ def evaluate_cases(
             "projection_notes": case.projection_notes,
             **provenance,
         }
+        if candidate_oracle:
+            row.update(
+                _oracle_row_fields(
+                    row,
+                    result,
+                    expected=case.normalized_text,
+                    language=language,
+                    profile=profile,
+                )
+            )
+
         quarantine = PROTENO_QUARANTINE.get(case.case_id)
         row["quarantine"] = quarantine
         row["ownership"] = (
@@ -402,6 +489,9 @@ def evaluate_cases(
     )
     diagnostics = diagnostic_aggregates(rows)
     reported_failures = tuple(failures)
+    ownership_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        ownership_groups[str(row["ownership"])].append(row)
     summary: dict[str, Any] = {
         **_metric_counts(rows),
         "by_language": {
@@ -442,9 +532,44 @@ def evaluate_cases(
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
-    ownership_groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for row in rows:
-        ownership_groups[str(row["ownership"])].append(row)
+    if candidate_oracle:
+        summary["candidate_oracle"] = {
+            **oracle_aggregates(rows),
+            "by_language": {
+                key: oracle_aggregates(value) for key, value in sorted(grouped_language.items())
+            },
+            "by_split": {
+                key: oracle_aggregates(value) for key, value in sorted(grouped_split.items())
+            },
+            "by_case_kind": {
+                key: oracle_aggregates(value) for key, value in sorted(grouped_kind.items())
+            },
+            "by_language_case_kind": {
+                language: {
+                    kind: oracle_aggregates(kind_rows) for kind, kind_rows in sorted(kinds.items())
+                }
+                for language, kinds in sorted(grouped_language_kind.items())
+            },
+            "by_ownership": {
+                key: oracle_aggregates(value) for key, value in sorted(ownership_groups.items())
+            },
+            "by_risk_tier": {
+                tier: oracle_aggregates([row for row in rows if str(row.get("risk_tier")) == tier])
+                for tier in RISK_TIERS
+            },
+            "by_primary_rule": {
+                rule: oracle_aggregates(
+                    [row for row in rows if str(row.get("primary_rule") or "unrecognized") == rule]
+                )
+                for rule in sorted({str(row.get("primary_rule") or "unrecognized") for row in rows})
+            },
+            "by_failure_family": {
+                family: oracle_aggregates(
+                    [row for row in rows if str(row.get("failure_family")) == family]
+                )
+                for family in sorted({str(row.get("failure_family")) for row in rows})
+            },
+        }
     summary["gate_metrics"] = {
         "safety": {
             "identity_cases": len(identity),
@@ -622,21 +747,42 @@ def evaluate_and_write(
     output_root: Path | str = "benchmark-results/proteno",
     speech_wer_threshold: float | None = None,
     profile: LiteralProfile = "default",
+    candidate_oracle: bool = False,
 ) -> tuple[Path, dict[str, Any]]:
     """Evaluate cases and write metadata and local source-bearing reports."""
     case_list = tuple(cases)
     exclusion_list = tuple(exclusions)
-    summary, failures = (
-        evaluate_cases(case_list, profile=profile)
-        if profile == "extended"
-        else evaluate_cases(case_list)
-    )
+    if candidate_oracle:
+        summary, failures = (
+            evaluate_cases(case_list, profile=profile, candidate_oracle=True)
+            if profile == "extended"
+            else evaluate_cases(case_list, candidate_oracle=True)
+        )
+    else:
+        summary, failures = (
+            evaluate_cases(case_list, profile=profile)
+            if profile == "extended"
+            else evaluate_cases(case_list)
+        )
     all_rows = summary.pop("_rows", ())
     stored_failures = _filter_failures_by_speech_wer(failures, speech_wer_threshold)
     languages = sorted({case.proteno_language for case in case_list})
     output_dir = Path(output_root) / _run_id()
     output_dir.mkdir(parents=True, exist_ok=False)
     environment = environment_fingerprint(languages, profile=profile)
+    if candidate_oracle:
+        environment = with_configuration_hash(
+            {
+                **environment,
+                "configuration": {
+                    **environment["configuration"],
+                    "candidate_oracle_enabled": True,
+                    "candidate_oracle_schema_version": 1,
+                    "max_component_paths": MAX_COMPONENT_PATHS,
+                    "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+                },
+            }
+        )
     summary_payload: dict[str, Any] = {
         "benchmark": "Proteno",
         "repository": PROTENO_REPOSITORY,
@@ -701,6 +847,27 @@ def evaluate_and_write(
     (output_dir / "summary.json").write_text(
         json.dumps(summary_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    if candidate_oracle and "candidate_oracle" in summary_payload:
+        (output_dir / "oracle_summary.json").write_text(
+            json.dumps(
+                {
+                    "benchmark": summary_payload["benchmark"],
+                    "profile": profile,
+                    "generated_at": summary_payload["generated_at"],
+                    "identity": {
+                        **summary_payload["identity"],
+                        "candidate_oracle_schema_version": 1,
+                        "max_component_paths": MAX_COMPONENT_PATHS,
+                        "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+                    },
+                    "candidate_oracle": summary_payload["candidate_oracle"],
+                },
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     return output_dir, summary_payload
 
 

@@ -239,7 +239,10 @@ def parse_numeric_lexeme(
                 head = "0"
             if separator == policy.decimal_separator:
                 if context == "currency" and len(tail) > 2:
-                    if separator not in policy.grouping_separators and base_language(language) != "es":
+                    if (
+                        separator not in policy.grouping_separators
+                        and base_language(language) != "es"
+                    ):
                         return None
                     if len(tail) != 3 or not _grouping_is_valid(unsigned, separator):
                         return None

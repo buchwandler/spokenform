@@ -150,3 +150,17 @@ def test_replacement_crossing_row_boundary_is_explicitly_ambiguous() -> None:
     spans = [row for row in rows if row.get("record_type") == "span"]
     assert all(row["normalization_outcome"] == "mapping-ambiguous" for row in spans)
     assert summary["ambiguous_span_mapping_count"] == 2
+
+
+def test_candidate_oracle_adds_sentence_level_fields() -> None:
+    case = _case("2005", "two thousand five", "DATE")
+
+    def fake_prepare(text: str, **kwargs):
+        return FakeResult("two thousand five")
+
+    summary, rows, _ = evaluate([case], prepare_fn=fake_prepare, candidate_oracle=True)
+
+    sentence = next(row for row in rows if "record_type" not in row)
+    assert "candidate_count" in sentence
+    assert "oracle_gap_type" in sentence
+    assert summary["candidate_oracle"]["enabled"] is True

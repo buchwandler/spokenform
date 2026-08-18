@@ -381,6 +381,80 @@ def reason_code(reason: str) -> str:
     return "questionable-target"
 
 
+def oracle_gap_type(row: dict[str, Any]) -> str:
+    """Classify one oracle-enabled row with conservative ownership gates."""
+    if row.get("error"):
+        return "runtime-error"
+    if row.get("presentation_only") and not row.get("semantic_failure"):
+        return "presentation"
+    ownership = str(row.get("ownership") or "")
+    if row.get("quarantine") is not None or ownership in {
+        "protected",
+        "downstream",
+        "unsupported",
+        "questionable-target",
+        "external-language",
+    }:
+        return "policy"
+    if ownership == "dependency-abbr2words":
+        return "dependency"
+    if row.get("oracle_truncated"):
+        return "oracle-truncated"
+    if not row.get("oracle_scorable", False):
+        return "oracle-unscorable"
+    if int(row.get("ambiguous_component_count", 0)) == 0:
+        return "no-ambiguous-candidates"
+    if float(row.get("selector_regret", 0.0)) > 0:
+        return "selection"
+    return "candidates-no-gain"
+
+
+def oracle_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    """Summarize selector-headroom signals for oracle-enabled benchmark rows."""
+    values = tuple(rows)
+    eligible = tuple(
+        row
+        for row in values
+        if oracle_gap_type(row) not in {"dependency", "policy", "presentation", "runtime-error"}
+    )
+    scorable = tuple(row for row in eligible if row.get("oracle_scorable"))
+    regret_sum = sum(float(row.get("selector_regret", 0.0)) for row in scorable)
+    eligible_count = len(eligible)
+    scorable_count = len(scorable)
+    exact_target_count = sum(bool(row.get("oracle_literal_exact")) for row in eligible)
+    return {
+        "schema_version": 1,
+        "enabled": True,
+        "cases": len(values),
+        "eligible_cases": eligible_count,
+        "scorable_cases": scorable_count,
+        "unscorable_cases": sum(not row.get("oracle_scorable", False) for row in eligible),
+        "truncated_cases": sum(bool(row.get("oracle_truncated")) for row in eligible),
+        "cases_with_ambiguous_candidates": sum(
+            int(row.get("ambiguous_component_count", 0)) > 0 for row in eligible
+        ),
+        "selection_gap_count": sum(oracle_gap_type(row) == "selection" for row in eligible),
+        "fully_recoverable_selection_gap_count": sum(
+            oracle_gap_type(row) == "selection" and bool(row.get("oracle_speech_equivalent"))
+            for row in eligible
+        ),
+        "actual_speech_wer_sum": sum(float(row.get("actual_speech_wer", 0.0)) for row in scorable),
+        "oracle_speech_wer_sum": sum(float(row.get("oracle_speech_wer", 0.0)) for row in scorable),
+        "selector_regret_sum": regret_sum,
+        "selector_regret_mean": regret_sum / scorable_count if scorable_count else 0.0,
+        "candidate_recall_for_exact_target": (
+            exact_target_count / eligible_count if eligible_count else 0.0
+        ),
+        "combinations_evaluated": sum(
+            int(row.get("combinations_evaluated", 0)) for row in eligible
+        ),
+        "max_combinations_for_one_case": max(
+            (int(row.get("combinations_evaluated", 0)) for row in eligible),
+            default=0,
+        ),
+    }
+
+
 __all__ = [
     "FAILURE_FAMILIES",
     "OWNERSHIP_STATES",
@@ -389,6 +463,8 @@ __all__ = [
     "failure_family",
     "failure_family_counts",
     "diagnostic_aggregates",
+    "oracle_aggregates",
+    "oracle_gap_type",
     "ownership_for_rule",
     "outcome_for_row",
     "risk_tier_for_row",

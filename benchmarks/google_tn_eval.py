@@ -8,7 +8,20 @@ from typing import Any, Literal
 
 from spokenform import PreparedText, prepare
 
-from .failure_reporting import failure_family, ownership_for_rule
+from .candidate_oracle import (
+    MAX_COMPONENT_PATHS,
+    MAX_GLOBAL_COMBINATIONS,
+    analyze_candidate_oracle,
+)
+from .candidate_oracle import (
+    analysis_fields as candidate_oracle_fields,
+)
+from .failure_reporting import (
+    failure_family,
+    oracle_aggregates,
+    oracle_gap_type,
+    ownership_for_rule,
+)
 from .google_tn_format import GoogleTNCase, GoogleTNRow
 from .text_metrics import literal_key, speech_key, speech_key_equivalent, word_error_rate
 
@@ -210,7 +223,72 @@ def _sentence_record(
     }
     record["primary_rule"] = record["source_rules"][0] if record["source_rules"] else None
     record["failure_family"] = failure_family(record)
+    record["ownership"] = ownership_for_rule(record["primary_rule"])
     return record, row_records
+
+
+def _candidate_oracle_kwargs(*, normalize_literals: bool) -> dict[str, Any]:
+    return {
+        "promote_literals": normalize_literals,
+        "generic_acronym_mode": "known_only",
+        "generic_acronym_case": "upper",
+        "max_component_paths": MAX_COMPONENT_PATHS,
+        "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+    }
+
+
+def _oracle_row_fields(
+    row: dict[str, Any],
+    result: PreparedText | None,
+    case: GoogleTNCase,
+    *,
+    normalize_literals: bool,
+) -> dict[str, Any]:
+    if row["error"] or result is None:
+        fields = {
+            "candidate_count": 0,
+            "ambiguous_component_count": 0,
+            "alternative_path_count": 0,
+            "combinations_evaluated": 0,
+            "actual_speech_wer": float(row["speech_wer"]),
+            "oracle_speech_wer": float(row["speech_wer"]),
+            "selector_regret": 0.0,
+            "actual_speech_equivalent": bool(row["speech_exact_equivalent"]),
+            "oracle_speech_equivalent": bool(row["speech_exact_equivalent"]),
+            "oracle_literal_exact": bool(row["literal_exact"]),
+            "oracle_rules": [],
+            "oracle_spans": [],
+            "baseline_structured_rules": [],
+            "oracle_changed_rules": [],
+            "oracle_scorable": False,
+            "oracle_truncated": False,
+            "oracle_reason": "runtime-error",
+            "oracle_internal_gap_type": "oracle-unscorable",
+        }
+    else:
+        fields = candidate_oracle_fields(
+            analyze_candidate_oracle(
+                case.original_text,
+                case.normalized_text,
+                result,
+                language="en_US",
+                **_candidate_oracle_kwargs(normalize_literals=normalize_literals),
+            )
+        )
+    merged = {**row, **fields}
+    gap_type = oracle_gap_type(merged)
+    fields["oracle_gap_type"] = gap_type
+    fields["eligible_for_selector"] = gap_type not in {
+        "dependency",
+        "policy",
+        "presentation",
+        "runtime-error",
+    }
+    fields["selection_gap"] = gap_type == "selection"
+    fields["fully_recoverable_selection_gap"] = gap_type == "selection" and bool(
+        fields["oracle_speech_equivalent"]
+    )
+    return fields
 
 
 def _empty_summary(profile: str) -> dict[str, Any]:
@@ -321,6 +399,7 @@ def evaluate(
     normalize_literals: bool | None = None,
     long_number_mode: LongNumberMode = "preserve",
     prepare_fn: Callable[..., PreparedText] = prepare,
+    candidate_oracle: bool = False,
 ) -> tuple[dict[str, Any], tuple[dict[str, Any], ...], tuple[dict[str, Any], ...]]:
     """Evaluate cases without using upstream classes as preparation hints."""
     if profile not in BENCHMARK_PROFILES:
@@ -351,12 +430,63 @@ def evaluate(
         except Exception as exc:  # benchmark discovery continues per case
             error = f"{type(exc).__name__}: {exc}"
         record, row_records = _sentence_record(case, result, error=error)
+        if candidate_oracle:
+            record.update(
+                _oracle_row_fields(
+                    record,
+                    result,
+                    case,
+                    normalize_literals=bool(normalize_literals),
+                )
+            )
+            changed_spans = tuple(tuple(span) for span in record["oracle_spans"])
+            row_records = tuple(
+                {
+                    **row,
+                    "oracle_changed_span": any(
+                        row["source_start"] < span_end and span_start < row["source_end"]
+                        for span_start, span_end in changed_spans
+                    ),
+                    "oracle_gap_type": record["oracle_gap_type"],
+                }
+                for row in row_records
+            )
         _increment_summary(summary, record, row_records)
         rows_out.append(record)
         rows_out.extend({"record_type": "span", **row} for row in row_records)
         if error or not record["speech_exact"] or record["presentation_only"]:
             failures.append(record)
-    return finalize_summary(summary), tuple(rows_out), tuple(failures)
+    finalized = finalize_summary(summary)
+    if candidate_oracle:
+        sentence_rows = [row for row in rows_out if "record_type" not in row]
+        finalized["candidate_oracle"] = {
+            **oracle_aggregates(sentence_rows),
+            "by_primary_rule": {
+                rule: oracle_aggregates(
+                    [
+                        row
+                        for row in sentence_rows
+                        if str(row.get("primary_rule") or "unrecognized") == rule
+                    ]
+                )
+                for rule in sorted(
+                    {str(row.get("primary_rule") or "unrecognized") for row in sentence_rows}
+                )
+            },
+            "by_failure_family": {
+                family: oracle_aggregates(
+                    [row for row in sentence_rows if str(row.get("failure_family")) == family]
+                )
+                for family in sorted({str(row.get("failure_family")) for row in sentence_rows})
+            },
+            "by_ownership": {
+                ownership: oracle_aggregates(
+                    [row for row in sentence_rows if str(row.get("ownership")) == ownership]
+                )
+                for ownership in sorted({str(row.get("ownership")) for row in sentence_rows})
+            },
+        }
+    return finalized, tuple(rows_out), tuple(failures)
 
 
 __all__ = [

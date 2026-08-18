@@ -41,6 +41,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--refresh", action="store_true", help="Redownload selected pinned files.")
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument("--show-failures", choices=("none", "all"), default="none")
+    parser.add_argument(
+        "--candidate-oracle",
+        action="store_true",
+        help="Measure structured-candidate selection headroom and write oracle artifacts.",
+    )
     parser.add_argument("--profile", choices=BENCHMARK_PROFILES, default="default")
     parser.add_argument(
         "--normalize-literals",
@@ -83,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         output_root=args.results_dir,
         speech_wer_threshold=args.speech_wer_threshold,
         profile=profile,
+        candidate_oracle=args.candidate_oracle,
     )
     print(
         f"PolyNorm profile: {summary['profile']} (normalize_literals={summary['normalize_literals']})"

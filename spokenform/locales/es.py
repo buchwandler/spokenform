@@ -222,7 +222,8 @@ _TEXT_DATE_HYPHEN = re.compile(
     re.IGNORECASE,
 )
 _ORDINAL_SYMBOL = re.compile(
-    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|(?:do|to|ta|mo|vo|na|da)|[oa])(?!\w)", re.IGNORECASE
+    r"(?<![\w.])(?P<number>\d+)(?P<suffix>\.?[ºª]|er|(?:do|to|ta|mo|vo|na|da)|[oa])(?!\w)",
+    re.IGNORECASE,
 )
 
 
@@ -311,7 +312,10 @@ def _time_text(hour: int, minute: int, period: str | None, language: str = "es")
         suffix = (
             "de la mañana"
             if normalized == "am"
-            else "de la noche" if regional and (normalized == "pm" and hour >= 6 or normalized == "contextpm" and hour >= 18) else "de la tarde"
+            else "de la noche"
+            if regional
+            and (normalized == "pm" and hour >= 6 or normalized == "contextpm" and hour >= 18)
+            else "de la tarde"
         )
         parts = [_spell(display_hour, language)]
         if minute:

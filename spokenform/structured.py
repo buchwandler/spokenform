@@ -21,7 +21,48 @@ class StageResult:
     reserved: tuple[ReservedSpan, ...] = ()
 
 
-def iter_structured_replacements(
+def _iter_locale_replacements(
+    text: str,
+    *,
+    language: str,
+    protected_ranges: tuple[tuple[int, int], ...],
+) -> tuple[Replacement, ...]:
+    """Collect locale-specific structured candidates with the production imports."""
+    base = base_language(language)
+    if base == "en":
+        from .locales.en import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "de":
+        from .locales.de import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "fr":
+        from .locales.fr import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "es":
+        from .locales.es import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "it":
+        from .locales.it import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "pt":
+        from .locales.pt import iter_replacements as iter_portuguese_replacements
+
+        return iter_portuguese_replacements(
+            text, language=language, protected_ranges=protected_ranges
+        )
+    if base == "cs":
+        from .locales.cs import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    return ()
+
+
+def iter_structured_candidates(
     text: str,
     *,
     language: str,
@@ -30,12 +71,11 @@ def iter_structured_replacements(
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
 ) -> tuple[Replacement, ...]:
-    """Return exact, non-overlapping semantic replacements for one language."""
+    """Return all admissible structured candidates before conflict resolution."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
 
     language = normalize_language(language)
-    base = base_language(language)
     protected = tuple(protected_ranges)
     from .recognizers import iter_sequence_replacements
 
@@ -47,40 +87,44 @@ def iter_structured_replacements(
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
     )
-    if base == "en":
-        from .locales.en import iter_replacements
+    locale_candidates = _iter_locale_replacements(
+        text,
+        language=language,
+        protected_ranges=protected,
+    )
+    return (*shared_candidates, *locale_candidates)
 
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    elif base == "de":
-        from .locales.de import iter_replacements
 
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    elif base == "fr":
-        from .locales.fr import iter_replacements
-
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    elif base == "es":
-        from .locales.es import iter_replacements
-
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    elif base == "it":
-        from .locales.it import iter_replacements
-
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    elif base == "pt":
-        from .locales.pt import iter_replacements as iter_portuguese_replacements
-
-        candidates = iter_portuguese_replacements(
-            text, language=language, protected_ranges=protected
-        )
-    elif base == "cs":
-        from .locales.cs import iter_replacements
-
-        candidates = iter_replacements(text, language=language, protected_ranges=protected)
-    else:
-        return ()
-    resolved = resolve_replacements((*shared_candidates, *candidates), source_length=len(text))
+def resolve_structured_candidates(
+    text: str,
+    candidates: tuple[Replacement, ...],
+    *,
+    language: str,
+) -> tuple[Replacement, ...]:
+    """Resolve structured candidates using the production structured policy."""
+    resolved = resolve_replacements(candidates, source_length=len(text))
     return capitalize_generated_numeric_replacements(text, resolved, language=language)
+
+
+def iter_structured_replacements(
+    text: str,
+    *,
+    language: str,
+    protected_ranges: Iterable[tuple[int, int]] = (),
+    promote_literals: bool = False,
+    generic_acronym_mode: GenericAcronymMode = "known_only",
+    generic_acronym_case: GenericAcronymCase = "upper",
+) -> tuple[Replacement, ...]:
+    """Return exact, non-overlapping semantic replacements for one language."""
+    candidates = iter_structured_candidates(
+        text,
+        language=language,
+        protected_ranges=protected_ranges,
+        promote_literals=promote_literals,
+        generic_acronym_mode=generic_acronym_mode,
+        generic_acronym_case=generic_acronym_case,
+    )
+    return resolve_structured_candidates(text, candidates, language=normalize_language(language))
 
 
 def normalize_structured(
@@ -117,4 +161,10 @@ def normalize_structured(
     return StageResult(result, replacements, reserved)
 
 
-__all__ = ["StageResult", "iter_structured_replacements", "normalize_structured"]
+__all__ = [
+    "StageResult",
+    "iter_structured_candidates",
+    "iter_structured_replacements",
+    "normalize_structured",
+    "resolve_structured_candidates",
+]

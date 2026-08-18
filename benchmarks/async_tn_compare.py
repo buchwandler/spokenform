@@ -30,9 +30,7 @@ def _read_jsonl(path: Path) -> tuple[dict[str, Any], ...]:
     if not path.is_file():
         return ()
     return tuple(
-        json.loads(line)
-        for line in path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
     )
 
 
@@ -92,7 +90,9 @@ def _group_counts(rows: tuple[dict[str, Any], ...], *fields: str) -> dict[str, d
     return {key: value for key, value in sorted(counts.items())}
 
 
-def _delta(before: dict[str, dict[str, int]], after: dict[str, dict[str, int]]) -> dict[str, dict[str, int]]:
+def _delta(
+    before: dict[str, dict[str, int]], after: dict[str, dict[str, int]]
+) -> dict[str, dict[str, int]]:
     result: dict[str, dict[str, int]] = {}
     for key in sorted(set(before) | set(after)):
         result[key] = {
@@ -107,10 +107,23 @@ def compare_runs(
 ) -> dict[str, Any]:
     """Return stable case, unit, language, and category deltas."""
     before_dir, after_dir = Path(before), Path(after)
-    before_summary, after_summary = _read_json(before_dir / "summary.json"), _read_json(after_dir / "summary.json")
-    identity = ensure_compatible(before_summary, after_summary, allow_incompatible=allow_incompatible)
-    before_rows = {row["id"]: row for row in _read_jsonl(before_dir / "rows.jsonl") if row.get("record_type") == "sentence" or "record_type" not in row}
-    after_rows = {row["id"]: row for row in _read_jsonl(after_dir / "rows.jsonl") if row.get("record_type") == "sentence" or "record_type" not in row}
+    before_summary, after_summary = (
+        _read_json(before_dir / "summary.json"),
+        _read_json(after_dir / "summary.json"),
+    )
+    identity = ensure_compatible(
+        before_summary, after_summary, allow_incompatible=allow_incompatible
+    )
+    before_rows = {
+        row["id"]: row
+        for row in _read_jsonl(before_dir / "rows.jsonl")
+        if row.get("record_type") == "sentence" or "record_type" not in row
+    }
+    after_rows = {
+        row["id"]: row
+        for row in _read_jsonl(after_dir / "rows.jsonl")
+        if row.get("record_type") == "sentence" or "record_type" not in row
+    }
     before_units = {row["unit_id"]: row for row in _read_jsonl(before_dir / "units.jsonl")}
     after_units = {row["unit_id"]: row for row in _read_jsonl(after_dir / "units.jsonl")}
     before_failed = {key for key, row in before_rows.items() if _failed(row)}
@@ -132,7 +145,9 @@ def compare_runs(
         "after": str(after_dir),
         "identity": identity,
         "summary_delta": {
-            "sentence_speech_equivalent": after_summary.get("sentence_metrics", {}).get("speech_equivalent", 0)
+            "sentence_speech_equivalent": after_summary.get("sentence_metrics", {}).get(
+                "speech_equivalent", 0
+            )
             - before_summary.get("sentence_metrics", {}).get("speech_equivalent", 0),
             "unit_correct": after_summary.get("unit_metrics", {}).get("units_correct", 0)
             - before_summary.get("unit_metrics", {}).get("units_correct", 0),

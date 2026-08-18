@@ -1,6 +1,8 @@
 from types import SimpleNamespace
 
 from benchmarks.failure_reporting import (
+    oracle_aggregates,
+    oracle_gap_type,
     outcome_for_row,
     ownership_for_rule,
     rank_provenance,
@@ -79,3 +81,37 @@ def test_risk_tiers_distinguish_safe_contextual_and_high_risk_followups() -> Non
         "high"
     )
     assert risk_tier_for_row({"presentation_only": True, "semantic_failure": False}) == "low"
+
+
+def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
+    selection = {
+        "ownership": "owned",
+        "oracle_scorable": True,
+        "oracle_truncated": False,
+        "ambiguous_component_count": 1,
+        "selector_regret": 0.25,
+        "oracle_speech_equivalent": True,
+        "oracle_literal_exact": True,
+        "combinations_evaluated": 3,
+        "actual_speech_wer": 0.25,
+        "oracle_speech_wer": 0.0,
+    }
+    policy = {
+        "ownership": "protected",
+        "oracle_scorable": True,
+        "oracle_truncated": False,
+        "ambiguous_component_count": 1,
+        "selector_regret": 0.5,
+        "oracle_speech_equivalent": True,
+        "oracle_literal_exact": True,
+        "combinations_evaluated": 2,
+        "actual_speech_wer": 0.5,
+        "oracle_speech_wer": 0.0,
+    }
+
+    assert oracle_gap_type(selection) == "selection"
+    assert oracle_gap_type(policy) == "policy"
+    aggregates = oracle_aggregates((selection, policy))
+    assert aggregates["cases"] == 2
+    assert aggregates["eligible_cases"] == 1
+    assert aggregates["selection_gap_count"] == 1

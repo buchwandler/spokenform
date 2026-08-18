@@ -29,7 +29,9 @@ def fixture():
             "future_category": {"units_total": 1, "units_scorable": 1, "accuracy": 0.0},
         },
         "languages": {"en": {}},
-        "language_categories": {"en": {"date": {"units_total": 31, "units_scorable": 30, "accuracy": 1.0}}},
+        "language_categories": {
+            "en": {"date": {"units_total": 31, "units_scorable": 30, "accuracy": 1.0}}
+        },
     }
     reference = {
         "source_commit": "commit",
@@ -90,7 +92,7 @@ def test_report_uses_default_threshold_and_show_all_control(tmp_path):
     assert DEFAULT_MIN_UNITS == 30
     assert 'id="show-all"' in text
     assert 'data-units="1"' in text
-    assert 'selected>30</option>' in text
+    assert "selected>30</option>" in text
     assert "future_category" in text
 
 

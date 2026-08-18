@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
+from .candidate_oracle import MAX_COMPONENT_PATHS, MAX_GLOBAL_COMBINATIONS
 from .google_tn_data import (
     GOOGLE_TN_SPLITS,
     GOOGLE_TN_TEST_LINE_LIMIT,
@@ -75,6 +76,11 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--speech-wer-threshold", type=_non_negative_float)
     parser.add_argument("--show-failures", choices=("none", "all"), default="none")
+    parser.add_argument(
+        "--candidate-oracle",
+        action="store_true",
+        help="Measure structured-candidate selection headroom and write oracle artifacts.",
+    )
     parser.add_argument("--results-dir", type=Path, default=Path("benchmark-results/google-tn"))
     return parser
 
@@ -160,6 +166,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict]:
         profile=profile,
         normalize_literals=args.normalize_literals or None,
         long_number_mode=args.long_number_mode,
+        candidate_oracle=args.candidate_oracle,
     )
     run_dir = args.results_dir / _run_id()
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -190,6 +197,10 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict]:
             "long_number_mode": args.long_number_mode,
             "surface_policy": "field_join_v1",
             "oracle_classes_passed_to_prepare": False,
+            "candidate_oracle_enabled": args.candidate_oracle,
+            "candidate_oracle_schema_version": 1 if args.candidate_oracle else None,
+            "max_component_paths": MAX_COMPONENT_PATHS if args.candidate_oracle else None,
+            "max_global_combinations": MAX_GLOBAL_COMBINATIONS if args.candidate_oracle else None,
             "test_line_limit": GOOGLE_TN_TEST_LINE_LIMIT if args.split == "test" else None,
         },
     }
@@ -204,6 +215,36 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict]:
     (run_dir / "summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8"
     )
+    if args.candidate_oracle and "candidate_oracle" in summary:
+        (run_dir / "oracle_summary.json").write_text(
+            json.dumps(
+                {
+                    "benchmark": "Google TN",
+                    "profile": profile,
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                    "identity": {
+                        "benchmark": "Google TN",
+                        "spokenform_source_commit": summary["provenance"][
+                            "spokenform_source_commit"
+                        ],
+                        "abbr2words_version": summary["provenance"]["abbr2words_version"],
+                        "num2words_version": summary["provenance"]["num2words_version"],
+                        "profile": profile,
+                        "language": args.language,
+                        "split": args.split,
+                        "candidate_oracle_schema_version": 1,
+                        "max_component_paths": MAX_COMPONENT_PATHS,
+                        "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
+                    },
+                    "candidate_oracle": summary["candidate_oracle"],
+                },
+                ensure_ascii=False,
+                indent=2,
+                sort_keys=True,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     if args.show_failures == "all":
         print((run_dir / "failures.md").read_text(encoding="utf-8"))
     return run_dir, summary

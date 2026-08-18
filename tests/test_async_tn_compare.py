@@ -18,23 +18,44 @@ def _write_run(root, *, profile="default", file_hash="hash", failed=False, suite
             "dataset_repository": "repo",
             "dataset_commit": "commit",
             "locale_mapping": {"en": "en_US"},
-            "configuration": {"suite": suite, "profile": profile, "normalize_literals": profile == "extended"},
+            "configuration": {
+                "suite": suite,
+                "profile": profile,
+                "normalize_literals": profile == "extended",
+            },
         },
         "sentence_metrics": {"speech_equivalent": 0 if failed else 1},
         "unit_metrics": {"units_correct": 0 if failed else 1, "units_scorable": 1},
     }
-    rows = [{
-        "record_type": "sentence", "id": "english:1", "speech_equivalent": not failed,
-        "error": None, "expected": "five", "actual": "wrong" if failed else "five",
-    }]
-    units = [{
-        "record_type": "unit", "unit_id": "english:1:unit:0", "speech_equivalent": not failed,
-        "scorable": True, "source_language": "en", "category": "cardinal",
-        "expected": "five", "actual": "wrong" if failed else "five",
-    }]
+    rows = [
+        {
+            "record_type": "sentence",
+            "id": "english:1",
+            "speech_equivalent": not failed,
+            "error": None,
+            "expected": "five",
+            "actual": "wrong" if failed else "five",
+        }
+    ]
+    units = [
+        {
+            "record_type": "unit",
+            "unit_id": "english:1:unit:0",
+            "speech_equivalent": not failed,
+            "scorable": True,
+            "source_language": "en",
+            "category": "cardinal",
+            "expected": "five",
+            "actual": "wrong" if failed else "five",
+        }
+    ]
     (root / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
-    (root / "rows.jsonl").write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
-    (root / "units.jsonl").write_text("\n".join(json.dumps(row) for row in units) + "\n", encoding="utf-8")
+    (root / "rows.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8"
+    )
+    (root / "units.jsonl").write_text(
+        "\n".join(json.dumps(row) for row in units) + "\n", encoding="utf-8"
+    )
 
 
 def test_compatible_runs_compare_stable_ids_and_deltas(tmp_path):
