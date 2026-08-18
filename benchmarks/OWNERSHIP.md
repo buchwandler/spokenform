@@ -57,3 +57,9 @@ These tests encode explicit non-goals: the core normalizer must not delete
 foreign text, spell arbitrary title-case words as letters, guess years or times
 from shape alone, treat every slash as a date, or rewrite ordinary prose as a
 typed code.
+
+## Async TN category diagnostics
+
+Async TN preserves every upstream category as `source_category` and does not treat it as a runtime instruction. Numeric and structured categories such as cardinal, currency, date, decimal, fraction, measurement unit, ordinal, quantity, range, score percent, and time are generally `owned` when the runtime rule provides provenance. Abbreviation and acronym rows remain `dependency-abbr2words`. URLs, e-mail, versions, tokens, paths, and similar literal categories remain `protected` or `extended-candidate` according to the actual runtime behavior.
+
+Unknown categories are retained verbatim. Low-frequency categories remain in JSON and JSONL outputs even when the static dashboard applies its default 30-unit presentation threshold. Source-span, expected-target, and actual-runtime cross-boundary ambiguity is quarantined and excluded from scorable denominators. Published Async TTS reference percentages use an audio/LLM judge and must not be combined with deterministic Spokenform scores for a winner or release claim.

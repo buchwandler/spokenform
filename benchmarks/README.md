@@ -86,3 +86,11 @@ and ambiguous mappings, and record source-file SHA256 provenance. Google TN is
 a diagnostic rather than a human-gold oracle, normal CI gate, or release gate.
 Source-bearing reports remain local under `benchmark-results/google-tn/`.
 See the detailed [Google TN documentation](../docs/google_tn.md).
+
+## Async Voice TTS Normalization Benchmark
+
+`python -m benchmarks.async_tn --suite all` runs the pinned English and multilingual Async TN adapter. The source is Apache-2.0, cached under `.cache/async-tn/<commit>/`, and never vendored. Use `--suite english|multilingual`, `--language`, `--category`, `--case`, `--limit`, `--offline`, `--refresh`, `--download-only`, `--profile default|extended`, `--normalize-literals`, `--show-failures`, and `--report html|none`.
+
+The multilingual suite supports `en`, `de`, `es`, `fr`, `it`, and `pt`; English maps to `en_US`. Each sentence is prepared once and annotated units are projected through source mappings. Ambiguous mappings and malformed source rows are quarantined rather than guessed. Results include explicit denominators, source hashes, JSONL records, Markdown failures, a static escaped HTML dashboard, and reference data from the pinned upstream category files.
+
+The dashboard clearly separates deterministic Spokenform text metrics from published upstream audio/LLM judge scores. It does not calculate a mixed-method winner. Compare compatible runs with `python -m benchmarks.async_tn_compare before after`; incompatible dataset or configuration identities are rejected by default. See the detailed [Async TN documentation](../docs/async_tn.md).
