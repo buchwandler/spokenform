@@ -10,7 +10,7 @@ from typing import Literal
 
 from num2words import num2words
 
-from ..dates import render_english_year
+from ..dates import render_english_year, render_year
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -135,23 +135,56 @@ _BARE_DOMAIN_RE = re.compile(
     r"(?:/[^\s<>]*)?",
     re.IGNORECASE,
 )
-_ROMAN_CONTEXT_RE = re.compile(
-    r"(?P<context>\b(?:article|act|scene|chapter|volume|part|section|century|page|king|queen|pope|super\s+bowl|artikel|seite|akt|szene|kaiser|könig|königin|papst|kapitel|band|teil|abschnitt|siglo|página|pagina|capítulo|chapitre|capitolo)\s+)"
-    r"(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])",
-    re.IGNORECASE,
+_ROMAN_PREFIX_CARDINAL_RE = re.compile(
+    r"(?P<context>\b(?i:article|act|scene|chapter|volume|part|section|block|page|super\s+bowl|"
+    r"artikel|seite|akt|szene|kapitel|band|teil|abschnitt|block|"
+    r"acto|escena|capítulo|capitulo|parte|sección|seccion|bloque|"
+    r"partie|acte|scène|scene|chapitre|section|bloc|"
+    r"atto|scena|capitolo|volume|parte|sezione|blocco|"
+    r"ato|cena|capítulo|capitulo|parte|seção|secao|bloco)\s+)"
+    r"(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])"
 )
-_ROMAN_YEAR_RE = re.compile(
-    r"(?P<context>\b(?:im\s+jahr|anno|año|year|olympic\s+games|olympische\s+spiele|games|edition|event)\s+)(?P<value>[IVXLCDM]{2,12})(?![A-Za-z])",
-    re.IGNORECASE,
+_ROMAN_PREFIX_ORDINAL_RE = re.compile(
+    r"(?P<context>\b(?i:siglo|século|seculo)\s+)(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])"
 )
-_MONARCH_RE = re.compile(
-    r"(?P<name>(?:King|Queen|Pope)\s+)?(?:Heinrich|Wilhelm|Ludwig|Karl|Friedrich|Elizabeth|Charles|Henry|George)\s+(?P<value>[IVX]{1,12})\.?(?![A-Za-z])",
-    re.IGNORECASE,
+_ROMAN_SUFFIX_ORDINAL_RE = re.compile(
+    r"(?P<value>[IVXLCDM]{1,12})(?P<suffix>[eE])?\s+"
+    r"(?P<context>(?i:century|dynasty|jahrhundert|dynastie|siglo|siècle|siecle|secolo|dinastia|século|seculo))\b"
 )
-_GERMAN_ROMAN_TITLE_RE = re.compile(
-    r"(?P<context>\b(?:Kaiser|König|Königin|Papst|Benedikt|Elisabeth)\b)"
-    r"(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2}\s+(?P<value>[IVXLCDM]{1,12})\.?(?![A-Za-z])",
-    re.IGNORECASE,
+_ROMAN_YEAR_CONTEXT_RE = re.compile(
+    r"(?P<context>\b(?i:year|from\s+the\s+year|dated|scheduled\s+for|constructed\s+in|built\s+in|"
+    r"signed\s+in|won\s+in|held\s+in|im\s+jahr|aus\s+dem\s+jahr|anno|año|année|ano|"
+    r"olympic\s+games|olympische\s+spiele|games|edition|event)\s+)"
+    r"(?P<value>[IVXLCDM]{2,12})(?![A-Za-z])"
+)
+_ROMAN_CLOCK_RE = re.compile(
+    r"(?P<context>\b(?i:clock\s+showed|clock\s+shows|uhr\s+zeigte|reloj\s+mostraba|"
+    r"l['’]horloge\s+affichait|l['’]orologio\s+segnava|o\s+relógio\s+mostrava)\s+)"
+    r"(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])"
+)
+_ROMAN_NUMBERED_PREFIX_RE = re.compile(
+    r"(?P<context>\b(?i:numbered|numerado|numéroté|numerote|numerato)\s+)"
+    r"(?P<value>[IVXLCDM]{1,12})(?![A-Za-z])"
+)
+_ROMAN_NUMBERED_SUFFIX_RE = re.compile(
+    r"(?P<context>\b(?i:mit)\s+)(?P<value>[IVXLCDM]{1,12})(?=\s+(?i:nummeriert)\b)"
+)
+_EN_MONARCH_RE = re.compile(
+    r"(?P<context>\b(?:(?i:King|Queen|Pope)\s+)?(?i:Elizabeth|Charles|Henry|George)\s+)"
+    r"(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
+)
+_DE_MONARCH_RE = re.compile(
+    r"(?P<context>\b(?:(?i:Kaiser|König|Königin|Papst)\s+)?(?i:Heinrich|Wilhelm|Ludwig|Karl|Friedrich|Benedikt|Elisabeth)\s+)"
+    r"(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
+)
+_FR_MONARCH_RE = re.compile(
+    r"(?P<context>\b(?:(?i:roi)\s+)?(?i:Henri)\s+)(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
+)
+_IT_MONARCH_RE = re.compile(
+    r"(?P<context>\b(?:(?i:Re)\s+)?(?i:Enrico)\s+)(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
+)
+_PT_MONARCH_RE = re.compile(
+    r"(?P<context>\b(?:(?i:Rei)\s+)?(?i:Henrique)\s+)(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
 )
 _PAREN_INITIALISM_RE = re.compile(r"(?<!\w)\((?P<value>[A-Z]{2,8})\)(?!\w)")
 _PAREN_TICKER_RE = re.compile(r"(?<!\w)\((?P<value>[A-Z])\)(?!\w)")
@@ -208,6 +241,9 @@ def _valid_product_candidate(label: str, value: str) -> bool:
     """Require code evidence even when a strong label is followed by prose."""
     value = value.rstrip(".")
     if not value:
+        return False
+    label_key = label.casefold().replace(".", "").strip()
+    if label_key in {"part", "part number"} and value.isalpha() and _roman_is_valid(value):
         return False
     if any(character.isdigit() for character in value):
         return True
@@ -993,6 +1029,8 @@ def _roman_value(value: str) -> int:
 
 
 def _roman_is_valid(value: str) -> bool:
+    if not value or re.search(r"[^IVXLCDM]", value.upper()):
+        return False
     canonical = ""
     remaining = _roman_value(value)
     for number, token in (
@@ -1015,23 +1053,54 @@ def _roman_is_valid(value: str) -> bool:
     return canonical == value.upper()
 
 
-def _contextual_roman_text(value: str, context: str, language: str) -> str:
-    number = _roman_value(value)
-    base = base_language(language)
-    ordinal = any(
-        word in context.casefold()
-        for word in ("century", "siglo", "siècle", "secolo", "king", "queen", "pope")
-    )
+RomanSemantic = Literal["cardinal", "ordinal", "year", "monarch"]
+
+
+def _roman_number_text(value: int, language: str, *, ordinal: bool = False) -> str:
     rendered = str(
         num2words(
-            number,
+            value,
             lang=resolve_num2words_language(language),
             to="ordinal" if ordinal else "cardinal",
         )
     )
-    if base == "de" and any(word in context.casefold() for word in ("king", "queen", "pope")):
-        return f"der {rendered[:1].upper()}{rendered[1:]}"
+    if base_language(language) == "en":
+        return rendered.replace(",", "").replace("-", " ").replace(" and ", " ")
     return rendered
+
+
+def _roman_monarch_text(value: int, language: str, context: str) -> str:
+    base = base_language(language)
+    if base == "fr":
+        return _roman_number_text(value, language)
+    ordinal = _roman_number_text(value, language, ordinal=True)
+    if base == "en":
+        return f"the {ordinal}"
+    if base == "de":
+        article = "die" if re.search(r"(?i:Elisabeth|Königin)", context) else "der"
+        return f"{article} {ordinal[:1].upper()}{ordinal[1:]}"
+    if base == "pt":
+        return f"o {ordinal}"
+    if base == "es":
+        return f"el {ordinal}"
+    return ordinal
+
+
+def _roman_text(
+    value: str,
+    *,
+    semantic: RomanSemantic,
+    language: str,
+    context: str | None = None,
+) -> str:
+    number = _roman_value(value)
+    if semantic == "year":
+        return render_year(number, language=language, source_digits=4)
+    if semantic == "ordinal":
+        return _roman_number_text(number, language, ordinal=True)
+    if semantic == "monarch":
+        return _roman_monarch_text(number, language, context or "")
+    return _roman_number_text(number, language)
 
 
 def _literal_tail(value: str) -> tuple[str, str]:
@@ -2455,45 +2524,38 @@ def iter_sequence_replacements(
                 "sequence.version",
                 protected,
             )
-    for match in _ROMAN_CONTEXT_RE.finditer(text):
-        if not _roman_is_valid(match["value"]):
-            continue
-        start, end = match.span("value")
-        if _claimed(start, end, protected):
-            candidates.append(
-                Replacement(
-                    start,
-                    end,
-                    _contextual_roman_text(match["value"], match["context"], language),
-                    "structured",
-                    language,
-                    "sequence.roman",
+    roman_patterns: tuple[tuple[re.Pattern[str], RomanSemantic], ...] = (
+        (_ROMAN_PREFIX_CARDINAL_RE, "cardinal"),
+        (_ROMAN_PREFIX_ORDINAL_RE, "ordinal"),
+        (_ROMAN_SUFFIX_ORDINAL_RE, "ordinal"),
+        (_ROMAN_YEAR_CONTEXT_RE, "year"),
+        (_ROMAN_CLOCK_RE, "cardinal"),
+        (_ROMAN_NUMBERED_PREFIX_RE, "cardinal"),
+        (_ROMAN_NUMBERED_SUFFIX_RE, "cardinal"),
+    )
+    for pattern, semantic in roman_patterns:
+        for match in pattern.finditer(text):
+            if not _roman_is_valid(match["value"]):
+                continue
+            start, end = match.span("value")
+            if match.groupdict().get("suffix") is not None:
+                end = match.end("suffix")
+            if _claimed(start, end, protected):
+                candidates.append(
+                    Replacement(
+                        start,
+                        end,
+                        _roman_text(
+                            match["value"],
+                            semantic=semantic,
+                            language=language,
+                            context=match.groupdict().get("context"),
+                        ),
+                        "structured",
+                        language,
+                        "sequence.roman",
+                    )
                 )
-            )
-    for match in _GERMAN_ROMAN_TITLE_RE.finditer(text):
-        if base_language(language) != "de" or not _roman_is_valid(match["value"]):
-            continue
-        start, end = match.span("value")
-        if _claimed(start, end, protected):
-            ordinal = str(
-                num2words(
-                    _roman_value(match["value"]),
-                    lang=resolve_num2words_language(language),
-                    to="ordinal",
-                )
-            )
-            article = "die" if match["context"].casefold() in {"königin", "elisabeth"} else "der"
-            candidates.append(
-                Replacement(
-                    start,
-                    end,
-                    f"{article} {ordinal[:1].upper()}{ordinal[1:]}",
-                    "structured",
-                    language,
-                    "sequence.roman",
-                    2,
-                )
-            )
     for match in _SUPERSCRIPT_RE.finditer(text):
         if _claimed(match.start(), match.end(), protected):
             _add(
@@ -2514,40 +2576,32 @@ def iter_sequence_replacements(
                 "sequence.symbol",
                 protected,
             )
-    for pattern in (_ROMAN_YEAR_RE,):
-        for match in pattern.finditer(text):
-            if _roman_is_valid(match["value"]):
-                start, end = match.span("value")
-                if _claimed(start, end, protected):
-                    candidates.append(
-                        Replacement(
-                            start,
-                            end,
-                            _contextual_roman_text(match["value"], match["context"], language),
-                            "structured",
-                            language,
-                            "sequence.roman",
-                        )
-                    )
-    for match in _MONARCH_RE.finditer(text):
-        if _roman_is_valid(match["value"]):
-            start, end = match.span("value")
-            if _claimed(start, end, protected):
-                ordinal = str(
-                    num2words(
-                        _roman_value(match["value"]),
-                        lang=resolve_num2words_language(language),
-                        to="ordinal",
-                    )
+    monarch_pattern = {
+        "de": _DE_MONARCH_RE,
+        "fr": _FR_MONARCH_RE,
+        "it": _IT_MONARCH_RE,
+        "pt": _PT_MONARCH_RE,
+    }.get(base_language(language), _EN_MONARCH_RE)
+    for match in monarch_pattern.finditer(text):
+        if not _roman_is_valid(match["value"]):
+            continue
+        start, end = match.span("value")
+        if _claimed(start, end, protected):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _roman_text(
+                        match["value"],
+                        semantic="monarch",
+                        language=language,
+                        context=match["context"],
+                    ),
+                    "structured",
+                    language,
+                    "sequence.roman",
                 )
-                rendered = (
-                    f"der {ordinal[:1].upper()}{ordinal[1:]}"
-                    if base_language(language) == "de"
-                    else f"the {ordinal}"
-                )
-                candidates.append(
-                    Replacement(start, end, rendered, "structured", language, "sequence.roman")
-                )
+            )
     for pattern, marker, rule in (
         (_HASHTAG_RE, "#", "sequence.social-hashtag"),
         (_MENTION_RE, "@", "sequence.social-mention"),

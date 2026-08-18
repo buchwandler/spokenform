@@ -11,7 +11,7 @@ from decimal import Decimal
 from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
-from ..dates import expand_year, parsed_date
+from ..dates import expand_year, parsed_date, render_year
 from ..language import resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -268,13 +268,7 @@ def _number(raw: str, *, one: str | None = None, language: str = "de") -> str:
 
 
 def _year(value: int, language: str = "de", *, year_digits: int | None = None) -> str:
-    if year_digits == 2:
-        return _spell(value % 100, language)
-    if 1100 <= value < 2000:
-        century, remainder = divmod(value, 100)
-        prefix = f"{_spell(century, language)}hundert"
-        return prefix if remainder == 0 else prefix + _spell(remainder, language)
-    return _spell(value, language)
+    return render_year(value, language=language, source_digits=year_digits)
 
 
 def _ordinal(value: int, ending: str, language: str = "de") -> str:

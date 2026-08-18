@@ -8,7 +8,7 @@ from typing import Literal
 
 from num2words import num2words
 
-from .language import resolve_num2words_language
+from .language import base_language, resolve_num2words_language
 
 
 def _valid_date(day: int, month: int, year: int) -> bool:
@@ -125,6 +125,27 @@ def render_english_year(
     return cardinal(year)
 
 
+def render_year(year: int, *, language: str = "en", source_digits: int | None = None) -> str:
+    """Render a year using the locale-specific policy when one is reviewed."""
+
+    base = base_language(language)
+    if base == "en":
+        return render_english_year(year, language=language, source_digits=source_digits)
+    if base == "de":
+        if source_digits == 2:
+            return str(num2words(year % 100, lang=resolve_num2words_language(language)))
+        if 1100 <= year < 2000:
+            century, remainder = divmod(year, 100)
+            prefix = f"{num2words(century, lang=resolve_num2words_language(language))}hundert"
+            return (
+                prefix
+                if remainder == 0
+                else prefix + str(num2words(remainder, lang=resolve_num2words_language(language)))
+            )
+        return str(num2words(year, lang=resolve_num2words_language(language)))
+    return str(num2words(year, lang=resolve_num2words_language(language)))
+
+
 __all__ = [
     "DateCandidate",
     "ParsedDate",
@@ -132,4 +153,5 @@ __all__ = [
     "expand_year",
     "parsed_date",
     "render_english_year",
+    "render_year",
 ]

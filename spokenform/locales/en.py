@@ -159,7 +159,13 @@ _DATE_MDY = re.compile(
 _DATE_MD_NO_YEAR = re.compile(
     r"(?<![\w.])(?P<month>0?[1-9]|1[0-2])/(?P<day>0?[1-9]|[12]\d|3[01])(?![\w/])"
 )
-_TIME = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\w)")
+_AMPM_TOKEN = r"(?:a(?:m|\.m\.?|\s+m\.?)|p(?:m|\.m\.?|\s+m\.?))"
+_TIME_WITH_PERIOD = re.compile(
+    rf"(?<!\d)(?P<hour>0?[1-9]|1[0-2])(?::(?P<minute>[0-5]\d))?\s*(?P<period>{_AMPM_TOKEN})(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
+_TIME_WITH_PERIOD_SUFFIX = re.compile(rf"\s*(?:{_AMPM_TOKEN})(?![A-Za-z0-9])", re.IGNORECASE)
+_TIME_COLON = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)(?!\w)")
 _ORDINAL_SUFFIX = re.compile(r"(?<!\w)(?P<number>\d+)(?P<suffix>st|nd|rd|th)\b", re.IGNORECASE)
 _PLURAL_TENS = re.compile(r"(?<!\w)(?P<value>[2-9]0)(?P<suffix>s)(?!\w)", re.IGNORECASE)
 _DECADE = re.compile(r"(?<!\w)(?P<value>(?:19|20)\d{2})s(?!\w)", re.IGNORECASE)
@@ -395,6 +401,45 @@ def _valid_ordinal_suffix(number: int, suffix: str) -> bool:
 
 def _terminal_dot(text: str, end: int) -> bool:
     return not text[end:].strip(" \t\n\"'”’»)]}")
+
+
+def _ampm_text(period: str) -> str:
+    normalized = period.casefold().replace(".", "").replace(" ", "")
+    if normalized == "am":
+        return "A M"
+    if normalized == "pm":
+        return "P M"
+    raise ValueError(f"Unsupported AM/PM marker: {period!r}")
+
+
+def _time_text(
+    hour: int,
+    minute: int,
+    *,
+    language: str = "en",
+    period: str | None = None,
+    sentence_terminal_dot: bool = False,
+) -> str:
+    if period is not None:
+        display_hour = hour % 12 or 12
+        parts = [_spell(display_hour, language)]
+        if minute:
+            parts.append(
+                f"oh {_spell(minute, language)}" if minute < 10 else _spell(minute, language)
+            )
+        parts.append(_ampm_text(period))
+        result = " ".join(parts)
+        return f"{result}." if sentence_terminal_dot else result
+    hour_text = _spell(hour, language)
+    if minute == 0:
+        return f"{hour_text} o'clock"
+    if minute < 10:
+        return f"{hour_text} oh {_spell(minute, language)}"
+    return f"{hour_text} {_spell(minute, language)}"
+
+
+def _time_has_explicit_period_suffix(text: str, end: int) -> bool:
+    return _TIME_WITH_PERIOD_SUFFIX.match(text[end:]) is not None
 
 
 def _quantity_text(match: UnitMatch, text: str, language: str = "en") -> str | None:
@@ -713,20 +758,33 @@ def iter_replacements(
                     "en.date",
                 )
 
-    for match in _TIME.finditer(text):
+    for match in _TIME_WITH_PERIOD.finditer(text):
+        minute = int(match["minute"] or "0")
+        period = match["period"]
+        add(
+            match.start(),
+            match.end(),
+            _time_text(
+                int(match["hour"]),
+                minute,
+                language=language,
+                period=period,
+                sentence_terminal_dot=period.endswith(".") and _terminal_dot(text, match.end()),
+            ),
+            "en.time",
+        )
+
+    for match in _TIME_COLON.finditer(text):
+        if _time_has_explicit_period_suffix(text, match.end()):
+            continue
         hour, minute = int(match["hour"]), int(match["minute"])
         if hour > 23 or minute > 59:
             continue
-        hour_text = _spell(hour, language)
         following = text[match.end() :]
         if minute == 0 and re.match(r"\s+noon\b", following, re.IGNORECASE):
-            value = hour_text
-        elif minute == 0:
-            value = f"{hour_text} o'clock"
-        elif minute < 10:
-            value = f"{hour_text} oh {_spell(minute, language)}"
+            value = _spell(hour, language)
         else:
-            value = f"{hour_text} {_spell(minute, language)}"
+            value = _time_text(hour, minute, language=language)
         add(match.start(), match.end(), value, "en.time")
 
     plural_tens_spans: list[tuple[int, int]] = []
