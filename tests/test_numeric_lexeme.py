@@ -43,10 +43,10 @@ def test_numeric_lexeme_fails_closed_for_date_and_version_candidates() -> None:
 
 def test_cross_locale_quantity_regressions_are_not_grouped_integers() -> None:
     assert prepare("5.5 kg", language="es-MX", use_spacy=False).spoken_text == (
-        "cinco punto cinco kilogramos"
+        "Cinco punto cinco kilogramos"
     )
     assert prepare("23.7°C", language="es-MX", use_spacy=False).spoken_text == (
-        "veintitrés punto siete grados Celsius"
+        "Veintitrés punto siete grados Celsius"
     )
     assert prepare("36.5°C", language="it-IT", use_spacy=False).spoken_text == (
         "trentasei virgola cinque gradi Celsius"

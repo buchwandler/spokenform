@@ -4,92 +4,120 @@
     "input": "Dr. Pérez",
     "expected": "Doctor Pérez"
   },
-  { "name": "ordinary integer", "input": "12", "expected": "doce" },
-  { "name": "negative integer", "input": "−12", "expected": "menos doce" },
+  {
+    "name": "ordinary integer",
+    "input": "12",
+    "expected": "Doce"
+  },
+  {
+    "name": "negative integer",
+    "input": "−12",
+    "expected": "Menos doce"
+  },
   {
     "name": "decimal digits",
     "input": "12,80",
-    "expected": "doce coma ocho cero"
+    "expected": "Doce coma ocho cero"
   },
   {
     "name": "leading decimal",
     "input": ",02",
-    "expected": "cero coma cero dos"
+    "expected": "Cero coma cero dos"
   },
   {
     "name": "dmy dotted date",
     "input": "14.05.2026",
-    "expected": "catorce de mayo de dos mil veintiséis"
+    "expected": "Catorce de mayo de dos mil veintiséis"
   },
   {
     "name": "dmy slashed date",
     "input": "14/05/2026",
-    "expected": "catorce de mayo de dos mil veintiséis"
+    "expected": "Catorce de mayo de dos mil veintiséis"
   },
   {
     "name": "iso date",
     "input": "2026-05-14",
-    "expected": "catorce de mayo de dos mil veintiséis"
+    "expected": "Catorce de mayo de dos mil veintiséis"
   },
-  { "name": "invalid date", "input": "31.02.2026", "expected": "31.02.2026" },
+  {
+    "name": "invalid date",
+    "input": "31.02.2026",
+    "expected": "31.02.2026"
+  },
   {
     "name": "mass",
     "input": "1 kg y 2 kg",
-    "expected": "un kilogramo y dos kilogramos"
+    "expected": "Un kilogramo y dos kilogramos"
   },
-  { "name": "length", "input": "2 m", "expected": "dos metros" },
+  {
+    "name": "length",
+    "input": "2 m",
+    "expected": "Dos metros"
+  },
   {
     "name": "duration",
     "input": "1 h y 2 min.",
-    "expected": "una hora y dos minutos."
+    "expected": "Una hora y dos minutos."
   },
   {
     "name": "area and volume",
     "input": "1 m² y 2 m³",
-    "expected": "un metro cuadrado y dos metros cúbicos"
+    "expected": "Un metro cuadrado y dos metros cúbicos"
   },
   {
     "name": "compound unit",
     "input": "2 km/h",
-    "expected": "dos kilómetros por hora"
+    "expected": "Dos kilómetros por hora"
   },
   {
     "name": "temperature",
     "input": "25°C",
-    "expected": "veinticinco grados Celsius"
+    "expected": "Veinticinco grados Celsius"
   },
   {
     "name": "temperature negative",
     "input": "−1 °C",
-    "expected": "menos un grado Celsius"
+    "expected": "Menos un grado Celsius"
   },
   {
     "name": "temperature decimal",
     "input": "1,5°C",
-    "expected": "uno coma cinco grados Celsius"
+    "expected": "Uno coma cinco grados Celsius"
   },
   {
     "name": "euro suffix decimal",
     "input": "12,80 EUR",
-    "expected": "doce euros con ochenta céntimos"
+    "expected": "Doce euros con ochenta céntimos"
   },
   {
     "name": "euro prefix decimal",
     "input": "€12,80",
-    "expected": "doce euros con ochenta céntimos"
+    "expected": "Doce euros con ochenta céntimos"
   },
-  { "name": "dollar", "input": "$10", "expected": "diez dólares" },
-  { "name": "pound", "input": "£5", "expected": "cinco libras esterlinas" },
-  { "name": "singular euro", "input": "1 EUR", "expected": "un euro" },
+  {
+    "name": "dollar",
+    "input": "$10",
+    "expected": "Diez dólares"
+  },
+  {
+    "name": "pound",
+    "input": "£5",
+    "expected": "Cinco libras esterlinas"
+  },
+  {
+    "name": "singular euro",
+    "input": "1 EUR",
+    "expected": "Un euro"
+  },
   {
     "name": "minor singular",
     "input": "1,01 EUR",
-    "expected": "un euro con un céntimo"
+    "expected": "Un euro con un céntimo"
   },
   {
     "name": "punctuation boundary",
     "input": "2 kg; 3 kg.",
-    "expected": "dos kilogramos; tres kilogramos."
+    "expected": "Dos kilogramos; tres kilogramos."
   },
   {
     "name": "protected literals",

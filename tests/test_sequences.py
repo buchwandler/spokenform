@@ -263,7 +263,7 @@ def test_product_code_supports_mixed_suffixes_without_claiming_words() -> None:
     [
         ("en", "1/2", "one half"),
         ("de", "3/7", "drei Siebtel"),
-        ("es", "1 1/2", "uno y un medio"),
+        ("es", "1 1/2", "Uno y un medio"),
         ("fr", "3/7", "trois septièmes"),
         ("it", "1½", "uno e un mezzo"),
     ],

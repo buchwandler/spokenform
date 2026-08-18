@@ -16,16 +16,16 @@ def test_spanish_parity_corpus() -> None:
 
 def test_spanish_quantity_grammar_uses_canonical_abbr2words_ids() -> None:
     cases = {
-        "1 kg": "un kilogramo",
-        "2 kg": "dos kilogramos",
-        "1,5 kg": "uno coma cinco kilogramos",
-        "1 h": "una hora",
-        "2 h": "dos horas",
-        "1 min.": "un minuto.",
-        "2 min.": "dos minutos.",
-        "1 °C": "un grado Celsius",
-        "-1°C": "menos un grado Celsius",
-        "25 °C": "veinticinco grados Celsius",
+        "1 kg": "Un kilogramo",
+        "2 kg": "Dos kilogramos",
+        "1,5 kg": "Uno coma cinco kilogramos",
+        "1 h": "Una hora",
+        "2 h": "Dos horas",
+        "1 min.": "Un minuto.",
+        "2 min.": "Dos minutos.",
+        "1 °C": "Un grado Celsius",
+        "-1°C": "Menos un grado Celsius",
+        "25 °C": "Veinticinco grados Celsius",
     }
     for source, expected in cases.items():
         assert prepare(source, language="es", use_spacy=False).spoken_text == expected
@@ -35,16 +35,16 @@ def test_spanish_quantity_grammar_uses_canonical_abbr2words_ids() -> None:
 
 def test_spanish_currency_prefix_suffix_and_fraction_precision() -> None:
     assert prepare("12,80 EUR", language="es", use_spacy=False).spoken_text == (
-        "doce euros con ochenta céntimos"
+        "Doce euros con ochenta céntimos"
     )
     assert prepare("€12,80", language="es", use_spacy=False).spoken_text == (
-        "doce euros con ochenta céntimos"
+        "Doce euros con ochenta céntimos"
     )
     assert prepare("1,01 EUR", language="es", use_spacy=False).spoken_text == (
-        "un euro con un céntimo"
+        "Un euro con un céntimo"
     )
     assert prepare("10 USD y 5 GBP", language="es", use_spacy=False).spoken_text == (
-        "diez dólares y cinco libras esterlinas"
+        "Diez dólares y cinco libras esterlinas"
     )
 
 
@@ -101,7 +101,7 @@ def test_spanish_repeated_fragments_and_source_replacements() -> None:
     result = prepare(source, language="es", use_spacy=False)
     structured = [item for item in result.source_replacements if item.language == "es"]
     assert [(item.source, item.replacement) for item in structured] == [
-        ("2 kg", "dos kilogramos"),
+        ("2 kg", "Dos kilogramos"),
         ("2 kg", "dos kilogramos"),
     ]
     for item in structured:
@@ -113,14 +113,31 @@ def test_spanish_profile_promotes_number_policy_without_time_ownership() -> None
     config = PreparationConfig.for_kokorog2p("es")
     assert config.number_policy.value == "structured_and_plain"
     assert prepare("18:20 y 12", config=config, use_spacy=False).spoken_text == (
-        "dieciocho y veinte y doce"
+        "Dieciocho y veinte y doce"
     )
 
 
 def test_spanish_times_and_extended_units_use_locale_policies() -> None:
     assert prepare("9:45 AM", language="es_MX", use_spacy=False).spoken_text == (
-        "nueve y cuarenta y cinco de la mañana"
+        "Nueve y cuarenta y cinco de la mañana"
     )
-    assert prepare("14:30", language="es_MX", use_spacy=False).spoken_text == ("catorce y treinta")
+    assert prepare("14:30", language="es_MX", use_spacy=False).spoken_text == ("Catorce y treinta")
     for source in ("60 mph", "100 kPa", "1 atm", "64 GB", "6 L/100km", "10 m³/s"):
         assert prepare(source, language="es_MX", use_spacy=False).spoken_text != source
+
+
+def test_spanish_generated_numeric_sentence_starts_are_capitalized() -> None:
+    cases = (
+        ("7 días.", "Siete días."),
+        ("42 años.", "Cuarenta y dos años."),
+        ("0 personas.", "Cero personas."),
+        ("(7 días.)", "(Siete días.)"),
+        ("5 + 3 = 8.", "Cinco más tres igual a ocho."),
+    )
+
+    for source, expected in cases:
+        assert prepare(source, language="es", use_spacy=False).spoken_text == expected
+
+
+def test_spanish_generated_casing_does_not_recase_untouched_prose() -> None:
+    assert prepare("hola 7 días.", language="es", use_spacy=False).spoken_text == "hola siete días."

@@ -22,11 +22,13 @@ from spokenform.numeric_lexeme import numeric_speech_policy
 from .compare_common import with_configuration_hash
 from .failure_reporting import (
     OWNERSHIP_STATES,
+    RISK_TIERS,
     diagnostic_aggregates,
     failure_family,
     failure_family_counts,
     outcome_for_row,
     rank_provenance,
+    risk_tier_for_row,
 )
 from .polynorm_data import (
     POLYNORM_COMMIT,
@@ -521,6 +523,7 @@ def evaluate_cases(
         row["quarantine_reason_code"] = quarantine.get("reason_code") if quarantine else None
         row["outcome"] = outcome_for_row(row)
         row["failure_family"] = failure_family(row)
+        row["risk_tier"] = risk_tier_for_row(row)
         rows.append(row)
         if error or not literal_exact or not speech_exact:
             failures.append(
@@ -545,6 +548,8 @@ def evaluate_cases(
         grouped_ownership[row["ownership"]].append(row)
         grouped_locale_category[row["polynorm_locale"]][row["canonical_category"]].append(row)
     reviewed_rows = [row for row in rows if row["quarantine"] is None]
+    diagnostics = diagnostic_aggregates(rows)
+    reported_failures = tuple(failures)
     summary = {
         **_metric_counts(rows),
         "by_locale": {key: _metric_counts(value) for key, value in sorted(grouped_locale.items())},
@@ -578,7 +583,11 @@ def evaluate_cases(
             )
         },
         "failure_families": failure_family_counts(rows),
-        "diagnostic_aggregates": diagnostic_aggregates(rows),
+        "diagnostic_aggregates": diagnostics,
+        "risk_tier_counts": {
+            tier: sum(row.get("risk_tier") == tier for row in reported_failures)
+            for tier in RISK_TIERS
+        },
         "outcome_counts": {
             outcome: sum(row.get("outcome") == outcome for row in rows)
             for outcome in sorted({row.get("outcome") for row in rows})
@@ -588,6 +597,18 @@ def evaluate_cases(
         "profile": profile,
         "normalize_literals": profile == "extended",
     }
+    summary["protected_mutation_count"] = summary["gate_metrics"]["safety"][
+        "protected_mutation_count"
+    ]
+    summary["unrecognized_count"] = sum(
+        row.get("failure_phase") == "unrecognized" for row in reported_failures
+    )
+    summary["structured_rendering_count"] = sum(
+        row.get("failure_phase") == "structured_rendering" for row in reported_failures
+    )
+    summary["dependency_abbreviation_count"] = sum(
+        row.get("ownership") == "dependency-abbr2words" for row in reported_failures
+    )
     summary["_rows"] = tuple(rows)
     return summary, tuple(failures)
 
@@ -623,6 +644,10 @@ def _write_failures_markdown(
                         f"- Expected: `{failure['expected']}`",
                         f"- Actual: `{failure['actual']}`",
                         f"- Speech WER: `{failure['speech_wer']:.4f}`",
+                        f"- Primary rule: `{failure.get('primary_rule')}`",
+                        f"- Failure phase: `{failure.get('failure_phase')}`",
+                        f"- Ownership: `{failure.get('ownership')}`",
+                        f"- Risk tier: `{failure.get('risk_tier')}`",
                         f"- Error: `{failure['error']}`" if failure["error"] else "- Error: none",
                         "",
                     ]

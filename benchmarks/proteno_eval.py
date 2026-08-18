@@ -22,6 +22,7 @@ from spokenform.numeric_lexeme import numeric_speech_policy
 
 from .compare_common import with_configuration_hash
 from .failure_reporting import (
+    RISK_TIERS,
     diagnostic_aggregates,
     failure_family,
     failure_family_counts,
@@ -29,6 +30,7 @@ from .failure_reporting import (
     ownership_for_rule,
     rank_provenance,
     reason_code,
+    risk_tier_for_row,
 )
 from .proteno_data import (
     PROTENO_COMMIT,
@@ -365,6 +367,7 @@ def evaluate_cases(
         )
         row["outcome"] = outcome_for_row(row)
         row["failure_family"] = failure_family(row)
+        row["risk_tier"] = risk_tier_for_row(row)
         rows.append(row)
         if error or not literal_exact or not speech_exact:
             failures.append(
@@ -397,6 +400,8 @@ def evaluate_cases(
     identity_preserved = sum(
         bool(row["speech_exact_equivalent"]) for row in identity if not row["error"]
     )
+    diagnostics = diagnostic_aggregates(rows)
+    reported_failures = tuple(failures)
     summary: dict[str, Any] = {
         **_metric_counts(rows),
         "by_language": {
@@ -426,8 +431,12 @@ def evaluate_cases(
             bool(not row["speech_exact_equivalent"]) for row in identity if not row["error"]
         ),
         "failure_families": failure_family_counts(rows),
-        "diagnostic_aggregates": diagnostic_aggregates(rows),
-        "outcome_counts": diagnostic_aggregates(rows)["by_outcome"],
+        "diagnostic_aggregates": diagnostics,
+        "outcome_counts": diagnostics["by_outcome"],
+        "risk_tier_counts": {
+            tier: sum(row.get("risk_tier") == tier for row in reported_failures)
+            for tier in RISK_TIERS
+        },
         "reviewed": _metric_counts([row for row in rows if row["quarantine"] is None]),
         "quarantine_count": sum(row["quarantine"] is not None for row in rows),
         "profile": profile,
@@ -452,6 +461,15 @@ def evaluate_cases(
         "questionable-target": _metric_counts(ownership_groups.get("questionable-target", [])),
         "quarantine": _metric_counts([row for row in rows if row.get("quarantine") is not None]),
     }
+    summary["unrecognized_count"] = sum(
+        row.get("failure_phase") == "unrecognized" for row in reported_failures
+    )
+    summary["structured_rendering_count"] = sum(
+        row.get("failure_phase") == "structured_rendering" for row in reported_failures
+    )
+    summary["dependency_abbreviation_count"] = sum(
+        row.get("ownership") == "dependency-abbr2words" for row in reported_failures
+    )
     summary["_rows"] = tuple(rows)
     return summary, tuple(failures)
 
@@ -469,8 +487,10 @@ def _failure_markdown_entry(failure: dict[str, Any]) -> str:
         f"- Expected: `{failure['expected']}`",
         f"- Actual: `{failure['actual']}`",
         f"- Speech WER: `{failure['speech_wer']:.4f}`",
-        f"- Primary rule: `{failure['primary_rule']}`",
-        f"- Failure phase: `{failure['failure_phase']}`",
+        f"- Primary rule: `{failure.get('primary_rule')}`",
+        f"- Failure phase: `{failure.get('failure_phase')}`",
+        f"- Ownership: `{failure.get('ownership')}`",
+        f"- Risk tier: `{failure.get('risk_tier')}`",
         f"- Error: `{failure['error']}`" if failure["error"] else "- Error: none",
         "",
     ]
@@ -559,6 +579,7 @@ def _write_failures_markdown(
             "",
             "Failure details are split into source-bearing Markdown shards so each "
             "file remains manageable in an editor.",
+            "Each shard records the primary rule, failure phase, ownership, and Risk tier.",
             "",
             f"- Total failures: {sum(report['failure_count'] for report in reports):,}",
             f"- Maximum shard size: {max_bytes:,} bytes",

@@ -101,6 +101,42 @@ def test_english_plain_decimal_allows_terminal_punctuation(punctuation: str) -> 
     assert result.spoken_text == f"The value is two point zero{punctuation}"
 
 
+@pytest.mark.parametrize(
+    ("source", "language", "expected"),
+    (
+        ("He is 2.", "en", "He is two."),
+        ("He is 7!", "en", "He is seven!"),
+        ("He is 3?", "en", "He is three?"),
+        ("He is 12.", "en", "He is twelve."),
+        ("Value: 2.", "en", "Value: two."),
+        ("Tiene 2.", "es", "Tiene dos."),
+    ),
+)
+def test_terminal_cardinals_preserve_sentence_punctuation(
+    source: str, language: str, expected: str
+) -> None:
+    assert prepare(source, language=language, use_spacy=False).spoken_text == expected
+
+
+def test_terminal_cardinals_normalize_in_multi_sentence_prose() -> None:
+    result = prepare("First sentence. He is 2. Next sentence.", language="en", use_spacy=False)
+
+    assert result.spoken_text == "First sentence. He is two. Next sentence."
+
+
+def test_terminal_cardinals_respect_explicit_protected_spans() -> None:
+    source = "Value: 2."
+    start = source.index("2")
+    result = prepare(
+        source,
+        language="en",
+        use_spacy=False,
+        protected_spans=[(start, start + 1)],
+    )
+
+    assert result.spoken_text == source
+
+
 def test_urls_emails_and_versions_are_protected() -> None:
     source = "Version v1.2.3: https://example.org/a2 and dev2@example.org have 2 tests."
     result = normalize_numbers(source, language="en")
@@ -134,5 +170,5 @@ def test_french_decimal_digits_keep_fractional_zero() -> None:
 
 
 def test_spanish_and_italian_dot_decimals_use_fractional_digit_policy() -> None:
-    assert normalize_numbers("1.5", language="es") == "uno coma cinco"
+    assert normalize_numbers("1.5", language="es") == "Uno coma cinco"
     assert normalize_numbers("1.5", language="it") == "uno virgola cinque"

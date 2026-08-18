@@ -35,6 +35,8 @@ OWNERSHIP_STATES = (
     "external-language",
 )
 
+RISK_TIERS = ("low", "medium", "high")
+
 OUTCOME_BUCKETS = (
     "pass",
     "semantic-mismatch",
@@ -256,6 +258,93 @@ def outcome_for_row(row: dict[str, Any]) -> str:
     return "pass"
 
 
+def risk_tier_for_row(row: dict[str, Any]) -> str:
+    """Classify benchmark follow-up risk without changing runtime behavior."""
+    haystack = " ".join(
+        str(row.get(field, ""))
+        for field in (
+            "category",
+            "canonical_category",
+            "primary_rule",
+            "source_rule",
+            "failure_phase",
+            "reason_code",
+            "render_mode",
+            "ownership",
+        )
+    ).casefold()
+    ownership = str(row.get("ownership") or "").casefold()
+    if ownership in {"external-language", "unsupported", "questionable-target"}:
+        return "low"
+    if any(
+        marker in haystack
+        for marker in (
+            "abbr",
+            "acronym",
+            "initialism",
+            "identifier",
+            "isbn",
+            "ticker",
+            "url",
+            "email",
+            "version",
+            "unrecognized",
+            "runtime-error",
+            "parse_error",
+            "questionable-target",
+        )
+    ):
+        return "high"
+    if any(
+        marker in haystack
+        for marker in (
+            "year",
+            "decade",
+            "range",
+            "product",
+            "model",
+            "plate",
+            "vin",
+            "biology",
+            "biomedical",
+            "roman",
+            "sports",
+            "address",
+            "duration",
+            "reference",
+            "legal",
+        )
+    ):
+        return "medium"
+    if row.get("presentation_only") and not row.get("semantic_failure") and not row.get("error"):
+        return "low"
+    if any(
+        marker in haystack
+        for marker in (
+            "cardinal",
+            "currency",
+            "date",
+            "time",
+            "ordinal",
+            "quantity",
+            "decimal",
+            "number",
+            "fraction",
+            "percent",
+            "coordinate",
+            "math",
+            "structured_rendering",
+            "locale_rendering",
+        )
+    ):
+        return "low"
+    if row.get("semantic_failure") and not row.get("primary_rule"):
+        return "high"
+    if row.get("semantic_failure"):
+        return "medium"
+    return "low"
+
+
 def diagnostic_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str, int]]:
     """Return stable failure counts by rule, phase, ownership, and family."""
     values = tuple(rows)
@@ -270,6 +359,9 @@ def diagnostic_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str,
         "by_ownership": Counter(
             str(row.get("ownership") or ownership_for_rule(row.get("primary_rule")))
             for row in failed
+        ),
+        "by_risk_tier": Counter(
+            str(row.get("risk_tier") or risk_tier_for_row(row)) for row in failed
         ),
         "by_ambiguity_family": Counter(failure_family(row) for row in failed),
         "by_outcome": Counter(outcome_for_row(row) for row in values),
@@ -292,12 +384,14 @@ def reason_code(reason: str) -> str:
 __all__ = [
     "FAILURE_FAMILIES",
     "OWNERSHIP_STATES",
+    "RISK_TIERS",
     "OUTCOME_BUCKETS",
     "failure_family",
     "failure_family_counts",
     "diagnostic_aggregates",
     "ownership_for_rule",
     "outcome_for_row",
+    "risk_tier_for_row",
     "reason_code",
     "rank_provenance",
 ]

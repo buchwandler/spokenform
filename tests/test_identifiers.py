@@ -45,7 +45,7 @@ def test_typed_code_profiles_and_coordinate_directions_are_contextual() -> None:
     )
     assert prepare("Model E46", language="en", use_spacy=False).spoken_text == ("model E forty-six")
     assert prepare("12,3456° O", language="es", use_spacy=False).spoken_text == (
-        "doce coma tres cuatro cinco seis grados oeste"
+        "Doce coma tres cuatro cinco seis grados oeste"
     )
     assert prepare("E46", language="en", use_spacy=False).spoken_text == "E46"
 

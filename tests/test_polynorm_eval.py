@@ -102,6 +102,7 @@ def test_evaluation_reports_claim_provenance_and_gate_views() -> None:
 
     quantity = next(item for item in failures if item["id"] == "de-DE:1")
     assert quantity["primary_rule"] == "de.quantity"
+    assert quantity["risk_tier"] == "low"
     assert quantity["claim_owner"] == "owned"
     assert quantity["winning_span"]["source"] == "42 kg"
     assert quantity["failure_phase"] == "structured_rendering"
@@ -135,8 +136,10 @@ def test_category_ownership_separates_dependency_and_extended_families() -> None
     assert summary["by_ownership"]["dependency-abbr2words"]["cases"] == 1
     assert summary["by_ownership"]["extended-candidate"]["cases"] == 1
     assert summary["by_ownership"]["unsupported"]["cases"] == 1
+    assert summary["risk_tier_counts"]["high"] == 1
     initialism = next(row for row in failures if row["id"] == "en-US:initialism")
     assert initialism["ownership"] == "dependency-abbr2words"
+    assert initialism["risk_tier"] == "high"
 
 
 def test_version_provenance_names_separator_role() -> None:
@@ -198,9 +201,11 @@ def test_summary_and_markdown_expose_outcome_buckets_and_identity(tmp_path) -> N
 
     assert "outcome_counts" in summary
     assert "dependency-mismatch" in summary["outcome_counts"]
+    assert "risk_tier_counts" in summary
     markdown = (output_dir / "failures.md").read_text(encoding="utf-8")
     assert "## Run identity" in markdown
     assert "abbr2words_version" in markdown
+    assert "Risk tier" in markdown
 
 
 def test_extended_profile_is_explicit_and_promotes_literals() -> None:

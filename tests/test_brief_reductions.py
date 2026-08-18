@@ -148,13 +148,13 @@ def test_locale_numeric_policies_are_selected_before_separator_heuristics() -> N
     assert prepare("42,195 km", language="de_DE", use_spacy=False).spoken_text == (
         "zweiundvierzig Komma eins neun fünf Kilometer"
     )
-    assert prepare("3,000", language="es_MX", use_spacy=False).spoken_text == "tres mil"
+    assert prepare("3,000", language="es_MX", use_spacy=False).spoken_text == "Tres mil"
     assert (
-        prepare("45,000", language="es_MX", use_spacy=False).spoken_text == "cuarenta y cinco mil"
+        prepare("45,000", language="es_MX", use_spacy=False).spoken_text == "Cuarenta y cinco mil"
     )
     assert (
         prepare("1.75", language="es_MX", use_spacy=False).spoken_text
-        == "uno punto setenta y cinco"
+        == "Uno punto setenta y cinco"
     )
 
 
@@ -168,7 +168,7 @@ def test_typed_and_contextual_renderers_do_not_use_global_code_rules() -> None:
         == "Heinrich der Achte."
     )
     assert prepare("√9 = 3", language="es", use_spacy=False).spoken_text == (
-        "raíz cuadrada de nueve igual a tres"
+        "Raíz cuadrada de nueve igual a tres"
     )
     assert prepare("E. coli strain K-12", language="en", use_spacy=False).spoken_text == (
         "e coli strain K twelve"
@@ -180,5 +180,5 @@ def test_typed_locale_numeric_cleanup_is_contextual() -> None:
     assert prepare("Código postal 03900", language="es", use_spacy=False).spoken_text == (
         "Código postal cero tres nueve cero cero"
     )
-    assert prepare("16.00%", language="es", use_spacy=False).spoken_text == ("dieciséis por ciento")
+    assert prepare("16.00%", language="es", use_spacy=False).spoken_text == ("Dieciséis por ciento")
     assert prepare("15ª", language="it", use_spacy=False).spoken_text == "quindicesima"

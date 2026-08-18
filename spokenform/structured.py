@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from .casing import capitalize_generated_numeric_replacements
 from .config import GenericAcronymCase, GenericAcronymMode
 from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
@@ -78,7 +79,8 @@ def iter_structured_replacements(
         candidates = iter_replacements(text, language=language, protected_ranges=protected)
     else:
         return ()
-    return resolve_replacements((*shared_candidates, *candidates), source_length=len(text))
+    resolved = resolve_replacements((*shared_candidates, *candidates), source_length=len(text))
+    return capitalize_generated_numeric_replacements(text, resolved, language=language)
 
 
 def normalize_structured(

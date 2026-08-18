@@ -6,7 +6,7 @@ def test_percentage_and_compound_units_are_claimed_as_whole_spans() -> None:
         "zwei Komma sieben fünf Prozent"
     )
     assert prepare("2,75%", language="es_MX", use_spacy=False).spoken_text == (
-        "dos punto setenta y cinco por ciento"
+        "Dos punto setenta y cinco por ciento"
     )
     assert prepare("2 g/cm³", language="en", use_spacy=False).spoken_text == (
         "two grams per cubic centimeter"

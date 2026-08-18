@@ -11,6 +11,7 @@ from typing import Final
 
 from num2words import num2words
 
+from .casing import capitalize_generated_input_start, capitalize_generated_sentence_start
 from .language import (
     SUPPORTED_BASE_LANGUAGES,
     base_language,
@@ -27,6 +28,7 @@ from .numeric_lexeme import (
 )
 
 _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt"})
+_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
         "ledna",
@@ -502,7 +504,8 @@ def normalize_numbers(text: str, *, language: str) -> str:
     )
     for transformation in transformations:
         result = transformation(result, base)
-    return _ProtectedText(result, protected.values).restore()
+    restored = _ProtectedText(result, protected.values).restore()
+    return capitalize_generated_input_start(source=text, replacement=restored, language=language)
 
 
 def _protect_plain_numbers(text: str) -> _ProtectedText:
@@ -768,7 +771,8 @@ def _normalize_unified_plain_numbers(
             raw = raw[1:]
         unsigned = raw.lstrip("+−-")
         if (
-            len(unsigned) == 1
+            base_language(language) in _BARE_DOT_ORDINAL_COMPAT_LANGUAGES
+            and len(unsigned) == 1
             and match.string[match.end() : match.end() + 1] == "."
             and not re.match(r"\.\d", match.string[match.end() :])
         ):
@@ -804,7 +808,12 @@ def _normalize_unified_plain_numbers(
         lexeme = parse_numeric_lexeme(raw, language, context="plain")
         if lexeme is None:
             return raw
-        return _render_numeric_lexeme(lexeme, language)
+        return capitalize_generated_sentence_start(
+            source=match.string,
+            start=match.start(),
+            replacement=_render_numeric_lexeme(lexeme, language),
+            language=language,
+        )
 
     result = _UNIFIED_PLAIN_NUMBER_RE.sub(replace, protected.text)
     return _ProtectedText(result, protected.values, protected.placeholder_start).restore()

@@ -4,6 +4,7 @@ from benchmarks.failure_reporting import (
     outcome_for_row,
     ownership_for_rule,
     rank_provenance,
+    risk_tier_for_row,
 )
 
 
@@ -67,3 +68,14 @@ def test_outcome_buckets_keep_dependency_and_profile_failures_separate() -> None
     assert outcome_for_row({"ownership": "unsupported", "semantic_failure": True}) == (
         "unsupported"
     )
+
+
+def test_risk_tiers_distinguish_safe_contextual_and_high_risk_followups() -> None:
+    assert risk_tier_for_row({"primary_rule": "en.currency", "semantic_failure": True}) == "low"
+    assert risk_tier_for_row({"primary_rule": "sequence.year", "semantic_failure": True}) == (
+        "medium"
+    )
+    assert risk_tier_for_row({"primary_rule": "abbr:initialism", "semantic_failure": True}) == (
+        "high"
+    )
+    assert risk_tier_for_row({"presentation_only": True, "semantic_failure": False}) == "low"

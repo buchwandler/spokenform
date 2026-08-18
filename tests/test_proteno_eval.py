@@ -185,9 +185,11 @@ def test_proteno_summary_and_markdown_expose_outcome_buckets_and_identity(tmp_pa
 
     assert "outcome_counts" in summary
     assert "semantic-mismatch" in summary["outcome_counts"]
+    assert "risk_tier_counts" in summary
     markdown = (output_dir / "failures.md").read_text(encoding="utf-8")
     assert "## Run identity" in markdown
     assert "abbr2words_version" in markdown
+    assert "Risk tier" in markdown
 
 
 def test_failure_markdown_is_split_into_bounded_linked_shards(tmp_path):
@@ -296,3 +298,4 @@ def test_external_language_projection_is_reported_separately() -> None:
     assert summary["cases"] == 1
     assert failures[0]["ownership"] == "external-language"
     assert failures[0]["outcome"] == "external-language"
+    assert failures[0]["risk_tier"] == "low"

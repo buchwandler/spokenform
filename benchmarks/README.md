@@ -28,9 +28,10 @@ does not make unsupported PolyNorm locales part of Spokenform's public API.
 Fresh runs record the resolved Spokenform, `abbr2words`, and `num2words`
 versions, source and dataset commits, locale mapping, profile, and a stable
 configuration hash. Each report also contains a machine-readable `identity`
-block. The pinned snapshot currently contains 2,680 overlap cases; reports use
-the available count rather than assuming every locale has the same number of
-rows.
+block plus per-row ownership, phase, and risk-tier diagnostics so semantic
+follow-up can stay separated from presentation-only differences. The pinned
+snapshot currently contains 2,680 overlap cases; reports use the available
+count rather than assuming every locale has the same number of rows.
 
 ## Fresh comparison workflow
 
@@ -63,8 +64,10 @@ See the detailed [PolyNorm documentation](../docs/polynorm.md).
 Spanish Proteno diagnostic benchmark. Data is cached under
 `.cache/proteno/<commit>/`; reports are written under
 `benchmark-results/proteno/<run-id>/`. Use `--profile extended` or
-`--normalize-literals` for the opt-in literal profile. The external data is
-never packaged or committed. See the detailed [Proteno documentation](../docs/proteno.md).
+`--normalize-literals` for the opt-in literal profile. Reports keep semantic,
+presentation-only, ownership, and risk-tier diagnostics separate. The external
+data is never packaged or committed. See the detailed
+[Proteno documentation](../docs/proteno.md).
 
 ## Google TN benchmark
 
