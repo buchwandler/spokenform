@@ -94,3 +94,17 @@ See the detailed [Google TN documentation](../docs/google_tn.md).
 The multilingual suite supports `en`, `de`, `es`, `fr`, `it`, and `pt`; English maps to `en_US`. Each sentence is prepared once and annotated units are projected through source mappings. Ambiguous mappings and malformed source rows are quarantined rather than guessed. Results include explicit denominators, source hashes, JSONL records, Markdown failures, a static escaped HTML dashboard, and reference data from the pinned upstream category files.
 
 The dashboard clearly separates deterministic Spokenform text metrics from published upstream audio/LLM judge scores. It does not calculate a mixed-method winner. Compare compatible runs with `python -m benchmarks.async_tn_compare before after`; incompatible dataset or configuration identities are rejected by default. See the detailed [Async TN documentation](../docs/async_tn.md).
+
+## Spokenform Gold benchmark
+
+`python -m benchmarks.spokenform_gold --gold-root /path/to/release --split test`
+runs the experimental Spokenform Gold adapter against a built Gold release. The
+Gold corpus remains a diagnostic benchmark rather than a stable release gate:
+it measures current coverage and correctness without redefining Spokenform's
+public support contract.
+
+The adapter imports `spokenform_gold.benchmark`, so install the sibling
+`spokenform-gold` repository or otherwise make the package importable first.
+Reports are written under `benchmark-results/spokenform-gold/<run-id>/` and
+record Spokenform version/commit, Gold version/manifest hash, profile, split,
+and scoring mode.
