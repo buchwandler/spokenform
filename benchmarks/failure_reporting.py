@@ -9,6 +9,15 @@ from typing import Any
 
 FAILURE_FAMILIES = (
     "acronym",
+    "time",
+    "currency",
+    "exchange-rate",
+    "math",
+    "scientific",
+    "fraction",
+    "social-hashtag",
+    "social-mention",
+    "legal-reference",
     "year",
     "date",
     "quantity-ambiguity",
@@ -16,7 +25,15 @@ FAILURE_FAMILIES = (
     "version-protected",
     "roman",
     "ticker",
+    "phone",
+    "isbn",
+    "iban",
+    "mac",
+    "vin",
+    "biomedical",
     "identifier",
+    "code-product",
+    "symbol-punctuation",
     "score",
     "protected-literal",
     "dataset-quarantine",
@@ -166,39 +183,78 @@ def rank_provenance(
 
 
 def failure_family(row: dict[str, Any]) -> str:
-    """Classify one diagnostic row without changing the upstream category."""
+    """Classify failures from provenance without changing upstream categories."""
     if row.get("quarantine") is not None:
         return "dataset-quarantine"
     category = str(row.get("canonical_category", row.get("category", ""))).casefold()
     rule = str(row.get("primary_rule") or row.get("source_rule") or "").casefold()
     source = str(row.get("original_text", ""))
-    if "url" in category or "email" in category or ".url" in rule or ".email" in rule:
+    haystack = f"{category} {rule}"
+    if row.get("failure_phase") == "unrecognized" or category == "unrecognized":
+        return "unrecognized"
+    if row.get("ownership") == "protected" or any(
+        marker in haystack for marker in ("url", "email", "protected-literal")
+    ):
         return "protected-literal"
     if "version" in category or ".version" in rule:
         return "version-protected"
+    if any(marker in category for marker in ("initialism", "acronym", "abbreviation")):
+        return "acronym"
+    if any(marker in rule for marker in ("acronym", "initialism", "abbr")):
+        return "acronym"
     if "ticker" in category or ".ticker" in rule:
         return "ticker"
     if "roman" in category or ".roman" in rule:
         return "roman"
     if "score" in category or "sports" in rule or "chained-score" in rule:
         return "score"
+    if "exchange-rate" in haystack or "exchange rate" in category:
+        return "exchange-rate"
+    if "currency" in category or ".currency" in rule:
+        return "currency"
+    if "time" in category or ".time" in rule:
+        return "time"
+    if "scientific" in category or ".scientific" in rule:
+        return "scientific"
+    if "math" in category or "mathematical" in category or ".math" in rule:
+        return "math"
+    if "fraction" in category or ".fraction" in rule:
+        return "fraction"
+    if "hashtag" in category or "social-hashtag" in rule:
+        return "social-hashtag"
+    if "mention" in category or "social-mention" in rule:
+        return "social-mention"
+    if any(marker in category or marker in rule for marker in ("legal", "reference")):
+        return "legal-reference"
     if "date" in category or ".date" in rule:
         return "date"
     if "year" in category or ".year" in rule:
         return "year"
     if "quantity" in rule or "unit" in category:
         return "quantity-ambiguity"
-    if any(marker in category for marker in ("initialism", "acronym", "abbreviation")):
-        return "acronym"
-    if any(marker in rule for marker in ("acronym", "initialism", "abbr")):
-        return "acronym"
-    if any(marker in rule for marker in ("product", "plate", "vin", "serial", "isbn")):
+    if ".phone" in rule or "phone" in category:
+        return "phone"
+    if ".isbn" in rule or "isbn" in category:
+        return "isbn"
+    if ".iban" in rule or "iban" in category:
+        return "iban"
+    if ".mac" in rule or "mac address" in category:
+        return "mac"
+    if ".vin" in rule or " vin" in f" {category}":
+        return "vin"
+    if "biomedical" in category or ".biomedical" in rule or "biology" in category:
+        return "biomedical"
+    if any(marker in rule for marker in ("product", "plate", "serial", "code")):
         if re.search(r"\b(?:registration|model|product|part|tag|identifier)\b", source, re.I):
             return "product-false-positive"
+        if "product" in rule or "code" in rule:
+            return "code-product"
         return "identifier"
-    if any(marker in category for marker in ("product", "license plate", "serial", "isbn")):
+    if any(marker in category for marker in ("product", "license plate", "serial")):
         return "identifier"
-    if row.get("error"):
+    if any(marker in category or marker in rule for marker in ("symbol", "punctuation")):
+        return "symbol-punctuation"
+    if row.get("error") or not row.get("primary_rule") and row.get("semantic_failure"):
         return "unrecognized"
     return "other"
 
@@ -364,6 +420,7 @@ def diagnostic_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, dict[str,
             str(row.get("risk_tier") or risk_tier_for_row(row)) for row in failed
         ),
         "by_ambiguity_family": Counter(failure_family(row) for row in failed),
+        "by_gap_type": Counter(failure_gap_type(row) for row in failed),
         "by_outcome": Counter(outcome_for_row(row) for row in values),
     }
     return {name: dict(sorted(counts.items())) for name, counts in dimensions.items()}
@@ -408,6 +465,40 @@ def oracle_gap_type(row: dict[str, Any]) -> str:
         return "selection"
     return "candidates-no-gain"
 
+
+def failure_gap_type(row: dict[str, Any]) -> str:
+    """Classify actionable ownership and oracle gaps from row evidence."""
+    if row.get("error") or row.get("reason_code") == "runtime-error":
+        return "runtime-error"
+    if row.get("quarantine") is not None:
+        reason = str(row.get("quarantine", {}).get("reason_code", ""))
+        return "questionable-target" if "questionable" in reason else "external/questionable-target"
+    ownership = str(row.get("ownership") or "")
+    if row.get("presentation_only") and not row.get("semantic_failure"):
+        return "presentation-only"
+    if ownership == "protected" or row.get("protected"):
+        return "policy-gap"
+    if ownership == "dependency-abbr2words":
+        return "dependency-gap"
+    if ownership == "external-language":
+        return "external/questionable-target"
+    if ownership == "downstream":
+        return "downstream-gap"
+    oracle_type = str(row.get("oracle_gap_type") or "")
+    if oracle_type == "selection":
+        return "selection-gap"
+    if oracle_type in {"policy", "presentation"}:
+        return "policy-gap"
+    phase = str(row.get("failure_phase") or "")
+    if phase in {"structured_rendering", "locale_rendering"}:
+        return "rendering-gap"
+    if phase == "downstream_rendering":
+        return "downstream-gap"
+    if phase == "unrecognized" or not row.get("primary_rule"):
+        return "recognition-gap"
+    if phase == "protected":
+        return "policy-gap"
+    return "rejection-gap" if row.get("recognition_trace") else "other-owned"
 
 def oracle_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
     """Summarize selector headroom with explicit semantic-failure denominators."""
@@ -486,6 +577,7 @@ __all__ = [
     "failure_family",
     "failure_family_counts",
     "diagnostic_aggregates",
+    "failure_gap_type",
     "oracle_aggregates",
     "oracle_gap_type",
     "ownership_for_rule",

@@ -1,13 +1,16 @@
 from types import SimpleNamespace
 
 from benchmarks.failure_reporting import (
+    diagnostic_aggregates,
+    failure_family,
+    failure_gap_type,
     oracle_aggregates,
     oracle_gap_type,
     outcome_for_row,
     ownership_for_rule,
     rank_provenance,
     risk_tier_for_row,
-)
+ )
 
 
 def _edit(rule: str, stage: str, start: int, end: int, source: str = "value"):
@@ -137,3 +140,39 @@ def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
     assert aggregates["fully_recoverable_selection_gap_rate"] == 0.5
     assert aggregates["selection_gap_rate_numerator"] == 2
     assert aggregates["selection_gap_rate_denominator"] == 2
+
+def test_failure_family_splits_other_from_runtime_provenance() -> None:
+    assert failure_family({"category": "Time", "primary_rule": "en.time"}) == "time"
+    assert failure_family({"category": "Currency", "primary_rule": "sequence.currency"}) == (
+        "currency"
+    )
+    assert failure_family({"category": "Scientific", "primary_rule": "sequence.scientific"}) == (
+        "scientific"
+    )
+    assert failure_family({"category": "Identifier", "primary_rule": "sequence.isbn"}) == "isbn"
+    assert failure_family({"failure_phase": "unrecognized", "semantic_failure": True}) == (
+        "unrecognized"
+    )
+
+
+def test_failure_gap_type_uses_oracle_and_ownership_evidence() -> None:
+    assert failure_gap_type({"oracle_gap_type": "selection", "semantic_failure": True}) == (
+        "selection-gap"
+    )
+    assert failure_gap_type({"failure_phase": "structured_rendering"}) == "rendering-gap"
+    assert failure_gap_type({"failure_phase": "unrecognized"}) == "recognition-gap"
+    assert failure_gap_type({"ownership": "dependency-abbr2words"}) == "dependency-gap"
+    assert failure_gap_type({"ownership": "protected"}) == "policy-gap"
+
+
+def test_diagnostic_aggregates_include_gap_type() -> None:
+    result = diagnostic_aggregates(
+        (
+            {"semantic_failure": True, "failure_phase": "unrecognized"},
+            {"semantic_failure": True, "failure_phase": "structured_rendering"},
+        )
+    )
+    assert result["by_gap_type"] == {
+        "recognition-gap": 1,
+        "rendering-gap": 1,
+    }
