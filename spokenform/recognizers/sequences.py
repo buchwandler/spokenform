@@ -11,6 +11,7 @@ from typing import Literal
 from num2words import num2words
 
 from ..dates import render_english_year, render_year
+from ..diagnostics import TraceCollector
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -2115,6 +2116,7 @@ def iter_sequence_replacements(
         "known_only", "conservative_unknown", "spell_unknown"
     ] = "known_only",
     generic_acronym_case: Literal["upper", "lower"] = "upper",
+    trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""
     language = normalize_language(language)
@@ -2123,7 +2125,11 @@ def iter_sequence_replacements(
     candidates.extend(
         iter_biomedical_replacements(text, language=language, protected_ranges=protected)
     )
-    candidates.extend(iter_range_replacements(text, language=language, protected_ranges=protected))
+    candidates.extend(
+        iter_range_replacements(
+            text, language=language, protected_ranges=protected, trace=trace
+        )
+    )
     candidates.extend(
         iter_reference_replacements(text, language=language, protected_ranges=protected)
     )

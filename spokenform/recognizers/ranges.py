@@ -8,6 +8,7 @@ from collections.abc import Iterable
 from num2words import num2words
 
 from ..dates import render_english_year
+from ..diagnostics import TraceCollector
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
 
@@ -167,6 +168,7 @@ def iter_replacements(
     *,
     language: str = "en",
     protected_ranges: Iterable[tuple[int, int]] = (),
+    trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return positive-evidence year and numeric-range replacements."""
     language = normalize_language(language)
@@ -263,6 +265,38 @@ def iter_replacements(
                 55,
             )
         )
+    if trace is not None:
+        emitted_spans = {(item.start, item.end) for item in candidates}
+        for match in re.finditer(r"(?<!\w)\d{4}", text):
+            start, end = match.span()
+            if (start, end) in emitted_spans:
+                continue
+            if not _claimed(start, end, protected):
+                trace.record_rejected(
+                    rule="sequence.year",
+                    family="year",
+                    start=start,
+                    end=end,
+                    source=match.group(0),
+                    reason="protected-overlap",
+                    status="protected",
+                )
+                continue
+            before = text[start - 1 : start]
+            after = text[end : end + 2]
+            reason = (
+                "invalid-boundary"
+                if before and before in ".:/-" or after.startswith(("/", ":", "-", "."))
+                else "missing-context"
+            )
+            trace.record_rejected(
+                rule="sequence.year",
+                family="year",
+                start=start,
+                end=end,
+                source=match.group(0),
+                reason=reason,
+            )
     return tuple(candidates)
 
 

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from .casing import capitalize_generated_numeric_replacements
 from .config import GenericAcronymCase, GenericAcronymMode
+from .diagnostics import TraceCollector
 from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
 from .models import ReservedSpan
@@ -70,6 +71,7 @@ def iter_structured_candidates(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return all admissible structured candidates before conflict resolution."""
     if not isinstance(text, str):
@@ -86,13 +88,18 @@ def iter_structured_candidates(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        trace=trace,
     )
     locale_candidates = _iter_locale_replacements(
         text,
         language=language,
         protected_ranges=protected,
     )
-    return (*shared_candidates, *locale_candidates)
+    candidates = (*shared_candidates, *locale_candidates)
+    if trace is not None:
+        for candidate in candidates:
+            trace.record_emitted(text, candidate)
+    return candidates
 
 
 def resolve_structured_candidates(
@@ -114,6 +121,7 @@ def iter_structured_replacements(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return exact, non-overlapping semantic replacements for one language."""
     candidates = iter_structured_candidates(
@@ -123,6 +131,7 @@ def iter_structured_replacements(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        trace=trace,
     )
     return resolve_structured_candidates(text, candidates, language=normalize_language(language))
 
@@ -135,6 +144,7 @@ def normalize_structured(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    trace: TraceCollector | None = None,
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
     replacements = iter_structured_replacements(
@@ -144,6 +154,7 @@ def normalize_structured(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        trace=trace,
     )
     from .mapping import apply_replacements
 
