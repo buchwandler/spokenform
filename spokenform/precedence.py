@@ -55,6 +55,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.numeric-range": SequencePriority.NUMERIC_RANGE,
     "sequence.phone-ambiguous": SequencePriority.PHONE_AMBIGUOUS,
     "sequence.phone": SequencePriority.TYPED_CODE,
+    "sequence.mac": SequencePriority.TYPED_CODE,
     "sequence.biomedical": SequencePriority.LABELED_IDENTIFIER,
     "sequence.biology": SequencePriority.LABELED_IDENTIFIER,
     "sequence.height": SequencePriority.TYPED_CODE,
