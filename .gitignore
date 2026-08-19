@@ -46,6 +46,7 @@ htmlcov/
 .cache/polynorm-bench/
 .cache/proteno/
 benchmark-results/
+artifacts/
 nosetests.xml
 coverage.xml
 *.cover
