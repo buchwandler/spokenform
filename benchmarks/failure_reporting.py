@@ -190,7 +190,10 @@ def failure_family(row: dict[str, Any]) -> str:
     rule = str(row.get("primary_rule") or row.get("source_rule") or "").casefold()
     source = str(row.get("original_text", ""))
     haystack = f"{category} {rule}"
-    if row.get("failure_phase") == "unrecognized" or category == "unrecognized":
+    if (
+        row.get("error")
+        or row.get("semantic_failure")
+    ) and (row.get("failure_phase") == "unrecognized" or category == "unrecognized"):
         return "unrecognized"
     if row.get("ownership") == "protected" or any(
         marker in haystack for marker in ("url", "email", "protected-literal")

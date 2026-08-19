@@ -141,7 +141,7 @@ def test_contextual_long_number_mode_requires_quantity_evidence() -> None:
         ).spoken_text
         == "there are eight hundred forty four thousand three hundred sixty one items"
     )
-    for source in ("844361", "(844361)", "account 844361", "0001234"):
+    for source in ("844361", "(844361)", "0001234"):
         result = prepare(
             source,
             language="en",
@@ -149,6 +149,10 @@ def test_contextual_long_number_mode_requires_quantity_evidence() -> None:
             long_number_mode="contextual",
         )
         assert source in result.spoken_text
+    account_result = prepare(
+        "account 844361", language="en", use_spacy=False, long_number_mode="contextual"
+    )
+    assert account_result.spoken_text == "account eight four four three six one"
     pin_result = prepare(
         "PIN 844361",
         language="en",
