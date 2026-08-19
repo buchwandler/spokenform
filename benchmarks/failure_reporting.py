@@ -410,33 +410,56 @@ def oracle_gap_type(row: dict[str, Any]) -> str:
 
 
 def oracle_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
-    """Summarize selector-headroom signals for oracle-enabled benchmark rows."""
+    """Summarize selector headroom with explicit semantic-failure denominators."""
     values = tuple(rows)
     eligible = tuple(
         row
         for row in values
         if oracle_gap_type(row) not in {"dependency", "policy", "presentation", "runtime-error"}
     )
+    semantic_failures = tuple(
+        row for row in eligible if bool(row.get("semantic_failure", True))
+    )
     scorable = tuple(row for row in eligible if row.get("oracle_scorable"))
     regret_sum = sum(float(row.get("selector_regret", 0.0)) for row in scorable)
     eligible_count = len(eligible)
+    eligible_semantic_failure_count = len(semantic_failures)
     scorable_count = len(scorable)
     exact_target_count = sum(bool(row.get("oracle_literal_exact")) for row in eligible)
+    selection_gap_count = sum(
+        oracle_gap_type(row) == "selection" for row in semantic_failures
+    )
+    fully_recoverable_count = sum(
+        oracle_gap_type(row) == "selection" and bool(row.get("oracle_speech_equivalent"))
+        for row in semantic_failures
+    )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "enabled": True,
         "cases": len(values),
         "eligible_cases": eligible_count,
+        "eligible_semantic_failure_count": eligible_semantic_failure_count,
         "scorable_cases": scorable_count,
         "unscorable_cases": sum(not row.get("oracle_scorable", False) for row in eligible),
         "truncated_cases": sum(bool(row.get("oracle_truncated")) for row in eligible),
         "cases_with_ambiguous_candidates": sum(
             int(row.get("ambiguous_component_count", 0)) > 0 for row in eligible
         ),
-        "selection_gap_count": sum(oracle_gap_type(row) == "selection" for row in eligible),
-        "fully_recoverable_selection_gap_count": sum(
-            oracle_gap_type(row) == "selection" and bool(row.get("oracle_speech_equivalent"))
-            for row in eligible
+        "selection_gap_count": selection_gap_count,
+        "selection_gap_rate_numerator": selection_gap_count,
+        "selection_gap_rate_denominator": eligible_semantic_failure_count,
+        "selection_gap_rate": (
+            selection_gap_count / eligible_semantic_failure_count
+            if eligible_semantic_failure_count
+            else 0.0
+        ),
+        "fully_recoverable_selection_gap_count": fully_recoverable_count,
+        "fully_recoverable_selection_gap_rate_numerator": fully_recoverable_count,
+        "fully_recoverable_selection_gap_rate_denominator": eligible_semantic_failure_count,
+        "fully_recoverable_selection_gap_rate": (
+            fully_recoverable_count / eligible_semantic_failure_count
+            if eligible_semantic_failure_count
+            else 0.0
         ),
         "actual_speech_wer_sum": sum(float(row.get("actual_speech_wer", 0.0)) for row in scorable),
         "oracle_speech_wer_sum": sum(float(row.get("oracle_speech_wer", 0.0)) for row in scorable),

@@ -1,98 +1,47 @@
 # Candidate Oracle Baseline
 
-Generated from the oracle-enabled benchmark runs completed in this checkout. Google TN oracle runs were not included because no local Google TN dataset shard was available.
+Fresh oracle-enabled baselines from the current checkout. Rates are named explicitly:
+
+```text
+selection_gap_rate = selection_gap_count / eligible_semantic_failure_count
+fully_recoverable_selection_gap_rate = fully_recoverable_selection_gap_count / eligible_semantic_failure_count
+```
+
+The denominator excludes dependency-owned, protected, policy, presentation-only, runtime-error,
+and quarantined rows. It includes only eligible semantic failures. A selection gap means that a
+better emitted candidate path exists. A fully recoverable gap additionally reaches speech
+equivalence with the benchmark target.
 
 ## Overall
 
-| Benchmark | Profile  | Semantic failures | Eligible semantic failures | Ambiguous rows | Selection gaps | Fully recoverable | Recoverable of eligible semantic failures | Selector regret |
-| --------- | -------- | ----------------: | -------------------------: | -------------: | -------------: | ----------------: | ----------------------------------------: | --------------: |
-| PolyNorm  | default  |               904 |                        592 |            508 |             12 |                 5 |                                     2.03% |          2.3000 |
-| PolyNorm  | extended |               858 |                        583 |            509 |             12 |                 5 |                                     2.06% |          2.3000 |
-| Proteno   | default  |              2264 |                       2264 |           1961 |              2 |                 0 |                                     0.09% |          0.2883 |
-| Proteno   | extended |              2150 |                       2150 |           1961 |              2 |                 0 |                                     0.09% |          0.2883 |
-| Async TN  | default  |              3943 |                       2695 |            988 |             64 |                18 |                                     2.30% |         10.1049 |
+| Benchmark | Profile | Semantic failures | Eligible semantic failures | Selection gaps | Selection gap rate | Fully recoverable | Fully recoverable rate | Selector regret |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| PolyNorm | default | 881 | 584 | 12 | 2.0548% | 5 | 0.8562% | 2.3000 |
+| PolyNorm | extended | 835 | 575 | 12 | 2.0870% | 5 | 0.8696% | 2.3000 |
+| Proteno | default | 5,793 | 5,106 | 7 | 0.1371% | 1 | 0.0196% | 1.4722 |
+| Proteno | extended | 5,537 | 4,853 | 7 | 0.1442% | 1 | 0.0206% | 1.4722 |
+| Async TN | default | 3,871 | 2,622 | 62 | 2.3646% | 16 | 0.6102% | 10.1049 |
 
-Run directories:
+The reported selection gap count and fully recoverable count are intentionally different metrics.
 
-- `PolyNorm / default` → `benchmark-results/polynorm/20260818T135306Z`
-- `PolyNorm / extended` → `benchmark-results/polynorm/20260818T135313Z`
-- `Proteno / default` → `benchmark-results/proteno/20260818T135403Z`
-- `Proteno / extended` → `benchmark-results/proteno/20260818T135453Z`
-- `Async TN / default` → `benchmark-results/async-tn/20260818T135525375538Z`
-- `Google TN` → unavailable locally; no oracle run performed.
+## Run artifacts
 
-## By language
+- PolyNorm default: `artifacts/oracle-v2-baseline/polynorm-default/20260819T053818Z`
+- PolyNorm extended: `artifacts/oracle-v2-baseline/polynorm-extended/20260819T054507Z`
+- PolyNorm extended numeric gate: `artifacts/oracle-v2-baseline/polynorm-extended-numeric/20260819T054513Z`
+- Proteno default: `artifacts/oracle-v2-baseline/proteno-default/20260819T054230Z`
+- Proteno extended: `artifacts/oracle-v2-baseline/proteno-extended/20260819T054428Z`
+- Async TN default: `artifacts/oracle-v2-baseline/async-tn/20260819T054457295038Z`
 
-| Benchmark | Profile  | Language | Selection gaps | Fully recoverable | Selector regret |
-| --------- | -------- | -------- | -------------: | ----------------: | --------------: |
-| Async TN  | default  | fr       |             11 |                 8 |          4.0569 |
-| Async TN  | default  | en       |             16 |                 0 |          2.1339 |
-| Async TN  | default  | pt       |             11 |                 4 |          1.4749 |
-| Async TN  | default  | es       |             14 |                 4 |          1.2084 |
-| Async TN  | default  | it       |             10 |                 2 |          1.1372 |
-| PolyNorm  | default  | it-IT    |              4 |                 3 |          0.7733 |
-| PolyNorm  | extended | it-IT    |              4 |                 3 |          0.7733 |
-| PolyNorm  | default  | fr-FR    |              2 |                 1 |          0.5096 |
-| PolyNorm  | extended | fr-FR    |              2 |                 1 |          0.5096 |
-| PolyNorm  | default  | es-MX    |              2 |                 1 |          0.4500 |
-| PolyNorm  | extended | es-MX    |              2 |                 1 |          0.4500 |
-| PolyNorm  | default  | de-DE    |              3 |                 0 |          0.3171 |
-
-## By category
-
-| Benchmark | Profile  | Category                | Selection gaps | Selector regret |
-| --------- | -------- | ----------------------- | -------------: | --------------: |
-| Async TN  | default  | acronym                 |             45 |          7.4808 |
-| Async TN  | default  | biology                 |              4 |          1.0000 |
-| PolyNorm  | default  | Currency                |              2 |          0.6250 |
-| PolyNorm  | extended | Currency                |              2 |          0.6250 |
-| PolyNorm  | default  | Vehicle or Product Code |              4 |          0.5304 |
-| PolyNorm  | extended | Vehicle or Product Code |              4 |          0.5304 |
-| Async TN  | default  | score_or_range          |              4 |          0.4583 |
-| PolyNorm  | default  | Legal Reference         |              1 |          0.3846 |
-| PolyNorm  | extended | Legal Reference         |              1 |          0.3846 |
-| Async TN  | default  | phone                   |              3 |          0.3768 |
-| Async TN  | default  | currency                |              3 |          0.3698 |
-| PolyNorm  | default  | Time                    |              1 |          0.3000 |
-
-## By primary rule conflict
-
-| Benchmark | Profile  | Conflict                                    | Cases | Selector regret |
-| --------- | -------- | ------------------------------------------- | ----: | --------------: |
-| Async TN  | default  | `sequence.isbn -> sequence.phone`           |    18 |          4.7699 |
-| Async TN  | default  | `en.quantity -> sequence.mac`               |     8 |          1.6247 |
-| Async TN  | default  | `sequence.phone -> sequence.iban`           |    20 |          1.0862 |
-| Async TN  | default  | `sequence.biomedical -> sequence.product`   |     6 |          1.0000 |
-| PolyNorm  | default  | `sequence.biomedical -> sequence.product`   |     3 |          0.5357 |
-| PolyNorm  | extended | `sequence.biomedical -> sequence.product`   |     3 |          0.5357 |
-| PolyNorm  | default  | `sequence.vin -> sequence.product`          |     4 |          0.5304 |
-| PolyNorm  | extended | `sequence.vin -> sequence.product`          |     4 |          0.5304 |
-| Async TN  | default  | `sequence.sports -> sequence.numeric-range` |    15 |          0.5083 |
-| Async TN  | default  | `en.currency -> sequence.exchange-rate`     |     2 |          0.5000 |
-| Async TN  | default  | `it.time -> it.currency`                    |     4 |          0.4467 |
-| Async TN  | default  | `it.currency -> sequence.exchange-rate`     |     1 |          0.3846 |
-
-## Oracle limitations
-
-| Benchmark | Profile  | Truncated rows | Runtime-error rows | Policy exclusions | Dependency exclusions | Unicode exclusions | Other unscorable reasons |
-| --------- | -------- | -------------: | -----------------: | ----------------: | --------------------: | -----------------: | -----------------------: |
-| PolyNorm  | default  |              0 |                  0 |               405 |                   198 |                  0 |                        0 |
-| PolyNorm  | extended |              0 |                  0 |               405 |                   198 |                  0 |                        0 |
-| Proteno   | default  |              1 |                  0 |                 0 |                     0 |                  0 |                        0 |
-| Proteno   | extended |              1 |                  0 |                 0 |                     0 |                  0 |                        0 |
-| Async TN  | default  |              3 |                109 |              1089 |                   533 |                  0 |                        0 |
-
-Observations:
-
-- No Unicode-stage exclusions were observed in the completed PolyNorm, Proteno, or Async TN runs.
-- Proteno truncated exactly one Spanish row in both profiles; Async TN truncated three rows and isolated 109 runtime-error rows without aborting the run.
-- The oracle is diagnostic-only; it did not change runtime benchmark behavior, protection rules, or ownership policy.
+The PolyNorm numeric gate reported 502 failures among 1,878 reviewed cases. This is baseline
+evidence, not a validation result for the implementation.
 
 ## Decision gate
 
-- **PolyNorm:** ~2.0% of eligible semantic failures were recoverable through existing candidate selection alone in both profiles (12 / 592 default, 12 / 583 extended).
-- **Proteno:** selector headroom was negligible at ~0.09% in both profiles (2 recoverable eligible semantic failures each).
-- **Async TN:** the strongest signal was still only ~2.3% recoverable eligible semantic failures (62 / 2695), concentrated in acronym/identifier-style conflicts such as `sequence.isbn -> sequence.phone`, `en.quantity -> sequence.mac`, and `sequence.phone -> sequence.iban`.
-- **Google TN:** no local dataset shard was available, so this report does not add sentence-level Google TN selector evidence.
+Selection over existing candidates remains a small recovery ceiling. The largest current
+selection-gap rate is Async TN at 2.3646%, and its fully recoverable rate is 0.6102%.
+These measurements support prioritizing candidate generation, rejection diagnostics, and bounded
+rendering or configuration alternatives before considering a learned selector.
 
-**Recommendation:** do **not** start a selector experiment yet. The best observed recoverable rate is well below the brief's suggested double-digit threshold for meaningful selection headroom. The next implementation cycle should prioritize candidate-generation or rendering improvements, especially the high-regret Async TN acronym/identifier families and the small set of PolyNorm product/currency/legal conflicts surfaced above.
+The oracle is diagnostic-only. It does not alter runtime normalization, protected literals,
+benchmark ownership, or dependency abbreviation policy.

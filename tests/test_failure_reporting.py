@@ -86,6 +86,7 @@ def test_risk_tiers_distinguish_safe_contextual_and_high_risk_followups() -> Non
 def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
     selection = {
         "ownership": "owned",
+        "semantic_failure": True,
         "oracle_scorable": True,
         "oracle_truncated": False,
         "ambiguous_component_count": 1,
@@ -95,6 +96,19 @@ def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
         "combinations_evaluated": 3,
         "actual_speech_wer": 0.25,
         "oracle_speech_wer": 0.0,
+    }
+    selection_without_full_recovery = {
+        "ownership": "owned",
+        "semantic_failure": True,
+        "oracle_scorable": True,
+        "oracle_truncated": False,
+        "ambiguous_component_count": 1,
+        "selector_regret": 0.5,
+        "oracle_speech_equivalent": False,
+        "oracle_literal_exact": False,
+        "combinations_evaluated": 2,
+        "actual_speech_wer": 0.5,
+        "oracle_speech_wer": 0.25,
     }
     policy = {
         "ownership": "protected",
@@ -111,7 +125,15 @@ def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
 
     assert oracle_gap_type(selection) == "selection"
     assert oracle_gap_type(policy) == "policy"
-    aggregates = oracle_aggregates((selection, policy))
-    assert aggregates["cases"] == 2
-    assert aggregates["eligible_cases"] == 1
-    assert aggregates["selection_gap_count"] == 1
+    aggregates = oracle_aggregates(
+        (selection, selection_without_full_recovery, policy)
+    )
+    assert aggregates["cases"] == 3
+    assert aggregates["eligible_cases"] == 2
+    assert aggregates["eligible_semantic_failure_count"] == 2
+    assert aggregates["selection_gap_count"] == 2
+    assert aggregates["selection_gap_rate"] == 1.0
+    assert aggregates["fully_recoverable_selection_gap_count"] == 1
+    assert aggregates["fully_recoverable_selection_gap_rate"] == 0.5
+    assert aggregates["selection_gap_rate_numerator"] == 2
+    assert aggregates["selection_gap_rate_denominator"] == 2

@@ -209,7 +209,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         "speech_wer_threshold": args.speech_wer_threshold,
         "oracle_categories_passed_to_prepare": False,
         "candidate_oracle_enabled": args.candidate_oracle,
-        "candidate_oracle_schema_version": 1 if args.candidate_oracle else None,
+        "candidate_oracle_schema_version": 2 if args.candidate_oracle else None,
         "max_component_paths": MAX_COMPONENT_PATHS if args.candidate_oracle else None,
         "max_global_combinations": MAX_GLOBAL_COMBINATIONS if args.candidate_oracle else None,
     }
@@ -285,7 +285,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
                         "num2words_version": summary["environment"]["num2words_version"],
                         "profile": profile,
                         "config_hash": summary["environment"]["config_hash"],
-                        "candidate_oracle_schema_version": 1,
+                        "candidate_oracle_schema_version": 2,
                         "max_component_paths": MAX_COMPONENT_PATHS,
                         "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
                     },

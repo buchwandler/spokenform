@@ -52,13 +52,16 @@ def fixture():
         "quarantine_reason_codes": {},
         "numeric_gate": {"reviewed_cases": 1, "failure_count": 1, "failure_case_ids": ["en-US:1"]},
         "candidate_oracle": {
-            "schema_version": 1,
+            "schema_version": 2,
             "enabled": True,
             "cases": 1,
             "eligible_cases": 1,
+            "eligible_semantic_failure_count": 1,
             "scorable_cases": 1,
             "selection_gap_count": 0,
+            "selection_gap_rate": 0.0,
             "fully_recoverable_selection_gap_count": 0,
+            "fully_recoverable_selection_gap_rate": 0.0,
             "selector_regret_mean": 0.0,
             "candidate_recall_for_exact_target": 1.0,
         },
@@ -103,6 +106,9 @@ def test_polynorm_report_renders_all_required_sections(tmp_path):
     assert "Locale × category view" in text
     assert "Failure explorer" in text
     assert "Optional oracle view" in text
+    assert "Selection gap rate is selection gaps divided by eligible semantic failures." in text
+    assert "selection_gap_rate" in text
+    assert "fully_recoverable_selection_gap_rate" in text
 
 
 def test_polynorm_report_escapes_source_text(tmp_path):

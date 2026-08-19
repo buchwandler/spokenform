@@ -328,15 +328,21 @@ def _oracle_section(summary: dict[str, Any]) -> str:
             "enabled",
             "cases",
             "eligible_cases",
+            "eligible_semantic_failure_count",
             "scorable_cases",
             "selection_gap_count",
+            "selection_gap_rate",
             "fully_recoverable_selection_gap_count",
+            "fully_recoverable_selection_gap_rate",
             "selector_regret_mean",
             "candidate_recall_for_exact_target",
         )
     }
     return (
-        "<p>Oracle views are optional and render only when candidate_oracle summary data is present.</p>"
+        "<h3>Candidate selection oracle</h3>"
+        "<p>Selection gap rate is selection gaps divided by eligible semantic failures. "
+        "Fully recoverable selection gap rate uses the same denominator and counts only "
+        "selection alternatives that reach speech equivalence.</p>"
         f"{json_pre(headline)}" + details_block("Full oracle summary", json_pre(oracle))
     )
 

@@ -887,7 +887,7 @@ def evaluate_and_write(
                 "configuration": {
                     **environment["configuration"],
                     "candidate_oracle_enabled": True,
-                    "candidate_oracle_schema_version": 1,
+                    "candidate_oracle_schema_version": 2,
                     "max_component_paths": MAX_COMPONENT_PATHS,
                     "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
                 },
@@ -943,7 +943,7 @@ def evaluate_and_write(
                     "generated_at": summary_payload["generated_at"],
                     "identity": {
                         **summary_payload["identity"],
-                        "candidate_oracle_schema_version": 1,
+                        "candidate_oracle_schema_version": 2,
                         "max_component_paths": MAX_COMPONENT_PATHS,
                         "max_global_combinations": MAX_GLOBAL_COMBINATIONS,
                     },
