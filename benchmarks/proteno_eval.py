@@ -29,6 +29,15 @@ from .candidate_oracle import (
     analysis_fields as candidate_oracle_fields,
 )
 from .compare_common import with_configuration_hash
+from .configuration_oracle import (
+    analysis_fields as configuration_oracle_fields,
+)
+from .configuration_oracle import (
+    analyze_configuration_oracle,
+)
+from .configuration_oracle import (
+    oracle_aggregates as configuration_oracle_aggregates,
+)
 from .failure_reporting import (
     RISK_TIERS,
     diagnostic_aggregates,
@@ -315,6 +324,32 @@ def _oracle_row_fields(
                 **_candidate_oracle_kwargs(profile),
             )
         )
+    if not row["error"] and result is not None:
+        config_kwargs: dict[str, Any] = {
+            "language": language,
+            "use_spacy": False,
+            "symbol_mode": "remove",
+        }
+        if profile == "extended":
+            config_kwargs.update(
+                {
+                    "normalize_literals": True,
+                    "generic_acronym_mode": "conservative_unknown",
+                    "generic_acronym_case": "lower",
+                    "registered_acronym_mode": "spell",
+                }
+            )
+        fields.update(
+            configuration_oracle_fields(
+                analyze_configuration_oracle(
+                    row["original_text"],
+                    expected,
+                    result,
+                    language=language,
+                    base_kwargs=config_kwargs,
+                )
+            )
+        )
     merged = {**row, **fields}
     gap_type = oracle_gap_type(merged)
     fields["oracle_gap_type"] = gap_type
@@ -535,6 +570,7 @@ def evaluate_cases(
     if candidate_oracle:
         summary["candidate_oracle"] = {
             **oracle_aggregates(rows),
+            "configuration_oracle": configuration_oracle_aggregates(rows),
             "by_language": {
                 key: oracle_aggregates(value) for key, value in sorted(grouped_language.items())
             },

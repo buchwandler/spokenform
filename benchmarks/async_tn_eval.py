@@ -22,6 +22,15 @@ from .candidate_oracle import (
 from .candidate_oracle import (
     analysis_fields as candidate_oracle_fields,
 )
+from .configuration_oracle import (
+    analysis_fields as configuration_oracle_fields,
+)
+from .configuration_oracle import (
+    analyze_configuration_oracle,
+)
+from .configuration_oracle import (
+    oracle_aggregates as configuration_oracle_aggregates,
+)
 from .failure_reporting import (
     RISK_TIERS,
     diagnostic_aggregates,
@@ -256,6 +265,21 @@ def _oracle_row_fields(
                 result,
                 language=case.spokenform_language,
                 **_candidate_oracle_kwargs(normalize_literals=normalize_literals),
+            )
+        )
+    if not row["error"] and result is not None:
+        fields.update(
+            configuration_oracle_fields(
+                analyze_configuration_oracle(
+                    case.original_text,
+                    case.normalized_text,
+                    result,
+                    language=case.spokenform_language,
+                    base_kwargs={
+                        "language": case.spokenform_language,
+                        "normalize_literals": normalize_literals,
+                    },
+                )
             )
         )
     merged = {**row, **fields}
@@ -629,6 +653,7 @@ def _aggregate(
             sentence_categories[str(row["category"])].append(row)
         summary["candidate_oracle"] = {
             **oracle_aggregates(sentence_rows),
+            "configuration_oracle": configuration_oracle_aggregates(sentence_rows),
             "by_language": {
                 language: oracle_aggregates(rows)
                 for language, rows in sorted(sentence_languages.items())
