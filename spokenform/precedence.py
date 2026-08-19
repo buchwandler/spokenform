@@ -45,6 +45,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.sports": SequencePriority.SCORE,
     "sequence.chained-score": SequencePriority.SCORE,
     "sequence.time": SequencePriority.EXPLICIT_TIME,
+    "sequence.quarter": SequencePriority.EXPLICIT_DATE,
     "sequence.duration": SequencePriority.DURATION,
     "es.time": SequencePriority.EXPLICIT_TIME,
     "sequence.quantity": SequencePriority.QUANTITY,

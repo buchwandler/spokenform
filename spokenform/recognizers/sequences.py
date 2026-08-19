@@ -232,6 +232,15 @@ _TICKER_CONTEXT_RE = re.compile(
     r"(?:is|was|es|ist|est|è|:)?\s*(?P<value>[A-Z]{2,5})(?!\w)",
     re.IGNORECASE,
 )
+_EXCHANGE_TICKER_RE = re.compile(
+    r"\b(?:NASDAQ|NYSE)\s*:\s*(?P<value>[A-Z]{2,5})(?!\w)",
+    re.IGNORECASE,
+)
+_QUARTER_RE = re.compile(
+    r"(?<![\w-])(?:(?P<fy>FY)\s*(?P<fy_year>\d{4})\s+)?"
+    r"(?P<label>Q)(?P<quarter>[1-4])(?:\s+(?P<year>\d{4}))?(?![\w-])",
+    re.IGNORECASE,
+)
 _PRODUCT_RE = re.compile(
     r"(?<!\w)(?P<label>License\s+plate|Tax\s+identifier|Serial\s+number|Part\s+number|Product\s+code|Bar(?:code|\s+code)|Matrikelnummer|Seriennummer|Kennzeichen|Registration|Identifier|ID|Tag|Plate|License|Firmware|RFC|P/N|SN|S/N|Serial|SKU|Model|Modelo|VIN|IMEI|ICCID|PIN|Part|Product|routing\s+number|account(?:\s+number)?)\s*(?:[:#-]\s*|\s+)(?:No\.\s*)?(?P<value>[A-Za-z0-9][A-Za-z0-9.-]{1,})",
     re.IGNORECASE,
@@ -616,6 +625,24 @@ def _cardinal(value: int, language: str) -> str:
     if base_language(language) == "en":
         return rendered.replace(" and ", " ")
     return rendered
+
+def _quarter_text(quarter: int, language: str, year: int | None, fiscal_year: int | None) -> str:
+    quarter_word = {
+        "de": "Quartal",
+        "es": "trimestre",
+        "fr": "trimestre",
+        "it": "trimestre",
+        "pt": "trimestre",
+        "cs": "čtvrtletí",
+    }.get(base_language(language), "quarter")
+    value = f"{quarter_word} {_cardinal(quarter, language).replace('-', ' ')}"
+    if year is not None:
+        value += f" {_cardinal(year, language).replace('-', ' ')}"
+    if fiscal_year is not None:
+        prefix = "fiscal year" if base_language(language) == "en" else "FY"
+        value = f"{prefix} {_cardinal(fiscal_year, language).replace('-', ' ')} {value}"
+    return value
+
 
 
 def _digitwise(value: str, language: str) -> str:
@@ -2133,6 +2160,28 @@ def iter_sequence_replacements(
     candidates.extend(
         iter_reference_replacements(text, language=language, protected_ranges=protected)
     )
+    for match in _QUARTER_RE.finditer(text):
+        start, end = match.span()
+        if not _claimed(start, end, protected):
+            continue
+        before = text[max(0, start - 24) : start]
+        if re.search(r"\b(?:model|part)\s*$", before, re.IGNORECASE):
+            continue
+        quarter = int(match["quarter"])
+        year = int(match["year"]) if match["year"] else None
+        fiscal_year = int(match["fy_year"]) if match["fy_year"] else None
+        candidates.append(
+            Replacement(
+                start,
+                end,
+                _quarter_text(quarter, language, year, fiscal_year),
+                "structured",
+                language,
+                "sequence.quarter",
+                78,
+            )
+        )
+
     if base_language(language) == "de":
         for match in _HEIGHT_RE.finditer(text):
             if _claimed(match.start(), match.end(), protected):
@@ -2748,6 +2797,22 @@ def iter_sequence_replacements(
                     80,
                 )
             )
+    for match in _EXCHANGE_TICKER_RE.finditer(text):
+        ticker = match["value"]
+        start, end = match.span("value")
+        if _claimed(start, end, protected):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _ticker_text(ticker, language),
+                    "structured",
+                    language,
+                    "sequence.ticker",
+                    80,
+                )
+            )
+
     for match in _PRODUCT_RE.finditer(text):
         raw_value = match["value"]
         if not _valid_product_candidate(match["label"], raw_value):
