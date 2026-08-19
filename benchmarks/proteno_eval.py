@@ -62,6 +62,10 @@ from .proteno_data import (
     ProtenoExclusion,
     split_policy,
 )
+from .recognition_oracle import oracle_aggregates as recognition_oracle_aggregates
+from .recognition_oracle import trace_source_fields
+from .rendering_oracle import oracle_aggregates as rendering_oracle_aggregates
+from .rendering_oracle import source_render_fields
 from .text_metrics import literal_key, speech_key, speech_key_equivalent, word_error_rate
 
 SEMANTIC_SYMBOLS = frozenset("$€£%@/°+=#&")
@@ -350,6 +354,38 @@ def _oracle_row_fields(
                 )
             )
         )
+    if not row["error"] and result is not None:
+        winning_span = row.get("winning_span")
+        failure_span = (
+            (int(winning_span["start"]), int(winning_span["end"]))
+            if isinstance(winning_span, dict)
+            and "start" in winning_span
+            and "end" in winning_span
+            else None
+        )
+        fields.update(
+            trace_source_fields(
+                row["original_text"],
+                language=language,
+                protected_ranges=tuple(
+                    (span.start, span.end)
+                    for span in (getattr(result, "protected_spans", ()) or ())
+                ),
+                failure_span=failure_span,
+            )
+        )
+    if not row["error"] and result is not None:
+        fields.update(
+            source_render_fields(
+                row["original_text"],
+                result.spoken_text,
+                expected,
+                language=language,
+                family=str(row.get("render_mode") or ""),
+                baseline_mode=str(row.get("render_mode") or ""),
+                replacements=tuple(getattr(result, "source_replacements", ()) or ()),
+            )
+        )
     merged = {**row, **fields}
     gap_type = oracle_gap_type(merged)
     fields["oracle_gap_type"] = gap_type
@@ -571,6 +607,8 @@ def evaluate_cases(
         summary["candidate_oracle"] = {
             **oracle_aggregates(rows),
             "configuration_oracle": configuration_oracle_aggregates(rows),
+            "recognition_oracle": recognition_oracle_aggregates(rows),
+            "rendering_oracle": rendering_oracle_aggregates(rows),
             "by_language": {
                 key: oracle_aggregates(value) for key, value in sorted(grouped_language.items())
             },
