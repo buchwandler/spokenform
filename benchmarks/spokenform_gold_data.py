@@ -15,6 +15,7 @@ from urllib.request import urlopen
 SPOKENFORM_GOLD_REPOSITORY = "https://github.com/buchwandler/spokenform-gold"
 SPOKENFORM_GOLD_COMMIT = "ba55d631a45a0fe8b3d87ad58beef2843c617151"
 SPOKENFORM_GOLD_RELEASE_VERSION = "0.1.0-exp"
+SPOKENFORM_GOLD_POLICY_CONTRACT = "v0.3.0"
 SPOKENFORM_GOLD_ARCHIVE_URL = (
     f"https://codeload.github.com/buchwandler/spokenform-gold/zip/{SPOKENFORM_GOLD_COMMIT}"
 )
@@ -127,6 +128,7 @@ def _metadata(*, verification: dict[str, object], gold_version: str) -> dict[str
         "source_commit": SPOKENFORM_GOLD_COMMIT,
         "archive_url": SPOKENFORM_GOLD_ARCHIVE_URL,
         "release_version": SPOKENFORM_GOLD_RELEASE_VERSION,
+        "spokenform_policy_contract": SPOKENFORM_GOLD_POLICY_CONTRACT,
         "gold_package_version": gold_version,
         "release_manifest_hash": verification["manifest_hash"],
     }

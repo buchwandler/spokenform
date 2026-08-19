@@ -118,6 +118,7 @@ def resolve_structured_candidates(
     language: str,
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    allowed_domains: frozenset[RecognitionDomain] | None = None,
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Resolve structured candidates after applying recognition policy."""
@@ -125,6 +126,7 @@ def resolve_structured_candidates(
         candidates,
         interpretation_mode=interpretation_mode,
         disabled_domains=disabled_domains,
+        allowed_domains=allowed_domains,
     )
     if trace is not None:
         for item in suppressed:
@@ -143,6 +145,7 @@ def iter_structured_replacements(
     generic_acronym_case: GenericAcronymCase = "upper",
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    allowed_domains: frozenset[RecognitionDomain] | None = None,
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return exact, non-overlapping semantic replacements for one language."""
@@ -161,6 +164,7 @@ def iter_structured_replacements(
         language=normalize_language(language),
         interpretation_mode=interpretation_mode,
         disabled_domains=disabled_domains,
+        allowed_domains=allowed_domains,
         trace=trace,
     )
 
@@ -175,6 +179,7 @@ def normalize_structured(
     generic_acronym_case: GenericAcronymCase = "upper",
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    allowed_domains: frozenset[RecognitionDomain] | None = None,
     trace: TraceCollector | None = None,
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
@@ -191,6 +196,7 @@ def normalize_structured(
         candidates,
         interpretation_mode=interpretation_mode,
         disabled_domains=disabled_domains,
+        allowed_domains=allowed_domains,
     )
     if trace is not None:
         for item in suppressed:

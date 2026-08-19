@@ -61,3 +61,18 @@ def test_disabling_a_domain_suppresses_its_candidates() -> None:
         and item.domain == "chemistry"
         for item in records
     )
+
+
+def test_countdown_belongs_to_temporal_domain() -> None:
+    result = prepare("Countdown 3-2-1", use_spacy=False)
+    assert any(item.rule == "sequence.countdown" for item in result.source_replacements)
+
+    sports_disabled = prepare("Countdown 3-2-1", use_spacy=False, disabled_domains={"sports"})
+    assert any(item.rule == "sequence.countdown" for item in sports_disabled.source_replacements)
+
+    temporal_disabled = prepare("Countdown 3-2-1", use_spacy=False, disabled_domains={"temporal"})
+    assert all(item.rule != "sequence.countdown" for item in temporal_disabled.source_replacements)
+    assert temporal_disabled.spoken_text == "Countdown 3-2-1"
+
+    surface = prepare("Countdown 3-2-1", use_spacy=False, interpretation_mode="surface")
+    assert all(item.rule != "sequence.countdown" for item in surface.source_replacements)

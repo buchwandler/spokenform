@@ -107,3 +107,9 @@ The dashboard clearly separates deterministic Spokenform text metrics from publi
 Use `--offline` to reuse a populated cache, `--refresh` to repopulate it, `--download-only` to populate and verify without scoring, `--cache-dir` to choose another cache, `--gold-root /path/to/release` to use an explicit local release, `--split test|dev|all`, `--mode canonical|accepted`, and `--report html|none`. Results are written under `benchmark-results/spokenform-gold/<run-id>/` with `summary.json`, `predictions.jsonl`, `rows.jsonl`, `failures.jsonl`, `failures.md`, and, by default, `report.html`.
 
 The Gold corpus remains a diagnostic benchmark rather than a stable release gate. The adapter records source provenance and uses Gold's own scoring, release verification, and materialization policy. It does not automatically hydrate restricted PolyNorm or Proteno sources.
+
+## v0.3 policy oracle coverage
+
+The bounded configuration lattice includes the policy expansion `sequence-fallback-spell` in addition to the conservative compatibility profiles. Its results are reported separately from normal configuration gains because spelling residual sequence-shaped text intentionally expands ownership. Targeted domain allowlist and `surface + sequence-fallback-spell` experiments remain outside the normal lattice.
+
+Countdown Gold and release regression cases should record the canonical model-neutral boundary `three - two - one`. Semantic speech metrics may treat punctuation-free and boundary-bearing forms as equivalent, while exact presentation checks retain the Spokenform contract. Benchmark category labels remain evaluation metadata and are never passed to `prepare()`. The reviewed numeric gate remains an explicit release-readiness item until its current failure inventory is resolved or explained.

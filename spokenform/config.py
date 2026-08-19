@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
@@ -23,6 +24,13 @@ class InterpretationMode(str, Enum):
 
     SURFACE = "surface"
     CONTEXTUAL = "contextual"
+
+
+class SequenceFallbackMode(str, Enum):
+    """Action for residual sequence-shaped spans without semantic ownership."""
+
+    PRESERVE = "preserve"
+    SPELL = "spell"
 
 
 class RecognitionEvidence(str, Enum):
@@ -104,7 +112,9 @@ class PreparationConfig:
     long_number_mode: LongNumberMode = "preserve"
     registered_acronym_mode: RegisteredAcronymMode = "expand"
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL
-    disabled_domains: frozenset[RecognitionDomain] = frozenset()
+    sequence_fallback_mode: SequenceFallbackMode = SequenceFallbackMode.PRESERVE
+    disabled_domains: Iterable[RecognitionDomain | str] = frozenset()
+    allowed_domains: Iterable[RecognitionDomain | str] | None = None
     context: bool = True
     strict: bool = False
 
@@ -121,6 +131,15 @@ class PreparationConfig:
                 )
             except (TypeError, ValueError) as error:
                 raise ValueError("interpretation_mode must be 'surface' or 'contextual'") from error
+        if not isinstance(self.sequence_fallback_mode, SequenceFallbackMode):
+            try:
+                object.__setattr__(
+                    self,
+                    "sequence_fallback_mode",
+                    SequenceFallbackMode(self.sequence_fallback_mode),
+                )
+            except (TypeError, ValueError) as error:
+                raise ValueError("sequence_fallback_mode must be 'preserve' or 'spell'") from error
         try:
             normalized_domains = frozenset(
                 domain if isinstance(domain, RecognitionDomain) else RecognitionDomain(domain)
@@ -129,6 +148,23 @@ class PreparationConfig:
         except (TypeError, ValueError) as error:
             raise ValueError("disabled_domains contains an unknown recognition domain") from error
         object.__setattr__(self, "disabled_domains", normalized_domains)
+        if self.allowed_domains is None:
+            normalized_allowed_domains = None
+        else:
+            try:
+                normalized_allowed_domains = frozenset(
+                    domain if isinstance(domain, RecognitionDomain) else RecognitionDomain(domain)
+                    for domain in self.allowed_domains
+                )
+            except (TypeError, ValueError) as error:
+                raise ValueError(
+                    "allowed_domains contains an unknown recognition domain"
+                ) from error
+            overlap = normalized_allowed_domains & normalized_domains
+            if overlap:
+                names = ", ".join(sorted(domain.value for domain in overlap))
+                raise ValueError(f"allowed_domains and disabled_domains overlap: {names}")
+        object.__setattr__(self, "allowed_domains", normalized_allowed_domains)
         if self.use_spacy is not None and not isinstance(self.use_spacy, bool):
             raise TypeError("use_spacy must be a bool or None")
         if self.spacy_model is not None:
@@ -202,6 +238,7 @@ class PreparationConfig:
 
 
 __all__ = [
+    "SequenceFallbackMode",
     "InterpretationMode",
     "RecognitionDomain",
     "RecognitionEvidence",

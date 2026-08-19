@@ -7,7 +7,7 @@ import json
 import sys
 
 from .api import prepare
-from .config import InterpretationMode, RecognitionDomain
+from .config import InterpretationMode, RecognitionDomain, SequenceFallbackMode
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -28,11 +28,24 @@ def _parser() -> argparse.ArgumentParser:
         help="Context evidence policy (default: contextual)",
     )
     parser.add_argument(
+        "--sequence-fallback",
+        choices=tuple(mode.value for mode in SequenceFallbackMode),
+        default=SequenceFallbackMode.PRESERVE.value,
+        help="Residual sequence fallback policy (default: preserve)",
+    )
+    parser.add_argument(
         "--disable-domain",
         action="append",
         choices=tuple(domain.value for domain in RecognitionDomain),
         default=[],
         help="Disable one semantic recognition domain; repeatable",
+    )
+    parser.add_argument(
+        "--only-domain",
+        action="append",
+        choices=tuple(domain.value for domain in RecognitionDomain),
+        default=None,
+        help="Allow only one semantic recognition domain; repeatable",
     )
     parser.add_argument("--no-abbreviations", action="store_true")
     parser.add_argument("--no-structured", action="store_true")
@@ -102,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
         registered_acronym_mode=args.registered_acronyms,
         interpretation_mode=args.interpretation_mode,
         disabled_domains=set(args.disable_domain),
+        allowed_domains=args.only_domain,
+        sequence_fallback_mode=args.sequence_fallback,
         strict=args.strict,
     )
     if args.json:

@@ -37,7 +37,7 @@ _DOMAIN_BY_RULE: dict[str, RecognitionDomain] = {
     "sequence.music": RecognitionDomain.MUSIC,
     "sequence.sports": RecognitionDomain.SPORTS,
     "sequence.chained-score": RecognitionDomain.SPORTS,
-    "sequence.countdown": RecognitionDomain.SPORTS,
+    "sequence.countdown": RecognitionDomain.TEMPORAL,
     "sequence.ticker": RecognitionDomain.FINANCE,
     "sequence.parenthesized-ticker": RecognitionDomain.FINANCE,
     "sequence.exchange-rate": RecognitionDomain.FINANCE,
@@ -195,6 +195,7 @@ def decide_candidate(
     *,
     interpretation_mode: InterpretationMode,
     disabled_domains: frozenset[RecognitionDomain],
+    allowed_domains: frozenset[RecognitionDomain] | None = None,
 ) -> CandidatePolicyDecision:
     """Decide whether a candidate may enter precedence resolution.
 
@@ -207,6 +208,9 @@ def decide_candidate(
     domain = normalize_domain(candidate.recognition_domain)
     if domain is not None and domain in disabled_domains:
         return CandidatePolicyDecision(False, "disabled-domain")
+    if allowed_domains is not None:
+        if domain is None or domain not in allowed_domains:
+            return CandidatePolicyDecision(False, "domain-not-allowed")
     if interpretation_mode is InterpretationMode.SURFACE:
         evidence = normalize_evidence(candidate.recognition_evidence)
         if evidence is not RecognitionEvidence.INTRINSIC:
@@ -219,12 +223,14 @@ def candidate_is_enabled(
     *,
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    allowed_domains: frozenset[RecognitionDomain] | None = None,
 ) -> bool:
     """Return whether a candidate is eligible under the recognition policy."""
     return decide_candidate(
         candidate,
         interpretation_mode=interpretation_mode,
         disabled_domains=disabled_domains,
+        allowed_domains=allowed_domains,
     ).enabled
 
 
@@ -233,6 +239,7 @@ def filter_candidates(
     *,
     interpretation_mode: InterpretationMode,
     disabled_domains: frozenset[RecognitionDomain],
+    allowed_domains: frozenset[RecognitionDomain] | None,
 ) -> tuple[tuple[Replacement, ...], tuple[PolicySuppression, ...]]:
     """Filter candidates before precedence and reserve disabled-domain spans."""
     if not isinstance(interpretation_mode, InterpretationMode):
@@ -241,6 +248,11 @@ def filter_candidates(
         domain if isinstance(domain, RecognitionDomain) else RecognitionDomain(domain)
         for domain in disabled_domains
     )
+    if allowed_domains is not None:
+        allowed_domains = frozenset(
+            domain if isinstance(domain, RecognitionDomain) else RecognitionDomain(domain)
+            for domain in allowed_domains
+        )
     annotated = tuple(annotate_candidate(candidate) for candidate in candidates)
     eligible: list[Replacement] = []
     suppressed: list[PolicySuppression] = []
@@ -250,6 +262,7 @@ def filter_candidates(
             candidate,
             interpretation_mode=interpretation_mode,
             disabled_domains=disabled_domains,
+            allowed_domains=allowed_domains,
         )
         if decision.enabled:
             eligible.append(candidate)
@@ -264,7 +277,7 @@ def filter_candidates(
                 decision.reason or "policy-suppressed",
             )
         )
-        if decision.reason == "disabled-domain":
+        if decision.reason in {"disabled-domain", "domain-not-allowed"}:
             blocked_ranges.append((candidate.start, candidate.end))
     if blocked_ranges:
         kept: list[Replacement] = []

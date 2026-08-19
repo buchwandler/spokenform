@@ -15,10 +15,17 @@ from ..diagnostics import TraceCollector
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
-from ..sequences import SequenceRenderPolicy, render_letters, render_sequence, vocabulary
+from ..sequences import (
+    SEGMENT_BOUNDARY,
+    SequenceRenderPolicy,
+    render_letters,
+    render_sequence,
+    vocabulary,
+)
 from .biology import iter_replacements as iter_biomedical_replacements
 from .ranges import iter_replacements as iter_range_replacements
 from .references import iter_replacements as iter_reference_replacements
+from .temporal import countdown_is_plausible, countdown_text
 
 _FRACTION_CHARS = "½⅓⅔¼¾⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚"
 _FRACTION_RE = re.compile(rf"(?<!\w)(?P<whole>\d+)?(?P<fraction>[{_FRACTION_CHARS}])(?!\w)")
@@ -308,18 +315,6 @@ _SPORTS_CONTEXT_RE = re.compile(
 )
 _SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2})(?![\w:-])")
 _CHAINED_SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}(?:\s*[-–]\s*\d{1,2}){2,})(?![\w:-])")
-_COUNTDOWN_CONTEXT_RE = re.compile(
-    r"\b(?:"
-    r"countdown(?:\s+(?:is|from))?|"
-    r"count(?:ing)?\s+down(?:\s+from)?|"
-    r"start(?:s|ed|ing)?|"
-    r"begin(?:s|ning)?|"
-    r"launch(?:es|ed|ing)?|"
-    r"initiat(?:e|es|ed|ing)|"
-    r"go"
-    r")\s+(?:in\s+)?$",
-    re.IGNORECASE,
-)
 _DURATION_RE = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d):(?P<second>[0-5]\d)(?!\w)")
 _ADDRESS_SUFFIX_RE = re.compile(
     r"(?<!\w)(?P<number>\d{1,4})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÄÖÜ][\wÄÖÜäöüß.-]*(?:\s+(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Blvd\.?))?)(?!\w)",
@@ -597,7 +592,7 @@ class CodeRenderPolicy:
 
     letters: Literal["grapheme", "spoken_letter_name", "lexical"] = "grapheme"
     digits: Literal["digitwise", "cardinal", "year"] = "digitwise"
-    separators: Literal["omit", "speak", "pause"] = "omit"
+    separators: Literal["omit", "speak", "segment"] = "omit"
     digit_mode: Literal["digits", "cardinal", "grouped", "mixed_product"] = "digits"
 
 
@@ -1740,8 +1735,14 @@ def _code_tokens(value: str) -> tuple[CodeToken, ...]:
     )
 
 
-def _typed_code_text(value: str, language: str, *, category: str = "product") -> str:
-    policy = _CODE_POLICIES.get(category, _CODE_POLICIES["product"])
+def _typed_code_text(
+    value: str,
+    language: str,
+    *,
+    category: str = "product",
+    policy: CodeRenderPolicy | None = None,
+) -> str:
+    policy = policy or _CODE_POLICIES.get(category, _CODE_POLICIES["product"])
     parts: list[str] = []
     for token in _code_tokens(value):
         if token.kind == "digits":
@@ -1762,8 +1763,8 @@ def _typed_code_text(value: str, language: str, *, category: str = "product") ->
                 parts.append(render_letters(token.text, language=language))
         elif policy.separators == "speak":
             parts.append(render_sequence(token.text, language=language))
-        elif policy.separators == "pause":
-            parts.append(" ")
+        elif policy.separators == "segment":
+            parts.append(SEGMENT_BOUNDARY)
     return " ".join(part for part in parts if part.strip())
 
 
@@ -1819,20 +1820,6 @@ def _has_sports_context(text: str, start: int) -> bool:
     """Return whether a bounded prefix provides positive sports evidence."""
     prefix = text[max(0, start - 64) : start]
     return bool(_SPORTS_CONTEXT_RE.search(prefix))
-
-
-def _countdown_is_plausible(text: str, start: int, language: str) -> bool:
-    """Require English countdown wording immediately before a numeric chain."""
-    if base_language(language) != "en":
-        return False
-    prefix = text[max(0, start - 64) : start]
-    return bool(_COUNTDOWN_CONTEXT_RE.search(prefix))
-
-
-def _countdown_text(value: str, language: str) -> str:
-    """Render a contextual countdown without adding source punctuation."""
-    values = re.split(r"\s*[-–]\s*", value)
-    return " ".join(_cardinal(int(item), language) for item in values)
 
 
 def _chained_score_is_plausible(text: str, start: int) -> bool:
@@ -3013,11 +3000,11 @@ def iter_sequence_replacements(
             protected,
         )
     for match in _CHAINED_SCORE_RE.finditer(text):
-        if _countdown_is_plausible(text, match.start(), language):
+        if countdown_is_plausible(text, match.start(), language):
             _add(
                 candidates,
                 match,
-                _countdown_text(match["value"], language),
+                countdown_text(match["value"], language),
                 language,
                 "sequence.countdown",
                 protected,

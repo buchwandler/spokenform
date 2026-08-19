@@ -25,8 +25,10 @@ from .config import (
     PreparationConfig,
     RecognitionDomain,
     RegisteredAcronymMode,
+    SequenceFallbackMode,
     SymbolMode,
 )
+from .fallback import iter_sequence_fallback_replacements
 from .language import base_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
@@ -120,7 +122,9 @@ def prepare(
     registered_acronym_mode: RegisteredAcronymMode = "expand",
     context: bool = True,
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
-    disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    disabled_domains: Iterable[RecognitionDomain | str] = frozenset(),
+    allowed_domains: Iterable[RecognitionDomain | str] | None = None,
+    sequence_fallback_mode: SequenceFallbackMode = SequenceFallbackMode.PRESERVE,
     strict: bool = False,
 ) -> PreparedText:
     """Convert one-language written text into a readable form intended for speech.
@@ -158,7 +162,9 @@ def prepare(
         long_number_mode=long_number_mode,
         registered_acronym_mode=registered_acronym_mode,
         interpretation_mode=interpretation_mode,
-        disabled_domains=disabled_domains,
+        disabled_domains=frozenset(disabled_domains),
+        allowed_domains=(frozenset(allowed_domains) if allowed_domains is not None else None),
+        sequence_fallback_mode=sequence_fallback_mode,
         context=context,
         strict=strict,
     )
@@ -247,7 +253,8 @@ def prepare(
             generic_acronym_mode=selected.generic_acronym_mode,
             generic_acronym_case=selected.generic_acronym_case,
             interpretation_mode=selected.interpretation_mode,
-            disabled_domains=selected.disabled_domains,
+            disabled_domains=cast(frozenset[RecognitionDomain], selected.disabled_domains),
+            allowed_domains=cast(frozenset[RecognitionDomain] | None, selected.allowed_domains),
         )
         if structured.replacements or structured.reserved:
             internal_replacements = map_visible_replacements_to_internal(
@@ -393,6 +400,53 @@ def prepare(
         )
         reserved_spans = _remap_reserved_spans(reserved_spans, number_map)
         stages[-1] = replace(stages[-1], reserved=reserved_spans)
+
+    if selected.sequence_fallback_mode is SequenceFallbackMode.SPELL:
+        before = current
+        visible_before = protected.restore(current)
+        protected_ranges = map_internal_protected_spans_to_visible(
+            current,
+            protected.values,
+            protected.placeholders,
+        ) + tuple(
+            (item.start, item.end)
+            for item in reserved_spans
+            if item.owner == "structured-generated"
+        )
+        fallback_replacements = iter_sequence_fallback_replacements(
+            visible_before,
+            language=language_code,
+            protected_ranges=protected_ranges,
+        )
+        if fallback_replacements:
+            current = apply_replacement_stage(
+                stages,
+                "sequence_fallback",
+                current,
+                fallback_replacements,
+                protected_values=protected.values,
+                protected_placeholders=protected.placeholders,
+                language=language_code,
+                reserved=reserved_spans,
+            )
+            fallback_stage = stages[-1]
+            internal_replacements = map_visible_replacements_to_internal(
+                before,
+                fallback_replacements,
+                protected.values,
+                protected.placeholders,
+            )
+            current_annotations = remap_annotations_for_replacements(
+                current_annotations,
+                ((item.start, item.end, len(item.text)) for item in internal_replacements),
+            )
+            fallback_map = OffsetMap.from_replacements(
+                len(fallback_stage.before),
+                fallback_replacements,
+                output_length=len(fallback_stage.after),
+            )
+            reserved_spans = _remap_reserved_spans(reserved_spans, fallback_map)
+            stages[-1] = replace(stages[-1], reserved=reserved_spans)
 
     if selected.symbol_mode != "none":
         before = current

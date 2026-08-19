@@ -40,6 +40,9 @@ class SequenceRenderPolicy:
     punctuation_mode: Literal["drop", "name", "segment"] = "name"
 
 
+SEGMENT_BOUNDARY = "-"
+
+
 _DIGIT_NAMES: dict[str, tuple[str, ...]] = {
     "en": ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"),
     "de": ("null", "eins", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun"),
@@ -353,6 +356,8 @@ def render_sequence(
             name = names.get(character)
             if policy is not None and policy.punctuation_mode == "drop":
                 name = None
+            elif policy is not None and policy.punctuation_mode == "segment" and name is not None:
+                name = SEGMENT_BOUNDARY
             if name:
                 rendered.append(name)
             elif name is not None:
@@ -364,6 +369,7 @@ def render_sequence(
 
 
 __all__ = [
+    "SEGMENT_BOUNDARY",
     "SequenceVocabulary",
     "SequenceRenderPolicy",
     "normalize_unicode_digits",

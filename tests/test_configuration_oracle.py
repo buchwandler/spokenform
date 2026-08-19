@@ -21,8 +21,10 @@ def test_configuration_lattice_is_bounded_and_documented() -> None:
         "normalize-literals",
         "long-number-contextual-acronym-conservative",
         "interpretation-surface",
+        "sequence-fallback-spell",
     ]
     assert CONFIGURATION_LATTICE[4].policy_expansion
+    assert CONFIGURATION_LATTICE[-1].policy_expansion
 
 
 def test_configuration_oracle_reports_best_config_and_regret() -> None:

@@ -133,3 +133,7 @@ reported as data-quality evidence rather than encoded as row-specific rules.
 ## Recognition policy boundary
 
 Structured recognizers first emit candidates annotated with a semantic domain and evidence basis (`intrinsic` or `contextual`). `spokenform.recognition_policy` filters those candidates before `SequencePriority` overlap resolution. Surface mode admits intrinsic evidence only and treats missing metadata as contextual, while disabled domains suppress their ownership family and reserve overlapping spans against weaker semantic takeover. This keeps interpretation depth, semantic ownership, and rendering settings as separate policy axes. Diagnostics retain suppressed candidates with machine-readable reasons such as `context-not-allowed`, `disabled-domain`, and `blocked-by-disabled-domain`.
+
+## Semantic segment boundaries
+
+Recognized semantic expressions may consume source punctuation while preserving a generic textual segment boundary when the punctuation carries cadence or grouping semantics. Contextual countdowns therefore render `3-2-1` as `three - two - one`. The boundary is model-neutral and downstream G2P adapters own model-specific dash canonicalization. Residual `symbol_mode` filtering does not remove punctuation intentionally emitted by an accepted structured replacement.

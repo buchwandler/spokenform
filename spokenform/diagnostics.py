@@ -1,16 +1,18 @@
-"""Internal diagnostics for structured candidate generation."""
+"""Supported diagnostics for structured and residual sequence decisions."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Literal
+from typing import Any, Literal
 
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
     InterpretationMode,
     RecognitionDomain,
+    SequenceFallbackMode,
 )
+from .fallback import SequenceFallbackTrace, trace_sequence_fallback
 from .mapping import Replacement
 
 TraceStatus = Literal["emitted", "rejected", "protected", "shadowed", "suppressed"]
@@ -83,11 +85,11 @@ class TraceCollector:
             )
         )
 
-    def record_suppressed(self, text: str, suppression: object) -> None:
+    def record_suppressed(self, text: str, suppression: Any) -> None:
         self._records.append(
             CandidateTrace(
-                rule=getattr(suppression, "rule", None) or "unknown",
-                family=_family_for_rule(getattr(suppression, "rule", None)),
+                rule=suppression.rule or "unknown",
+                family=_family_for_rule(suppression.rule),
                 start=suppression.start,
                 end=suppression.end,
                 source=text[suppression.start : suppression.end],
@@ -130,6 +132,7 @@ def trace_structured_candidates(
     generic_acronym_case: GenericAcronymCase = "upper",
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    allowed_domains: frozenset[RecognitionDomain] | None = None,
 ) -> tuple[CandidateTrace, ...]:
     """Collect candidate, rejection, protection, and shadowing evidence."""
     from .structured import iter_structured_candidates, resolve_structured_candidates
@@ -150,6 +153,7 @@ def trace_structured_candidates(
         language=language,
         interpretation_mode=interpretation_mode,
         disabled_domains=disabled_domains,
+        allowed_domains=allowed_domains,
         trace=collector,
     )
     collector.mark_shadowed(resolved)
@@ -161,4 +165,7 @@ __all__ = [
     "TraceCollector",
     "TraceStatus",
     "trace_structured_candidates",
+    "SequenceFallbackMode",
+    "SequenceFallbackTrace",
+    "trace_sequence_fallback",
 ]

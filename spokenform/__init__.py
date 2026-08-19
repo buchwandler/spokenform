@@ -19,6 +19,7 @@ from .config import (
     RecognitionDomain,
     RecognitionEvidence,
     RegisteredAcronymMode,
+    SequenceFallbackMode,
     number_policy_for_language,
 )
 from .language import (
@@ -53,6 +54,7 @@ from .structured import StageResult, iter_structured_replacements, normalize_str
 __all__ = [
     "PreparationConfig",
     "InterpretationMode",
+    "SequenceFallbackMode",
     "RecognitionDomain",
     "RecognitionEvidence",
     "GenericAcronymMode",

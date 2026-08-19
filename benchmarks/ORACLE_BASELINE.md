@@ -50,4 +50,8 @@ benchmark ownership, or dependency abbreviation policy.
 
 The bounded configuration lattice now includes `interpretation-surface` as a separately reported variant. Targeted domain ablations use one disabled domain per run for `chemistry`, `biology`, `math`, `music`, and `sports`; domain subsets are intentionally not enumerated. These measurements are diagnostic and do not tune the contextual default. The implementation test corpus records policy suppression, selected domain/evidence metadata, and surface context-invariance separately from raw speech regret.
 
-The Phase 5 orthographic fallback decision remains deferred. Surface mode is fail-closed, and no spell-everything fallback is enabled without benchmark and downstream user evidence.
+The pre-v0.3 baseline deferred the orthographic fallback decision. Surface mode remains fail-closed, while v0.3 adds only the opt-in sequence fallback and keeps default preserve behavior.
+
+## v0.3 implementation checkpoint
+
+The v0.3 implementation adds `sequence-fallback-spell` as a policy-expansion configuration variant. Offline PolyNorm numeric-gate runs on this checkout reported 507 failures of 1,878 reviewed default cases and 499 failures of 1,878 reviewed extended cases. The numeric gate remains unresolved and is not represented as a release pass. The pinned Spokenform Gold cache was unavailable in the offline environment, so Gold validation remains an explicit evidence gap.

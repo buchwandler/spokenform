@@ -109,11 +109,11 @@ def test_isbn_and_sports_scores_use_category_specific_policies() -> None:
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("I initiate in 3-2-1.", "I initiate in three two one."),
-        ("We launch in 5-4-3-2-1.", "We launch in five four three two one."),
-        ("Starting in 3-2-1.", "Starting in three two one."),
-        ("Countdown 3-2-1.", "Countdown three two one."),
-        ("Counting down from 3-2-1.", "Counting down from three two one."),
+        ("I initiate in 3-2-1.", "I initiate in three - two - one."),
+        ("We launch in 5-4-3-2-1.", "We launch in five - four - three - two - one."),
+        ("Starting in 3-2-1.", "Starting in three - two - one."),
+        ("Countdown 3-2-1.", "Countdown three - two - one."),
+        ("Counting down from 3-2-1.", "Counting down from three - two - one."),
     ],
 )
 def test_english_contextual_countdowns(source: str, expected: str) -> None:
@@ -125,6 +125,54 @@ def test_english_contextual_countdowns(source: str, expected: str) -> None:
         item.rule in {"sequence.chained-score", "sequence.sports", "sequence.numeric-range"}
         for item in result.source_replacements
     )
+
+
+@pytest.mark.parametrize("source", ("3-2-1", "3 - 2 - 1", "3–2–1", "3 – 2 – 1"))
+def test_countdown_separator_variants_use_one_canonical_boundary(source: str) -> None:
+    result = prepare(f"Countdown {source}.", language="en", use_spacy=False)
+    assert result.spoken_text == "Countdown three - two - one."
+    replacements = [
+        item for item in result.source_replacements if item.rule == "sequence.countdown"
+    ]
+    assert len(replacements) == 1
+    replacement = replacements[0]
+    assert replacement.source == source
+    assert result.map_source_span(replacement.source_start, replacement.source_end) == (
+        replacement.output_start,
+        replacement.output_end,
+    )
+
+
+def test_generated_countdown_boundary_survives_residual_symbol_removal() -> None:
+    result = prepare(
+        "Countdown 3-2-1.",
+        language="en",
+        use_spacy=False,
+        symbol_mode="remove",
+    )
+    assert result.spoken_text == "Countdown three - two - one"
+
+
+def test_sequence_segment_punctuation_is_distinct_from_named_punctuation() -> None:
+    named = render_sequence(
+        "AB-12", language="en", policy=SequenceRenderPolicy(punctuation_mode="name")
+    )
+    segmented = render_sequence(
+        "AB-12",
+        language="en",
+        policy=SequenceRenderPolicy(alpha_mode="grapheme_spaced", punctuation_mode="segment"),
+    )
+    assert named == "a b hyphen one two"
+    assert segmented == "A B - one two"
+
+
+def test_code_segment_policy_uses_the_shared_boundary() -> None:
+    from dataclasses import replace
+
+    from spokenform.recognizers.sequences import _CODE_POLICIES, _typed_code_text
+
+    policy = replace(_CODE_POLICIES["serial"], separators="segment")
+    assert _typed_code_text("AB-12", "en", policy=policy) == "A B - one two"
 
 
 def test_contextual_chained_scores_remain_scores() -> None:

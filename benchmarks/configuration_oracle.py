@@ -10,7 +10,7 @@ from spokenform import PreparedText, prepare
 
 from .text_metrics import literal_key, speech_key, speech_key_equivalent, word_error_rate
 
-MAX_CONFIGURATIONS = 7
+MAX_CONFIGURATIONS = 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +51,11 @@ CONFIGURATION_LATTICE: tuple[ConfigurationVariant, ...] = (
     ConfigurationVariant(
         "interpretation-surface",
         (("interpretation_mode", "surface"),),
+    ),
+    ConfigurationVariant(
+        "sequence-fallback-spell",
+        (("sequence_fallback_mode", "spell"),),
+        policy_expansion=True,
     ),
 )
 

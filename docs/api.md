@@ -206,6 +206,7 @@ colon-time candidates remain unchanged for caller-managed handling.
 - `interpretation_mode="contextual"` (default) permits reviewed contextual semantic evidence.
 - `interpretation_mode="surface"` permits only candidates marked with intrinsic evidence and fails closed on missing metadata.
 - `disabled_domains={"chemistry", ...}` suppresses selected `RecognitionDomain` families before precedence resolution.
+- `allowed_domains={"quantities", ...}` permits only selected semantic families and fails closed for candidates without domain metadata. If a domain appears in both sets, configuration raises `ValueError`.
 
 ```python
 from spokenform import prepare
@@ -218,3 +219,5 @@ prepare(
 ```
 
 `context` remains the legacy abbreviation-context switch. Surface mode clamps its effective abbreviation context off, but `context=False` under contextual mode does not disable structured recognizers. `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
+
+`sequence_fallback_mode="preserve"` is the compatibility default. Set it to `"spell"` to render conservative residual sequence-shaped spans such as `AAPL` or `H2O` orthographically after semantic recognition. It does not spell ordinary lexical prose, does not claim a semantic domain, and never overrides caller-protected or auto-protected literal spans. `SequenceFallbackMode`, `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
