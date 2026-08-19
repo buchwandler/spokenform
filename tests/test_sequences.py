@@ -355,3 +355,30 @@ def test_contextual_years_allow_sentence_punctuation(source: str, expected: str)
 def test_contextual_years_reject_numeric_continuations(source: str) -> None:
     result = prepare(source, language="en", use_spacy=False)
     assert not any(item.rule == "sequence.year" for item in result.source_replacements)
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        (
+            "The festival runs from June 5 to June 10.",
+            "The festival runs from June fifth to June tenth.",
+        ),
+        (
+            "Let's meet on October 11 in my format.",
+            "Let's meet on October eleventh in my format.",
+        ),
+        (
+            "Flight arrives on 3 Feb, then departs.",
+            "Flight arrives on the third of February, then departs.",
+        ),
+        (
+            "The sale ends on 5th Nov.",
+            "The sale ends on the fifth of November.",
+        ),
+    ),
+)
+def test_text_dates_preserve_following_word_and_punctuation(
+    source: str, expected: str
+) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == expected

@@ -257,13 +257,14 @@ _MONTH_NAME_RE = (
 )
 _TEXT_DATE = re.compile(
     rf"(?<![A-Za-z0-9])(?P<month>{_MONTH_NAME_RE})(?![A-Za-z])\s+"
-    r"(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?(?:,)?\s*(?P<year>\d{2,4})?",
+    r"(?P<day>0?[1-9]|[12]\d|3[01])(?!\d)(?:st|nd|rd|th)?"
+    r"(?:(?:,\s*|\s+)(?P<year>\d{2,4}))?",
     re.IGNORECASE,
 )
 _TEXT_DATE_DMY = re.compile(
     rf"(?<![A-Za-z0-9])(?P<day>0?[1-9]|[12]\d|3[01])(?:st|nd|rd|th)?\s+"
     rf"(?P<month>{_MONTH_NAME_RE})(?![A-Za-z])"
-    r"(?:,)?\s*(?P<year>\d{2,4})?",
+    r"(?:(?:,\s*|\s+)(?P<year>\d{2,4}))?",
     re.IGNORECASE,
 )
 _TEXT_DATE_RANGE = re.compile(
@@ -677,7 +678,10 @@ def iter_replacements(
                     language,
                 )
             )
-            add(match.start(), match.end(), value, "en.date.dmy_text")
+            end = match.end()
+            if text_year is None and text[end - 1 : end] == ".":
+                end -= 1
+            add(match.start(), end, value, "en.date.dmy_text")
     for match in _TEXT_DATE_RANGE.finditer(text):
         month_name = match["month"].rstrip(".").title()
         month_index = next(
