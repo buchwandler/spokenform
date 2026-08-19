@@ -233,7 +233,7 @@ _TICKER_CONTEXT_RE = re.compile(
     re.IGNORECASE,
 )
 _PRODUCT_RE = re.compile(
-    r"(?<!\w)(?P<label>License\s+plate|Tax\s+identifier|Serial\s+number|Part\s+number|Product\s+code|Bar(?:code|\s+code)|Matrikelnummer|Seriennummer|Kennzeichen|Registration|Identifier|ID|Tag|Plate|License|Firmware|RFC|P/N|SN|S/N|Serial|SKU|Model|Modelo|VIN|IMEI|ICCID|PIN|Part|Product)\s*(?:[:#-]\s*|\s+)(?:No\.\s*)?(?P<value>[A-Za-z0-9][A-Za-z0-9.-]{1,})",
+    r"(?<!\w)(?P<label>License\s+plate|Tax\s+identifier|Serial\s+number|Part\s+number|Product\s+code|Bar(?:code|\s+code)|Matrikelnummer|Seriennummer|Kennzeichen|Registration|Identifier|ID|Tag|Plate|License|Firmware|RFC|P/N|SN|S/N|Serial|SKU|Model|Modelo|VIN|IMEI|ICCID|PIN|Part|Product|routing\s+number|account(?:\s+number)?)\s*(?:[:#-]\s*|\s+)(?:No\.\s*)?(?P<value>[A-Za-z0-9][A-Za-z0-9.-]{1,})",
     re.IGNORECASE,
 )
 
