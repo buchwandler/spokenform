@@ -325,3 +325,33 @@ def test_numeric_benchmark_contexts_use_category_specific_renderers() -> None:
     assert prepare("Necesito 1/2 litro", language="es_MX", use_spacy=False).spoken_text == (
         "Necesito medio litro"
     )
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    (
+        ("in 1989.", "in nineteen eighty nine."),
+        ("since 2004.", "since two thousand four."),
+        ("from 1946 and 1947.", "from nineteen forty six and nineteen forty seven."),
+        ("(2009).", "(two thousand nine)."),
+        ("the year 2015.", "the year twenty fifteen."),
+    ),
+)
+def test_contextual_years_allow_sentence_punctuation(source: str, expected: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == expected
+    assert any(item.rule == "sequence.year" for item in result.source_replacements)
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "version 2024.1",
+        "2024/05/03",
+        "2024-05-03",
+        "192.168.2024.1",
+        "item2024.foo",
+    ),
+)
+def test_contextual_years_reject_numeric_continuations(source: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert not any(item.rule == "sequence.year" for item in result.source_replacements)

@@ -12,19 +12,23 @@ from ..language import base_language, normalize_language, resolve_num2words_lang
 from ..mapping import Replacement
 
 _YEAR = r"(?:1[0-9]{3}|20[0-9]{2})"
-_DECADE_RE = re.compile(r"(?<![\w./:-])(?P<year>(?:18|19|20)\d{2})s(?![\w./:-])", re.IGNORECASE)
+_YEAR_BOUNDARY = r"(?![\w/:-]|\.\d)"
+_DECADE_RE = re.compile(
+    rf"(?<![\w./:-])(?P<year>(?:18|19|20)\d{{2}})s{_YEAR_BOUNDARY}",
+    re.IGNORECASE,
+)
 _YEAR_RANGE_RE = re.compile(
-    rf"(?<![\w./:-])(?P<start>{_YEAR})\s*[-–]\s*(?P<end>{_YEAR})(?![\w/:-])"
+    rf"(?<![\w./:-])(?P<start>{_YEAR})\s*[-–]\s*(?P<end>{_YEAR}){_YEAR_BOUNDARY}"
 )
 _NUMERIC_RANGE_RE = re.compile(
-    r"(?<![\w./:-])(?P<start>\d{1,6})\s*[-–]\s*(?P<end>\d{1,6})(?![\w/:-])"
+    rf"(?<![\w./:-])(?P<start>\d{{1,6}})\s*[-–]\s*(?P<end>\d{{1,6}}){_YEAR_BOUNDARY}"
 )
 _PAREN_YEAR_RE = re.compile(rf"(?<=\()(?P<year>{_YEAR})(?=\))")
 _KEYWORD_YEAR_RE = re.compile(
     rf"\b(?:in|since|during|year|before|after|by|from|to|until|through|around|circa|early|late|"
     rf"born|died|founded|opened|closed|established|published|anno|im\s+jahr|en|desde|durante|"
     rf"año|année|anno)\s+"
-    rf"(?P<year>{_YEAR})(?![\w./:-])",
+    rf"(?P<year>{_YEAR}){_YEAR_BOUNDARY}",
     re.IGNORECASE,
 )
 _LEADING_YEAR_RE = re.compile(rf"(?<!\w)(?P<year>{_YEAR})(?=\s+[A-ZÀ-ÖØ-Þ])")
@@ -32,15 +36,19 @@ _MONTH_YEAR_RE = re.compile(
     rf"\b(?:January|February|March|April|May|June|July|August|September|October|November|December|"
     rf"enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre|"
     rf"janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+"
-    rf"(?P<year>{_YEAR})(?![\w./:-])",
+    rf"(?P<year>{_YEAR}){_YEAR_BOUNDARY}",
     re.IGNORECASE,
 )
-_BIBLIO_YEAR_RE = re.compile(rf"(?:,\s*|\(\s*)(?P<year>{_YEAR})(?=\s*[),.;:]|$)")
+_BIBLIO_YEAR_RE = re.compile(
+    rf"(?:,\s*|\(\s*)(?P<year>{_YEAR})(?=\s*(?:[),;:]|\.(?!\d)|$))"
+)
 _BIBLIO_AUTHOR_YEAR_RE = re.compile(
     rf"(?<!\w)(?:[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){{0,2}})\s+"
-    rf"(?P<year>{_YEAR})(?=\s*(?:,\s*(?:pp?\.?|vol\.?|edition\b)|[.;]|$))"
+    rf"(?P<year>{_YEAR})(?=\s*(?:,\s*(?:pp?\.?|vol\.?|edition\b)|\.(?!\d)|;|$))"
 )
-_CONTEXTUAL_YEAR_RE = re.compile(rf"(?<![\w./:-])(?P<year>{_YEAR})(?![\w./:-])")
+_CONTEXTUAL_YEAR_RE = re.compile(
+    rf"(?<![\w./:-])(?P<year>{_YEAR}){_YEAR_BOUNDARY}"
+)
 _RANGE_CONTEXT_RE = re.compile(
     r"\b(?:from|between|range|pages?|pp\.?|lines?|chapter|section|von|zwischen|seiten?|de|entre|páginas?|da|tra|pagine?|before|after|by|until|through|around|circa|born|died|founded|opened|closed|established|published|reigned|historical|century|war|king|queen|exhibition|exhibitions|year|years?)\b",
     re.IGNORECASE,
