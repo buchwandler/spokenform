@@ -18,6 +18,42 @@ class NumberPolicy(str, Enum):
     CALLER_MANAGED = "caller_managed"
 
 
+class InterpretationMode(str, Enum):
+    """Amount of contextual evidence allowed during recognition."""
+
+    SURFACE = "surface"
+    CONTEXTUAL = "contextual"
+
+
+class RecognitionEvidence(str, Enum):
+    """Evidence basis used to produce a structured candidate."""
+
+    INTRINSIC = "intrinsic"
+    CONTEXTUAL = "contextual"
+
+
+class RecognitionDomain(str, Enum):
+    """Semantic ownership family for a structured recognizer."""
+
+    TEMPORAL = "temporal"
+    QUANTITIES = "quantities"
+    FINANCE = "finance"
+    COMMUNICATIONS = "communications"
+    NETWORK = "network"
+    IDENTIFIERS = "identifiers"
+    ADDRESSES = "addresses"
+    REFERENCES = "references"
+    LEGAL = "legal"
+    SPORTS = "sports"
+    MATH = "math"
+    MUSIC = "music"
+    BIOLOGY = "biology"
+    CHEMISTRY = "chemistry"
+    SOCIAL = "social"
+    GEOGRAPHY = "geography"
+    CORE = "core"
+
+
 SymbolMode = Literal["none", "remove", "keep"]
 GenericAcronymMode = Literal["known_only", "conservative_unknown", "spell_unknown"]
 GenericAcronymCase = Literal["upper", "lower"]
@@ -67,6 +103,8 @@ class PreparationConfig:
     generic_acronym_case: GenericAcronymCase = "upper"
     long_number_mode: LongNumberMode = "preserve"
     registered_acronym_mode: RegisteredAcronymMode = "expand"
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL
+    disabled_domains: frozenset[RecognitionDomain] = frozenset()
     context: bool = True
     strict: bool = False
 
@@ -76,6 +114,21 @@ class PreparationConfig:
         if not self.language.strip():
             raise ValueError("language must not be empty")
         object.__setattr__(self, "language", normalize_language(self.language))
+        if not isinstance(self.interpretation_mode, InterpretationMode):
+            try:
+                object.__setattr__(
+                    self, "interpretation_mode", InterpretationMode(self.interpretation_mode)
+                )
+            except (TypeError, ValueError) as error:
+                raise ValueError("interpretation_mode must be 'surface' or 'contextual'") from error
+        try:
+            normalized_domains = frozenset(
+                domain if isinstance(domain, RecognitionDomain) else RecognitionDomain(domain)
+                for domain in self.disabled_domains
+            )
+        except (TypeError, ValueError) as error:
+            raise ValueError("disabled_domains contains an unknown recognition domain") from error
+        object.__setattr__(self, "disabled_domains", normalized_domains)
         if self.use_spacy is not None and not isinstance(self.use_spacy, bool):
             raise TypeError("use_spacy must be a bool or None")
         if self.spacy_model is not None:
@@ -149,6 +202,9 @@ class PreparationConfig:
 
 
 __all__ = [
+    "InterpretationMode",
+    "RecognitionDomain",
+    "RecognitionEvidence",
     "GenericAcronymMode",
     "GenericAcronymCase",
     "NumberPolicy",

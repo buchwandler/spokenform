@@ -63,3 +63,7 @@ typed code.
 Async TN preserves every upstream category as `source_category` and does not treat it as a runtime instruction. Numeric and structured categories such as cardinal, currency, date, decimal, fraction, measurement unit, ordinal, quantity, range, score percent, and time are generally `owned` when the runtime rule provides provenance. Abbreviation and acronym rows remain `dependency-abbr2words`. URLs, e-mail, versions, tokens, paths, and similar literal categories remain `protected` or `extended-candidate` according to the actual runtime behavior.
 
 Unknown categories are retained verbatim. Low-frequency categories remain in JSON and JSONL outputs even when the static dashboard applies its default 30-unit presentation threshold. Source-span, expected-target, and actual-runtime cross-boundary ambiguity is quarantined and excluded from scorable denominators. Published Async TTS reference percentages use an audio/LLM judge and must not be combined with deterministic Spokenform scores for a winner or release claim.
+
+## Interpretation and domain policy
+
+`contextual` is the compatibility runtime mode and the default benchmark configuration. `surface` is a separate fail-closed diagnostic mode: only candidates explicitly marked intrinsic may be selected. `disabled_domains` is an orthogonal one-domain-at-a-time ownership ablation and is not a benchmark profile. Reports must include mode, disabled domains, policy-suppressed candidates, and domain/evidence counts.

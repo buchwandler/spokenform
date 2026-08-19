@@ -75,3 +75,7 @@ number ownership visible. `model_punctuation` only records that punctuation stay
 downstream; spokenform does not rewrite model punctuation. Do not remove a
 downstream normalizer until a dual-run comparison covers text, source offsets,
 token boundaries, phonemes, protected overrides, and warnings.
+
+## Recognition modes and specialist domains
+
+`contextual` remains the default compatibility mode. `surface` is intentionally fail-closed and context-independent, not a promise to spell every unknown token; genuinely ambiguous strings may be preserved. `disabled_domains` can suppress specialist families independently, with `chemistry` covering the current chemical-formula recognizer. Domain suppression can reduce speechability by design and is not a rendering fallback. Legacy `context` still controls abbreviation context only. An orthographic spell-everything fallback is not enabled; it remains deferred until benchmark and downstream evidence justifies the added policy.

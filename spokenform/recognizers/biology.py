@@ -103,6 +103,8 @@ def iter_replacements(
                 language,
                 "sequence.biomedical",
                 25,
+                "biology",
+                "contextual" if contextual else "intrinsic",
             )
         )
 

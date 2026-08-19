@@ -155,6 +155,7 @@ __all__ = [
     "time_render_alternatives",
 ]
 
+
 def source_render_fields(
     source: str,
     baseline_text: str,
@@ -164,7 +165,7 @@ def source_render_fields(
     family: str | None,
     baseline_mode: str | None,
     replacements: tuple[Any, ...] = (),
- ) -> dict[str, Any]:
+) -> dict[str, Any]:
     """Build full-text alternatives from source-aligned semantic replacements."""
     alternatives = documented_render_alternatives(source, family=family or "", language=language)
     if not alternatives:

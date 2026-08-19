@@ -34,9 +34,7 @@ def analyze_recognition_oracle(
     relevant = tuple(
         trace
         for trace in traces
-        if failure_span is None
-        or trace.start < failure_span[1]
-        and failure_span[0] < trace.end
+        if failure_span is None or trace.start < failure_span[1] and failure_span[0] < trace.end
     )
     emitted = sum(trace.status == "emitted" for trace in relevant)
     rejected = sum(trace.status == "rejected" for trace in relevant)
@@ -88,9 +86,7 @@ def oracle_aggregates(rows: list[dict[str, Any]]) -> dict[str, Any]:
     enabled = [row for row in rows if row.get("recognition_oracle_enabled")]
     gap_counts = Counter(str(row.get("recognition_gap_type")) for row in enabled)
     reasons = Counter(
-        reason
-        for row in enabled
-        for reason in row.get("recognition_rejection_reasons", ())
+        reason for row in enabled for reason in row.get("recognition_rejection_reasons", ())
     )
     return {
         "schema_version": 1,
@@ -114,20 +110,20 @@ __all__ = [
     "trace_source_fields",
 ]
 
+
 def trace_source_fields(
     source: str,
     *,
     language: str,
     protected_ranges: tuple[tuple[int, int], ...] = (),
     failure_span: tuple[int, int] | None = None,
- ) -> dict[str, Any]:
+) -> dict[str, Any]:
     """Trace one source string through the diagnostics-only runtime entrypoint."""
     from spokenform.diagnostics import trace_structured_candidates
+
     traces = trace_structured_candidates(
         source,
         language=language,
         protected_ranges=protected_ranges,
     )
-    return analysis_fields(
-        analyze_recognition_oracle(source, traces, failure_span=failure_span)
-    )
+    return analysis_fields(analyze_recognition_oracle(source, traces, failure_span=failure_span))

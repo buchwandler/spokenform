@@ -577,9 +577,7 @@ def _oracle_row_fields(
         winning_span = row.get("winning_span")
         failure_span = (
             (int(winning_span["start"]), int(winning_span["end"]))
-            if isinstance(winning_span, dict)
-            and "start" in winning_span
-            and "end" in winning_span
+            if isinstance(winning_span, dict) and "start" in winning_span and "end" in winning_span
             else None
         )
         fields.update(

@@ -7,6 +7,7 @@ import json
 import sys
 
 from .api import prepare
+from .config import InterpretationMode, RecognitionDomain
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -19,6 +20,19 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--spacy-model",
         help="Name of an installed spaCy model to use for context-aware expansion",
+    )
+    parser.add_argument(
+        "--interpretation-mode",
+        choices=tuple(mode.value for mode in InterpretationMode),
+        default=InterpretationMode.CONTEXTUAL.value,
+        help="Context evidence policy (default: contextual)",
+    )
+    parser.add_argument(
+        "--disable-domain",
+        action="append",
+        choices=tuple(domain.value for domain in RecognitionDomain),
+        default=[],
+        help="Disable one semantic recognition domain; repeatable",
     )
     parser.add_argument("--no-abbreviations", action="store_true")
     parser.add_argument("--no-structured", action="store_true")
@@ -86,6 +100,8 @@ def main(argv: list[str] | None = None) -> int:
         generic_acronym_mode=args.generic_acronym_mode.replace("-", "_"),
         generic_acronym_case=args.generic_acronym_case,
         registered_acronym_mode=args.registered_acronyms,
+        interpretation_mode=args.interpretation_mode,
+        disabled_domains=set(args.disable_domain),
         strict=args.strict,
     )
     if args.json:

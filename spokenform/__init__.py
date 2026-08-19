@@ -12,9 +12,12 @@ from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
+    InterpretationMode,
     LongNumberMode,
     NumberPolicy,
     PreparationConfig,
+    RecognitionDomain,
+    RecognitionEvidence,
     RegisteredAcronymMode,
     number_policy_for_language,
 )
@@ -49,6 +52,9 @@ from .structured import StageResult, iter_structured_replacements, normalize_str
 
 __all__ = [
     "PreparationConfig",
+    "InterpretationMode",
+    "RecognitionDomain",
+    "RecognitionEvidence",
     "GenericAcronymMode",
     "GenericAcronymCase",
     "LongNumberMode",

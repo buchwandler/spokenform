@@ -55,6 +55,7 @@ def test_literal_rendering_and_contextual_phones_are_locale_safe() -> None:
     phone = prepare("Il centralino è 800123456", language="it", use_spacy=False)
     assert phone.spoken_text == "Il centralino è otto zero zero uno due tre quattro cinque sei"
 
+
 def test_mac_candidates_beat_quantity_fragments() -> None:
     result = prepare("MAC 3C:52:82:AA:BB:CC", language="en", use_spacy=False)
     assert any(item.rule == "sequence.mac" for item in result.source_replacements)

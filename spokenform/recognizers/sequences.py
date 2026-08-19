@@ -626,6 +626,7 @@ def _cardinal(value: int, language: str) -> str:
         return rendered.replace(" and ", " ")
     return rendered
 
+
 def _quarter_text(quarter: int, language: str, year: int | None, fiscal_year: int | None) -> str:
     quarter_word = {
         "de": "Quartal",
@@ -642,7 +643,6 @@ def _quarter_text(quarter: int, language: str, year: int | None, fiscal_year: in
         prefix = "fiscal year" if base_language(language) == "en" else "FY"
         value = f"{prefix} {_cardinal(fiscal_year, language).replace('-', ' ')} {value}"
     return value
-
 
 
 def _digitwise(value: str, language: str) -> str:
@@ -2153,9 +2153,7 @@ def iter_sequence_replacements(
         iter_biomedical_replacements(text, language=language, protected_ranges=protected)
     )
     candidates.extend(
-        iter_range_replacements(
-            text, language=language, protected_ranges=protected, trace=trace
-        )
+        iter_range_replacements(text, language=language, protected_ranges=protected, trace=trace)
     )
     candidates.extend(
         iter_reference_replacements(text, language=language, protected_ranges=protected)

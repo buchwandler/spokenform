@@ -19,9 +19,11 @@ from .annotations import (
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
+    InterpretationMode,
     LongNumberMode,
     NumberPolicy,
     PreparationConfig,
+    RecognitionDomain,
     RegisteredAcronymMode,
     SymbolMode,
 )
@@ -117,6 +119,8 @@ def prepare(
     long_number_mode: LongNumberMode = "preserve",
     registered_acronym_mode: RegisteredAcronymMode = "expand",
     context: bool = True,
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    disabled_domains: frozenset[RecognitionDomain] = frozenset(),
     strict: bool = False,
 ) -> PreparedText:
     """Convert one-language written text into a readable form intended for speech.
@@ -153,6 +157,8 @@ def prepare(
         generic_acronym_case=generic_acronym_case,
         long_number_mode=long_number_mode,
         registered_acronym_mode=registered_acronym_mode,
+        interpretation_mode=interpretation_mode,
+        disabled_domains=disabled_domains,
         context=context,
         strict=strict,
     )
@@ -166,6 +172,16 @@ def prepare(
         number_policy=selected.number_policy,
         model_punctuation=selected.model_punctuation,
     )
+    effective_long_number_mode = selected.long_number_mode
+    if (
+        selected.interpretation_mode is InterpretationMode.SURFACE
+        and selected.long_number_mode == "contextual"
+    ):
+        effective_long_number_mode = "preserve"
+        policy_warnings = (
+            *policy_warnings,
+            "[POLICY] surface mode treats contextual long numbers as preserve",
+        )
 
     protected, merged_protected, protection_warnings = _prepare_protected_text(
         clean_text,
@@ -182,6 +198,7 @@ def prepare(
         use_spacy=selected.use_spacy,
         spacy_model=selected.spacy_model,
         language_code=language_code,
+        interpretation_mode=selected.interpretation_mode,
         strict=selected.strict,
     )
 
@@ -229,8 +246,10 @@ def prepare(
             promote_literals=selected.normalize_literals,
             generic_acronym_mode=selected.generic_acronym_mode,
             generic_acronym_case=selected.generic_acronym_case,
+            interpretation_mode=selected.interpretation_mode,
+            disabled_domains=selected.disabled_domains,
         )
-        if structured.replacements:
+        if structured.replacements or structured.reserved:
             internal_replacements = map_visible_replacements_to_internal(
                 current,
                 structured.replacements,
@@ -273,7 +292,9 @@ def prepare(
         ) + tuple((item.start, item.end) for item in reserved_spans)
         abbreviation_kwargs: dict[str, object] = {
             "lang": resolve_abbr2words_language(language_code),
-            "context": selected.context,
+            "context": (
+                selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL
+            ),
             "annotations": to_abbr2words_annotations(visible_annotations),
             "protected_spans": abbreviation_protected_spans,
         }
@@ -347,7 +368,7 @@ def prepare(
                 value,
                 language=language_code,
                 protected_ranges=internal_reserved_ranges,
-                long_number_mode=selected.long_number_mode,
+                long_number_mode=effective_long_number_mode,
             ),
             restore=protected.restore,
         )
@@ -652,10 +673,18 @@ def _prepare_annotations(
     use_spacy: bool | None,
     spacy_model: str | None,
     language_code: str,
+    interpretation_mode: InterpretationMode,
     strict: bool,
 ) -> tuple[Iterable[TokenAnnotation] | None, tuple[str, ...]]:
     """Load/validate annotations and remap them into protected coordinates."""
     warnings: list[str] = []
+    if interpretation_mode is InterpretationMode.SURFACE:
+        if use_spacy is True or nlp is not None:
+            message = "[POLICY] surface mode ignores spaCy/NLP recognition context"
+            if strict:
+                raise ValueError(message)
+            warnings.append(message)
+        return None, tuple(warnings)
     if annotations is not None:
         annotations = validate_annotations(clean_text, annotations)
     if annotations is None and use_spacy is not False:

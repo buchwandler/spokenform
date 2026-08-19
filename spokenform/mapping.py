@@ -27,6 +27,8 @@ class Replacement:
     language: str | None = None
     rule: str | None = None
     specificity: int = 0
+    recognition_domain: str | None = None
+    recognition_evidence: str | None = None
 
     def validate(self, source_length: int) -> None:
         if self.start < 0 or self.end < self.start or self.end > source_length:

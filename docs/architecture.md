@@ -129,3 +129,7 @@ street numbers are rendered cardinally when the full address is recognized,
 while compact plates, suites, postal codes, and model identifiers retain their
 category-specific digitwise policies. Contradictory benchmark conventions are
 reported as data-quality evidence rather than encoded as row-specific rules.
+
+## Recognition policy boundary
+
+Structured recognizers first emit candidates annotated with a semantic domain and evidence basis (`intrinsic` or `contextual`). `spokenform.recognition_policy` filters those candidates before `SequencePriority` overlap resolution. Surface mode admits intrinsic evidence only and treats missing metadata as contextual, while disabled domains suppress their ownership family and reserve overlapping spans against weaker semantic takeover. This keeps interpretation depth, semantic ownership, and rendering settings as separate policy axes. Diagnostics retain suppressed candidates with machine-readable reasons such as `context-not-allowed`, `disabled-domain`, and `blocked-by-disabled-domain`.

@@ -190,10 +190,9 @@ def failure_family(row: dict[str, Any]) -> str:
     rule = str(row.get("primary_rule") or row.get("source_rule") or "").casefold()
     source = str(row.get("original_text", ""))
     haystack = f"{category} {rule}"
-    if (
-        row.get("error")
-        or row.get("semantic_failure")
-    ) and (row.get("failure_phase") == "unrecognized" or category == "unrecognized"):
+    if (row.get("error") or row.get("semantic_failure")) and (
+        row.get("failure_phase") == "unrecognized" or category == "unrecognized"
+    ):
         return "unrecognized"
     if row.get("ownership") == "protected" or any(
         marker in haystack for marker in ("url", "email", "protected-literal")
@@ -503,6 +502,7 @@ def failure_gap_type(row: dict[str, Any]) -> str:
         return "policy-gap"
     return "rejection-gap" if row.get("recognition_trace") else "other-owned"
 
+
 def oracle_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
     """Summarize selector headroom with explicit semantic-failure denominators."""
     values = tuple(rows)
@@ -511,18 +511,14 @@ def oracle_aggregates(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
         for row in values
         if oracle_gap_type(row) not in {"dependency", "policy", "presentation", "runtime-error"}
     )
-    semantic_failures = tuple(
-        row for row in eligible if bool(row.get("semantic_failure", True))
-    )
+    semantic_failures = tuple(row for row in eligible if bool(row.get("semantic_failure", True)))
     scorable = tuple(row for row in eligible if row.get("oracle_scorable"))
     regret_sum = sum(float(row.get("selector_regret", 0.0)) for row in scorable)
     eligible_count = len(eligible)
     eligible_semantic_failure_count = len(semantic_failures)
     scorable_count = len(scorable)
     exact_target_count = sum(bool(row.get("oracle_literal_exact")) for row in eligible)
-    selection_gap_count = sum(
-        oracle_gap_type(row) == "selection" for row in semantic_failures
-    )
+    selection_gap_count = sum(oracle_gap_type(row) == "selection" for row in semantic_failures)
     fully_recoverable_count = sum(
         oracle_gap_type(row) == "selection" and bool(row.get("oracle_speech_equivalent"))
         for row in semantic_failures

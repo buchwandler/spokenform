@@ -346,3 +346,19 @@ on the target package index and run the checklist in
 ## License
 
 Apache License 2.0.
+
+## Recognition modes and domains
+
+The runtime interpretation policy is separate from rendering options:
+
+```python
+from spokenform import prepare
+
+result = prepare(
+    "The final was 3-2 and the sample contains H2O.",
+    interpretation_mode="surface",
+    disabled_domains={"chemistry"},
+)
+```
+
+`interpretation_mode="contextual"` is the default and preserves the existing contextual behavior. `surface` is fail-closed: only recognizers with intrinsic evidence may claim a structured expression, so ambiguous context-dependent forms can remain unchanged. `disabled_domains` independently suppresses semantic families such as `chemistry`, `biology`, `sports`, or `finance`. The legacy `context` option controls abbreviation context and is not the global interpretation mode.

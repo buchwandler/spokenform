@@ -5,10 +5,15 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Literal
 
-from .config import GenericAcronymCase, GenericAcronymMode
+from .config import (
+    GenericAcronymCase,
+    GenericAcronymMode,
+    InterpretationMode,
+    RecognitionDomain,
+)
 from .mapping import Replacement
 
-TraceStatus = Literal["emitted", "rejected", "protected", "shadowed"]
+TraceStatus = Literal["emitted", "rejected", "protected", "shadowed", "suppressed"]
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +27,9 @@ class CandidateTrace:
     source: str
     status: TraceStatus
     reject_reason: str | None = None
+    domain: str | None = None
+    evidence: str | None = None
+    policy_reason: str | None = None
     rendered_text: str | None = None
     priority: int | None = None
 
@@ -46,6 +54,8 @@ class TraceCollector:
                 source=text[candidate.start : candidate.end],
                 status="emitted",
                 rendered_text=candidate.text,
+                domain=candidate.recognition_domain,
+                evidence=candidate.recognition_evidence,
                 priority=candidate.specificity,
             )
         )
@@ -70,6 +80,22 @@ class TraceCollector:
                 source=source,
                 status=status,
                 reject_reason=reason,
+            )
+        )
+
+    def record_suppressed(self, text: str, suppression: object) -> None:
+        self._records.append(
+            CandidateTrace(
+                rule=getattr(suppression, "rule", None) or "unknown",
+                family=_family_for_rule(getattr(suppression, "rule", None)),
+                start=suppression.start,
+                end=suppression.end,
+                source=text[suppression.start : suppression.end],
+                status="suppressed",
+                reject_reason=suppression.reason,
+                domain=suppression.domain,
+                evidence=suppression.evidence,
+                policy_reason=suppression.reason,
             )
         )
 
@@ -102,6 +128,8 @@ def trace_structured_candidates(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    disabled_domains: frozenset[RecognitionDomain] = frozenset(),
 ) -> tuple[CandidateTrace, ...]:
     """Collect candidate, rejection, protection, and shadowing evidence."""
     from .structured import iter_structured_candidates, resolve_structured_candidates
@@ -116,7 +144,14 @@ def trace_structured_candidates(
         generic_acronym_case=generic_acronym_case,
         trace=collector,
     )
-    resolved = resolve_structured_candidates(text, candidates, language=language)
+    resolved = resolve_structured_candidates(
+        text,
+        candidates,
+        language=language,
+        interpretation_mode=interpretation_mode,
+        disabled_domains=disabled_domains,
+        trace=collector,
+    )
     collector.mark_shadowed(resolved)
     return collector.records
 

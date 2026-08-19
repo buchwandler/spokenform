@@ -10,7 +10,7 @@ from benchmarks.failure_reporting import (
     ownership_for_rule,
     rank_provenance,
     risk_tier_for_row,
- )
+)
 
 
 def _edit(rule: str, stage: str, start: int, end: int, source: str = "value"):
@@ -128,9 +128,7 @@ def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
 
     assert oracle_gap_type(selection) == "selection"
     assert oracle_gap_type(policy) == "policy"
-    aggregates = oracle_aggregates(
-        (selection, selection_without_full_recovery, policy)
-    )
+    aggregates = oracle_aggregates((selection, selection_without_full_recovery, policy))
     assert aggregates["cases"] == 3
     assert aggregates["eligible_cases"] == 2
     assert aggregates["eligible_semantic_failure_count"] == 2
@@ -140,6 +138,7 @@ def test_oracle_helpers_keep_policy_and_selection_separate() -> None:
     assert aggregates["fully_recoverable_selection_gap_rate"] == 0.5
     assert aggregates["selection_gap_rate_numerator"] == 2
     assert aggregates["selection_gap_rate_denominator"] == 2
+
 
 def test_failure_family_splits_other_from_runtime_provenance() -> None:
     assert failure_family({"category": "Time", "primary_rule": "en.time"}) == "time"

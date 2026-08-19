@@ -40,16 +40,12 @@ _MONTH_YEAR_RE = re.compile(
     rf"(?P<year>{_YEAR}){_YEAR_BOUNDARY}",
     re.IGNORECASE,
 )
-_BIBLIO_YEAR_RE = re.compile(
-    rf"(?:,\s*|\(\s*)(?P<year>{_YEAR})(?=\s*(?:[),;:]|\.(?!\d)|$))"
-)
+_BIBLIO_YEAR_RE = re.compile(rf"(?:,\s*|\(\s*)(?P<year>{_YEAR})(?=\s*(?:[),;:]|\.(?!\d)|$))")
 _BIBLIO_AUTHOR_YEAR_RE = re.compile(
     rf"(?<!\w)(?:[A-Z][A-Za-z'’-]+(?:\s+[A-Z][A-Za-z'’-]+){{0,2}})\s+"
     rf"(?P<year>{_YEAR})(?=\s*(?:,\s*(?:pp?\.?|vol\.?|edition\b)|\.(?!\d)|;|$))"
 )
-_CONTEXTUAL_YEAR_RE = re.compile(
-    rf"(?<![\w./:-])(?P<year>{_YEAR}){_YEAR_BOUNDARY}"
-)
+_CONTEXTUAL_YEAR_RE = re.compile(rf"(?<![\w./:-])(?P<year>{_YEAR}){_YEAR_BOUNDARY}")
 _RANGE_CONTEXT_RE = re.compile(
     r"\b(?:from|between|range|pages?|pp\.?|lines?|chapter|section|von|zwischen|seiten?|de|entre|páginas?|da|tra|pagine?|before|after|by|until|through|around|circa|born|died|founded|opened|closed|established|published|reigned|historical|century|war|king|queen|exhibition|exhibitions|year|years?)\b",
     re.IGNORECASE,

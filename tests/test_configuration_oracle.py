@@ -5,6 +5,7 @@ from benchmarks.configuration_oracle import (
     MAX_CONFIGURATIONS,
     analysis_fields,
     analyze_configuration_oracle,
+    analyze_domain_ablations,
     oracle_aggregates,
 )
 from spokenform import prepare
@@ -19,6 +20,7 @@ def test_configuration_lattice_is_bounded_and_documented() -> None:
         "acronym-spell-unknown",
         "normalize-literals",
         "long-number-contextual-acronym-conservative",
+        "interpretation-surface",
     ]
     assert CONFIGURATION_LATTICE[4].policy_expansion
 
@@ -66,3 +68,15 @@ def test_configuration_oracle_keeps_policy_expansion_separate() -> None:
     assert summary["normal_configuration_cases"] == 1
     assert summary["policy_expansion_cases"] == 1
     assert summary["config_regret_sum"] == 0.0
+
+
+def test_domain_ablations_are_targeted_and_non_combinatorial() -> None:
+    result = analyze_domain_ablations(
+        "H2O",
+        "H two O",
+        language="en",
+        base_kwargs={"use_spacy": False},
+        domains=("chemistry", "sports"),
+    )
+    assert set(result["domains"]) == {"chemistry", "sports"}
+    assert "domain_ablation_by_domain" in result

@@ -198,3 +198,23 @@ colon-time candidates remain unchanged for caller-managed handling.
 ```{autofunction} spokenform.iter_structured_replacements
 
 ```
+
+## Interpretation policy
+
+`PreparationConfig` and `prepare()` expose two orthogonal recognition controls:
+
+- `interpretation_mode="contextual"` (default) permits reviewed contextual semantic evidence.
+- `interpretation_mode="surface"` permits only candidates marked with intrinsic evidence and fails closed on missing metadata.
+- `disabled_domains={"chemistry", ...}` suppresses selected `RecognitionDomain` families before precedence resolution.
+
+```python
+from spokenform import prepare
+
+prepare(
+    "The sample contains H2O.",
+    interpretation_mode="surface",
+    disabled_domains={"chemistry"},
+)
+```
+
+`context` remains the legacy abbreviation-context switch. Surface mode clamps its effective abbreviation context off, but `context=False` under contextual mode does not disable structured recognizers. `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.

@@ -6,11 +6,17 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from .casing import capitalize_generated_numeric_replacements
-from .config import GenericAcronymCase, GenericAcronymMode
+from .config import (
+    GenericAcronymCase,
+    GenericAcronymMode,
+    InterpretationMode,
+    RecognitionDomain,
+)
 from .diagnostics import TraceCollector
 from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
 from .models import ReservedSpan
+from .recognition_policy import PolicySuppression, annotate_candidate, filter_candidates
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,6 +26,7 @@ class StageResult:
     text: str
     replacements: tuple[Replacement, ...]
     reserved: tuple[ReservedSpan, ...] = ()
+    suppressed: tuple[PolicySuppression, ...] = ()
 
 
 def _iter_locale_replacements(
@@ -73,7 +80,7 @@ def iter_structured_candidates(
     generic_acronym_case: GenericAcronymCase = "upper",
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
-    """Return all admissible structured candidates before conflict resolution."""
+    """Return all annotated structured candidates before policy and precedence."""
     if not isinstance(text, str):
         raise TypeError("text must be a string")
 
@@ -95,7 +102,9 @@ def iter_structured_candidates(
         language=language,
         protected_ranges=protected,
     )
-    candidates = (*shared_candidates, *locale_candidates)
+    candidates = tuple(
+        annotate_candidate(candidate) for candidate in (*shared_candidates, *locale_candidates)
+    )
     if trace is not None:
         for candidate in candidates:
             trace.record_emitted(text, candidate)
@@ -107,9 +116,20 @@ def resolve_structured_candidates(
     candidates: tuple[Replacement, ...],
     *,
     language: str,
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    disabled_domains: frozenset[RecognitionDomain] = frozenset(),
+    trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
-    """Resolve structured candidates using the production structured policy."""
-    resolved = resolve_replacements(candidates, source_length=len(text))
+    """Resolve structured candidates after applying recognition policy."""
+    eligible, suppressed = filter_candidates(
+        candidates,
+        interpretation_mode=interpretation_mode,
+        disabled_domains=disabled_domains,
+    )
+    if trace is not None:
+        for item in suppressed:
+            trace.record_suppressed(text, item)
+    resolved = resolve_replacements(eligible, source_length=len(text))
     return capitalize_generated_numeric_replacements(text, resolved, language=language)
 
 
@@ -121,6 +141,8 @@ def iter_structured_replacements(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    disabled_domains: frozenset[RecognitionDomain] = frozenset(),
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return exact, non-overlapping semantic replacements for one language."""
@@ -133,7 +155,14 @@ def iter_structured_replacements(
         generic_acronym_case=generic_acronym_case,
         trace=trace,
     )
-    return resolve_structured_candidates(text, candidates, language=normalize_language(language))
+    return resolve_structured_candidates(
+        text,
+        candidates,
+        language=normalize_language(language),
+        interpretation_mode=interpretation_mode,
+        disabled_domains=disabled_domains,
+        trace=trace,
+    )
 
 
 def normalize_structured(
@@ -144,10 +173,12 @@ def normalize_structured(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    disabled_domains: frozenset[RecognitionDomain] = frozenset(),
     trace: TraceCollector | None = None,
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
-    replacements = iter_structured_replacements(
+    candidates = iter_structured_candidates(
         text,
         language=language,
         protected_ranges=protected_ranges,
@@ -156,10 +187,23 @@ def normalize_structured(
         generic_acronym_case=generic_acronym_case,
         trace=trace,
     )
+    eligible, suppressed = filter_candidates(
+        candidates,
+        interpretation_mode=interpretation_mode,
+        disabled_domains=disabled_domains,
+    )
+    if trace is not None:
+        for item in suppressed:
+            trace.record_suppressed(text, item)
+    replacements = capitalize_generated_numeric_replacements(
+        text,
+        resolve_replacements(eligible, source_length=len(text)),
+        language=language,
+    )
     from .mapping import apply_replacements
 
-    result, mapped_edits, _ = apply_replacements(text, replacements, stage="structured")
-    reserved = tuple(
+    result, mapped_edits, offset_map = apply_replacements(text, replacements, stage="structured")
+    reserved = [
         ReservedSpan(
             start=edit.output_start,
             end=edit.output_end,
@@ -168,8 +212,22 @@ def normalize_structured(
         )
         for edit in mapped_edits
         if edit.output_start < edit.output_end
-    )
-    return StageResult(result, replacements, reserved)
+    ]
+    for item in suppressed:
+        start, end = offset_map.map_source_span(item.start, item.end)
+        if start >= end:
+            continue
+        if any(existing.start < end and start < existing.end for existing in reserved):
+            continue
+        reserved.append(
+            ReservedSpan(
+                start=start,
+                end=end,
+                owner="structured-policy",
+                reason=item.reason,
+            )
+        )
+    return StageResult(result, replacements, tuple(reserved), suppressed)
 
 
 __all__ = [

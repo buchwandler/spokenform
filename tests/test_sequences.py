@@ -326,6 +326,7 @@ def test_numeric_benchmark_contexts_use_category_specific_renderers() -> None:
         "Necesito medio litro"
     )
 
+
 @pytest.mark.parametrize(
     ("source", "expected"),
     (
@@ -356,6 +357,7 @@ def test_contextual_years_reject_numeric_continuations(source: str) -> None:
     result = prepare(source, language="en", use_spacy=False)
     assert not any(item.rule == "sequence.year" for item in result.source_replacements)
 
+
 @pytest.mark.parametrize(
     ("source", "expected"),
     (
@@ -377,8 +379,6 @@ def test_contextual_years_reject_numeric_continuations(source: str) -> None:
         ),
     ),
 )
-def test_text_dates_preserve_following_word_and_punctuation(
-    source: str, expected: str
-) -> None:
+def test_text_dates_preserve_following_word_and_punctuation(source: str, expected: str) -> None:
     result = prepare(source, language="en", use_spacy=False)
     assert result.spoken_text == expected

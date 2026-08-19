@@ -39,3 +39,15 @@ spokenform --lang en --generic-acronym-case lower 'ABC AAPL'
 `--keep-symbols` is an exact-codepoint allowlist and is meaningful only with
 `--symbol-mode keep`; quote it in shells because characters such as `;` have
 special syntax.
+
+## Interpretation and domain controls
+
+Choose the recognition evidence policy explicitly and disable specialist domains independently:
+
+```bash
+spokenform --interpretation-mode surface "final 3-2"
+spokenform --interpretation-mode contextual --disable-domain chemistry "H2O"
+spokenform --disable-domain biology --disable-domain sports "..."
+```
+
+`--disable-domain` is repeatable. Available values include `chemistry`, `biology`, `sports`, `finance`, `math`, `music`, `temporal`, `quantities`, `communications`, `network`, `identifiers`, `addresses`, `references`, `legal`, `social`, `geography`, and `core`. Surface mode does not use automatic spaCy context; explicit strict spaCy use is rejected.
