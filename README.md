@@ -362,3 +362,34 @@ result = prepare(
 ```
 
 `interpretation_mode="contextual"` is the default and preserves the existing contextual behavior. `surface` is fail-closed: only recognizers with intrinsic evidence may claim a structured expression, so ambiguous context-dependent forms can remain unchanged. `disabled_domains` independently suppresses semantic families such as `chemistry`, `biology`, `sports`, or `finance`. Use `allowed_domains` for a fail-closed permitlist that remains stable when future domains are added. `sequence_fallback_mode="preserve"` is the default; `"spell"` provides conservative orthographic coverage for residual sequence-shaped spans without spelling ordinary prose. The legacy `context` option controls abbreviation context and is not the global interpretation mode.
+
+## Optional Lexhint evidence
+
+Lexhint can be supplied explicitly when lexical or positive semantic evidence is available:
+
+```bash
+python -m pip install "spokenform[lexhint]"
+lexhint dataset download en --variant runtime
+```
+
+The runtime artifact is never downloaded by Spokenform. Inject an installed Lexhint `Lexicon` into `prepare()`:
+
+```python
+from lexhint import Lexicon
+from spokenform import prepare
+
+lexicon = Lexicon("en", variant="runtime")
+result = prepare(
+    "Visit chatgpt.com.",
+    language="en",
+    normalize_literals=True,
+    lexical_evidence=lexicon,
+    use_spacy=False,
+)
+print(result.spoken_text)
+# Visit chat g p t dot com.
+```
+
+The provider language must match Spokenform's base language, so `en_US` and `en` are compatible but `de` is rejected. Lexical-only providers can improve URL rendering; semantic evidence is optional and unavailable semantic capability is not negative evidence. Semantic evidence is used only in contextual mode. Surface mode ignores it, while lexical evidence for an already-recognized URL is still usable for rendering.
+
+Lexhint remains below the interpretation layer. Spokenform owns structured candidate recognition, precedence, domain policy, URL syntax, and speech rendering. `abbr2words` remains the owner of ordinary prose abbreviation and initialism expansion. Lexhint is not a generic prose acronym detector.

@@ -29,6 +29,9 @@ class Replacement:
     specificity: int = 0
     recognition_domain: str | None = None
     recognition_evidence: str | None = None
+    evidence_source: str | None = None
+    evidence_score: float | None = None
+    evidence_cues: tuple[str, ...] = ()
 
     def validate(self, source_length: int) -> None:
         if self.start < 0 or self.end < self.start or self.end > source_length:

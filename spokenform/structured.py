@@ -13,6 +13,7 @@ from .config import (
     RecognitionDomain,
 )
 from .diagnostics import TraceCollector
+from .evidence import EvidenceSession
 from .language import base_language, normalize_language
 from .mapping import Replacement, resolve_replacements
 from .models import ReservedSpan
@@ -78,6 +79,8 @@ def iter_structured_candidates(
     promote_literals: bool = False,
     generic_acronym_mode: GenericAcronymMode = "known_only",
     generic_acronym_case: GenericAcronymCase = "upper",
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    evidence: EvidenceSession | None = None,
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return all annotated structured candidates before policy and precedence."""
@@ -95,6 +98,8 @@ def iter_structured_candidates(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        interpretation_mode=interpretation_mode,
+        evidence=evidence,
         trace=trace,
     )
     locale_candidates = _iter_locale_replacements(
@@ -146,6 +151,7 @@ def iter_structured_replacements(
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
     allowed_domains: frozenset[RecognitionDomain] | None = None,
+    evidence: EvidenceSession | None = None,
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Return exact, non-overlapping semantic replacements for one language."""
@@ -156,6 +162,8 @@ def iter_structured_replacements(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        interpretation_mode=interpretation_mode,
+        evidence=evidence,
         trace=trace,
     )
     return resolve_structured_candidates(
@@ -180,6 +188,7 @@ def normalize_structured(
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
     allowed_domains: frozenset[RecognitionDomain] | None = None,
+    evidence: EvidenceSession | None = None,
     trace: TraceCollector | None = None,
 ) -> StageResult:
     """Normalize structured values and return exact semantic provenance."""
@@ -190,6 +199,8 @@ def normalize_structured(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        interpretation_mode=interpretation_mode,
+        evidence=evidence,
         trace=trace,
     )
     eligible, suppressed = filter_candidates(

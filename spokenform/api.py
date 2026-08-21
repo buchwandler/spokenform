@@ -28,6 +28,7 @@ from .config import (
     SequenceFallbackMode,
     SymbolMode,
 )
+from .evidence import EvidenceSession, LexicalEvidenceProvider, validate_provider
 from .fallback import iter_sequence_fallback_replacements
 from .language import base_language, resolve_abbr2words_language
 from .mapping import (
@@ -99,6 +100,7 @@ def prepare(
     annotations: Iterable[TokenAnnotation] | None = None,
     nlp: object | None = None,
     protected_spans: Iterable[ProtectedSpan | tuple[int, int]] | None = None,
+    lexical_evidence: LexicalEvidenceProvider | None = None,
     use_spacy: bool | None = None,
     spacy_model: str | None = None,
     expand_abbreviations: bool = True,
@@ -171,6 +173,8 @@ def prepare(
 
     clean_text = text
     language_code = selected.language
+    validate_provider(lexical_evidence, language_code)
+    evidence = EvidenceSession(lexical_evidence)
     structured_numbers_enabled, plain_numbers_enabled, policy_warnings = _resolve_number_options(
         language_code,
         expand_structured=selected.expand_structured,
@@ -255,6 +259,7 @@ def prepare(
             interpretation_mode=selected.interpretation_mode,
             disabled_domains=cast(frozenset[RecognitionDomain], selected.disabled_domains),
             allowed_domains=cast(frozenset[RecognitionDomain] | None, selected.allowed_domains),
+            evidence=evidence,
         )
         if structured.replacements or structured.reserved:
             internal_replacements = map_visible_replacements_to_internal(

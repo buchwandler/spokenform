@@ -40,6 +40,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+lexhint = ["lexhint>=0.1.2,<0.2.0"]
 spacy = ["spacy>=3.7,<4"]
 dev = [
   "build>=1",
@@ -50,7 +51,7 @@ dev = [
   "tomli>=2.0.1; python_version < '3.11'",
   "twine>=5",
 ]
-all = ["spacy>=3.7,<4"]
+all = ["spacy>=3.7,<4", "lexhint>=0.1.2,<0.2.0"]
 
 [project.scripts]
 spokenform = "spokenform.cli:main"

@@ -37,3 +37,14 @@ python -m pip install -e .
 python -m pip install -r docs/requirements.txt
 sphinx-build -W -b html docs docs/_build/html
 ```
+
+## Optional Lexhint integration
+
+Install the optional provider and an explicit local runtime artifact:
+
+```bash
+python -m pip install "spokenform[lexhint]"
+lexhint dataset download en --variant runtime
+```
+
+Spokenform does not import Lexhint or download data unless the caller supplies a provider. The API accepts a structural `LexicalEvidenceProvider`, so applications may adapt Lexhint without coupling core normalization to that package. Provider language must match the Spokenform base language.

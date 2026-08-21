@@ -7,11 +7,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from fractions import Fraction
 from typing import Literal
+from urllib.parse import urlsplit
 
 from num2words import num2words
 
+from ..config import InterpretationMode
 from ..dates import render_english_year, render_year
 from ..diagnostics import TraceCollector
+from ..evidence import EvidenceSession
 from ..language import base_language, normalize_language, resolve_num2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
@@ -136,6 +139,7 @@ _VERSION_RE = re.compile(
     r"(?<!\w)(?P<value>v\d+(?:\.\d+){1,}(?:-[A-Za-z0-9]+)?)(?!\w)",
     re.IGNORECASE,
 )
+_GENERIC_DOTTED_VERSION_RE = re.compile(r"(?<![\w.])(?P<value>\d+(?:\.\d+){2,})(?![\w.])")
 _URL_RE = re.compile(r"(?<!\w)(?:https?://|www\.)[^\s<>]+", re.IGNORECASE)
 _EMAIL_RE = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
 _BARE_DOMAIN_RE = re.compile(
@@ -1153,8 +1157,37 @@ def _literal_symbol_words(language: str) -> dict[str, str]:
     }
 
 
-def _url_text(value: str, language: str) -> str:
-    """Render a URL by component, spelling host labels and protocol grapheme-wise."""
+def _url_text(
+    value: str,
+    language: str,
+    *,
+    evidence: EvidenceSession | None = None,
+) -> str:
+    """Render a URL while optionally using lexical evidence for host labels."""
+    if evidence is None or not evidence.available:
+        return _legacy_url_text(value, language)
+    body, tail = _literal_tail(value)
+    symbols = _literal_symbol_words(language)
+    scheme, separator, remainder = body.partition("://")
+    parsed = urlsplit(f"//{remainder if separator else body}")
+    host = parsed.hostname
+    if not host or parsed.netloc.casefold() != host.casefold():
+        return _legacy_url_text(value, language)
+    parts: list[str] = []
+    if separator:
+        parts.extend([_grapheme_text(scheme, language), symbols[":"], symbols["/"], symbols["/"]])
+    parts.append(_url_hostname_text(host, language, evidence=evidence))
+    suffix = parsed.path
+    if parsed.query:
+        suffix += f"?{parsed.query}"
+    if parsed.fragment:
+        suffix += f"#{parsed.fragment}"
+    parts.extend(_url_tail_parts(suffix, language))
+    return " ".join(part for part in parts if part) + tail
+
+
+def _legacy_url_text(value: str, language: str) -> str:
+    """Keep the provider-free URL renderer byte-for-byte compatible."""
     body, tail = _literal_tail(value)
     symbols = _literal_symbol_words(language)
     lexical_host_labels = frozenset({"example", "company", "com", "org", "net"})
@@ -1164,7 +1197,7 @@ def _url_text(value: str, language: str) -> str:
         parts.extend([_grapheme_text(scheme, language), symbols[":"], symbols["/"], symbols["/"]])
     else:
         remainder = body
-    for _index, chunk in enumerate(re.split(r"([./?:&=])", remainder)):
+    for chunk in re.split(r"([./?:&=])", remainder):
         if not chunk:
             continue
         if chunk in symbols:
@@ -1180,6 +1213,97 @@ def _url_text(value: str, language: str) -> str:
         else:
             parts.append(chunk)
     return " ".join(parts) + tail
+
+
+def _url_tail_parts(value: str, language: str) -> list[str]:
+    """Render non-host URL components with the established symbol policy."""
+    symbols = _literal_symbol_words(language)
+    parts: list[str] = []
+    for chunk in re.split(r"([./?:&=])", value):
+        if not chunk:
+            continue
+        if chunk in symbols:
+            parts.append(symbols[chunk])
+        elif chunk.isalnum():
+            parts.append(
+                render_sequence(chunk, language=language)
+                if any(character.isdigit() for character in chunk)
+                else _grapheme_text(chunk, language)
+            )
+        else:
+            parts.append(chunk)
+    return parts
+
+
+def _url_hostname_text(
+    host: str,
+    language: str,
+    *,
+    evidence: EvidenceSession,
+) -> str:
+    labels = host.split(".")
+    return " dot ".join(
+        _url_host_label_text(
+            label,
+            language,
+            evidence=evidence,
+            is_tld=index == len(labels) - 1,
+        )
+        for index, label in enumerate(labels)
+    )
+
+
+def _url_host_label_text(
+    label: str,
+    language: str,
+    *,
+    evidence: EvidenceSession,
+    is_tld: bool,
+) -> str:
+    lexical_labels = frozenset({"example", "company", "com", "org", "net"})
+    if label.casefold() == "www":
+        return _grapheme_text(label, language)
+    if is_tld and len(label) == 2 and label.isalpha():
+        return _grapheme_text(label, language)
+    if label.casefold() in lexical_labels:
+        return label
+    if "-" in label:
+        return " hyphen ".join(
+            _url_host_label_text(part, language, evidence=evidence, is_tld=False)
+            for part in label.split("-")
+        )
+    if any(character.isdigit() for character in label):
+        return " ".join(
+            render_sequence(part, language=language)
+            if part.isdigit()
+            else _url_host_label_text(part, language, evidence=evidence, is_tld=False)
+            for part in re.split(r"(\d+)", label)
+            if part
+        )
+    segments = evidence.segment(label)
+    rendered: list[str] = []
+    for segment in segments:
+        if segment.known:
+            rendered.append(segment.text)
+            continue
+        word = evidence.word(segment.text)
+        if (
+            word is not None
+            and word.known
+            and word.has_uppercase
+            and not word.has_lowercase
+            and not word.has_titlecase
+        ):
+            rendered.append(_grapheme_text(segment.text, language))
+        elif word is not None and word.known:
+            rendered.append(segment.text)
+        elif len(segment.text) <= 3 and segment.text.isascii() and segment.text.isalpha():
+            rendered.append(_grapheme_text(segment.text, language))
+        else:
+            rendered.append(segment.text)
+    if rendered:
+        return " ".join(rendered)
+    return _grapheme_text(label, language) if len(label) <= 3 else label
 
 
 def _email_text(value: str, language: str) -> str:
@@ -1816,20 +1940,43 @@ def _score_text(value: str, language: str) -> str:
     return f"{_cardinal(int(left), language)} {connector} {_cardinal(int(right), language)}"
 
 
-def _has_sports_context(text: str, start: int) -> bool:
-    """Return whether a bounded prefix provides positive sports evidence."""
+def _has_sports_context(
+    text: str,
+    start: int,
+    end: int | None = None,
+    *,
+    evidence: EvidenceSession | None = None,
+) -> bool:
+    """Return whether local or provider evidence supports a sports context."""
     prefix = text[max(0, start - 64) : start]
-    return bool(_SPORTS_CONTEXT_RE.search(prefix))
+    if _SPORTS_CONTEXT_RE.search(prefix):
+        return True
+    if evidence is None or not evidence.available or end is None:
+        return False
+    return evidence.supports(text, target=(start, end), domain="sports") is not None
 
 
-def _chained_score_is_plausible(text: str, start: int) -> bool:
+def _chained_score_is_plausible(
+    text: str,
+    start: int,
+    end: int,
+    *,
+    evidence: EvidenceSession | None = None,
+) -> bool:
     """Require positive sports context for a three-or-more-part chain."""
-    return _has_sports_context(text, start)
+    return _has_sports_context(text, start, end, evidence=evidence)
 
 
-def _score_is_plausible(value: str, text: str, start: int) -> bool:
-    """Use sports context for hyphen scores and allow compact colon scores."""
-    if _has_sports_context(text, start):
+def _score_is_plausible(
+    value: str,
+    text: str,
+    start: int,
+    end: int,
+    *,
+    evidence: EvidenceSession | None = None,
+) -> bool:
+    """Use sports context for scores and positive provider corroboration."""
+    if _has_sports_context(text, start, end, evidence=evidence):
         return True
     match = re.fullmatch(r"\s*(\d{1,2})\s*([:\-–])\s*(\d{1,2})\s*", value)
     return bool(
@@ -2099,6 +2246,9 @@ def _add(
     language: str,
     rule: str,
     protected: tuple[tuple[int, int], ...],
+    evidence_source: str | None = None,
+    evidence_score: float | None = None,
+    evidence_cues: tuple[str, ...] = (),
 ) -> None:
     if _claimed(match.start(), match.end(), protected):
         specificity = {
@@ -2115,7 +2265,18 @@ def _add(
         }.get(rule, 0)
         candidates.append(
             Replacement(
-                match.start(), match.end(), value, "structured", language, rule, specificity
+                match.start(),
+                match.end(),
+                value,
+                "structured",
+                language,
+                rule,
+                specificity,
+                None,
+                None,
+                evidence_source,
+                evidence_score,
+                evidence_cues,
             )
         )
 
@@ -2130,6 +2291,8 @@ def iter_sequence_replacements(
         "known_only", "conservative_unknown", "spell_unknown"
     ] = "known_only",
     generic_acronym_case: Literal["upper", "lower"] = "upper",
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    evidence: EvidenceSession | None = None,
     trace: TraceCollector | None = None,
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""
@@ -2199,7 +2362,11 @@ def iter_sequence_replacements(
             _add(
                 candidates,
                 match,
-                (_url_text if rule == "sequence.url" else _email_text)(match.group(0), language),
+                (
+                    _url_text(match.group(0), language, evidence=evidence)
+                    if rule == "sequence.url"
+                    else _email_text(match.group(0), language)
+                ),
                 language,
                 rule,
                 protected,
@@ -2209,7 +2376,7 @@ def iter_sequence_replacements(
             _add(
                 candidates,
                 match,
-                _url_text(match.group(0), language),
+                _url_text(match.group(0), language, evidence=evidence),
                 language,
                 "sequence.url",
                 protected,
@@ -2563,6 +2730,38 @@ def iter_sequence_replacements(
                 language,
                 "sequence.version",
                 protected,
+            )
+
+    if (
+        interpretation_mode is InterpretationMode.CONTEXTUAL
+        and evidence is not None
+        and evidence.available
+    ):
+        for match in _GENERIC_DOTTED_VERSION_RE.finditer(text):
+            start, end = match.span("value")
+            value = match["value"]
+            octets = value.split(".")
+            if len(octets) == 4 and all(int(octet) <= 255 for octet in octets):
+                continue
+            if not _claimed(start, end, protected):
+                continue
+            domain_evidence = evidence.supports(text, target=(start, end), domain="computing")
+            if domain_evidence is None:
+                continue
+            details = EvidenceSession.details("computing", domain_evidence)
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _version_text(value, language),
+                    "structured",
+                    language,
+                    "sequence.version",
+                    76,
+                    evidence_source=details.source if details else None,
+                    evidence_score=details.score if details else None,
+                    evidence_cues=details.cues if details else (),
+                )
             )
     roman_patterns: tuple[tuple[re.Pattern[str], RomanSemantic], ...] = (
         (_ROMAN_PREFIX_CARDINAL_RE, "cardinal"),
@@ -3009,11 +3208,17 @@ def iter_sequence_replacements(
                 "sequence.countdown",
                 protected,
             )
-        elif _chained_score_is_plausible(text, match.start()):
+        elif _chained_score_is_plausible(text, match.start(), match.end(), evidence=evidence):
             values = re.split(r"\s*[-–]\s*", match["value"])
             connector = {"de": "zu", "es": "a", "fr": "à", "it": "a"}.get(
                 base_language(language), "to"
             )
+            sports_evidence = (
+                evidence.supports(text, target=(match.start(), match.end()), domain="sports")
+                if evidence is not None and evidence.available
+                else None
+            )
+            sports_details = EvidenceSession.details("sports", sports_evidence)
             _add(
                 candidates,
                 match,
@@ -3021,11 +3226,20 @@ def iter_sequence_replacements(
                 language,
                 "sequence.chained-score",
                 protected,
+                evidence_source=sports_details.source if sports_details else None,
+                evidence_score=sports_details.score if sports_details else None,
+                evidence_cues=sports_details.cues if sports_details else (),
             )
     for match in _SCORE_RE.finditer(text):
-        if _score_is_plausible(match["value"], text, match.start()) and _claimed(
-            match.start(), match.end(), protected
-        ):
+        if _score_is_plausible(
+            match["value"], text, match.start(), match.end(), evidence=evidence
+        ) and _claimed(match.start(), match.end(), protected):
+            sports_evidence = (
+                evidence.supports(text, target=(match.start(), match.end()), domain="sports")
+                if evidence is not None and evidence.available
+                else None
+            )
+            sports_details = EvidenceSession.details("sports", sports_evidence)
             candidates.append(
                 Replacement(
                     match.start(),
@@ -3035,6 +3249,9 @@ def iter_sequence_replacements(
                     language,
                     "sequence.sports",
                     84,
+                    evidence_source=sports_details.source if sports_details else None,
+                    evidence_score=sports_details.score if sports_details else None,
+                    evidence_cues=sports_details.cues if sports_details else (),
                 )
             )
     for match in _SPORTS_RE.finditer(text):

@@ -221,3 +221,23 @@ prepare(
 `context` remains the legacy abbreviation-context switch. Surface mode clamps its effective abbreviation context off, but `context=False` under contextual mode does not disable structured recognizers. `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
 
 `sequence_fallback_mode="preserve"` is the compatibility default. Set it to `"spell"` to render conservative residual sequence-shaped spans such as `AAPL` or `H2O` orthographically after semantic recognition. It does not spell ordinary lexical prose, does not claim a semantic domain, and never overrides caller-protected or auto-protected literal spans. `SequenceFallbackMode`, `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
+
+## Lexhint evidence provider
+
+Pass an installed Lexhint runtime `Lexicon` explicitly through `lexical_evidence`. No dataset is resolved or downloaded when the argument is omitted. URL lexical segmentation may work with a lexical-only provider. Contextual computing and sports support requires the semantic capability, and missing semantic evidence never vetoes an existing candidate.
+
+```python
+from lexhint import Lexicon
+from spokenform import prepare
+
+lexicon = Lexicon("en", variant="runtime")
+result = prepare(
+    "compiler 8.3.2 and chatgpt.com",
+    language="en",
+    normalize_literals=True,
+    lexical_evidence=lexicon,
+    use_spacy=False,
+)
+```
+
+Lexhint semantic domains are mapped to Spokenform use cases rather than copied into `RecognitionDomain`. Surface mode ignores semantic evidence. URL lexical evidence is a rendering aid for a URL already recognized or promoted by Spokenform.

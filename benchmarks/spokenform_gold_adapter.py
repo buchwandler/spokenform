@@ -50,9 +50,7 @@ def prepare_gold_record(
     language_base = language.split("-", 1)[0].lower()
     locale_base = locale.split("-", 1)[0].lower()
     if language_base != locale_base:
-        raise ValueError(
-            f"Gold language {language!r} does not match locale {locale!r}"
-        )
+        raise ValueError(f"Gold language {language!r} does not match locale {locale!r}")
 
     kwargs = dict((profile or {}).get("prepare_kwargs", {}))
     unknown = sorted(set(kwargs) - _SUPPORTED_PREPARE_KEYS)

@@ -44,3 +44,9 @@ python -m benchmarks.spokenform_gold
 The adapter caches the exact reviewed source commit `ba55d631a45a0fe8b3d87ad58beef2843c617151` and its verified experimental `0.1.0-exp` release under `.cache/spokenform-gold/<commit>/`. The default evaluates the `test` split and writes results under `benchmark-results/spokenform-gold/<run-id>/`, including `summary.json`, `rows.jsonl`, Gold JSONL/Markdown artifacts, and a self-contained `report.html`.
 
 Use `--offline` after the cache is populated, `--refresh` to rebuild it, `--download-only` to populate without evaluation, `--cache-dir` to relocate the cache, `--gold-root` for an explicit local release, `--split dev|test|all`, `--mode canonical|accepted`, and `--report none` to disable HTML. Gold remains diagnostic and does not automatically hydrate restricted PolyNorm or Proteno source references.
+
+## Lexhint A/B comparison
+
+Compare the existing provider-free configuration with the same configuration plus a pinned Lexhint runtime artifact. Keep Spokenform, abbr2words, language, profile, and benchmark inputs fixed. Record the Spokenform commit/version, abbr2words version, Lexhint package version, dataset version, schema version, variant, language, and profile.
+
+Review URL, version, identifier, and sports families separately. The provider-free run is the compatibility baseline. Lexhint is successful only when URL rendering improves and contextual true positives increase without material IP, date, reference, or score false positives. Do not use an unpinned latest dataset for release comparisons.

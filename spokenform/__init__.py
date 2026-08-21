@@ -22,6 +22,7 @@ from .config import (
     SequenceFallbackMode,
     number_policy_for_language,
 )
+from .evidence import LexicalEvidenceProvider
 from .language import (
     SUPPORTED_BASE_LANGUAGES,
     base_language,
@@ -53,6 +54,7 @@ from .structured import StageResult, iter_structured_replacements, normalize_str
 
 __all__ = [
     "PreparationConfig",
+    "LexicalEvidenceProvider",
     "InterpretationMode",
     "SequenceFallbackMode",
     "RecognitionDomain",

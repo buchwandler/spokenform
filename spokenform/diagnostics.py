@@ -12,6 +12,7 @@ from .config import (
     RecognitionDomain,
     SequenceFallbackMode,
 )
+from .evidence import EvidenceSession, LexicalEvidenceProvider, validate_provider
 from .fallback import SequenceFallbackTrace, trace_sequence_fallback
 from .mapping import Replacement
 
@@ -31,6 +32,9 @@ class CandidateTrace:
     reject_reason: str | None = None
     domain: str | None = None
     evidence: str | None = None
+    evidence_source: str | None = None
+    evidence_score: float | None = None
+    evidence_cues: tuple[str, ...] = ()
     policy_reason: str | None = None
     rendered_text: str | None = None
     priority: int | None = None
@@ -58,6 +62,9 @@ class TraceCollector:
                 rendered_text=candidate.text,
                 domain=candidate.recognition_domain,
                 evidence=candidate.recognition_evidence,
+                evidence_source=candidate.evidence_source,
+                evidence_score=candidate.evidence_score,
+                evidence_cues=candidate.evidence_cues,
                 priority=candidate.specificity,
             )
         )
@@ -133,10 +140,13 @@ def trace_structured_candidates(
     interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     disabled_domains: frozenset[RecognitionDomain] = frozenset(),
     allowed_domains: frozenset[RecognitionDomain] | None = None,
+    lexical_evidence: LexicalEvidenceProvider | None = None,
 ) -> tuple[CandidateTrace, ...]:
     """Collect candidate, rejection, protection, and shadowing evidence."""
     from .structured import iter_structured_candidates, resolve_structured_candidates
 
+    validate_provider(lexical_evidence, language)
+    evidence = EvidenceSession(lexical_evidence)
     collector = TraceCollector()
     candidates = iter_structured_candidates(
         text,
@@ -145,6 +155,8 @@ def trace_structured_candidates(
         promote_literals=promote_literals,
         generic_acronym_mode=generic_acronym_mode,
         generic_acronym_case=generic_acronym_case,
+        interpretation_mode=interpretation_mode,
+        evidence=evidence,
         trace=collector,
     )
     resolved = resolve_structured_candidates(

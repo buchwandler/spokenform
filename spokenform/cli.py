@@ -8,6 +8,23 @@ import sys
 
 from .api import prepare
 from .config import InterpretationMode, RecognitionDomain, SequenceFallbackMode
+from .evidence import LexicalEvidenceProvider
+from .language import base_language
+
+
+def _load_lexhint(
+    language: str, *, variant: str, dataset_version: str | None
+) -> LexicalEvidenceProvider:
+    """Load an explicitly requested installed Lexhint artifact without downloading."""
+    try:
+        from lexhint import Lexicon
+    except ImportError as exc:
+        raise RuntimeError("--lexhint requires the spokenform[lexhint] extra") from exc
+    return Lexicon(
+        base_language(language),
+        variant=variant,
+        dataset_version=dataset_version,
+    )
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -51,6 +68,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-structured", action="store_true")
     parser.add_argument("--no-numbers", action="store_true")
     parser.add_argument("--keep-whitespace", action="store_true")
+    parser.add_argument("--normalize-literals", action="store_true")
+    parser.add_argument(
+        "--lexhint", action="store_true", help="Use an installed Lexhint runtime artifact"
+    )
+    parser.add_argument("--lexhint-variant", default="runtime", help="Lexhint artifact variant")
+    parser.add_argument(
+        "--lexhint-dataset-version", help="Require a specific Lexhint dataset version"
+    )
     parser.add_argument(
         "--symbol-mode",
         choices=("none", "remove", "keep"),
@@ -100,6 +125,19 @@ def main(argv: list[str] | None = None) -> int:
     if not source:
         parser.error("text is required as an argument or on stdin")
 
+    try:
+        lexical_evidence = (
+            _load_lexhint(
+                args.lang,
+                variant=args.lexhint_variant,
+                dataset_version=args.lexhint_dataset_version,
+            )
+            if args.lexhint
+            else None
+        )
+    except (ImportError, OSError, RuntimeError, TypeError, ValueError) as exc:
+        parser.error(str(exc))
+
     result = prepare(
         source,
         language=args.lang,
@@ -118,6 +156,8 @@ def main(argv: list[str] | None = None) -> int:
         allowed_domains=args.only_domain,
         sequence_fallback_mode=args.sequence_fallback,
         strict=args.strict,
+        normalize_literals=args.normalize_literals,
+        lexical_evidence=lexical_evidence,
     )
     if args.json:
         # Keep CLI JSON portable when stdout uses a legacy Windows code page.
