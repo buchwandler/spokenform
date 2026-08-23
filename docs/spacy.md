@@ -49,9 +49,7 @@ selection, disabled components, and process-level caching.
 ```python
 from spokenform import TokenAnnotation, prepare
 
-annotations = (
-    TokenAnnotation(start=0, end=2, text="in", pos="ADP", tag="IN"),
-)
+annotations = (TokenAnnotation(start=0, end=2, text="in", pos="ADP", tag="IN"),)
 result = prepare("in.", language="en", annotations=annotations)
 ```
 

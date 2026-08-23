@@ -224,6 +224,8 @@ prepare(
 
 ## Lexhint evidence provider
 
+Lexhint `0.1.2 <= x < 0.3.0` is supported as an optional provider. Lexhint 0.1.x uses schema-7 artifacts, while Lexhint 0.2.x requires schema-8 artifacts installed separately with `lexhint dataset download <language> --variant runtime`. Spokenform never downloads datasets automatically.
+
 Pass an installed Lexhint runtime `Lexicon` explicitly through `lexical_evidence`. No dataset is resolved or downloaded when the argument is omitted. URL lexical segmentation may work with a lexical-only provider. Contextual computing and sports support requires the semantic capability, and missing semantic evidence never vetoes an existing candidate.
 
 ```python

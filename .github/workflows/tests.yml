@@ -45,6 +45,32 @@ jobs:
           --cov-report=term-missing \
           --cov-report=xml \
           --cov-fail-under=85
+  lexhint-contract:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - python-version: "3.12"
+            lexhint-requirement: "lexhint==0.1.2"
+          - python-version: "3.12"
+            lexhint-requirement: "lexhint>=0.2.0,<0.3.0"
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install Spokenform and Lexhint contract target
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[dev]"
+        python -m pip install "${{ matrix.lexhint-requirement }}"
+    - name: Assert Lexhint is installed
+      run: |
+        python -c "import lexhint; print(lexhint.__version__)"
+    - name: Run real Lexhint provider contract
+      run: |
+        python -m pytest -q tests/test_evidence.py -k real_lexhint_runtime_contract
   docs:
     runs-on: ubuntu-latest
     steps:

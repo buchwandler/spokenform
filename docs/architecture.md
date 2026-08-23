@@ -134,6 +134,12 @@ reported as data-quality evidence rather than encoded as row-specific rules.
 
 Structured recognizers first emit candidates annotated with a semantic domain and evidence basis (`intrinsic` or `contextual`). `spokenform.recognition_policy` filters those candidates before `SequencePriority` overlap resolution. Surface mode admits intrinsic evidence only and treats missing metadata as contextual, while disabled domains suppress their ownership family and reserve overlapping spans against weaker semantic takeover. This keeps interpretation depth, semantic ownership, and rendering settings as separate policy axes. Diagnostics retain suppressed candidates with machine-readable reasons such as `context-not-allowed`, `disabled-domain`, and `blocked-by-disabled-domain`.
 
+## Optional Lexhint boundary
+
+Lexhint is an optional, provider-neutral evidence source. Spokenform supports Lexhint `0.1.2 <= x < 0.3.0`; Lexhint 0.1.x uses schema-7 artifacts and Lexhint 0.2.x requires separately published schema-8 runtime artifacts. Applications install the desired local dataset with `lexhint dataset download <language> --variant runtime` and inject the provider; normalization never downloads data.
+
+The production boundary uses exact lexical lookup, authoritative segmentation, and positive semantic-domain corroboration only. Lexhint fuzzy completion, headword matching, and dictionary-definition search remain development/diagnostic capabilities and do not alter automatic recognition.
+
 ## Semantic segment boundaries
 
 Recognized semantic expressions may consume source punctuation while preserving a generic textual segment boundary when the punctuation carries cadence or grouping semantics. Contextual countdowns therefore render `3-2-1` as `three - two - one`. The boundary is model-neutral and downstream G2P adapters own model-specific dash canonicalization. Residual `symbol_mode` filtering does not remove punctuation intentionally emitted by an accepted structured replacement.

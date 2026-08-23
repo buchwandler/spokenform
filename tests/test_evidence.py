@@ -246,7 +246,7 @@ def test_diagnostics_keep_contextual_evidence_and_source_details() -> None:
 
 
 def test_real_lexhint_runtime_contract(tmp_path: Path) -> None:
-    lexhint = pytest.importorskip("lexhint")
+    pytest.importorskip("lexhint")
     from lexhint import Lexicon
     from lexhint.builder import build_dictionary
 
@@ -266,6 +266,11 @@ def test_real_lexhint_runtime_contract(tmp_path: Path) -> None:
         "en", source, output=tmp_path / "runtime.sqlite3", profile="runtime", no_frequency=True
     )
     lexicon = Lexicon.from_path(artifact)
+    assert "lexical" in lexicon.capabilities
+    assert "semantic" in lexicon.capabilities
+    assert callable(lexicon.word)
+    assert callable(lexicon.segment)
+    assert callable(lexicon.supports_domain)
     segments = lexicon.segment("chatgpt")
     assert segments[0].text == "chat" and segments[0].known
     assert segments[1].text == "gpt" and not segments[1].known
@@ -286,4 +291,3 @@ def test_real_lexhint_runtime_contract(tmp_path: Path) -> None:
             "semifinal 2-1", use_spacy=False, lexical_evidence=lexicon
         ).source_replacements
     )
-    assert lexhint.__version__ >= "0.1.2"

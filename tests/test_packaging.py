@@ -25,6 +25,17 @@ def test_optional_dependencies_keep_spacy_and_remove_ssmd_and_lingua() -> None:
     )
 
 
+def test_lexhint_optional_dependency_supports_0_2_family() -> None:
+    project = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]
+    optional = project["optional-dependencies"]
+
+    requirement = "lexhint>=0.1.2,<0.3.0"
+    assert requirement in optional["lexhint"]
+    assert requirement in optional["all"]
+
+
 def test_declared_package_files_exist() -> None:
     root = Path(__file__).parents[1]
     assert (root / "NOTICE").is_file()

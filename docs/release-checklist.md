@@ -1,6 +1,11 @@
 # Release checklist
 
 1. Ensure the released `abbr2words>=0.2.9,<0.3.0` prerequisite containing the reviewed structured identities and initialism policy is available from the target package index.
+
+- Confirm the released Lexhint versions allowed by the `spokenform[lexhint]` extra pass the real provider contract test.
+- For Lexhint 0.2.x, confirm a compatible schema-8 `runtime` dataset is published and installable.
+- Run the URL, computing-context, and sports-context smoke tests with the installed schema-8 runtime artifact.
+
 2. Create an annotated Git tag for the target release, for example `vX.Y.Z`, only after all release gates pass.
 3. Install a clean environment with `python -m pip install -e ".[dev]"` and `python -m pip install -r docs/requirements.txt`.
 4. Run `python -m pytest`.

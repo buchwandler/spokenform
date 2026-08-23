@@ -40,11 +40,11 @@ sphinx-build -W -b html docs docs/_build/html
 
 ## Optional Lexhint integration
 
-Install the optional provider and an explicit local runtime artifact:
+Install the optional provider and an explicit local runtime artifact. Lexhint `0.1.2 <= x < 0.3.0` is supported; Lexhint 0.1.x uses schema-7 runtime artifacts, while Lexhint 0.2.x requires a separately published schema-8 runtime artifact:
 
 ```bash
 python -m pip install "spokenform[lexhint]"
-lexhint dataset download en --variant runtime
+lexhint dataset download <language> --variant runtime
 ```
 
 Spokenform does not import Lexhint or download data unless the caller supplies a provider. The API accepts a structural `LexicalEvidenceProvider`, so applications may adapt Lexhint without coupling core normalization to that package. Provider language must match the Spokenform base language.

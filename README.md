@@ -372,7 +372,11 @@ python -m pip install "spokenform[lexhint]"
 lexhint dataset download en --variant runtime
 ```
 
-The runtime artifact is never downloaded by Spokenform. Inject an installed Lexhint `Lexicon` into `prepare()`:
+The optional extra supports Lexhint `0.1.2 <= x < 0.3.0`, including the Lexhint 0.2.x family. Lexhint artifacts are versioned independently of Spokenform: Lexhint 0.1.x uses schema 7, while Lexhint 0.2.x requires schema-8 artifacts.
+
+For Lexhint 0.2.x, install a current schema-8 runtime dataset explicitly with `lexhint dataset download <language> --variant runtime`. Spokenform never downloads Lexhint data automatically; it only uses an installed artifact supplied by the caller.
+
+The runtime provider boundary stays narrow and deterministic. Spokenform uses exact lexical evidence, segmentation, and positive semantic-domain corroboration; Lexhint fuzzy and dictionary-search APIs are not used for automatic recognition.
 
 ```python
 from lexhint import Lexicon
