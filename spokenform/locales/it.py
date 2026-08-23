@@ -303,70 +303,90 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
     return any(start < right and left < end for left, right in protected)
 
 
-def iter_replacements(
-    text: str,
-    *,
-    language: str = "it",
-    protected_ranges: Iterable[tuple[int, int]] = (),
-) -> tuple[Replacement, ...]:
-    """Return exact Italian structured and semantic replacement candidates."""
-    protected = tuple(protected_ranges)
-    candidates: list[Replacement] = []
+def _add_candidate(
+    candidates: list[Replacement],
+    start: int,
+    end: int,
+    value: str | None,
+    rule: str,
+    protected: tuple[tuple[int, int], ...],
+) -> None:
+    if value is not None and not _overlaps(start, end, protected):
+        candidates.append(Replacement(start, end, value, "structured", "it", rule))
 
-    def add(start: int, end: int, value: str | None, rule: str) -> None:
-        if value is not None and not _overlaps(start, end, protected):
-            candidates.append(Replacement(start, end, value, "structured", "it", rule))
 
+def _iter_it_dates(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _DATE_DMY_NO_YEAR.finditer(text):
         day, month = int(match["day"]), int(match["month"])
         if _valid_date(day, month, 2000) and _date_like_context(
             text, match.start(), match.end(), day=day
         ):
-            add(
+            _add_candidate(
+                candidates,
                 match.start(),
                 match.end(),
                 f"{_spell(day, language)} {_MONTHS[month - 1]}",
                 "it.date",
+                protected,
             )
     for match in _DATE_DMY_SHORT.finditer(text):
         year, _ = expand_year(match["year"])
         day, month = int(match["day"]), int(match["month"])
         if _valid_date(day, month, year):
-            add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
+            _add_candidate(
+                candidates,
+                match.start(),
+                match.end(),
+                _date_text(day, month, year, language),
+                "it.date",
+                protected,
+            )
     aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
     for match in _TEXT_DATE.finditer(text):
-        text_month: int | None = aliases.get(match["month"].lower().rstrip(".")[:3])
+        text_month = aliases.get(match["month"].lower().rstrip(".")[:3])
         if text_month is None:
             continue
-        text_year: int | None = None
-        if match["year"]:
-            text_year, _ = expand_year(match["year"])
+        text_year = expand_year(match["year"])[0] if match["year"] else None
         day = int(match["day"])
         if text_year is None or _valid_date(day, text_month, text_year):
             value = _date_text(day, text_month, text_year or 2000, language)
             if text_year is None:
                 value = f"{_spell(day, language)} {_MONTHS[text_month - 1]}"
-            add(match.start(), match.end(), value, "it.date")
+            _add_candidate(candidates, match.start(), match.end(), value, "it.date", protected)
     for match in _TEXT_DATE_HYPHEN.finditer(text):
         text_month = aliases.get(match["month"].lower().rstrip(".")[:3])
         if text_month is None:
             continue
-        year, _ = expand_year(match["year"])
+        year = expand_year(match["year"])[0]
         day = int(match["day"])
         if _valid_date(day, text_month, year):
-            add(
+            _add_candidate(
+                candidates,
                 match.start(),
                 match.end(),
                 _date_text(day, text_month, year, language),
                 "it.date",
+                protected,
             )
-
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if 1 <= month <= 12 and _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year, language), "it.date")
+                _add_candidate(
+                    candidates,
+                    match.start(),
+                    match.end(),
+                    _date_text(day, month, year, language),
+                    "it.date",
+                    protected,
+                )
 
+
+def _iter_it_times(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for pattern in (_TIME_COLON, _TIME_DOTTED):
         for match in pattern.finditer(text):
             if int(match["hour"]) > 23 or int(match["minute"]) > 59:
@@ -375,13 +395,19 @@ def iter_replacements(
                 text, match.start(), match.end()
             ):
                 continue
-            add(
+            _add_candidate(
+                candidates,
                 match.start(),
                 match.end(),
                 _time_text(int(match["hour"]), int(match["minute"]), language),
                 "it.time",
+                protected,
             )
 
+
+def _iter_it_ordinals(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _ORDINAL_SYMBOL.finditer(text):
         value = str(
             num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal")
@@ -394,10 +420,16 @@ def iter_replacements(
             and match.group("suffix").casefold().rstrip(".") in {"a", "ª"}
             and prefix.casefold() == "la "
         ):
-            add(match.start() - 3, match.end(), f"L'{value}", "it.ordinal")
+            _add_candidate(
+                candidates, match.start() - 3, match.end(), f"L'{value}", "it.ordinal", protected
+            )
         else:
-            add(match.start(), match.end(), value, "it.ordinal")
+            _add_candidate(candidates, match.start(), match.end(), value, "it.ordinal", protected)
 
+
+def _iter_it_quantities(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
@@ -405,12 +437,23 @@ def iter_replacements(
             replacement = _quantity_text(unit_match, text, language)
         except (TypeError, ValueError):
             replacement = None
-        add(
-            unit_match.start,
-            unit_match.end,
-            replacement,
-            "it.currency" if unit_match.category == "currency" else "it.quantity",
-        )
+        rule = "it.currency" if unit_match.category == "currency" else "it.quantity"
+        _add_candidate(candidates, unit_match.start, unit_match.end, replacement, rule, protected)
+
+
+def iter_replacements(
+    text: str,
+    *,
+    language: str = "it",
+    protected_ranges: Iterable[tuple[int, int]] = (),
+) -> tuple[Replacement, ...]:
+    """Return exact Italian structured and semantic replacement candidates."""
+    protected = tuple(protected_ranges)
+    candidates: list[Replacement] = []
+    _iter_it_dates(text, language, protected, candidates)
+    _iter_it_times(text, language, protected, candidates)
+    _iter_it_ordinals(text, language, protected, candidates)
+    _iter_it_quantities(text, language, protected, candidates)
     return tuple(candidates)
 
 

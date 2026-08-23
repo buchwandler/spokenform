@@ -164,21 +164,13 @@ def _clean_grouping(value: str) -> str:
     return re.sub(r"[\s\u00a0\u202f'’]", "", value)
 
 
-def parse_numeric_lexeme(
-    raw: str,
-    language: str = "en",
-    *,
-    context: str = "plain",
-) -> NumericLexeme | None:
-    """Parse one numeric token, failing closed when separators are ambiguous.
+@dataclass(frozen=True, slots=True)
+class _SeparatorResolution:
+    decimal_separator: str | None
+    grouping_separators: tuple[str, ...] = ()
 
-    A one- or two-digit terminal group is treated as a decimal in a strong
-    semantic context, even when it is not the default separator for the
-    selected locale.  Three-digit groups remain grouping marks by default,
-    which protects values such as Spanish ``3,000``.  Multiple separators are
-    resolved by the rightmost separator only when the remaining grouping
-    shape is coherent.
-    """
+
+def _validated_numeric_token(raw: str, context: str) -> tuple[bool, str] | None:
     if not isinstance(raw, str) or not raw.strip() or context in _NON_NUMERIC_CONTEXTS:
         return None
     value = raw.strip()
@@ -188,78 +180,109 @@ def parse_numeric_lexeme(
     unsigned = value.lstrip("+−-")
     if not unsigned or not any(character.isdigit() for character in unsigned):
         return None
+    return negative, unsigned
 
-    language = normalize_language(language)
-    policy = numeric_punctuation_policy(language)
-    separators = tuple(character for character in unsigned if character in ".,")
-    if not separators:
-        return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())
 
-    distinct = set(separators)
-    decimal_separator: str | None = None
-    fraction_digits: str | None = None
-    grouping_separators: list[str] = []
+def _resolve_mixed_separators(
+    unsigned: str,
+    policy: NumericPunctuationPolicy,
+) -> _SeparatorResolution | None:
+    rightmost_index = max(unsigned.rfind("."), unsigned.rfind(","))
+    candidate = unsigned[rightmost_index]
+    tail = unsigned[rightmost_index + 1 :]
+    # The locale's declared decimal separator wins even for a three-digit
+    # fractional tail (for example de-DE ``42,195``).
+    if candidate == policy.decimal_separator or (
+        candidate in policy.alternate_decimal_separators and len(tail) != 3
+    ):
+        return _SeparatorResolution(candidate)
+    return None
 
-    if len(distinct) == 2:
-        rightmost_index = max(unsigned.rfind("."), unsigned.rfind(","))
-        candidate = unsigned[rightmost_index]
-        tail = unsigned[rightmost_index + 1 :]
-        # The locale's declared decimal separator wins even for a three-digit
-        # fractional tail (for example de-DE ``42,195``).  A non-preferred
-        # separator needs a short tail before it is accepted as decimal.
-        if candidate == policy.decimal_separator or (
-            candidate in policy.alternate_decimal_separators and len(tail) != 3
-        ):
-            decimal_separator = candidate
-        else:
+
+def _resolve_repeated_separator(
+    unsigned: str,
+    separator: str,
+    *,
+    context: str,
+    policy: NumericPunctuationPolicy,
+) -> _SeparatorResolution | None:
+    valid_grouping = _grouping_is_valid(unsigned, separator)
+    currency_grouping = (
+        context == "currency" and separator == policy.decimal_separator and valid_grouping
+    )
+    if (separator in policy.grouping_separators or currency_grouping) and valid_grouping:
+        return _SeparatorResolution(None, (separator,))
+    return None
+
+
+def _resolve_single_separator(
+    unsigned: str,
+    separator: str,
+    *,
+    language: str,
+    context: str,
+    policy: NumericPunctuationPolicy,
+) -> _SeparatorResolution | None:
+    head, tail = unsigned.split(separator, 1)
+    if not tail:
+        return None
+    if not head:
+        if separator not in (policy.decimal_separator, *policy.alternate_decimal_separators):
             return None
-    else:
-        separator = separators[0]
-        positions = _separator_positions(unsigned, separator)
-        if len(positions) > 1:
-            valid_grouping = _grouping_is_valid(unsigned, separator)
-            currency_grouping = (
-                context == "currency" and separator == policy.decimal_separator and valid_grouping
-            )
-            if (separator in policy.grouping_separators or currency_grouping) and valid_grouping:
-                grouping_separators.append(separator)
-            else:
+        head = "0"
+    if separator == policy.decimal_separator:
+        if context == "currency" and len(tail) > 2:
+            if separator not in policy.grouping_separators and base_language(language) != "es":
                 return None
-        else:
-            head, tail = unsigned.split(separator, 1)
-            if not tail:
+            if len(tail) != 3 or not _grouping_is_valid(unsigned, separator):
                 return None
-            if not head:
-                if separator not in (
-                    policy.decimal_separator,
-                    *policy.alternate_decimal_separators,
-                ):
-                    return None
-                decimal_separator = separator
-                head = "0"
-            if separator == policy.decimal_separator:
-                if context == "currency" and len(tail) > 2:
-                    if (
-                        separator not in policy.grouping_separators
-                        and base_language(language) != "es"
-                    ):
-                        return None
-                    if len(tail) != 3 or not _grouping_is_valid(unsigned, separator):
-                        return None
-                    grouping_separators.append(separator)
-                else:
-                    decimal_separator = separator
-            elif separator in policy.alternate_decimal_separators and (
-                len(tail) in {1, 2} or context in {"coordinate", "math"}
-            ):
-                decimal_separator = separator
-            elif len(tail) == 3 and separator in policy.grouping_separators:
-                grouping_separators.append(separator)
-            elif context in _STRONG_DECIMAL_CONTEXTS and len(tail) in {1, 2}:
-                decimal_separator = separator
-            else:
-                return None
+            return _SeparatorResolution(None, (separator,))
+        return _SeparatorResolution(separator)
+    if separator in policy.alternate_decimal_separators and (
+        len(tail) in {1, 2} or context in {"coordinate", "math"}
+    ):
+        return _SeparatorResolution(separator)
+    if len(tail) == 3 and separator in policy.grouping_separators:
+        return _SeparatorResolution(None, (separator,))
+    if context in _STRONG_DECIMAL_CONTEXTS and len(tail) in {1, 2}:
+        return _SeparatorResolution(separator)
+    return None
 
+
+def _resolve_separator_shape(
+    unsigned: str,
+    *,
+    language: str,
+    context: str,
+    policy: NumericPunctuationPolicy,
+) -> _SeparatorResolution | None:
+    separators = tuple(character for character in unsigned if character in ".,")
+    distinct = set(separators)
+    if len(distinct) == 2:
+        return _resolve_mixed_separators(unsigned, policy)
+    separator = separators[0]
+    positions = _separator_positions(unsigned, separator)
+    if len(positions) > 1:
+        return _resolve_repeated_separator(unsigned, separator, context=context, policy=policy)
+    return _resolve_single_separator(
+        unsigned,
+        separator,
+        language=language,
+        context=context,
+        policy=policy,
+    )
+
+
+def _build_numeric_lexeme(
+    raw: str,
+    *,
+    negative: bool,
+    unsigned: str,
+    resolution: _SeparatorResolution,
+) -> NumericLexeme | None:
+    decimal_separator = resolution.decimal_separator
+    grouping_separators = list(resolution.grouping_separators)
+    distinct = {character for character in unsigned if character in ".,"}
     if decimal_separator is not None:
         integer, fraction = unsigned.rsplit(decimal_separator, 1)
         integer = integer or "0"
@@ -282,7 +305,6 @@ def parse_numeric_lexeme(
             decimal_separator,
             tuple(dict.fromkeys(grouping_separators)),
         )
-
     integer = _clean_grouping(unsigned.replace(",", "").replace(".", ""))
     if not integer.isdigit():
         return None
@@ -290,9 +312,40 @@ def parse_numeric_lexeme(
         raw,
         negative,
         integer,
-        fraction_digits,
+        None,
         None,
         tuple(dict.fromkeys(grouping_separators)),
+    )
+
+
+def parse_numeric_lexeme(
+    raw: str,
+    language: str = "en",
+    *,
+    context: str = "plain",
+) -> NumericLexeme | None:
+    """Parse one numeric token, failing closed when separators are ambiguous."""
+    validated = _validated_numeric_token(raw, context)
+    if validated is None:
+        return None
+    negative, unsigned = validated
+    language = normalize_language(language)
+    policy = numeric_punctuation_policy(language)
+    if not any(character in unsigned for character in ".,"):
+        return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())
+    resolution = _resolve_separator_shape(
+        unsigned,
+        language=language,
+        context=context,
+        policy=policy,
+    )
+    if resolution is None:
+        return None
+    return _build_numeric_lexeme(
+        raw,
+        negative=negative,
+        unsigned=unsigned,
+        resolution=resolution,
     )
 
 

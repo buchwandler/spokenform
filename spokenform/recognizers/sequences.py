@@ -26,6 +26,7 @@ from ..sequences import (
     vocabulary,
 )
 from .biology import iter_replacements as iter_biomedical_replacements
+from .product import product_label_category, product_label_text
 from .ranges import iter_replacements as iter_range_replacements
 from .references import iter_replacements as iter_reference_replacements
 from .temporal import countdown_is_plausible, countdown_text
@@ -2005,191 +2006,275 @@ def _duration_text(hour: str, minute: str, second: str, language: str) -> str:
     return " ".join(result)
 
 
-def _legal_text(value: str, language: str) -> str:
+_LEGAL_LABEL_HEADINGS = {
+    "de": {
+        "section": "Abschnitt",
+        "sec": "Abschnitt",
+        "article": "Artikel",
+        "art": "Artikel",
+        "chapter": "Kapitel",
+        "chap": "Kapitel",
+    },
+    "es": {
+        "section": "sección",
+        "sec": "sección",
+        "article": "artículo",
+        "art": "artículo",
+        "chapter": "capítulo",
+        "chap": "capítulo",
+    },
+    "fr": {
+        "section": "section",
+        "sec": "section",
+        "article": "article",
+        "art": "article",
+        "chapter": "chapitre",
+        "chap": "chapitre",
+    },
+    "it": {
+        "section": "sezione",
+        "sec": "sezione",
+        "article": "articolo",
+        "art": "articolo",
+        "chapter": "capitolo",
+        "chap": "capitolo",
+    },
+}
+_LEGAL_GENERIC_HEADINGS = {
+    "cs": ("paragraf", "článek"),
+    "de": ("Paragraf", "Artikel"),
+    "en": ("section", "article"),
+    "es": ("párrafo", "artículo"),
+    "fr": ("paragraphe", "article"),
+    "it": ("paragrafo", "articolo"),
+    "pt": ("parágrafo", "artigo"),
+}
+_LEGAL_LABELED_VALUE_RE = re.compile(
+    r"(section|sec\.?|article|art\.?|chapter|chap\.?)\s*(\d+)(?:\s+(?:subsection|paragraph|para\.?|§)\s*(\d+))?",
+    re.IGNORECASE,
+)
+_LEGAL_GERMAN_PARAGRAPH_VALUE_RE = re.compile(
+    r"§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})",
+)
+_LEGAL_GERMAN_ARTICLE_VALUE_RE = re.compile(
+    r"(?:Art\.?|Artikel)\s*(\d+)\s+Abs\.?\s*(\d+)\s+([A-ZÄÖÜ]{2,})",
+    re.IGNORECASE,
+)
+_LEGAL_GERMAN_ROMAN_VALUE_RE = re.compile(
+    r"§\s*(\d+)\s+([IVXLCDM]+)(?:\s+(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})",
+)
+_LEGAL_US_VALUE_RE = re.compile(r"(\d+)\s+U\.S\.C\.\s+§\s*(\d+)", re.IGNORECASE)
+_LEGAL_ES_VALUE_RE = re.compile(r"ley\s+(\d{1,3}(?:\.\d{3})?)", re.IGNORECASE)
+_LEGAL_IT_VALUE_RE = re.compile(r"legge\s+n\.?\s*(\d+)(?:/(\d{4}))?", re.IGNORECASE)
+_LEGAL_ES_SLASH_VALUE_RE = re.compile(r"(sentencia|registro)\s+(\d+)/(\d{4})", re.IGNORECASE)
+_LEGAL_IT_SLASH_VALUE_RE = re.compile(
+    r"(legge|sentenza|regolamento)\s+(?:n\.?\s*)?(\d+)/(\d{3,4})", re.IGNORECASE
+)
+_LEGAL_DOCKET_VALUE_RE = re.compile(r"(Docket|Case)\s+No\.?\s*(.+)", re.IGNORECASE)
+_LEGAL_FR_VALUE_RE = re.compile(r"(?:décret|decret)\s+n[°o]?\s*(\d{4})-(\d+)", re.IGNORECASE)
+_LEGAL_PREFIX_VALUE_RE = re.compile(
+    r"([A-ZÄÖÜ]{2,})\s+§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?", re.IGNORECASE
+)
+_LEGAL_GENERIC_VALUE_RE = re.compile(
+    r"(?:§|Art\.?|Artikel)\s*(\d+)(?:\s+([IVXLCDM]+))?(?:\s+(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})$",
+    re.IGNORECASE,
+)
+
+
+def _render_labeled_legal(value: str, language: str) -> str | None:
+    match = _LEGAL_LABELED_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
     base = base_language(language)
-    label_match = re.fullmatch(
-        r"(section|sec\.?|article|art\.?|chapter|chap\.?)\s*(\d+)(?:\s+(?:subsection|paragraph|para\.?|§)\s*(\d+))?",
-        value,
-        re.IGNORECASE,
+    key = match.group(1).casefold().rstrip(".")
+    heading = _LEGAL_LABEL_HEADINGS.get(base, {}).get(key, key)
+    result = f"{heading} {_cardinal(int(match.group(2)), language)}"
+    if match.group(3):
+        result += f" {_cardinal(int(match.group(3)), language)}"
+    return result
+
+
+def _render_german_paragraph(value: str, language: str) -> str | None:
+    match = _LEGAL_GERMAN_PARAGRAPH_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    result = f"Paragraf {_cardinal(int(match.group(1)), language)}"
+    if match.group(2):
+        result += f" Absatz {_cardinal(int(match.group(2)), language)}"
+    return f"{result} {render_sequence(match.group(3), language=language)}"
+
+
+def _render_german_article(value: str, language: str) -> str | None:
+    if base_language(language) != "de":
+        return None
+    match = _LEGAL_GERMAN_ARTICLE_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    return (
+        f"Artikel {_cardinal(int(match.group(1)), language)} Absatz "
+        f"{_cardinal(int(match.group(2)), language)} "
+        f"{render_sequence(match.group(3), language=language)}"
     )
-    if label_match:
-        headings = {
-            "de": {
-                "section": "Abschnitt",
-                "sec": "Abschnitt",
-                "article": "Artikel",
-                "art": "Artikel",
-                "chapter": "Kapitel",
-                "chap": "Kapitel",
-            },
-            "es": {
-                "section": "sección",
-                "sec": "sección",
-                "article": "artículo",
-                "art": "artículo",
-                "chapter": "capítulo",
-                "chap": "capítulo",
-            },
-            "fr": {
-                "section": "section",
-                "sec": "section",
-                "article": "article",
-                "art": "article",
-                "chapter": "chapitre",
-                "chap": "chapitre",
-            },
-            "it": {
-                "section": "sezione",
-                "sec": "sezione",
-                "article": "articolo",
-                "art": "articolo",
-                "chapter": "capitolo",
-                "chap": "capitolo",
-            },
-        }
-        key = label_match.group(1).casefold().rstrip(".")
-        heading = headings.get(base, {}).get(key, key)
-        result = f"{heading} {_cardinal(int(label_match.group(2)), language)}"
-        if label_match.group(3):
-            result += f" {_cardinal(int(label_match.group(3)), language)}"
-        return result
-    german_match = re.fullmatch(
-        r"§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})",
-        value,
+
+
+def _render_german_roman(value: str, language: str) -> str | None:
+    match = _LEGAL_GERMAN_ROMAN_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    result = (
+        f"Paragraf {_cardinal(int(match.group(1)), language)} "
+        f"Absatz {_cardinal(_roman_value(match.group(2)), language)}"
     )
-    if german_match:
-        result = f"Paragraf {_cardinal(int(german_match.group(1)), language)}"
-        if german_match.group(2):
-            result += f" Absatz {_cardinal(int(german_match.group(2)), language)}"
-        result += f" {render_sequence(german_match.group(3), language=language)}"
-        return result
-    german_article_match = re.fullmatch(
-        r"(?:Art\.?|Artikel)\s*(\d+)\s+Abs\.?\s*(\d+)\s+([A-ZÄÖÜ]{2,})",
-        value,
-        re.IGNORECASE,
+    if match.group(3):
+        result += f" Satz {_cardinal(int(match.group(3)), language)}"
+    return f"{result} {render_sequence(match.group(4), language=language)}"
+
+
+def _render_us_code(value: str, language: str) -> str | None:
+    match = _LEGAL_US_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    left = _cardinal(int(match.group(1)), language).replace("-", " ").replace(",", "")
+    right = _cardinal(int(match.group(2)), language).replace("-", " ").replace(",", "")
+    return f"{left} U S C section {right}"
+
+
+def _render_spanish_law(value: str, language: str) -> str | None:
+    match = _LEGAL_ES_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    return f"ley {_cardinal(int(match.group(1).replace('.', '')), language)}"
+
+
+def _render_italian_law(value: str, language: str) -> str | None:
+    match = _LEGAL_IT_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    result = f"legge numero {_cardinal(int(match.group(1)), language)}"
+    if match.group(2):
+        result += f" del {_cardinal(int(match.group(2)), language)}"
+    return result
+
+
+def _render_spanish_slash_reference(value: str, language: str) -> str | None:
+    if base_language(language) != "es":
+        return None
+    match = _LEGAL_ES_SLASH_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    return (
+        f"{match.group(1).casefold()} {_cardinal(int(match.group(2)), language)} de "
+        f"{_cardinal(int(match.group(3)), language)}"
     )
-    if german_article_match and base == "de":
-        return (
-            f"Artikel {_cardinal(int(german_article_match.group(1)), language)} Absatz "
-            f"{_cardinal(int(german_article_match.group(2)), language)} "
-            f"{render_sequence(german_article_match.group(3), language=language)}"
-        )
-    german_roman_match = re.fullmatch(
-        r"§\s*(\d+)\s+([IVXLCDM]+)(?:\s+(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})", value
+
+
+def _render_italian_slash_reference(value: str, language: str) -> str | None:
+    if base_language(language) != "it":
+        return None
+    match = _LEGAL_IT_SLASH_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    label = {
+        "legge": "legge",
+        "sentenza": "sentenza",
+        "regolamento": "regolamento numero",
+    }[match.group(1).casefold()]
+    return (
+        f"{label} {_cardinal(int(match.group(2)), language)} del "
+        f"{_cardinal(int(match.group(3)), language)}"
     )
-    if german_roman_match:
-        subsection = _roman_value(german_roman_match.group(2))
-        result = (
-            f"Paragraf {_cardinal(int(german_roman_match.group(1)), language)} "
-            f"Absatz {_cardinal(subsection, language)}"
-        )
-        if german_roman_match.group(3):
-            result += f" Satz {_cardinal(int(german_roman_match.group(3)), language)}"
-        return f"{result} {render_sequence(german_roman_match.group(4), language=language)}"
-    us_match = re.fullmatch(r"(\d+)\s+U\.S\.C\.\s+§\s*(\d+)", value, re.IGNORECASE)
-    if us_match:
-        left = _cardinal(int(us_match.group(1)), language).replace("-", " ").replace(",", "")
-        right = _cardinal(int(us_match.group(2)), language).replace("-", " ").replace(",", "")
-        return f"{left} U S C section {right}"
-    es_match = re.fullmatch(r"ley\s+(\d{1,3}(?:\.\d{3})?)", value, re.IGNORECASE)
-    if es_match:
-        return f"ley {_cardinal(int(es_match.group(1).replace('.', '')), language)}"
-    it_match = re.fullmatch(r"legge\s+n\.?\s*(\d+)(?:/(\d{4}))?", value, re.IGNORECASE)
-    if it_match:
-        result = f"legge numero {_cardinal(int(it_match.group(1)), language)}"
-        if it_match.group(2):
-            result += f" del {_cardinal(int(it_match.group(2)), language)}"
-        return result
-    spanish_slash = re.fullmatch(r"(sentencia|registro)\s+(\d+)/(\d{4})", value, re.IGNORECASE)
-    if spanish_slash and base == "es":
-        return (
-            f"{spanish_slash.group(1).casefold()} "
-            f"{_cardinal(int(spanish_slash.group(2)), language)} de "
-            f"{_cardinal(int(spanish_slash.group(3)), language)}"
-        )
-    italian_slash = re.fullmatch(
-        r"(legge|sentenza|regolamento)\s+(?:n\.?\s*)?(\d+)/(\d{3,4})",
-        value,
-        re.IGNORECASE,
+
+
+def _render_docket_piece(piece: str, language: str) -> str:
+    if piece == ":":
+        return "colon"
+    if piece == "-":
+        return "dash"
+    if not piece.isdigit():
+        return _grapheme_text(piece, language)
+    if len(piece) == 4:
+        return render_english_year(int(piece), language=language, source_digits=4)
+    if len(piece) <= 2:
+        return _cardinal(int(piece), language).replace("-", " ")
+    return _digitwise(piece, language)
+
+
+def _render_english_docket(value: str, language: str) -> str | None:
+    if base_language(language) != "en":
+        return None
+    match = _LEGAL_DOCKET_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    label = "Docket Number" if match.group(1).casefold() == "docket" else "Case Number"
+    identifier = match.group(2)
+    if ":" in identifier:
+        pieces = re.split(r"([:\-])", identifier)
+        return f"{label} {' '.join(_render_docket_piece(piece, language) for piece in pieces)}"
+    year, suffix = identifier.split("-", 1)
+    return f"{label} {render_english_year(int(year), language=language, source_digits=4)} dash {_digitwise(suffix, language)}"
+
+
+def _render_french_decree(value: str, language: str) -> str | None:
+    match = _LEGAL_FR_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    return (
+        f"décret numéro {_cardinal(int(match.group(1)), language)} "
+        f"{_cardinal(int(match.group(2)), language)}"
     )
-    if italian_slash and base == "it":
-        label = {
-            "legge": "legge",
-            "sentenza": "sentenza",
-            "regolamento": "regolamento numero",
-        }[italian_slash.group(1).casefold()]
-        return (
-            f"{label} {_cardinal(int(italian_slash.group(2)), language)} del "
-            f"{_cardinal(int(italian_slash.group(3)), language)}"
-        )
-    docket = re.fullmatch(r"(Docket|Case)\s+No\.?\s*(.+)", value, re.IGNORECASE)
-    if docket and base == "en":
-        label = "Docket Number" if docket.group(1).casefold() == "docket" else "Case Number"
-        identifier = docket.group(2)
-        if ":" in identifier:
-            pieces = re.split(r"([:\-])", identifier)
-            rendered: list[str] = []
-            for piece in pieces:
-                if piece == ":":
-                    rendered.append("colon")
-                elif piece == "-":
-                    rendered.append("dash")
-                elif piece.isdigit():
-                    rendered.append(
-                        render_english_year(int(piece), language=language, source_digits=4)
-                        if len(piece) == 4
-                        else (
-                            _cardinal(int(piece), language).replace("-", " ")
-                            if len(piece) <= 2
-                            else _digitwise(piece, language)
-                        )
-                    )
-                else:
-                    rendered.append(_grapheme_text(piece, language))
-            return f"{label} {' '.join(rendered)}"
-        year, suffix = identifier.split("-", 1)
-        return f"{label} {render_english_year(int(year), language=language, source_digits=4)} dash {_digitwise(suffix, language)}"
-    fr_match = re.fullmatch(r"(?:décret|decret)\s+n[°o]?\s*(\d{4})-(\d+)", value, re.IGNORECASE)
-    if fr_match:
-        return f"décret numéro {_cardinal(int(fr_match.group(1)), language)} {_cardinal(int(fr_match.group(2)), language)}"
-    prefix_match = re.fullmatch(
-        r"([A-ZÄÖÜ]{2,})\s+§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?", value, re.IGNORECASE
-    )
-    if prefix_match:
-        result = f"{_digitwise(prefix_match.group(1), language)} Paragraf {_cardinal(int(prefix_match.group(2)), language)}"
-        if prefix_match.group(3):
-            result += f" Absatz {_cardinal(int(prefix_match.group(3)), language)}"
-        return result
-    match = re.match(
-        r"(?:§|Art\.?|Artikel)\s*(\d+)(?:\s+([IVXLCDM]+))?(?:\s+(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})$",
-        value,
-        re.IGNORECASE,
-    )
-    if not match:
-        return render_sequence(value, language=language)
-    legal_headings: dict[str, tuple[str, str]] = {
-        "cs": ("paragraf", "článek"),
-        "de": ("Paragraf", "Artikel"),
-        "en": ("section", "article"),
-        "es": ("párrafo", "artículo"),
-        "fr": ("paragraphe", "article"),
-        "it": ("paragrafo", "articolo"),
-        "pt": ("parágrafo", "artigo"),
-    }
-    legal_heading_pair = legal_headings.get(base, legal_headings["en"])
-    legal_heading = (
-        legal_heading_pair[0] if value.lstrip().startswith("§") else legal_heading_pair[1]
-    )
-    legal_result: list[str] = [legal_heading, _cardinal(int(match.group(1)), language)]
+
+
+def _render_prefixed_paragraph(value: str, language: str) -> str | None:
+    match = _LEGAL_PREFIX_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    result = f"{_digitwise(match.group(1), language)} Paragraf {_cardinal(int(match.group(2)), language)}"
+    if match.group(3):
+        result += f" Absatz {_cardinal(int(match.group(3)), language)}"
+    return result
+
+
+def _render_generic_legal(value: str, language: str) -> str | None:
+    match = _LEGAL_GENERIC_VALUE_RE.fullmatch(value)
+    if match is None:
+        return None
+    pair = _LEGAL_GENERIC_HEADINGS.get(base_language(language), _LEGAL_GENERIC_HEADINGS["en"])
+    heading = pair[0] if value.lstrip().startswith("§") else pair[1]
+    result = [heading, _cardinal(int(match.group(1)), language)]
     for group in match.groups()[1:3]:
         if group:
-            legal_result.append(
+            result.append(
                 _cardinal(int(group), language)
                 if group.isdigit()
                 else render_sequence(group, language=language)
             )
-    legal_result.append(render_sequence(match.group(4), language=language))
-    return " ".join(legal_result)
+    result.append(render_sequence(match.group(4), language=language))
+    return " ".join(result)
+
+
+_LEGAL_RENDERERS = (
+    _render_labeled_legal,
+    _render_german_paragraph,
+    _render_german_article,
+    _render_german_roman,
+    _render_us_code,
+    _render_spanish_law,
+    _render_italian_law,
+    _render_spanish_slash_reference,
+    _render_italian_slash_reference,
+    _render_english_docket,
+    _render_french_decree,
+    _render_prefixed_paragraph,
+    _render_generic_legal,
+)
+
+
+def _legal_text(value: str, language: str) -> str:
+    for renderer in _LEGAL_RENDERERS:
+        rendered = renderer(value, language)
+        if rendered is not None:
+            return rendered
+    return render_sequence(value, language=language)
 
 
 def _address_text(number: str, suffix: str, street: str, language: str) -> str:
@@ -2281,33 +2366,15 @@ def _add(
         )
 
 
-def iter_sequence_replacements(
+def _iter_quarter_height_postal_candidates(
     text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
     *,
-    language: str = "en",
-    protected_ranges: Iterable[tuple[int, int]] = (),
     promote_literals: bool = False,
-    generic_acronym_mode: Literal[
-        "known_only", "conservative_unknown", "spell_unknown"
-    ] = "known_only",
-    generic_acronym_case: Literal["upper", "lower"] = "upper",
-    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
     evidence: EvidenceSession | None = None,
-    trace: TraceCollector | None = None,
-) -> tuple[Replacement, ...]:
-    """Recognize and render high-confidence atomic structured sequences."""
-    language = normalize_language(language)
-    protected = tuple(protected_ranges)
-    candidates: list[Replacement] = []
-    candidates.extend(
-        iter_biomedical_replacements(text, language=language, protected_ranges=protected)
-    )
-    candidates.extend(
-        iter_range_replacements(text, language=language, protected_ranges=protected, trace=trace)
-    )
-    candidates.extend(
-        iter_reference_replacements(text, language=language, protected_ranges=protected)
-    )
+) -> None:
     for match in _QUARTER_RE.finditer(text):
         start, end = match.span()
         if not _claimed(start, end, protected):
@@ -2347,6 +2414,7 @@ def iter_sequence_replacements(
                         72,
                     )
                 )
+
     if base_language(language) == "es":
         for match in _ES_POSTAL_RE.finditer(text):
             _add(
@@ -2357,6 +2425,7 @@ def iter_sequence_replacements(
                 "sequence.postal",
                 protected,
             )
+
     for pattern, rule in ((_URL_RE, "sequence.url"), (_EMAIL_RE, "sequence.email")):
         for match in pattern.finditer(text):
             _add(
@@ -2371,6 +2440,7 @@ def iter_sequence_replacements(
                 rule,
                 protected,
             )
+
     if promote_literals:
         for match in _BARE_DOMAIN_RE.finditer(text):
             _add(
@@ -2381,6 +2451,14 @@ def iter_sequence_replacements(
                 "sequence.url",
                 protected,
             )
+
+
+def _iter_finance_quantity_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for match in _EXCHANGE_EQUAL_RE.finditer(text):
         left_code = _CURRENCY_SYMBOL_CODES.get(
             match["left_currency"], match["left_currency"].upper()
@@ -2396,6 +2474,7 @@ def iter_sequence_replacements(
             "sequence.exchange-rate",
             protected,
         )
+
     for match in _EXCHANGE_TO_RE.finditer(text):
         source_code = _CURRENCY_SYMBOL_CODES.get(match["currency"], match["currency"].upper())
         target_code = _CURRENCY_SYMBOL_CODES.get(match["target"], match["target"].upper())
@@ -2408,6 +2487,7 @@ def iter_sequence_replacements(
             "sequence.exchange-rate",
             protected,
         )
+
     for match in _EXCHANGE_SLASH_RE.finditer(text):
         source_code = match["currency"].upper()
         target_code = match["target"].upper()
@@ -2420,6 +2500,7 @@ def iter_sequence_replacements(
             "sequence.exchange-rate",
             protected,
         )
+
     for match in _CURRENCY_MAGNITUDE_RE.finditer(text):
         symbol = match["symbol"]
         value = f"{_decimal_text(match['number'], language)} {match['magnitude']}"
@@ -2432,6 +2513,7 @@ def iter_sequence_replacements(
             "sequence.currency-magnitude",
             protected,
         )
+
     for match in _CURRENCY_SYMBOL_RE.finditer(text):
         symbol = match["prefix"] or match["suffix"]
         if symbol and base_language(language) in {"de", "it"}:
@@ -2443,6 +2525,7 @@ def iter_sequence_replacements(
                 "sequence.currency",
                 protected,
             )
+
     for match in _PERCENT_RE.finditer(text):
         _add(
             candidates,
@@ -2452,6 +2535,7 @@ def iter_sequence_replacements(
             "sequence.percent",
             protected,
         )
+
     for match in _COMPOUND_UNIT_RE.finditer(text):
         _add(
             candidates,
@@ -2461,6 +2545,7 @@ def iter_sequence_replacements(
             "sequence.compound-unit",
             protected,
         )
+
     for match in _FRACTION_RE.finditer(text):
         _add(
             candidates,
@@ -2470,6 +2555,7 @@ def iter_sequence_replacements(
             "sequence.fraction",
             protected,
         )
+
     for match in _SLASH_FRACTION_RE.finditer(text):
         numerator = match["numerator"] or match["numerator_only"]
         denominator = match["denominator"] or match["denominator_only"]
@@ -2478,6 +2564,7 @@ def iter_sequence_replacements(
         slash_value = _slash_fraction_text(match["whole"], numerator, denominator, language)
         if slash_value is not None:
             _add(candidates, match, slash_value, language, "sequence.fraction", protected)
+
     for match in _COORDINATE_RE.finditer(text):
         direction = match["direction"]
         if base_language(language) == "it" and direction is None:
@@ -2493,6 +2580,14 @@ def iter_sequence_replacements(
                 "sequence.coordinate",
                 protected,
             )
+
+
+def _iter_identifier_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for match in _ISBN_RE.finditer(text):
         if _isbn_shape_is_valid(match["value"]):
             label = _isbn_label_text(match["label"], language)
@@ -2504,6 +2599,7 @@ def iter_sequence_replacements(
                 "sequence.isbn",
                 protected,
             )
+
     for label_match in _ISBN_LABEL_RE.finditer(text):
         search_start = label_match.end()
         search_end = min(len(text), search_start + 96)
@@ -2539,6 +2635,7 @@ def iter_sequence_replacements(
                 )
             )
             break
+
     for label_match in _SPACED_ISBN_LABEL_RE.finditer(text):
         search_start = label_match.end()
         tail = text[search_start : min(len(text), search_start + 96)]
@@ -2571,6 +2668,7 @@ def iter_sequence_replacements(
                 ),
             )
         )
+
     for match in _UUID_RE.finditer(text):
         _add(
             candidates,
@@ -2580,6 +2678,7 @@ def iter_sequence_replacements(
             "sequence.uuid",
             protected,
         )
+
     for match in _IPV4_RE.finditer(text):
         octets = match["value"].split(".")
         if all(int(octet) <= 255 for octet in octets):
@@ -2591,6 +2690,7 @@ def iter_sequence_replacements(
                 "sequence.ipv4",
                 protected,
             )
+
     for match in _MAC_RE.finditer(text):
         _add(
             candidates,
@@ -2600,6 +2700,7 @@ def iter_sequence_replacements(
             "sequence.mac",
             protected,
         )
+
     for match in _IBAN_RE.finditer(text):
         _add(
             candidates,
@@ -2609,6 +2710,7 @@ def iter_sequence_replacements(
             "sequence.iban",
             protected,
         )
+
     for match in _PHONE_RE.finditer(text):
         prefix = text[max(0, match.start() - 48) : match.start()]
         blocked = bool(_PHONE_BLOCKING_CONTEXT_RE.search(prefix))
@@ -2659,6 +2761,7 @@ def iter_sequence_replacements(
                         74,
                     )
                 )
+
     for match in _ITALIAN_SERIAL_RE.finditer(text):
         start, end = match.span("value")
         if _claimed(start, end, protected):
@@ -2668,6 +2771,7 @@ def iter_sequence_replacements(
             candidates.append(
                 Replacement(start, end, replacement, "structured", language, "sequence.product", 79)
             )
+
     for match in _EMERGENCY_RE.finditer(text):
         policy = _EMERGENCY_POLICIES.get(base_language(language), EmergencyNumberPolicy())
         number = (
@@ -2683,6 +2787,18 @@ def iter_sequence_replacements(
             "sequence.emergency",
             protected,
         )
+
+
+def _iter_version_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+    *,
+    promote_literals: bool = False,
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    evidence: EvidenceSession | None = None,
+) -> None:
     for match in _VERSION_CONTEXT_RE.finditer(text):
         value = match["value"]
         start, end = match.start("value"), match.end("value")
@@ -2699,6 +2815,7 @@ def iter_sequence_replacements(
                     "sequence.version",
                 )
             )
+
     for match in _SOFTWARE_VERSION_RE.finditer(text):
         start, end = match.span("value")
         if _claimed(start, end, protected):
@@ -2713,6 +2830,7 @@ def iter_sequence_replacements(
                     2,
                 )
             )
+
     for match in _VERSION_RE.finditer(text):
         prefix = text[max(0, match.start() - 32) : match.start()]
         contextual = bool(
@@ -2763,6 +2881,14 @@ def iter_sequence_replacements(
                     evidence_cues=details.cues if details else (),
                 )
             )
+
+
+def _iter_roman_symbol_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     roman_patterns: tuple[tuple[re.Pattern[str], RomanSemantic], ...] = (
         (_ROMAN_PREFIX_CARDINAL_RE, "cardinal"),
         (_ROMAN_PREFIX_ORDINAL_RE, "ordinal"),
@@ -2772,6 +2898,7 @@ def iter_sequence_replacements(
         (_ROMAN_NUMBERED_PREFIX_RE, "cardinal"),
         (_ROMAN_NUMBERED_SUFFIX_RE, "cardinal"),
     )
+
     for pattern, semantic in roman_patterns:
         for match in pattern.finditer(text):
             if not _roman_is_valid(match["value"]):
@@ -2795,6 +2922,7 @@ def iter_sequence_replacements(
                         "sequence.roman",
                     )
                 )
+
     for match in _SUPERSCRIPT_RE.finditer(text):
         if _claimed(match.start(), match.end(), protected):
             _add(
@@ -2805,6 +2933,7 @@ def iter_sequence_replacements(
                 "sequence.math",
                 protected,
             )
+
     for match in _GREEK_TOKEN_RE.finditer(text):
         if _claimed(match.start(), match.end(), protected):
             _add(
@@ -2815,12 +2944,14 @@ def iter_sequence_replacements(
                 "sequence.symbol",
                 protected,
             )
+
     monarch_pattern = {
         "de": _DE_MONARCH_RE,
         "fr": _FR_MONARCH_RE,
         "it": _IT_MONARCH_RE,
         "pt": _PT_MONARCH_RE,
     }.get(base_language(language), _EN_MONARCH_RE)
+
     for match in monarch_pattern.finditer(text):
         if not _roman_is_valid(match["value"]):
             continue
@@ -2841,6 +2972,7 @@ def iter_sequence_replacements(
                     "sequence.roman",
                 )
             )
+
     for pattern, marker, rule in (
         (_HASHTAG_RE, "#", "sequence.social-hashtag"),
         (_MENTION_RE, "@", "sequence.social-mention"),
@@ -2867,6 +2999,14 @@ def iter_sequence_replacements(
                 rule,
                 protected,
             )
+
+
+def _iter_math_science_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for pattern in (_MATH_ABSOLUTE_RE, _MATH_RE):
         for match in pattern.finditer(text):
             if not _math_is_plausible(match["value"], text, match.start()):
@@ -2879,6 +3019,7 @@ def iter_sequence_replacements(
                 "sequence.math",
                 protected,
             )
+
     for match in _MUSIC_CONTEXT_RE.finditer(text):
         start, end = match.span("value")
         if _claimed(start, end, protected):
@@ -2892,6 +3033,7 @@ def iter_sequence_replacements(
                     "sequence.music",
                 )
             )
+
     for match in _TEMPO_RE.finditer(text):
         tempo_words = {
             "de": "Viertelnote gleich",
@@ -2902,6 +3044,7 @@ def iter_sequence_replacements(
         }
         value = f"{tempo_words.get(base_language(language), tempo_words['en'])} {_cardinal(int(match['value']), language)}"
         _add(candidates, match, value, language, "sequence.music", protected)
+
     for match in _BIOLOGY_RE.finditer(text):
         if not _biology_is_plausible(match["value"], text, match.start()):
             continue
@@ -2913,6 +3056,7 @@ def iter_sequence_replacements(
             "sequence.biology",
             protected,
         )
+
     for match in _FORMULA_RE.finditer(text):
         if _formula_is_plausible(match["value"]) and _formula_context_is_balanced(
             text, match.start("value"), match.end("value")
@@ -2925,6 +3069,14 @@ def iter_sequence_replacements(
                 "sequence.formula",
                 protected,
             )
+
+
+def _iter_initialism_ticker_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for match in _PAREN_INITIALISM_RE.finditer(text):
         start, end = match.span("value")
         if _claimed(start, end, protected):
@@ -2939,6 +3091,7 @@ def iter_sequence_replacements(
                     79,
                 )
             )
+
     for match in _PAREN_TICKER_RE.finditer(text):
         prefix = text[max(0, match.start() - 48) : match.start()]
         suffix = text[match.end() : match.end() + 48]
@@ -2961,9 +3114,11 @@ def iter_sequence_replacements(
                     80,
                 )
             )
+
     for match in _TICKER_RE.finditer(text):
         value = f"dollar {_ticker_text(match['value'], language)}"
         _add(candidates, match, value, language, "sequence.ticker", protected)
+
     for match in _TICKER_CONTEXT_RE.finditer(text):
         ticker = match["value"]
         if ticker != ticker.upper():
@@ -2981,6 +3136,7 @@ def iter_sequence_replacements(
                     80,
                 )
             )
+
     for match in _EXCHANGE_TICKER_RE.finditer(text):
         ticker = match["value"]
         start, end = match.span("value")
@@ -2997,6 +3153,13 @@ def iter_sequence_replacements(
                 )
             )
 
+
+def _iter_product_vehicle_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for match in _PRODUCT_RE.finditer(text):
         raw_value = match["value"]
         if not _valid_product_candidate(match["label"], raw_value):
@@ -3005,66 +3168,8 @@ def iter_sequence_replacements(
             continue
         raw_label = match["label"].strip()
         label_key = raw_label.casefold().replace(".", "")
-        label_words = {
-            "sn": "serial number",
-            "s/n": "serial number",
-            "serial": "serial number",
-            "serial number": "serial number",
-            "seriennummer": "serial number",
-            "sku": "SKU",
-            "vin": "VIN",
-            "imei": "IMEI",
-            "iccid": "ICCID",
-            "model": "model",
-            "modelo": "modelo",
-            "part": "part number",
-            "part number": "part number",
-            "product": "product code",
-            "product code": "product code",
-            "barcode": "barcode",
-            "bar code": "barcode",
-            "license plate": "license plate",
-            "license": "license",
-            "plate": "plate",
-            "kennzeichen": "Kennzeichen",
-            "tag": "tag",
-            "tax identifier": "tax identifier",
-            "identifier": "identifier",
-            "id": "I D",
-            "firmware": "firmware",
-            "matrikelnummer": "Matrikelnummer",
-            "registration": "registration",
-            "rfc": "RFC",
-            "p/n": "P N",
-        }
-        label = label_words.get(label_key, raw_label)
-        category = (
-            "vin"
-            if label_key == "vin"
-            else "license"
-            if label_key in {"license plate", "license", "plate", "kennzeichen"}
-            else "serial"
-            if label_key
-            in {
-                "sn",
-                "s/n",
-                "serial",
-                "serial number",
-                "seriennummer",
-                "pin",
-                "barcode",
-                "bar code",
-                "matrikelnummer",
-                "tax identifier",
-                "identifier",
-                "id",
-                "p/n",
-                "tag",
-            }
-            else "model"
-            if label_key in {"model", "modelo"}
-            else "product"
-        )
+        label = product_label_text(label_key, raw_label)
+        category = product_label_category(label_key)
         value = _typed_code_text(match["value"], language, category=category)
         label = (
             _grapheme_text(label, language)
@@ -3072,6 +3177,7 @@ def iter_sequence_replacements(
             else label
         )
         _add(candidates, match, f"{label} {value}", language, "sequence.product", protected)
+
     for match in _PLATE_CONTEXT_RE.finditer(text):
         _add(
             candidates,
@@ -3081,6 +3187,7 @@ def iter_sequence_replacements(
             "sequence.plate",
             protected,
         )
+
     for match in _VIN_RE.finditer(text):
         if any(character.isalpha() for character in match["value"]) and any(
             character.isdigit() for character in match["value"]
@@ -3093,6 +3200,7 @@ def iter_sequence_replacements(
                 "sequence.vin",
                 protected,
             )
+
     for match in _VEHICLE_MODEL_RE.finditer(text):
         start, end = match.span("value")
         if _claimed(start, end, protected):
@@ -3107,6 +3215,7 @@ def iter_sequence_replacements(
                     20,
                 )
             )
+
     for match in _CODE_RE.finditer(text):
         code_category = "vehicle" if re.search(r"\d+[A-Z]+\d", match["value"]) else "product"
         _add(
@@ -3117,6 +3226,7 @@ def iter_sequence_replacements(
             "sequence.product",
             protected,
         )
+
     for match in _PLATE_RE.finditer(text):
         _add(
             candidates,
@@ -3126,6 +3236,7 @@ def iter_sequence_replacements(
             "sequence.plate",
             protected,
         )
+
     for match in _COMPACT_PLATE_RE.finditer(text):
         _add(
             candidates,
@@ -3135,6 +3246,7 @@ def iter_sequence_replacements(
             "sequence.plate",
             protected,
         )
+
     for match in _SPACED_PLATE_RE.finditer(text):
         _add(
             candidates,
@@ -3144,6 +3256,7 @@ def iter_sequence_replacements(
             "sequence.plate",
             protected,
         )
+
     for match in _COMPACT_VEHICLE_RE.finditer(text):
         vehicle_prefix = re.match(r"[A-Z]+", match["value"], re.IGNORECASE)
         if (
@@ -3159,6 +3272,7 @@ def iter_sequence_replacements(
             "sequence.product",
             protected,
         )
+
     for match in _MIXED_ACRONYM_RE.finditer(text):
         _add(
             candidates,
@@ -3168,6 +3282,7 @@ def iter_sequence_replacements(
             "sequence.acronym",
             protected,
         )
+
     for pattern in (
         _LEGAL_RE,
         _LEGAL_PREFIX_RE,
@@ -3189,6 +3304,15 @@ def iter_sequence_replacements(
                 "sequence.legal",
                 protected,
             )
+
+
+def _iter_duration_sports_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+    evidence: EvidenceSession | None = None,
+) -> None:
     for match in _DURATION_RE.finditer(text):
         _add(
             candidates,
@@ -3198,6 +3322,7 @@ def iter_sequence_replacements(
             "sequence.duration",
             protected,
         )
+
     for match in _CHAINED_SCORE_RE.finditer(text):
         if countdown_is_plausible(text, match.start(), language):
             _add(
@@ -3230,6 +3355,7 @@ def iter_sequence_replacements(
                 evidence_score=sports_details.score if sports_details else None,
                 evidence_cues=sports_details.cues if sports_details else (),
             )
+
     for match in _SCORE_RE.finditer(text):
         if _score_is_plausible(
             match["value"], text, match.start(), match.end(), evidence=evidence
@@ -3254,6 +3380,7 @@ def iter_sequence_replacements(
                     evidence_cues=sports_details.cues if sports_details else (),
                 )
             )
+
     for match in _SPORTS_RE.finditer(text):
         start, end = match.start("value"), match.end("value")
         if _claimed(start, end, protected):
@@ -3267,8 +3394,17 @@ def iter_sequence_replacements(
                     "sequence.sports",
                 )
             )
+
+
+def _iter_address_candidates(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for match in _DOTTED_LEXICAL_RE.finditer(text):
         _add(candidates, match, "uncle", language, "sequence.acronym", protected)
+
     for match in _ADDRESS_SUFFIX_RE.finditer(text):
         _add(
             candidates,
@@ -3278,6 +3414,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _ADDRESS_RE.finditer(text):
         _add(
             candidates,
@@ -3287,6 +3424,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _ADDRESS_CONTEXT_RE.finditer(text):
         _add(
             candidates,
@@ -3296,6 +3434,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _ADDRESS_REVERSE.finditer(text):
         _add(
             candidates,
@@ -3305,6 +3444,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _LEADING_ADDRESS_RE.finditer(text):
         _add(
             candidates,
@@ -3314,6 +3454,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _ADDRESS_COMPONENT_RE.finditer(text):
         label = match["label"].casefold().rstrip(".")
         label_words = {
@@ -3342,6 +3483,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _POSTBOX_RE.finditer(text):
         _add(
             candidates,
@@ -3351,6 +3493,7 @@ def iter_sequence_replacements(
             "sequence.address",
             protected,
         )
+
     for match in _FLOOR_RE.finditer(text):
         label = (
             "Obergeschoss"
@@ -3371,6 +3514,7 @@ def iter_sequence_replacements(
         else:
             value = f"{_cardinal(int(match['number']), language)} {label}"
         _add(candidates, match, value, language, "sequence.address", protected)
+
     if base_language(language) == "de":
         for match in _POSTAL_CITY_RE.finditer(text):
             prefix = text[max(0, match.start() - 24) : match.start()]
@@ -3386,6 +3530,55 @@ def iter_sequence_replacements(
                     "sequence.address",
                     protected,
                 )
+
+
+def iter_sequence_replacements(
+    text: str,
+    *,
+    language: str = "en",
+    protected_ranges: Iterable[tuple[int, int]] = (),
+    promote_literals: bool = False,
+    generic_acronym_mode: Literal[
+        "known_only", "conservative_unknown", "spell_unknown"
+    ] = "known_only",
+    generic_acronym_case: Literal["upper", "lower"] = "upper",
+    interpretation_mode: InterpretationMode = InterpretationMode.CONTEXTUAL,
+    evidence: EvidenceSession | None = None,
+    trace: TraceCollector | None = None,
+) -> tuple[Replacement, ...]:
+    """Recognize and render high-confidence atomic structured sequences."""
+    language = normalize_language(language)
+    protected = tuple(protected_ranges)
+    candidates: list[Replacement] = []
+    candidates.extend(
+        iter_biomedical_replacements(text, language=language, protected_ranges=protected)
+    )
+    candidates.extend(
+        iter_range_replacements(text, language=language, protected_ranges=protected, trace=trace)
+    )
+    candidates.extend(
+        iter_reference_replacements(text, language=language, protected_ranges=protected)
+    )
+    _iter_quarter_height_postal_candidates(
+        text, language, protected, candidates, promote_literals=promote_literals, evidence=evidence
+    )
+    _iter_finance_quantity_candidates(text, language, protected, candidates)
+    _iter_identifier_candidates(text, language, protected, candidates)
+    _iter_version_candidates(
+        text,
+        language,
+        protected,
+        candidates,
+        promote_literals=promote_literals,
+        interpretation_mode=interpretation_mode,
+        evidence=evidence,
+    )
+    _iter_roman_symbol_candidates(text, language, protected, candidates)
+    _iter_math_science_candidates(text, language, protected, candidates)
+    _iter_initialism_ticker_candidates(text, language, protected, candidates)
+    _iter_product_vehicle_candidates(text, language, protected, candidates)
+    _iter_duration_sports_candidates(text, language, protected, candidates, evidence=evidence)
+    _iter_address_candidates(text, language, protected, candidates)
     return tuple(candidates)
 
 

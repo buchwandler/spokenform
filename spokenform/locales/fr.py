@@ -310,50 +310,56 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
     return any(start < right and left < end for left, right in protected)
 
 
-def iter_replacements(
+def _add_candidate(
+    candidates: list[Replacement],
+    start: int,
+    end: int,
+    value: str | None,
+    rule: str,
+    protected: tuple[tuple[int, int], ...],
+) -> None:
+    if value is not None and not _overlaps(start, end, protected):
+        candidates.append(Replacement(start, end, value, "structured", "fr", rule))
+
+
+def _iter_fr_dates(
     text: str,
-    *,
-    language: str = "fr",
-    protected_ranges: Iterable[tuple[int, int]] = (),
-) -> tuple[Replacement, ...]:
-    """Return French structured candidates before shared conflict resolution."""
-    protected = tuple(protected_ranges)
-    candidates: list[Replacement] = []
-
-    def add(start: int, end: int, value: str | None, rule: str) -> None:
-        if value is not None and not _overlaps(start, end, protected):
-            candidates.append(Replacement(start, end, value, "structured", "fr", rule))
-
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
     for match in _DATE_DMY_NO_YEAR.finditer(text):
         day, month = int(match["day"]), int(match["month"])
         if _valid_date(day, month, 2000) and _date_like_context(
             text, match.start(), match.end(), day=day
         ):
-            add(
+            _add_candidate(
+                candidates,
                 match.start(),
                 match.end(),
                 f"{_spell(day, language)} {_MONTHS[month - 1]}",
                 "fr.date",
+                protected,
             )
     for match in _DATE_DMY_SHORT.finditer(text):
         year, _ = expand_year(match["year"])
         day, month = int(match["day"]), int(match["month"])
         if _valid_date(day, month, year):
-            add(
+            _add_candidate(
+                candidates,
                 match.start(),
                 match.end(),
                 _date_text(day, month, year, language, year_digits=len(match["year"])),
                 "fr.date",
+                protected,
             )
     aliases = {name[:3]: index for index, name in enumerate(_MONTHS, 1)}
     aliases.update({"fev": 2, "aou": 8, "dec": 12})
     for match in _TEXT_DATE.finditer(text):
-        text_month: int | None = aliases.get(match["month"].lower().rstrip(".")[:3])
+        text_month = aliases.get(match["month"].lower().rstrip(".")[:3])
         if text_month is None:
             continue
-        text_year: int | None = None
-        if match["year"]:
-            text_year, _ = expand_year(match["year"])
+        text_year = expand_year(match["year"])[0] if match["year"] else None
         day = int(match["day"])
         if text_year is None or _valid_date(day, text_month, text_year):
             value = _date_text(
@@ -365,54 +371,110 @@ def iter_replacements(
             )
             if text_year is None:
                 value = f"{_spell(day, language)} {_MONTHS[text_month - 1]}"
-            add(match.start(), match.end(), value, "fr.date")
-
+            _add_candidate(candidates, match.start(), match.end(), value, "fr.date", protected)
     for pattern in (_DATE_DMY, _DATE_ISO):
         for match in pattern.finditer(text):
             day, month, year = int(match["day"]), int(match["month"]), int(match["year"])
             if _valid_date(day, month, year):
-                add(match.start(), match.end(), _date_text(day, month, year, language), "fr.date")
+                _add_candidate(
+                    candidates,
+                    match.start(),
+                    match.end(),
+                    _date_text(day, month, year, language),
+                    "fr.date",
+                    protected,
+                )
+
+
+def _iter_fr_times(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _TIME_H.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"] or 0)
         if hour <= 23 and minute <= 59:
-            add(match.start(), match.end(), _time_text(hour, minute, language), "fr.time")
+            _add_candidate(
+                candidates,
+                match.start(),
+                match.end(),
+                _time_text(hour, minute, language),
+                "fr.time",
+                protected,
+            )
     for match in _TIME_COLON.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         if hour <= 23 and minute <= 59:
-            add(match.start(), match.end(), _time_text(hour, minute, language), "fr.time")
+            _add_candidate(
+                candidates,
+                match.start(),
+                match.end(),
+                _time_text(hour, minute, language),
+                "fr.time",
+                protected,
+            )
+
+
+def _iter_fr_ordinals(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _ORDINAL.finditer(text):
-        add(
+        _add_candidate(
+            candidates,
             match.start(),
             match.end(),
             _ordinal_text(int(match["number"]), match["suffix"], language),
             "fr.ordinal",
+            protected,
         )
+
+
+def _iter_fr_quantities(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
         try:
             replacement = _quantity_text(unit_match, text, language)
         except (InvalidOperation, TypeError, ValueError):
-            # Dependency candidates are advisory; malformed numeric lexemes
-            # must never make preparation fail for the whole sentence.
             replacement = None
-        add(
-            unit_match.start,
-            unit_match.end,
-            replacement,
-            "fr.currency" if unit_match.category == "currency" else "fr.quantity",
-        )
+        rule = "fr.currency" if unit_match.category == "currency" else "fr.quantity"
+        _add_candidate(candidates, unit_match.start, unit_match.end, replacement, rule, protected)
 
+
+def _iter_fr_plain_numbers(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     excluded = [match.span() for match in _DATE_CANDIDATE.finditer(text)]
     excluded.extend(match.span() for match in _TIME_CANDIDATE.finditer(text))
     for match in _PLAIN_NUMBER.finditer(text):
         if any(left <= match.start() and match.end() <= right for left, right in excluded):
             continue
-        # Multi-dot release strings belong to the typed version recognizer;
-        # never send them through French decimal parsing.
         if re.fullmatch(r"v?\d+(?:\.\d+){2,}", match["number"], re.IGNORECASE):
             continue
-        add(match.start(), match.end(), _number_text(match["number"], language), "fr.number")
+        _add_candidate(
+            candidates,
+            match.start(),
+            match.end(),
+            _number_text(match["number"], language),
+            "fr.number",
+            protected,
+        )
+
+
+def iter_replacements(
+    text: str,
+    *,
+    language: str = "fr",
+    protected_ranges: Iterable[tuple[int, int]] = (),
+) -> tuple[Replacement, ...]:
+    """Return French structured candidates before shared conflict resolution."""
+    protected = tuple(protected_ranges)
+    candidates: list[Replacement] = []
+    _iter_fr_dates(text, language, protected, candidates)
+    _iter_fr_times(text, language, protected, candidates)
+    _iter_fr_ordinals(text, language, protected, candidates)
+    _iter_fr_quantities(text, language, protected, candidates)
+    _iter_fr_plain_numbers(text, language, protected, candidates)
     return tuple(candidates)
 
 

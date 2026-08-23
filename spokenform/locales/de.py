@@ -374,21 +374,22 @@ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> b
     return any(start < right and left < end for left, right in protected)
 
 
-def iter_replacements(
-    text: str,
-    *,
-    language: str = "de",
-    protected_ranges: Iterable[tuple[int, int]] = (),
-) -> tuple[Replacement, ...]:
-    protected = tuple(protected_ranges)
-    candidates: list[Replacement] = []
+def _add_candidate(
+    candidates: list[Replacement],
+    match: re.Match[str],
+    replacement: str | None,
+    rule: str,
+    protected: tuple[tuple[int, int], ...],
+) -> None:
+    if replacement is not None and not _overlaps(match.start(), match.end(), protected):
+        candidates.append(
+            Replacement(match.start(), match.end(), replacement, "structured", "de", rule)
+        )
 
-    def add(match: re.Match[str], replacement: str | None, rule: str) -> None:
-        if replacement is not None and not _overlaps(match.start(), match.end(), protected):
-            candidates.append(
-                Replacement(match.start(), match.end(), replacement, "structured", "de", rule)
-            )
 
+def _iter_de_dates(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _DATE.finditer(text):
         day, month, year_raw = int(match["day"]), int(match["month"]), match["year"]
         separator = "." if "." in match.group(0) else "/"
@@ -405,11 +406,8 @@ def iter_replacements(
                 if separator == "/" or (separator == "." and len(year_raw) == 2)
                 else month_name
             )
-            add(
-                match,
-                f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language, year_digits=year_digits if separator == '.' else None)}",
-                "de.date",
-            )
+            value = f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language, year_digits=year_digits if separator == '.' else None)}"
+            _add_candidate(candidates, match, value, "de.date", protected)
     for match in _DAY_MONTH.finditer(text):
         day, month = int(match["day"]), int(match["month"])
         if parsed_date(match["day"], match["month"]).valid():
@@ -417,67 +415,59 @@ def iter_replacements(
             value = f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}"
             if match.group(0).endswith("."):
                 value += "."
-            add(
-                match,
-                value,
-                "de.date",
-            )
+            _add_candidate(candidates, match, value, "de.date", protected)
     for match in _HYPHEN_DATE.finditer(text):
         raw_month = match["month"].lower().rstrip(".")
-        if raw_month.isdigit():
-            month = int(raw_month)
-        else:
-            month = _MONTHS.get(raw_month, (0, ""))[0]
-        year, _ = expand_year(match["year"])
+        month = int(raw_month) if raw_month.isdigit() else _MONTHS.get(raw_month, (0, ""))[0]
+        year = expand_year(match["year"])[0]
         if month and _valid(int(match["day"]), month, year):
             month_name = next(name for number, name in _MONTHS.values() if number == month)
-            add(
-                match,
-                f"{_ordinal(int(match['day']), _ending(text, match.start()), language)} {month_name} {_year(year, language, year_digits=len(match['year']))}",
-                "de.date",
-            )
+            value = f"{_ordinal(int(match['day']), _ending(text, match.start()), language)} {month_name} {_year(year, language, year_digits=len(match['year']))}"
+            _add_candidate(candidates, match, value, "de.date", protected)
     for match in _TEXT_DATE_RANGE.finditer(text):
         month, month_name = _MONTHS[match["month"].lower().rstrip(".")]
-        range_year: int | None = None
-        if match["year"]:
-            range_year, _ = expand_year(match["year"])
+        range_year = expand_year(match["year"])[0] if match["year"] else None
         if not range_year or (
             _valid(int(match["start"]), month, range_year)
             and _valid(int(match["end"]), month, range_year)
         ):
             ending = _ending(text, match.start())
             value = f"{_ordinal(int(match['start']), ending, language)} bis {_ordinal(int(match['end']), ending, language)} {month_name}"
-            add(
-                match,
+            value = (
                 f"{value} {_year(range_year, language, year_digits=len(match['year']) if match['year'] else None)}"
                 if range_year
-                else value,
-                "de.date-range",
+                else value
             )
+            _add_candidate(candidates, match, value, "de.date-range", protected)
     for match in _APOSTROPHE_YEAR.finditer(text):
         year, year_digits = expand_year(match["year"])
-        add(match, _year(year, language, year_digits=year_digits), "de.short-year")
+        _add_candidate(
+            candidates,
+            match,
+            _year(year, language, year_digits=year_digits),
+            "de.short-year",
+            protected,
+        )
     for match in _TEXT_DATE.finditer(text):
         month, month_name = _MONTHS[match["month"].lower().rstrip(".")]
         year_raw, day = match["year"], int(match["day"])
-        text_year: int | None = (
+        text_year = (
             int(year_raw)
             if year_raw and len(year_raw) == 4
             else (int(year_raw) if year_raw else None)
         )
         if text_year is None or _valid(day, month, text_year):
             value = f"{_ordinal(day, _ending(text, match.start()) if text[: match.start()].strip() else 'er', language)} {month_name}"
-            add(
-                match,
+            value = (
                 f"{value} {_year(text_year, language, year_digits=len(year_raw) if year_raw else None)}"
                 if text_year
-                else value,
-                "de.text-date",
+                else value
             )
+            _add_candidate(candidates, match, value, "de.text-date", protected)
     for match in _MIXED_TEXT_DATE.finditer(text):
         day = int(match["day"])
         month = _MIXED_MONTHS[match["month"].lower().rstrip(".")]
-        mixed_year: int | None = int(match["year"]) if match["year"] else None
+        mixed_year = int(match["year"]) if match["year"] else None
         if _valid_english_ordinal_suffix(day, match["suffix"]) and _valid(
             day, month, mixed_year or 2000
         ):
@@ -485,7 +475,12 @@ def iter_replacements(
             value = f"{_ordinal(day, _ending(text, match.start()), language)} {month_name}"
             if mixed_year:
                 value += f" {_year(mixed_year, language)}"
-            add(match, value, "de.mixed-text-date")
+            _add_candidate(candidates, match, value, "de.mixed-text-date", protected)
+
+
+def _iter_de_times(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _TIME_RANGE.finditer(text):
         start_hour = int(match["start_hour"] or match["start_hour_bis"])
         start_minute = int(match["start_minute"] or match["start_minute_bis"])
@@ -503,7 +498,7 @@ def iter_replacements(
                 f"{end} Uhr" if end_minute == 0 else f"{end} Uhr {_spell(end_minute, language)}"
             )
             value = f"{start_value} bis {end_value}"
-        add(match, value, "de.time-range")
+        _add_candidate(candidates, match, value, "de.time-range", protected)
     for match in _TIME.finditer(text):
         hour, minute = int(match["hour"]), int(match["minute"])
         value = (
@@ -511,19 +506,32 @@ def iter_replacements(
             if minute == 0
             else f"{'ein' if hour == 1 else _spell(hour, language)} Uhr {_spell(minute, language)}"
         )
-        add(match, value, "de.time")
+        _add_candidate(candidates, match, value, "de.time", protected)
+
+
+def _iter_de_currency_temperature(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for pattern in (_CURRENCY_PREFIX, _CURRENCY_SUFFIX):
         for match in pattern.finditer(text):
             canonical_id = _currency_id(match["symbol"], language)
             if canonical_id:
-                add(match, _currency(match["number"], canonical_id, language), "de.currency")
+                _add_candidate(
+                    candidates,
+                    match,
+                    _currency(match["number"], canonical_id, language),
+                    "de.currency",
+                    protected,
+                )
     for match in _TEMPERATURE.finditer(text):
         unit = match["unit"].lower().replace("°", "")
-        add(
-            match,
-            f"{_number(match['number'], language=language)} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}",
-            "de.temperature",
-        )
+        value = f"{_number(match['number'], language=language)} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}"
+        _add_candidate(candidates, match, value, "de.temperature", protected)
+
+
+def _iter_de_unit_matches(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
@@ -564,6 +572,11 @@ def iter_replacements(
                         "de.quantity",
                     )
                 )
+
+
+def _iter_de_labels(
+    text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+) -> None:
     for match in _LABEL.finditer(text):
         label = match["label"]
         normalized = label.casefold().replace(" ", "")
@@ -571,9 +584,32 @@ def iter_replacements(
             label = "Seite"
         elif normalized in {"lfd.nr.", "laufendenummer"}:
             label = "laufende Nummer"
-        add(match, f"{label} {_spell(int(match['number']))}", "de.label")
+        _add_candidate(
+            candidates, match, f"{label} {_spell(int(match['number']))}", "de.label", protected
+        )
     for match in _ORDINAL.finditer(text):
-        add(match, _ordinal(int(match["number"]), _ending(text, match.start())), "de.ordinal")
+        _add_candidate(
+            candidates,
+            match,
+            _ordinal(int(match["number"]), _ending(text, match.start())),
+            "de.ordinal",
+            protected,
+        )
+
+
+def iter_replacements(
+    text: str,
+    *,
+    language: str = "de",
+    protected_ranges: Iterable[tuple[int, int]] = (),
+) -> tuple[Replacement, ...]:
+    protected = tuple(protected_ranges)
+    candidates: list[Replacement] = []
+    _iter_de_dates(text, language, protected, candidates)
+    _iter_de_times(text, language, protected, candidates)
+    _iter_de_currency_temperature(text, language, protected, candidates)
+    _iter_de_unit_matches(text, language, protected, candidates)
+    _iter_de_labels(text, language, protected, candidates)
     return tuple(candidates)
 
 

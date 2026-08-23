@@ -92,6 +92,416 @@ def normalize_spacing(
     return normalized
 
 
+def _run_unicode_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    selected: PreparationConfig,
+) -> tuple[str, Iterable[TokenAnnotation] | None]:
+    if selected.normalize_unicode:
+        before = current
+        normalized = unicodedata.normalize("NFC", current)
+        if normalized != current:
+            current = apply_stage(
+                stages,
+                "unicode",
+                current,
+                lambda value: unicodedata.normalize("NFC", value),
+                restore=protected.restore,
+            )
+            unicode_stage = stages[-1]
+            unicode_replacements = replacements_from_diff(
+                unicode_stage.before,
+                unicode_stage.after,
+                unicode_stage.name,
+            )
+            internal_replacements = map_visible_replacements_to_internal(
+                before,
+                unicode_replacements,
+                protected.values,
+                protected.placeholders,
+            )
+            current_annotations = remap_annotations_for_replacements(
+                current_annotations,
+                ((item.start, item.end, len(item.text)) for item in internal_replacements),
+            )
+    return current, current_annotations
+
+
+def _run_structured_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    reserved_spans: tuple[ReservedSpan, ...],
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    selected: PreparationConfig,
+    language_code: str,
+    evidence: EvidenceSession,
+    structured_numbers_enabled: bool,
+) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
+    if structured_numbers_enabled:
+        structured = normalize_structured(
+            protected.restore(current),
+            language=language_code,
+            protected_ranges=map_internal_protected_spans_to_visible(
+                current,
+                protected.values,
+                protected.placeholders,
+            ),
+            promote_literals=selected.normalize_literals,
+            generic_acronym_mode=selected.generic_acronym_mode,
+            generic_acronym_case=selected.generic_acronym_case,
+            interpretation_mode=selected.interpretation_mode,
+            disabled_domains=cast(frozenset[RecognitionDomain], selected.disabled_domains),
+            allowed_domains=cast(frozenset[RecognitionDomain] | None, selected.allowed_domains),
+            evidence=evidence,
+        )
+        if structured.replacements or structured.reserved:
+            internal_replacements = map_visible_replacements_to_internal(
+                current,
+                structured.replacements,
+                protected.values,
+                protected.placeholders,
+            )
+            current = apply_replacement_stage(
+                stages,
+                "structured",
+                current,
+                structured.replacements,
+                protected_values=protected.values,
+                protected_placeholders=protected.placeholders,
+                language=language_code,
+                reserved=structured.reserved,
+            )
+            reserved_spans = structured.reserved
+            current_annotations = remap_annotations_for_replacements(
+                current_annotations,
+                ((item.start, item.end, len(item.text)) for item in internal_replacements),
+            )
+    return current, current_annotations, reserved_spans
+
+
+def _run_abbreviation_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    reserved_spans: tuple[ReservedSpan, ...],
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    selected: PreparationConfig,
+    language_code: str,
+) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
+    if selected.expand_abbreviations:
+        protected_value_by_placeholder = dict(
+            zip(protected.placeholders, protected.values, strict=True)
+        )
+        visible_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            (
+                (index, index + 1, len(value))
+                for index, character in enumerate(current)
+                if character in protected_value_by_placeholder
+                for value in (protected_value_by_placeholder[character],)
+            ),
+        )
+        abbreviation_protected_spans = map_internal_protected_spans_to_visible(
+            current,
+            protected.values,
+            protected.placeholders,
+        ) + tuple((item.start, item.end) for item in reserved_spans)
+        abbreviation_kwargs: dict[str, object] = {
+            "lang": resolve_abbr2words_language(language_code),
+            "context": (
+                selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL
+            ),
+            "annotations": to_abbr2words_annotations(visible_annotations),
+            "protected_spans": abbreviation_protected_spans,
+        }
+        if selected.registered_acronym_mode != "expand":
+            abbreviation_kwargs["registered_initialism_mode"] = selected.registered_acronym_mode
+        if (
+            selected.generic_acronym_mode in {"conservative_unknown", "spell_unknown"}
+            or selected.generic_acronym_case != "upper"
+        ):
+            initialism_mode = {
+                "conservative_unknown": "conservative_undotted",
+                "spell_unknown": "spell_undotted",
+            }.get(selected.generic_acronym_mode, "dotted_only")
+            abbreviation_kwargs.update(
+                {
+                    "initialism_mode": initialism_mode,
+                    "initialism_case": selected.generic_acronym_case,
+                }
+            )
+        # abbr2words 0.2.9 is the first release containing the reviewed
+        # conservative initialism policy. It is the sole policy owner here;
+        # Spokenform deliberately has no compatibility fallback or duplicate
+        # acronym heuristic.
+        abbreviation_result = cast(Any, abbr2words_with_replacements)(
+            protected.restore(current), **abbreviation_kwargs
+        )
+        abbreviation_replacements = convert_abbr_replacements(
+            abbreviation_result.replacements,
+            language=language_code,
+        )
+        before = current
+        current = apply_replacement_stage(
+            stages,
+            "abbreviations",
+            current,
+            abbreviation_replacements,
+            protected_values=protected.values,
+            protected_placeholders=protected.placeholders,
+            language=language_code,
+            reserved=reserved_spans,
+        )
+        _, _, abbreviation_map = apply_replacements(
+            protected.restore(before), abbreviation_replacements, stage="abbreviations"
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, abbreviation_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            abbreviation_replacements,
+            protected.values,
+            protected.placeholders,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
+        )
+    return current, current_annotations, reserved_spans
+
+
+def _run_number_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    reserved_spans: tuple[ReservedSpan, ...],
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    selected: PreparationConfig,
+    language_code: str,
+    effective_long_number_mode: LongNumberMode,
+    plain_numbers_enabled: bool,
+) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
+    if plain_numbers_enabled:
+        before = current
+        internal_reserved_ranges = _reserved_ranges_in_internal(
+            before,
+            reserved_spans,
+            protected.values,
+            protected.placeholders,
+        )
+        current = apply_stage(
+            stages,
+            "numbers",
+            current,
+            lambda value: normalize_plain_numbers(
+                value,
+                language=language_code,
+                protected_ranges=internal_reserved_ranges,
+                long_number_mode=effective_long_number_mode,
+            ),
+            restore=protected.restore,
+        )
+        number_stage = stages[-1]
+        number_replacements = replacements_from_diff(
+            number_stage.before,
+            number_stage.after,
+            number_stage.name,
+        )
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            number_replacements,
+            protected.values,
+            protected.placeholders,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
+        )
+        number_map = OffsetMap.from_replacements(
+            len(number_stage.before), number_replacements, output_length=len(number_stage.after)
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, number_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
+    return current, current_annotations, reserved_spans
+
+
+def _run_sequence_fallback_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    reserved_spans: tuple[ReservedSpan, ...],
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    language_code: str,
+    selected: PreparationConfig,
+) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
+    if selected.sequence_fallback_mode is SequenceFallbackMode.SPELL:
+        before = current
+        visible_before = protected.restore(current)
+        protected_ranges = map_internal_protected_spans_to_visible(
+            current,
+            protected.values,
+            protected.placeholders,
+        ) + tuple(
+            (item.start, item.end)
+            for item in reserved_spans
+            if item.owner == "structured-generated"
+        )
+        fallback_replacements = iter_sequence_fallback_replacements(
+            visible_before,
+            language=language_code,
+            protected_ranges=protected_ranges,
+        )
+        if fallback_replacements:
+            current = apply_replacement_stage(
+                stages,
+                "sequence_fallback",
+                current,
+                fallback_replacements,
+                protected_values=protected.values,
+                protected_placeholders=protected.placeholders,
+                language=language_code,
+                reserved=reserved_spans,
+            )
+            fallback_stage = stages[-1]
+            internal_replacements = map_visible_replacements_to_internal(
+                before,
+                fallback_replacements,
+                protected.values,
+                protected.placeholders,
+            )
+            current_annotations = remap_annotations_for_replacements(
+                current_annotations,
+                ((item.start, item.end, len(item.text)) for item in internal_replacements),
+            )
+            fallback_map = OffsetMap.from_replacements(
+                len(fallback_stage.before),
+                fallback_replacements,
+                output_length=len(fallback_stage.after),
+            )
+            reserved_spans = _remap_reserved_spans(reserved_spans, fallback_map)
+            stages[-1] = replace(stages[-1], reserved=reserved_spans)
+    return current, current_annotations, reserved_spans
+
+
+def _run_symbol_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    reserved_spans: tuple[ReservedSpan, ...],
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    language_code: str,
+    selected: PreparationConfig,
+) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
+    if selected.symbol_mode != "none":
+        before = current
+        visible_before = protected.restore(current)
+        symbol_replacements = _iter_symbol_replacements(
+            visible_before,
+            mode=selected.symbol_mode,
+            keep_symbols=selected.keep_symbols,
+            language=language_code,
+            protected_ranges=(
+                map_internal_protected_spans_to_visible(
+                    current,
+                    protected.values,
+                    protected.placeholders,
+                )
+                + tuple((item.start, item.end) for item in reserved_spans)
+            ),
+        )
+        current = apply_replacement_stage(
+            stages,
+            "symbols",
+            current,
+            symbol_replacements,
+            protected_values=protected.values,
+            protected_placeholders=protected.placeholders,
+            language=language_code,
+            reserved=reserved_spans,
+        )
+        symbol_stage = stages[-1]
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            symbol_replacements,
+            protected.values,
+            protected.placeholders,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
+        )
+        symbol_map = OffsetMap.from_replacements(
+            len(symbol_stage.before),
+            symbol_replacements,
+            output_length=len(symbol_stage.after),
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, symbol_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
+    return current, current_annotations, reserved_spans
+
+
+def _run_whitespace_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    reserved_spans: tuple[ReservedSpan, ...],
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+    language_code: str,
+    selected: PreparationConfig,
+) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
+    if selected.normalize_whitespace:
+        before = current
+        current = apply_stage(
+            stages,
+            "whitespace",
+            current,
+            lambda value: normalize_spacing(
+                value,
+                normalize_unicode=False,
+                strip_outer_whitespace=(
+                    selected.strip_outer_whitespace and not selected.preserve_run_boundaries
+                ),
+                collapse_horizontal_whitespace=(
+                    selected.collapse_horizontal_whitespace and not selected.preserve_run_boundaries
+                ),
+                normalize_line_whitespace=(
+                    selected.normalize_line_whitespace and not selected.preserve_run_boundaries
+                ),
+                collapse_blank_lines=(
+                    selected.collapse_blank_lines and not selected.preserve_run_boundaries
+                ),
+            ),
+            restore=protected.restore,
+        )
+        whitespace_stage = stages[-1]
+        whitespace_replacements = replacements_from_diff(
+            whitespace_stage.before,
+            whitespace_stage.after,
+            whitespace_stage.name,
+        )
+        internal_replacements = map_visible_replacements_to_internal(
+            before,
+            whitespace_replacements,
+            protected.values,
+            protected.placeholders,
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_replacements),
+        )
+        whitespace_map = OffsetMap.from_replacements(
+            len(whitespace_stage.before),
+            whitespace_replacements,
+            output_length=len(whitespace_stage.after),
+        )
+        reserved_spans = _remap_reserved_spans(reserved_spans, whitespace_map)
+        stages[-1] = replace(stages[-1], reserved=reserved_spans)
+    return current, current_annotations, reserved_spans
+
+
 def prepare(
     text: str,
     *,
@@ -216,337 +626,43 @@ def prepare(
     current = protected.text
     reserved_spans: tuple[ReservedSpan, ...] = ()
 
-    if selected.normalize_unicode:
-        before = current
-        normalized = unicodedata.normalize("NFC", current)
-        if normalized != current:
-            current = apply_stage(
-                stages,
-                "unicode",
-                current,
-                lambda value: unicodedata.normalize("NFC", value),
-                restore=protected.restore,
-            )
-            unicode_stage = stages[-1]
-            unicode_replacements = replacements_from_diff(
-                unicode_stage.before,
-                unicode_stage.after,
-                unicode_stage.name,
-            )
-            internal_replacements = map_visible_replacements_to_internal(
-                before,
-                unicode_replacements,
-                protected.values,
-                protected.placeholders,
-            )
-            current_annotations = remap_annotations_for_replacements(
-                current_annotations,
-                ((item.start, item.end, len(item.text)) for item in internal_replacements),
-            )
-
-    if structured_numbers_enabled:
-        structured = normalize_structured(
-            protected.restore(current),
-            language=language_code,
-            protected_ranges=map_internal_protected_spans_to_visible(
-                current,
-                protected.values,
-                protected.placeholders,
-            ),
-            promote_literals=selected.normalize_literals,
-            generic_acronym_mode=selected.generic_acronym_mode,
-            generic_acronym_case=selected.generic_acronym_case,
-            interpretation_mode=selected.interpretation_mode,
-            disabled_domains=cast(frozenset[RecognitionDomain], selected.disabled_domains),
-            allowed_domains=cast(frozenset[RecognitionDomain] | None, selected.allowed_domains),
-            evidence=evidence,
-        )
-        if structured.replacements or structured.reserved:
-            internal_replacements = map_visible_replacements_to_internal(
-                current,
-                structured.replacements,
-                protected.values,
-                protected.placeholders,
-            )
-            current = apply_replacement_stage(
-                stages,
-                "structured",
-                current,
-                structured.replacements,
-                protected_values=protected.values,
-                protected_placeholders=protected.placeholders,
-                language=language_code,
-                reserved=structured.reserved,
-            )
-            reserved_spans = structured.reserved
-            current_annotations = remap_annotations_for_replacements(
-                current_annotations,
-                ((item.start, item.end, len(item.text)) for item in internal_replacements),
-            )
-
-    if selected.expand_abbreviations:
-        protected_value_by_placeholder = dict(
-            zip(protected.placeholders, protected.values, strict=True)
-        )
-        visible_annotations = remap_annotations_for_replacements(
-            current_annotations,
-            (
-                (index, index + 1, len(value))
-                for index, character in enumerate(current)
-                if character in protected_value_by_placeholder
-                for value in (protected_value_by_placeholder[character],)
-            ),
-        )
-        abbreviation_protected_spans = map_internal_protected_spans_to_visible(
-            current,
-            protected.values,
-            protected.placeholders,
-        ) + tuple((item.start, item.end) for item in reserved_spans)
-        abbreviation_kwargs: dict[str, object] = {
-            "lang": resolve_abbr2words_language(language_code),
-            "context": (
-                selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL
-            ),
-            "annotations": to_abbr2words_annotations(visible_annotations),
-            "protected_spans": abbreviation_protected_spans,
-        }
-        if selected.registered_acronym_mode != "expand":
-            abbreviation_kwargs["registered_initialism_mode"] = selected.registered_acronym_mode
-        if (
-            selected.generic_acronym_mode in {"conservative_unknown", "spell_unknown"}
-            or selected.generic_acronym_case != "upper"
-        ):
-            initialism_mode = {
-                "conservative_unknown": "conservative_undotted",
-                "spell_unknown": "spell_undotted",
-            }.get(selected.generic_acronym_mode, "dotted_only")
-            abbreviation_kwargs.update(
-                {
-                    "initialism_mode": initialism_mode,
-                    "initialism_case": selected.generic_acronym_case,
-                }
-            )
-        # abbr2words 0.2.9 is the first release containing the reviewed
-        # conservative initialism policy. It is the sole policy owner here;
-        # Spokenform deliberately has no compatibility fallback or duplicate
-        # acronym heuristic.
-        abbreviation_result = cast(Any, abbr2words_with_replacements)(
-            protected.restore(current), **abbreviation_kwargs
-        )
-        abbreviation_replacements = convert_abbr_replacements(
-            abbreviation_result.replacements,
-            language=language_code,
-        )
-        before = current
-        current = apply_replacement_stage(
-            stages,
-            "abbreviations",
-            current,
-            abbreviation_replacements,
-            protected_values=protected.values,
-            protected_placeholders=protected.placeholders,
-            language=language_code,
-            reserved=reserved_spans,
-        )
-        _, _, abbreviation_map = apply_replacements(
-            protected.restore(before), abbreviation_replacements, stage="abbreviations"
-        )
-        reserved_spans = _remap_reserved_spans(reserved_spans, abbreviation_map)
-        stages[-1] = replace(stages[-1], reserved=reserved_spans)
-        internal_replacements = map_visible_replacements_to_internal(
-            before,
-            abbreviation_replacements,
-            protected.values,
-            protected.placeholders,
-        )
-        current_annotations = remap_annotations_for_replacements(
-            current_annotations,
-            ((item.start, item.end, len(item.text)) for item in internal_replacements),
-        )
-
-    if plain_numbers_enabled:
-        before = current
-        internal_reserved_ranges = _reserved_ranges_in_internal(
-            before,
-            reserved_spans,
-            protected.values,
-            protected.placeholders,
-        )
-        current = apply_stage(
-            stages,
-            "numbers",
-            current,
-            lambda value: normalize_plain_numbers(
-                value,
-                language=language_code,
-                protected_ranges=internal_reserved_ranges,
-                long_number_mode=effective_long_number_mode,
-            ),
-            restore=protected.restore,
-        )
-        number_stage = stages[-1]
-        number_replacements = replacements_from_diff(
-            number_stage.before,
-            number_stage.after,
-            number_stage.name,
-        )
-        internal_replacements = map_visible_replacements_to_internal(
-            before,
-            number_replacements,
-            protected.values,
-            protected.placeholders,
-        )
-        current_annotations = remap_annotations_for_replacements(
-            current_annotations,
-            ((item.start, item.end, len(item.text)) for item in internal_replacements),
-        )
-        number_map = OffsetMap.from_replacements(
-            len(number_stage.before), number_replacements, output_length=len(number_stage.after)
-        )
-        reserved_spans = _remap_reserved_spans(reserved_spans, number_map)
-        stages[-1] = replace(stages[-1], reserved=reserved_spans)
-
-    if selected.sequence_fallback_mode is SequenceFallbackMode.SPELL:
-        before = current
-        visible_before = protected.restore(current)
-        protected_ranges = map_internal_protected_spans_to_visible(
-            current,
-            protected.values,
-            protected.placeholders,
-        ) + tuple(
-            (item.start, item.end)
-            for item in reserved_spans
-            if item.owner == "structured-generated"
-        )
-        fallback_replacements = iter_sequence_fallback_replacements(
-            visible_before,
-            language=language_code,
-            protected_ranges=protected_ranges,
-        )
-        if fallback_replacements:
-            current = apply_replacement_stage(
-                stages,
-                "sequence_fallback",
-                current,
-                fallback_replacements,
-                protected_values=protected.values,
-                protected_placeholders=protected.placeholders,
-                language=language_code,
-                reserved=reserved_spans,
-            )
-            fallback_stage = stages[-1]
-            internal_replacements = map_visible_replacements_to_internal(
-                before,
-                fallback_replacements,
-                protected.values,
-                protected.placeholders,
-            )
-            current_annotations = remap_annotations_for_replacements(
-                current_annotations,
-                ((item.start, item.end, len(item.text)) for item in internal_replacements),
-            )
-            fallback_map = OffsetMap.from_replacements(
-                len(fallback_stage.before),
-                fallback_replacements,
-                output_length=len(fallback_stage.after),
-            )
-            reserved_spans = _remap_reserved_spans(reserved_spans, fallback_map)
-            stages[-1] = replace(stages[-1], reserved=reserved_spans)
-
-    if selected.symbol_mode != "none":
-        before = current
-        visible_before = protected.restore(current)
-        symbol_replacements = _iter_symbol_replacements(
-            visible_before,
-            mode=selected.symbol_mode,
-            keep_symbols=selected.keep_symbols,
-            language=language_code,
-            protected_ranges=(
-                map_internal_protected_spans_to_visible(
-                    current,
-                    protected.values,
-                    protected.placeholders,
-                )
-                + tuple((item.start, item.end) for item in reserved_spans)
-            ),
-        )
-        current = apply_replacement_stage(
-            stages,
-            "symbols",
-            current,
-            symbol_replacements,
-            protected_values=protected.values,
-            protected_placeholders=protected.placeholders,
-            language=language_code,
-            reserved=reserved_spans,
-        )
-        symbol_stage = stages[-1]
-        internal_replacements = map_visible_replacements_to_internal(
-            before,
-            symbol_replacements,
-            protected.values,
-            protected.placeholders,
-        )
-        current_annotations = remap_annotations_for_replacements(
-            current_annotations,
-            ((item.start, item.end, len(item.text)) for item in internal_replacements),
-        )
-        symbol_map = OffsetMap.from_replacements(
-            len(symbol_stage.before),
-            symbol_replacements,
-            output_length=len(symbol_stage.after),
-        )
-        reserved_spans = _remap_reserved_spans(reserved_spans, symbol_map)
-        stages[-1] = replace(stages[-1], reserved=reserved_spans)
-
-    if selected.normalize_whitespace:
-        before = current
-        current = apply_stage(
-            stages,
-            "whitespace",
-            current,
-            lambda value: normalize_spacing(
-                value,
-                normalize_unicode=False,
-                strip_outer_whitespace=(
-                    selected.strip_outer_whitespace and not selected.preserve_run_boundaries
-                ),
-                collapse_horizontal_whitespace=(
-                    selected.collapse_horizontal_whitespace and not selected.preserve_run_boundaries
-                ),
-                normalize_line_whitespace=(
-                    selected.normalize_line_whitespace and not selected.preserve_run_boundaries
-                ),
-                collapse_blank_lines=(
-                    selected.collapse_blank_lines and not selected.preserve_run_boundaries
-                ),
-            ),
-            restore=protected.restore,
-        )
-        whitespace_stage = stages[-1]
-        whitespace_replacements = replacements_from_diff(
-            whitespace_stage.before,
-            whitespace_stage.after,
-            whitespace_stage.name,
-        )
-        internal_replacements = map_visible_replacements_to_internal(
-            before,
-            whitespace_replacements,
-            protected.values,
-            protected.placeholders,
-        )
-        current_annotations = remap_annotations_for_replacements(
-            current_annotations,
-            ((item.start, item.end, len(item.text)) for item in internal_replacements),
-        )
-        whitespace_map = OffsetMap.from_replacements(
-            len(whitespace_stage.before),
-            whitespace_replacements,
-            output_length=len(whitespace_stage.after),
-        )
-        reserved_spans = _remap_reserved_spans(reserved_spans, whitespace_map)
-        stages[-1] = replace(stages[-1], reserved=reserved_spans)
-
+    current, current_annotations = _run_unicode_stage(
+        current, current_annotations, stages, protected, selected
+    )
+    current, current_annotations, reserved_spans = _run_structured_stage(
+        current,
+        current_annotations,
+        reserved_spans,
+        stages,
+        protected,
+        selected,
+        language_code,
+        evidence,
+        structured_numbers_enabled,
+    )
+    current, current_annotations, reserved_spans = _run_abbreviation_stage(
+        current, current_annotations, reserved_spans, stages, protected, selected, language_code
+    )
+    current, current_annotations, reserved_spans = _run_number_stage(
+        current,
+        current_annotations,
+        reserved_spans,
+        stages,
+        protected,
+        selected,
+        language_code,
+        effective_long_number_mode,
+        plain_numbers_enabled,
+    )
+    current, current_annotations, reserved_spans = _run_sequence_fallback_stage(
+        current, current_annotations, reserved_spans, stages, protected, language_code, selected
+    )
+    current, current_annotations, reserved_spans = _run_symbol_stage(
+        current, current_annotations, reserved_spans, stages, protected, language_code, selected
+    )
+    current, current_annotations, reserved_spans = _run_whitespace_stage(
+        current, current_annotations, reserved_spans, stages, protected, language_code, selected
+    )
     current = protected.restore(current)
 
     offset_map, source_replacements = _finalize_mapping(
