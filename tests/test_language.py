@@ -12,7 +12,15 @@ from spokenform.language import (
 
 @pytest.mark.parametrize(
     ("value", "expected"),
-    [("en", "en"), ("en-gb", "en_GB"), ("en_GB", "en_GB"), ("EN-gb", "en_GB")],
+    [
+        ("en", "en"),
+        ("en-gb", "en_GB"),
+        ("en_GB", "en_GB"),
+        ("EN-gb", "en_GB"),
+        ("JP", "ja"),
+        ("cn", "zh_CN"),
+        ("zh-CN", "zh_CN"),
+    ],
 )
 def test_normalize_language(value: str, expected: str) -> None:
     assert normalize_language(value) == expected
@@ -31,7 +39,10 @@ def test_base_language_and_supported_languages() -> None:
             "es",
             "fr",
             "it",
+            "ja",
+            "ko",
             "pt",
+            "zh",
         )
     )
 
@@ -51,3 +62,20 @@ def test_dependency_language_uses_exact_variant_when_available() -> None:
 def test_dependency_language_falls_back_to_base_when_variant_is_missing() -> None:
     assert resolve_num2words_language("en_GB") == "en"
     assert resolve_abbr2words_language("en_GB") == "en"
+
+
+def test_cjk_dependency_language_routing() -> None:
+    assert resolve_num2words_language("ja_JP") == "ja"
+    assert resolve_num2words_language("ko_KR") == "ko"
+    with pytest.raises(ValueError):
+        resolve_num2words_language("zh_CN")
+
+    assert resolve_abbr2words_language("ja_JP") == "ja"
+    assert resolve_abbr2words_language("ko_KR") == "ko"
+    assert resolve_abbr2words_language("zh_CN") == "zh_CN"
+    assert resolve_abbr2words_language("cn") == "zh_CN"
+
+
+def test_kr_is_not_an_alias() -> None:
+    with pytest.raises(ValueError, match="Unsupported language"):
+        resolve_abbr2words_language("kr")

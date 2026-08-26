@@ -10,6 +10,7 @@ maps.
 :caption: Documentation
 
 installation
+languages
 quickstart
 architecture
 api

@@ -1,6 +1,6 @@
 # Release checklist
 
-1. Ensure the released `abbr2words>=0.2.9,<0.3.0` prerequisite containing the reviewed structured identities and initialism policy is available from the target package index.
+1. Ensure the released `abbr2words>=0.2.10,<0.3.0` prerequisite containing the reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
 
 - Confirm the released Lexhint versions allowed by the `spokenform[lexhint]` extra pass the real provider contract test.
 - For Lexhint 0.2.x, confirm a compatible schema-8 `runtime` dataset is published and installable.

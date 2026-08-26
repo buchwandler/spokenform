@@ -5,10 +5,9 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from num2words import num2words
-
-from ..language import base_language, normalize_language, resolve_num2words_language
+from ..language import base_language, normalize_language
 from ..mapping import Replacement
+from ..number_words import number_words
 from ..sequences import render_letters, render_sequence
 
 _PATHOGEN_RE = re.compile(r"(?<!\w)(?P<value>MERS|COVID(?:-19)?|SARS)(?!\w)")
@@ -30,7 +29,7 @@ _BIO_CONTEXT_RE = re.compile(
 
 def _cardinal(value: int, language: str) -> str:
     return (
-        str(num2words(value, lang=resolve_num2words_language(language)))
+        str(number_words(value, lang=language))
         .replace(",", "")
         .replace("-", " ")
         .replace(" and ", " ")

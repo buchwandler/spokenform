@@ -21,6 +21,12 @@ skipping the whitespace stage entirely. `normalize_literals=True` opts into
 high-confidence URL, e-mail, semantic-version, and contextual Roman rendering;
 caller-protected spans always take precedence.
 
+## Language identifiers and number backends
+
+Canonical runtime identifiers are `ja` (Japanese), `ko` (Korean), `zh` (conservative Chinese), and `zh_CN` (Mainland Chinese overlay). Hyphenated regional forms such as `ja-JP`, `ko-KR`, and `zh-CN` are normalized internally. `jp` aliases to `ja` and `cn` aliases to `zh_CN` for compatibility; `kr` is not accepted.
+
+Japanese, Korean, and all existing supported languages use released `num2words` for number words. Chinese uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese rather than returning a fake converter key. `resolve_abbr2words_language()` preserves exact `zh_CN` routing so Mainland reviewed terminology and RMB are not replaced by the generic `zh` profile.
+
 `symbol_mode="none"` is the backward-compatible default and applies no general
 residual-symbol filter. `symbol_mode="remove"` removes Unicode punctuation and
 symbol characters (`P*` and `S*`) left after semantic recognition. With

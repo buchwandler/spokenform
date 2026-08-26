@@ -12,12 +12,12 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
-from num2words import num2words
 
 from ..config import NumberPolicy
 from ..dates import _valid_date, expand_year
-from ..language import resolve_abbr2words_language, resolve_num2words_language
+from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
+from ..number_words import number_words
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -190,7 +190,7 @@ def _decimal(raw: str, language: str = "it") -> Decimal:
 
 
 def _spell(value: int, language: str = "it") -> str:
-    return str(num2words(value, lang=resolve_num2words_language(language)))
+    return str(number_words(value, lang=language))
 
 
 def _number_text(raw: str, *, singular_article: str | None = None, language: str = "it") -> str:
@@ -409,9 +409,7 @@ def _iter_it_ordinals(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
     for match in _ORDINAL_SYMBOL.finditer(text):
-        value = str(
-            num2words(int(match["number"]), lang=resolve_num2words_language(language), to="ordinal")
-        )
+        value = str(number_words(int(match["number"]), lang=language, to="ordinal"))
         if match.group("suffix").casefold().rstrip(".") in {"a", "ª"} and value.endswith("o"):
             value = f"{value[:-1]}a"
         prefix = text[max(0, match.start() - 3) : match.start()]

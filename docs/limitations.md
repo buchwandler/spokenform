@@ -14,9 +14,10 @@
   default output.
 - German quantity recognition depends on the released `abbr2words` structured
   match API. spokenform owns the semantic grammar, not the symbol inventory.
-- English, German, French, Spanish, Italian, Portuguese, and Czech have parity-gated
-  structured ownership. Spanish and Italian colon-time expressions are owned by
-  locale policies; Portuguese and Czech time expressions remain caller-managed.
+- English, German, French, Spanish, Italian, Portuguese, Czech, Japanese, Korean, and Chinese have explicit runtime structured policies. Japanese, Korean, and Chinese runtime support is covered by focused regression tests, but it does not imply kokorog2p or PolyNorm parity.
+- Japanese and Korean use released `num2words`; Chinese uses released `cn2an`. Generic `zh` is conservative, while Mainland reviewed terminology and RMB live under exact `zh_CN`. `zh_TW` and `zh_HK` are not claimed.
+- `jp` and `cn` are compatibility aliases for `ja` and `zh_CN`; `kr` is intentionally rejected. Unknown CJK-adjacent Latin identifiers remain unchanged, and ambiguous date formats remain unclaimed.
+- CJK date/time and semantic renderers use reviewed native forms. Unsupported phone, ISBN, reference, legal, music, biology, geography, sports, chemistry, and math constructions decline rather than borrowing English words.
   Spanish explicit AM/PM forms use a 12-hour conversational branch, while
   unqualified 24-hour forms retain their written hour/minute values in speech.
   English owns a conservative contextual single-dot release-label

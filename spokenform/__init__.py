@@ -47,6 +47,7 @@ from .models import (
     TextEdit,
     TokenAnnotation,
 )
+from .number_words import number_backend_for_language
 from .numbers import normalize_numbers
 from .protection import ProtectedSpan, ProtectionError
 from .spacy_support import SpacyModelError, load_spacy_model, reset_spacy_cache
@@ -65,6 +66,7 @@ __all__ = [
     "RegisteredAcronymMode",
     "NumberPolicy",
     "number_policy_for_language",
+    "number_backend_for_language",
     "SUPPORTED_BASE_LANGUAGES",
     "normalize_language",
     "base_language",

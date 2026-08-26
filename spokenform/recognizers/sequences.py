@@ -9,14 +9,13 @@ from fractions import Fraction
 from typing import Literal
 from urllib.parse import urlsplit
 
-from num2words import num2words
-
 from ..config import InterpretationMode
 from ..dates import render_english_year, render_year
 from ..diagnostics import TraceCollector
 from ..evidence import EvidenceSession
-from ..language import base_language, normalize_language, resolve_num2words_language
+from ..language import base_language, normalize_language
 from ..mapping import Replacement
+from ..number_words import number_words
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 from ..sequences import (
     SEGMENT_BOUNDARY,
@@ -621,7 +620,7 @@ _ISBN_POLICIES = {
 
 
 def _cardinal(value: int, language: str) -> str:
-    rendered = str(num2words(value, lang=resolve_num2words_language(language)))
+    rendered = str(number_words(value, lang=language))
     if base_language(language) == "en":
         return rendered.replace(" and ", " ")
     return rendered
@@ -695,9 +694,7 @@ def _fraction_word(numerator: int, denominator: int, language: str) -> str:
     words = _DENOMINATOR_WORDS.get(base, _DENOMINATOR_WORDS["en"])
     denominator_word = words.get(denominator)
     if denominator_word is None:
-        denominator_word = str(
-            num2words(denominator, lang=resolve_num2words_language(language), to="ordinal")
-        )
+        denominator_word = str(number_words(denominator, lang=language, to="ordinal"))
     if base == "de":
         return f"{_cardinal(numerator, language)} {denominator_word}"
     if base == "fr":
@@ -1086,9 +1083,9 @@ RomanSemantic = Literal["cardinal", "ordinal", "year", "monarch"]
 
 def _roman_number_text(value: int, language: str, *, ordinal: bool = False) -> str:
     rendered = str(
-        num2words(
+        number_words(
             value,
-            lang=resolve_num2words_language(language),
+            lang=language,
             to="ordinal" if ordinal else "cardinal",
         )
     )
@@ -1494,7 +1491,12 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
                 rendered.append("")
             else:
                 rendered.append(
-                    vocabulary(language).underscore if token == "_" else vocabulary(language).hyphen
+                    (
+                        vocabulary(language).underscore
+                        if token == "_"
+                        else vocabulary(language).hyphen
+                    )
+                    or token
                 )
         elif (
             opaque
@@ -1571,9 +1573,12 @@ def _formula_text(value: str, language: str) -> str:
             )
         elif token in "()":
             parts.append(
-                vocabulary(language).open_paren
-                if token == "("
-                else vocabulary(language).close_paren
+                (
+                    vocabulary(language).open_paren
+                    if token == "("
+                    else vocabulary(language).close_paren
+                )
+                or token
             )
         else:
             parts.extend(token)
@@ -1718,9 +1723,12 @@ def _math_text(value: str, language: str) -> str:
             absolute_open = not absolute_open
         elif token in "()":
             parts.append(
-                vocabulary(language).open_paren
-                if token == "("
-                else vocabulary(language).close_paren
+                (
+                    vocabulary(language).open_paren
+                    if token == "("
+                    else vocabulary(language).close_paren
+                )
+                or token
             )
         elif token in "⁰¹²³⁴⁵⁶⁷⁸⁹":
             exponent = int(token.translate(str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")))
@@ -3502,9 +3510,9 @@ def _iter_address_candidates(
         )
         if base_language(language) == "de" and match["label"].casefold() == "og":
             number = str(
-                num2words(
+                number_words(
                     int(match["number"]),
-                    lang=resolve_num2words_language(language),
+                    lang=language,
                     to="ordinal",
                 )
             )

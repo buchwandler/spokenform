@@ -13,12 +13,12 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
-from num2words import num2words
 
 from ..config import NumberPolicy
 from ..dates import _valid_date, expand_year
-from ..language import resolve_abbr2words_language, resolve_num2words_language
+from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
+from ..number_words import number_words
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -248,7 +248,7 @@ def _decimal(raw: str, language: str = "es") -> Decimal:
 
 
 def _spell(value: int, language: str = "es") -> str:
-    return str(num2words(value, lang=resolve_num2words_language(language)))
+    return str(number_words(value, lang=language))
 
 
 def _apocopate(text: str, gender: str) -> str:
@@ -329,7 +329,7 @@ def _time_text(hour: int, minute: int, period: str | None, language: str = "es")
 
 def _ordinal_text(number: int, suffix: str, language: str = "es") -> str:
     """Render high-confidence Spanish ordinal markers with local gender."""
-    ordinal = str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
+    ordinal = str(number_words(number, lang=language, to="ordinal"))
     suffix = suffix.casefold().replace(".", "")
     if suffix in {"a", "ª", "ta", "na", "da"}:
         if number == 15:
@@ -347,7 +347,7 @@ def _ordinal_text(number: int, suffix: str, language: str = "es") -> str:
         return ordinal[:-1]
     if number == 12:
         return "duodécimo"
-    return str(num2words(number, lang=resolve_num2words_language(language), to="ordinal"))
+    return str(number_words(number, lang=language, to="ordinal"))
 
 
 def _terminal_dot(text: str, end: int) -> bool:

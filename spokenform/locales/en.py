@@ -14,12 +14,12 @@ from decimal import Decimal, InvalidOperation
 from typing import Literal
 
 from abbr2words import UnitMatch, iter_unit_matches
-from num2words import num2words
 
 from ..config import NumberPolicy
 from ..dates import DateCandidate, _valid_date, expand_year, render_english_year
-from ..language import resolve_abbr2words_language, resolve_num2words_language
+from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
+from ..number_words import number_words
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -276,9 +276,9 @@ _TEXT_DATE_RANGE = re.compile(
 
 def _spell(value: int, language: str = "en", *, ordinal: bool = False) -> str:
     result = str(
-        num2words(
+        number_words(
             value,
-            lang=resolve_num2words_language(language),
+            lang=language,
             to="ordinal" if ordinal else "cardinal",
         )
     )
@@ -357,7 +357,7 @@ def _date_text(
 
 
 def _ordinal_text(value: int, language: str = "en") -> str:
-    rendered = str(num2words(value, lang=resolve_num2words_language(language), to="ordinal"))
+    rendered = str(number_words(value, lang=language, to="ordinal"))
     return " ".join(rendered.replace(",", " ").replace("-", " ").split())
 
 

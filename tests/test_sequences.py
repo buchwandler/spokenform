@@ -2,7 +2,12 @@ import pytest
 
 from spokenform import prepare
 from spokenform.language import SUPPORTED_BASE_LANGUAGES
-from spokenform.sequences import SequenceRenderPolicy, render_letters, render_sequence
+from spokenform.sequences import (
+    SequenceRenderPolicy,
+    render_digits,
+    render_letters,
+    render_sequence,
+)
 
 
 @pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
@@ -430,3 +435,23 @@ def test_contextual_years_reject_numeric_continuations(source: str) -> None:
 def test_text_dates_preserve_following_word_and_punctuation(source: str, expected: str) -> None:
     result = prepare(source, language="en", use_spacy=False)
     assert result.spoken_text == expected
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        ("ja", "ゼロ いち に さん よん ご ろく なな はち きゅう"),
+        ("ko", "영 일 이 삼 사 오 육 칠 팔 구"),
+        ("zh", "零 一 二 三 四 五 六 七 八 九"),
+    ],
+)
+def test_cjk_digitwise_rendering(language: str, expected: str) -> None:
+    assert render_digits("0123456789", language=language) == expected
+
+
+def test_cjk_sequence_fallback_preserves_unknown_punctuation() -> None:
+    policy = SequenceRenderPolicy(alpha_mode="grapheme_spaced")
+    assert render_sequence("XJ9", language="ja", policy=policy) == "X J きゅう"
+    assert render_sequence("XJ9", language="ko", policy=policy) == "X J 구"
+    assert render_sequence("XJ9", language="zh", policy=policy) == "X J 九"
+    assert render_sequence("a.b/c", language="zh", policy=policy) == "a . b / c"

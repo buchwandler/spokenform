@@ -5,11 +5,10 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
-from num2words import num2words
-
 from ..dates import render_english_year
-from ..language import base_language, normalize_language, resolve_num2words_language
+from ..language import base_language, normalize_language
 from ..mapping import Replacement
+from ..number_words import number_words
 
 _LABELED = re.compile(
     r"(?<!\w)(?P<volume_label>vol(?:ume)?\.?)[ ]*(?P<volume>\d{1,4})\s*,?\s*"
@@ -24,7 +23,7 @@ _COLON_CITATION = re.compile(
 
 
 def _cardinal(value: int, language: str) -> str:
-    return str(num2words(value, lang=resolve_num2words_language(language))).replace(" and ", " ")
+    return str(number_words(value, lang=language)).replace(" and ", " ")
 
 
 def _year(value: int, language: str) -> str:

@@ -12,7 +12,7 @@ from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
 from ..dates import expand_year, parsed_date, render_year
-from ..language import resolve_abbr2words_language, resolve_num2words_language
+from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
@@ -243,9 +243,9 @@ _MIXED_MONTHS = {
 
 
 def _spell(value: int | Decimal, language: str = "de") -> str:
-    from num2words import num2words
+    from ..number_words import number_words
 
-    return str(num2words(value, lang=resolve_num2words_language(language)))
+    return str(number_words(value, lang=language))
 
 
 def _parts(raw: str, language: str = "de") -> tuple[bool, int, str | None]:
@@ -272,9 +272,9 @@ def _year(value: int, language: str = "de", *, year_digits: int | None = None) -
 
 
 def _ordinal(value: int, ending: str, language: str = "de") -> str:
-    from num2words import num2words
+    from ..number_words import number_words
 
-    word = str(num2words(value, lang=resolve_num2words_language(language), to="ordinal"))
+    word = str(number_words(value, lang=language, to="ordinal"))
     if ending == "er" and word.endswith("e"):
         return word[:-1] + "er"
     if ending == "e":

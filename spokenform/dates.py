@@ -6,9 +6,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
-from num2words import num2words
-
 from .language import base_language, resolve_num2words_language
+from .number_words import number_words
 
 
 def _valid_date(day: int, month: int, year: int) -> bool:
@@ -104,7 +103,7 @@ def render_english_year(
     dependency_language = resolve_num2words_language(language)
 
     def cardinal(value: int) -> str:
-        return str(num2words(value, lang=dependency_language)).replace(",", "").replace("-", " ")
+        return str(number_words(value, lang=dependency_language)).replace(",", "").replace("-", " ")
 
     if source_digits == 2:
         return cardinal(year % 100)
@@ -133,17 +132,15 @@ def render_year(year: int, *, language: str = "en", source_digits: int | None = 
         return render_english_year(year, language=language, source_digits=source_digits)
     if base == "de":
         if source_digits == 2:
-            return str(num2words(year % 100, lang=resolve_num2words_language(language)))
+            return str(number_words(year % 100, lang=language))
         if 1100 <= year < 2000:
             century, remainder = divmod(year, 100)
-            prefix = f"{num2words(century, lang=resolve_num2words_language(language))}hundert"
+            prefix = f"{number_words(century, lang=language)}hundert"
             return (
-                prefix
-                if remainder == 0
-                else prefix + str(num2words(remainder, lang=resolve_num2words_language(language)))
+                prefix if remainder == 0 else prefix + str(number_words(remainder, lang=language))
             )
-        return str(num2words(year, lang=resolve_num2words_language(language)))
-    return str(num2words(year, lang=resolve_num2words_language(language)))
+        return str(number_words(year, lang=language))
+    return str(number_words(year, lang=language))
 
 
 __all__ = [

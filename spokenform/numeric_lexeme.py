@@ -91,6 +91,9 @@ _BASE_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
     "fr": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f", "."), (".",)),
     "it": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
     "pt": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+    "ja": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
+    "ko": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
+    "zh": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
 }
 
 _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
@@ -100,6 +103,9 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "fr": NumericSpeechPolicy("virgule", "digitwise"),
     "it": NumericSpeechPolicy("virgola", "digitwise"),
     "pt": NumericSpeechPolicy("vírgula", "digitwise"),
+    "ja": NumericSpeechPolicy("点", "digitwise"),
+    "ko": NumericSpeechPolicy("점", "digitwise"),
+    "zh": NumericSpeechPolicy("点", "digitwise"),
 }
 
 
@@ -318,6 +324,23 @@ def _build_numeric_lexeme(
     )
 
 
+_NUMERIC_COMPATIBILITY_RE = re.compile(
+    r"(?<![0-9０-９A-Za-zＡ-Ｚａ-ｚ_])[＋－]?[０-９]+(?:[．，][０-９]+)?(?![0-9０-９A-Za-zＡ-Ｚａ-ｚ_])"
+)
+_NUMERIC_COMPATIBILITY_TABLE = str.maketrans(
+    "０１２３４５６７８９．，＋－",
+    "0123456789.,+-",
+)
+
+
+def normalize_numeric_compatibility(text: str) -> str:
+    """Fold full-width punctuation only inside numeric-looking spans."""
+    return _NUMERIC_COMPATIBILITY_RE.sub(
+        lambda match: match.group(0).translate(_NUMERIC_COMPATIBILITY_TABLE),
+        text,
+    )
+
+
 def parse_numeric_lexeme(
     raw: str,
     language: str = "en",
@@ -355,6 +378,7 @@ __all__ = [
     "NumericPunctuationPolicy",
     "NumericSpeechPolicy",
     "fraction_digit_groups",
+    "normalize_numeric_compatibility",
     "numeric_punctuation_policy",
     "numeric_speech_policy",
     "parse_numeric_lexeme",

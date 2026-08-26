@@ -7,6 +7,8 @@ spokenform --lang de "Prof. Klein hat 2 kg."
 echo "There are 2 tests." | spokenform --lang en
 ```
 
+Canonical language options include `--lang ja`, `--lang ko`, and `--lang zh_CN`. `--lang zh` selects the conservative Chinese base. Compatibility aliases `jp` -> `ja` and `cn` -> `zh_CN` are accepted, but new scripts should use canonical identifiers.
+
 Use `--changes` for stage provenance and `--json` for a structured result:
 
 ```bash

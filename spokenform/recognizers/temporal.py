@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import re
 
-from num2words import num2words
-
-from ..language import base_language, resolve_num2words_language
+from ..language import base_language
+from ..number_words import number_words
 from ..sequences import SEGMENT_BOUNDARY
 
 _COUNTDOWN_CONTEXT_RE = re.compile(
@@ -24,7 +23,7 @@ _COUNTDOWN_CONTEXT_RE = re.compile(
 
 
 def _cardinal(value: int, language: str) -> str:
-    rendered = str(num2words(value, lang=resolve_num2words_language(language)))
+    rendered = str(number_words(value, lang=language))
     return rendered.replace(" and ", " ") if base_language(language) == "en" else rendered
 
 

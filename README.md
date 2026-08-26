@@ -60,6 +60,17 @@ prepared = prepare(
 
 print(prepared.spoken_text)
 print(prepared.render_changes())
+
+## Language support
+
+| Language | Canonical code | Common locale | Number backend | `abbr2words` profile | Initial support |
+| --- | --- | --- | --- | --- | --- |
+| Japanese | `ja` | `ja_JP` | `num2words` | `ja` | numbers, reviewed abbreviations, quantities, dates, times, currencies, and conservative sequences |
+| Korean | `ko` | `ko_KR` | `num2words` | `ko` | numbers, reviewed abbreviations, quantities, dates, times, currencies, and conservative sequences |
+| Chinese | `zh` | `zh_CN` | `cn2an` | `zh` / exact `zh_CN` | conservative generic Chinese and Mainland reviewed terminology, quantities, dates, times, and currencies |
+
+`jp` and `cn` are accepted compatibility aliases for `ja` and `zh_CN`. New code and documentation should use the canonical identifiers. `zh_CN` is intentionally preserved as an exact `abbr2words` overlay. Unknown Latin identifiers remain unchanged rather than being guessed.
+
 ```
 
 The result contains:
@@ -339,7 +350,7 @@ release, for example `vX.Y.Z`.
 The source-tree fallback when SCM metadata has not been generated is the neutral
 version `0+unknown`; release builds derive their version from the annotated tag.
 
-Before publishing, ensure the released `abbr2words>=0.2.9,<0.3.0` prerequisite exists
+Before publishing, ensure the released `abbr2words>=0.2.10,<0.3.0` prerequisite exists
 on the target package index and run the checklist in
 [`docs/release-checklist.md`](docs/release-checklist.md).
 

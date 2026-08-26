@@ -52,7 +52,7 @@ punctuation remains downstream unless the caller explicitly requests filtering.
 The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical
 identity; `spokenform.structured` dispatches to locale-owned English, German, French,
-Spanish, Italian, Portuguese, or Czech semantic grammar. No symbol or alias inventory is copied
+Spanish, Italian, Portuguese, Czech, Japanese, Korean, or Chinese semantic grammar. No symbol or alias inventory is copied
 into spokenform. French owns its dates, h/colon times, ordinals, decimal digit
 reading, quantities, temperatures, and currency decomposition. Spanish owns
 reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
@@ -96,6 +96,17 @@ long digit strings. Its structured single-dot release-label rule is contextual
 and yields to recognized quantity spans. All reviewed quantity and currency
 symbols continue to come from `abbr2words`.
 
+Japanese, Korean, and Chinese use explicit numeric and sequence vocabularies. Japanese and Korean route cardinal and ordinal values through released `num2words`; Chinese routes cardinal and digitwise values through released `cn2an`. `zh_CN` remains an exact `abbr2words` overlay, and all CJK unknown shared domains decline rather than borrowing English connectors or policy words.
+
+The dependency direction is:
+
+```text
+abbr2words ──────────┐
+num2words (ja/ko) ──┼─> spokenform
+cn2an (zh) ─────────┘
+```
+
+Full-width numeric compatibility forms are folded in a dedicated mapped stage after NFC and only inside numeric-looking spans. Compatibility symbols such as `㈱` remain available to `abbr2words`; global NFKC is not used.
 `prepare_for_kokorog2p()` is a deterministic one-language adapter. Its profile
 preserves run boundaries, honors protected spans fail-closed, and does not perform
 language detection, tokenization, G2P, or model-punctuation rewriting.

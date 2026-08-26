@@ -13,12 +13,12 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
-from num2words import num2words
 
 from ..config import NumberPolicy
 from ..dates import _valid_date
 from ..language import normalize_language, resolve_abbr2words_language, resolve_num2words_language
 from ..mapping import Replacement
+from ..number_words import number_words
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -128,7 +128,7 @@ def _decimal(raw: str) -> Decimal:
 
 
 def _spell(value: int, language: str) -> str:
-    return str(num2words(value, lang=_number_language(language)))
+    return str(number_words(value, lang=_number_language(language)))
 
 
 def _feminize_integer(text: str) -> str:

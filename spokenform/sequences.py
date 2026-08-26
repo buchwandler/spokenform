@@ -18,17 +18,17 @@ from .language import base_language, normalize_language
 class SequenceVocabulary:
     """Spoken names for punctuation in a claimed structured sequence."""
 
-    point: str = "point"
-    slash: str = "slash"
-    hyphen: str = "hyphen"
-    underscore: str = "underscore"
-    colon: str = "colon"
-    at: str = "at"
-    hash: str = "hash"
-    plus: str = "plus"
-    equals: str = "equals"
-    open_paren: str = "open parenthesis"
-    close_paren: str = "close parenthesis"
+    point: str | None = "point"
+    slash: str | None = "slash"
+    hyphen: str | None = "hyphen"
+    underscore: str | None = "underscore"
+    colon: str | None = "colon"
+    at: str | None = "at"
+    hash: str | None = "hash"
+    plus: str | None = "plus"
+    equals: str | None = "equals"
+    open_paren: str | None = "open parenthesis"
+    close_paren: str | None = "close parenthesis"
 
 
 @dataclass(frozen=True, slots=True)
@@ -51,6 +51,9 @@ _DIGIT_NAMES: dict[str, tuple[str, ...]] = {
     "it": ("zero", "uno", "due", "tre", "quattro", "cinque", "sei", "sette", "otto", "nove"),
     "pt": ("zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"),
     "cs": ("nula", "jedna", "dva", "tři", "čtyři", "pět", "šest", "sedm", "osm", "devět"),
+    "ja": ("ゼロ", "いち", "に", "さん", "よん", "ご", "ろく", "なな", "はち", "きゅう"),
+    "ko": ("영", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"),
+    "zh": ("零", "一", "二", "三", "四", "五", "六", "七", "八", "九"),
 }
 
 _LETTER_NAMES: dict[str, Mapping[str, str]] = {
@@ -154,6 +157,9 @@ _LETTER_NAMES: dict[str, Mapping[str, str]] = {
         "y": "ypsilon",
         "z": "zet",
     },
+    "ja": {},
+    "ko": {},
+    "zh": {},
 }
 
 _SUPERSCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
@@ -238,12 +244,53 @@ _DEFAULT_VOCABULARY = {
         open_paren="levá závorka",
         close_paren="pravá závorka",
     ),
+    "ja": SequenceVocabulary(
+        point=None,
+        slash=None,
+        hyphen=None,
+        underscore=None,
+        colon=None,
+        at=None,
+        hash=None,
+        plus=None,
+        equals=None,
+        open_paren=None,
+        close_paren=None,
+    ),
+    "ko": SequenceVocabulary(
+        point=None,
+        slash=None,
+        hyphen=None,
+        underscore=None,
+        colon=None,
+        at=None,
+        hash=None,
+        plus=None,
+        equals=None,
+        open_paren=None,
+        close_paren=None,
+    ),
+    "zh": SequenceVocabulary(
+        point=None,
+        slash=None,
+        hyphen=None,
+        underscore=None,
+        colon=None,
+        at=None,
+        hash=None,
+        plus=None,
+        equals=None,
+        open_paren=None,
+        close_paren=None,
+    ),
 }
 
 
 def _language(language: str) -> str:
     base = base_language(normalize_language(language))
-    return base if base in _DIGIT_NAMES else "en"
+    if base not in _DIGIT_NAMES:
+        raise ValueError(f"No explicit sequence digit policy for {language!r}")
+    return base
 
 
 def vocabulary(language: str = "en") -> SequenceVocabulary:
@@ -327,9 +374,9 @@ def render_sequence(
     if digit_mode == "cardinal":
         # Cardinal mode is intentionally explicit; callers should pass a
         # complete numeric token, never an arbitrary identifier chunk.
-        from num2words import num2words
+        from .number_words import number_words
 
-        return str(num2words(int(normalized), lang=language.split("_")[0]))
+        return str(number_words(int(normalized), lang=language.split("_")[0]))
     rendered: list[str] = []
     index = 0
     while index < len(normalized):

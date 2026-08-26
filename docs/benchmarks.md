@@ -21,6 +21,8 @@ annotated TTS-normalization diagnostic. Their data and reports live under
 in the ownership document. See [Async TN](async_tn.md) for its mapping,
 methodology, and static dashboard contract.
 
+Japanese, Korean, and Chinese runtime support is regression-tested but is not part of the current seven-language PolyNorm or kokorog2p parity scope without a dedicated benchmark adapter and corpus.
+
 Async TN, PolyNorm, and Proteno now each write a self-contained local
 `report.html` dashboard by default. These dashboards reuse a shared static HTML
 shell, keep dataset/runtime strings escaped, expose local KPI and diagnostic

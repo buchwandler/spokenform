@@ -68,6 +68,18 @@ def _iter_locale_replacements(
         from .locales.cs import iter_replacements
 
         return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "ja":
+        from .locales.ja import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "ko":
+        from .locales.ko import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "zh":
+        from .locales.zh import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
     return ()
 
 
@@ -88,19 +100,24 @@ def iter_structured_candidates(
         raise TypeError("text must be a string")
 
     language = normalize_language(language)
+    base = base_language(language)
     protected = tuple(protected_ranges)
     from .recognizers import iter_sequence_replacements
 
-    shared_candidates = iter_sequence_replacements(
-        text,
-        language=language,
-        protected_ranges=protected,
-        promote_literals=promote_literals,
-        generic_acronym_mode=generic_acronym_mode,
-        generic_acronym_case=generic_acronym_case,
-        interpretation_mode=interpretation_mode,
-        evidence=evidence,
-        trace=trace,
+    shared_candidates = (
+        ()
+        if base in {"ja", "ko", "zh"}
+        else iter_sequence_replacements(
+            text,
+            language=language,
+            protected_ranges=protected,
+            promote_literals=promote_literals,
+            generic_acronym_mode=generic_acronym_mode,
+            generic_acronym_case=generic_acronym_case,
+            interpretation_mode=interpretation_mode,
+            evidence=evidence,
+            trace=trace,
+        )
     )
     locale_candidates = _iter_locale_replacements(
         text,

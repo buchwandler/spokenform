@@ -102,3 +102,30 @@ def test_fallback_is_total_and_mapped_in_every_supported_language(language: str)
         replacement.source_start,
         replacement.source_end,
     )
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [("ja", "X J きゅう"), ("ko", "X J 구"), ("zh", "X J 九")],
+)
+def test_cjk_fallback_localizes_digits_without_guessing_letters(
+    language: str, expected: str
+) -> None:
+    result = prepare(
+        "XJ9",
+        language=language,
+        use_spacy=False,
+        sequence_fallback_mode="spell",
+    )
+    assert result.spoken_text == expected
+
+
+@pytest.mark.parametrize("language", ["ja", "ko", "zh"])
+def test_cjk_literal_fallback_preserves_punctuation(language: str) -> None:
+    result = prepare(
+        "a.b/c",
+        language=language,
+        use_spacy=False,
+        sequence_fallback_mode="spell",
+    )
+    assert result.spoken_text == "a . b / c"

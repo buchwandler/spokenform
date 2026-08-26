@@ -8,6 +8,10 @@
 
 ### Changed
 
+- Added Japanese, Korean, and Chinese runtime support with `jp`/`cn` compatibility aliases
+- Added released `cn2an` Chinese number backend and exact `abbr2words` `zh_CN` overlay routing
+- Added CJK locale quantities, currencies, native dates/times, semantic percentages, fractions, ranges, and full-width numeric handling
+- Hardened supported-language rendering against silent English fallback and preserved conservative unknown identifiers
 - Changed optional Lexhint compatibility to cover 0.2.x while retaining 0.1.2 support
 
 ### Documentation

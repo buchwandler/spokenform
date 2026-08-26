@@ -3,6 +3,8 @@
 Spokenform's PolyNorm adapter evaluates the overlap between the external
 Apple PolyNorm-Bench corpus and the seven base languages supported by
 Spokenform. The overlap is `de-DE`, `en-US`, `es-MX`, `fr-FR`, and `it-IT`;
+
+This benchmark remains limited to its existing seven-language overlap. Japanese, Korean, and Chinese runtime support is covered by focused spokenform regression tests, not by this PolyNorm parity set.
 the default run derives its case count from the selected cached files because
 upstream locale files may differ in length. PolyNorm BCP-47 tags are translated
 to regional Spokenform identifiers only inside the benchmark adapter; they are

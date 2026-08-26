@@ -45,6 +45,30 @@ jobs:
           --cov-report=term-missing \
           --cov-report=xml \
           --cov-fail-under=85
+  cjk-contract:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install Spokenform and CJK dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e ".[dev]"
+    - name: Assert released CJK dependency contract
+      run: python -m pytest -q tests/test_packaging.py -k released_abbr2words_0210_cjk_contract
+    - name: Run focused CJK contract
+      run: >
+        python -m pytest -q
+        tests/test_language.py
+        tests/test_number_words.py
+        tests/test_ja.py
+        tests/test_ko.py
+        tests/test_zh_cn.py
+        tests/test_cjk_no_english_fallback.py
+        tests/test_cjk_fullwidth_numbers.py
   lexhint-contract:
     runs-on: ubuntu-latest
     strategy:

@@ -41,6 +41,7 @@ from .mapping import (
 )
 from .models import PreparationStage, PreparedText, ReservedSpan, SourceReplacement, TokenAnnotation
 from .numbers import normalize_plain_numbers
+from .numeric_lexeme import normalize_numeric_compatibility
 from .protection import (
     ProtectedSpan,
     ProtectedText,
@@ -126,6 +127,35 @@ def _run_unicode_stage(
                 current_annotations,
                 ((item.start, item.end, len(item.text)) for item in internal_replacements),
             )
+    return current, current_annotations
+
+
+def _run_numeric_compatibility_stage(
+    current: str,
+    current_annotations: Iterable[TokenAnnotation] | None,
+    stages: list[PreparationStage],
+    protected: ProtectedText,
+) -> tuple[str, Iterable[TokenAnnotation] | None]:
+    """Normalize full-width characters only within numeric-looking spans."""
+    if not any(character in current for character in "０１２３４５６７８９．，＋－"):
+        return current, current_annotations
+    before = current
+    current = apply_stage(
+        stages,
+        "numeric-compatibility",
+        current,
+        normalize_numeric_compatibility,
+        restore=protected.restore,
+    )
+    if current != before:
+        edits = replacements_from_diff(before, current, "numeric-compatibility")
+        internal_edits = map_visible_replacements_to_internal(
+            before, edits, protected.values, protected.placeholders
+        )
+        current_annotations = remap_annotations_for_replacements(
+            current_annotations,
+            ((item.start, item.end, len(item.text)) for item in internal_edits),
+        )
     return current, current_annotations
 
 
@@ -628,6 +658,9 @@ def prepare(
 
     current, current_annotations = _run_unicode_stage(
         current, current_annotations, stages, protected, selected
+    )
+    current, current_annotations = _run_numeric_compatibility_stage(
+        current, current_annotations, stages, protected
     )
     current, current_annotations, reserved_spans = _run_structured_stage(
         current,

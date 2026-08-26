@@ -13,12 +13,12 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 
 from abbr2words import UnitMatch, iter_unit_matches
-from num2words import num2words
 
 from ..config import NumberPolicy
 from ..dates import _valid_date, expand_year
-from ..language import resolve_abbr2words_language, resolve_num2words_language
+from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
+from ..number_words import number_words
 from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -177,9 +177,9 @@ _TEXT_DATE = re.compile(
 
 def _spell(value: int | Decimal, language: str = "fr", *, ordinal: bool = False) -> str:
     return str(
-        num2words(
+        number_words(
             value,
-            lang=resolve_num2words_language(language),
+            lang=language,
             to="ordinal" if ordinal else "cardinal",
         )
     )
