@@ -484,22 +484,18 @@ def convert_abbr_replacements(
     converted: list[Replacement] = []
     for item in replacements:
         text = item.text
-        abbreviation = item.abbreviation
-        # The abbreviation marker is consumed by the source span. Do not
-        # duplicate it in generated speech when abbr2words includes the
-        # marker in its expansion text.
-        if (
-            item.kind == "abbreviation"
-            and abbreviation is not None
-            and abbreviation.endswith(".")
-            and text.endswith(".")
-        ):
+        source_surface = item.matched_text
+        # Policy A keeps canonical unit identity in the structured stage;
+        # lexical mapping carries only source-aligned text and rule provenance.
+        # The consumed abbreviation marker belongs to the source span. Do not
+        # duplicate it in generated speech when the expansion text includes it.
+        if item.kind == "abbreviation" and source_surface.endswith(".") and text.endswith("."):
             text = text[:-1]
-        if item.kind == "abbreviation" and abbreviation is not None:
+        if item.kind == "abbreviation":
             base = (language or "").replace("-", "_").split("_", 1)[0].casefold()
-            if base in {"es", "it"} and abbreviation[:1].isupper() and text[:1].islower():
+            if base in {"es", "it"} and source_surface[:1].isupper() and text[:1].islower():
                 text = text[:1].upper() + text[1:]
-            elif base == "fr" and abbreviation.casefold() == "m." and text[:1].isupper():
+            elif base == "fr" and source_surface.casefold() == "m." and text[:1].isupper():
                 text = text[:1].lower() + text[1:]
         converted.append(
             Replacement(

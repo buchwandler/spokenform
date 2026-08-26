@@ -34,8 +34,8 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  # 0.2.10 owns the reviewed CJK inventories and conservative-initialism policy.
-  "abbr2words>=0.2.10,<0.3.0",
+  # 0.2.11 owns the public source-aligned replacement contract.
+  "abbr2words>=0.2.11,<0.3.0",
   "cn2an>=0.5.24,<0.6",
   "num2words>=0.5.14,<0.6",
 ]

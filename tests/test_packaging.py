@@ -60,7 +60,7 @@ def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
     )["project"]
     dependencies = project["dependencies"]
 
-    assert "abbr2words>=0.2.10,<0.3.0" in dependencies
+    assert "abbr2words>=0.2.11,<0.3.0" in dependencies
     assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)
 
 
@@ -106,13 +106,13 @@ def test_documentation_sources_are_markdown() -> None:
     assert all(path.suffix == ".md" for path in source_files)
 
 
-def test_released_abbr2words_0210_cjk_contract() -> None:
+def test_released_abbr2words_0211_contract() -> None:
     import abbr2words
     from abbr2words import abbr2words as expand_abbreviations
     from abbr2words.units import unit_entries
 
     version = tuple(int(part) for part in abbr2words.__version__.split(".")[:3])
-    assert version >= (0, 2, 10)
+    assert version >= (0, 2, 11)
 
     assert expand_abbreviations("㈱東京商事", lang="ja") == "株式会社東京商事"
     assert expand_abbreviations("AI", lang="ko") == "에이아이"

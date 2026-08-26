@@ -58,7 +58,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install -e ".[dev]"
     - name: Assert released CJK dependency contract
-      run: python -m pytest -q tests/test_packaging.py -k released_abbr2words_0210_cjk_contract
+      run: python -m pytest -q tests/test_packaging.py -k released_abbr2words_0211_contract
     - name: Run focused CJK contract
       run: >
         python -m pytest -q
@@ -69,6 +69,25 @@ jobs:
         tests/test_zh_cn.py
         tests/test_cjk_no_english_fallback.py
         tests/test_cjk_fullwidth_numbers.py
+  minimum-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install exact abbr2words floor
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install "abbr2words==0.2.11" "pytest>=8"
+        python -m pip install -e . --no-deps
+    - name: Run minimum dependency contract
+      run: >
+        python -m pytest -q
+        tests/test_abbreviations.py
+        tests/test_dependency_contract.py
+
   lexhint-contract:
     runs-on: ubuntu-latest
     strategy:

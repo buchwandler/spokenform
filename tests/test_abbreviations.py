@@ -81,3 +81,34 @@ def test_abbreviation_metadata_uses_public_dependency_contract() -> None:
     assert converted_item.rule == dependency_item.rule_id
     assert converted_item.kind == dependency_item.kind
     assert converted_item.language == dependency_item.language
+
+
+def test_generic_initialism_uses_matched_surface_for_punctuation() -> None:
+    dependency_item = abbr2words_with_replacements("E.D.", lang="en").replacements[0]
+
+    assert dependency_item.abbreviation is None
+    assert dependency_item.matched_text == "E.D."
+    converted_item = convert_abbr_replacements((dependency_item,), language="en")[0]
+
+    assert converted_item.text == "E D"
+    assert converted_item.rule == "abbr:initialism"
+
+    result = prepare(
+        "E.D.",
+        config=PreparationConfig(
+            language="en",
+            expand_structured=False,
+            expand_numbers=False,
+            normalize_whitespace=False,
+            use_spacy=False,
+        ),
+    )
+    assert result.spoken_text == "E D"
+
+
+def test_policy_a_keeps_canonical_identity_in_structured_stage() -> None:
+    dependency_item = abbr2words_with_replacements("2 kg", lang="en").replacements[0]
+    converted_item = convert_abbr_replacements((dependency_item,), language="en")[0]
+
+    assert dependency_item.canonical_id == "mass-kilogram"
+    assert not hasattr(converted_item, "canonical_id")

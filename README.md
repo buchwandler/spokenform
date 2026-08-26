@@ -350,8 +350,8 @@ release, for example `vX.Y.Z`.
 The source-tree fallback when SCM metadata has not been generated is the neutral
 version `0+unknown`; release builds derive their version from the annotated tag.
 
-Before publishing, ensure the released `abbr2words>=0.2.10,<0.3.0` prerequisite exists
-on the target package index and run the checklist in
+Before publishing, ensure the released `abbr2words>=0.2.11,<0.3.0` prerequisite containing
+the source-aligned replacement contract exists on the target package index and run the checklist in
 [`docs/release-checklist.md`](docs/release-checklist.md).
 
 ## License
