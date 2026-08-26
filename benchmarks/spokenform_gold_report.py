@@ -72,7 +72,7 @@ def _aggregate_table(mapping: dict[str, Any], label: str) -> str:
 def _overview(summary: dict[str, Any]) -> str:
     gold = _gold_summary(summary)
     lines = [
-        f"<p><strong>Split:</strong> {escape(summary.get('split') or 'all')}</p>",
+        f"<p><strong>Selection:</strong> {escape(summary.get('selection', summary.get('split') or 'corpus'))}</p>",
         f"<p><strong>Scoring mode:</strong> {escape(summary.get('mode', 'canonical'))}</p>",
         f"<p><strong>Profile:</strong> {escape(summary.get('profile_name', 'unknown'))}</p>",
         f"<p><strong>Total records:</strong> {number(gold.get('records_total', summary.get('record_count', 0)))}; "
@@ -106,6 +106,8 @@ def _failure_details(row: dict[str, Any]) -> str:
                 "family_id": row.get("family_id"),
                 "accepted_variants": row.get("accepted_variants", []),
                 "negative_for": row.get("negative_for", []),
+                "source_benchmarks": row.get("source_benchmarks", []),
+                "source_observations": row.get("source_observations", []),
                 "units": row.get("units", []),
             }
         ),

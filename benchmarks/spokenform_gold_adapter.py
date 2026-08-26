@@ -52,6 +52,8 @@ def prepare_gold_record(
     if language_base != locale_base:
         raise ValueError(f"Gold language {language!r} does not match locale {locale!r}")
 
+    if profile is None or profile.get("name") != "gold-v1":
+        raise ValueError("Spokenform benchmark expects the gold-v1 profile")
     kwargs = dict((profile or {}).get("prepare_kwargs", {}))
     unknown = sorted(set(kwargs) - _SUPPORTED_PREPARE_KEYS)
     if unknown:

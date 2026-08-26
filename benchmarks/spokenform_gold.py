@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Any
 
 from spokenform import __version__ as SPOKENFORM_VERSION
-from spokenform import prepare
 
 from .compare_common import configuration_hash
+from .spokenform_gold_adapter import prepare_gold_record
 from .spokenform_gold_data import (
     SPOKENFORM_GOLD_COMMIT,
     SPOKENFORM_GOLD_REPOSITORY,
@@ -56,7 +56,15 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--refresh", action="store_true")
     parser.add_argument("--download-only", action="store_true")
-    parser.add_argument("--split", choices=("test", "dev", "all"), default="test")
+    parser.add_argument(
+        "--split",
+        choices=("corpus", "test", "dev", "all"),
+        default="corpus",
+        help=(
+            "Gold selection. Automatic v2 data uses the unsplit corpus; "
+            "test/dev are retained for explicit legacy split releases."
+        ),
+    )
     parser.add_argument("--language")
     parser.add_argument("--locale")
     parser.add_argument("--category")
@@ -104,7 +112,17 @@ def _run_id() -> str:
 
 
 def _gold_split(split: str) -> str | None:
-    return None if split == "all" else split
+    return None if split in {"corpus", "all"} else split
+
+
+def _validate_split_for_manifest(split: str, manifest: dict[str, Any]) -> None:
+    release_format = manifest.get("format")
+    if release_format == "v2" and split not in {"corpus", "all"}:
+        raise ValueError(
+            "Spokenform Gold v2 is an unsplit corpus release; use --split corpus or --split all"
+        )
+    if release_format != "v2" and split == "corpus":
+        raise ValueError("--split corpus requires a v2 Spokenform Gold corpus release")
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
@@ -120,13 +138,39 @@ def _write_jsonl(path: Path, records: Iterable[dict[str, Any]]) -> None:
             handle.write(json.dumps(record, ensure_ascii=False, sort_keys=True) + "\n")
 
 
-def prepare_gold_record(
-    text: str, language: str, locale: str, profile: dict[str, Any] | None = None
-) -> str:
-    if profile is None or profile.get("name") != "gold-v1":
-        raise ValueError("Spokenform benchmark expects the gold-v1 profile")
-    prepare_kwargs = dict(profile.get("prepare_kwargs", {}))
-    return prepare(text, language=locale, **prepare_kwargs).spoken_text
+def _canonical_expected(record: dict[str, Any], result: dict[str, Any]) -> str | None:
+    expected = result.get("expected_output")
+    if expected is not None:
+        return str(expected)
+
+    oracle = record.get("oracle")
+    if isinstance(oracle, dict):
+        canonical = oracle.get("canonical_output")
+        if canonical is not None:
+            return str(canonical)
+
+    legacy = record.get("expected_output")
+    return None if legacy is None else str(legacy)
+
+
+def _source_benchmarks(record: dict[str, Any]) -> list[str]:
+    observations = record.get("source_observations")
+    if isinstance(observations, list):
+        values = {
+            str(observation["benchmark"])
+            for observation in observations
+            if isinstance(observation, dict)
+            and isinstance(observation.get("benchmark"), str)
+            and observation["benchmark"]
+        }
+        if values:
+            return sorted(values)
+
+    legacy = record.get("source")
+    if isinstance(legacy, dict) and isinstance(legacy.get("benchmark"), str):
+        return [legacy["benchmark"]]
+
+    return []
 
 
 def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
@@ -177,6 +221,7 @@ def _build_rows(
     for result in summary["summary"].get("record_results", []):
         record = record_by_id.get(result["id"], {})
         units = record.get("units", [])
+        source_benchmarks = _source_benchmarks(record)
         result_rows.append(
             {
                 "id": result["id"],
@@ -187,9 +232,10 @@ def _build_rows(
                 "categories": sorted(
                     {unit.get("category") for unit in units if unit.get("category")}
                 ),
-                "source_benchmark": record.get("source", {}).get("benchmark"),
+                "source_benchmarks": source_benchmarks,
+                "source_benchmark": ", ".join(source_benchmarks),
                 "input": record.get("input", result.get("input")),
-                "expected": result.get("expected_output", record.get("expected_output")),
+                "expected": _canonical_expected(record, result),
                 "accepted_variants": list(result.get("accepted_variants", [])),
                 "actual": result.get("prediction", ""),
                 "canonical_match": bool(result.get("canonical_match")),
@@ -198,6 +244,11 @@ def _build_rows(
                     result.get("accepted_match" if mode == "accepted" else "canonical_match")
                 ),
                 "negative_for": list(record.get("negative_for", [])),
+                "source_observations": (
+                    list(record.get("source_observations", []))
+                    if isinstance(record.get("source_observations"), list)
+                    else [],
+                ),
                 "units": units,
             }
         )
@@ -226,6 +277,7 @@ def _enrich_summary(
         "source_mode": source.mode,
     }
     dataset_identity = source.commit or summary["gold_manifest_hash"]
+    summary["selection"] = args.split
     summary["adapter"] = {
         "benchmark": "Spokenform Gold",
         "repository": source_metadata.get("repository", source.repository),
@@ -253,9 +305,10 @@ def _enrich_summary(
 def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     source = _resolve_gold_source(args)
     benchmark = _load_gold_benchmark(source.source_root)
+    verification = benchmark.verify_release(source.gold_root)
+    if not args.download_only:
+        _validate_split_for_manifest(args.split, verification.get("manifest", {}))
     if args.download_only:
-        if args.gold_root is not None:
-            benchmark.verify_release(source.gold_root)
         return source.gold_root, {"download_only": True, "source": source}
     run_dir = args.results_dir / _run_id()
     summary = benchmark.run_benchmark(
@@ -300,7 +353,7 @@ def _print_result(args: argparse.Namespace, run_dir: Path, summary: dict[str, An
         f"Spokenform Gold source: {summary['adapter']['dataset_commit'] or 'explicit local release'}"
     )
     print(f"Gold version: {summary['spokenform_gold_version']}")
-    print(f"Split: {summary['split'] or 'all'}")
+    print(f"Selection: {args.split}")
     print(f"Mode: {summary['mode']}")
     print(f"Records: {summary['record_count']}")
     print(f"Primary accuracy: {metrics['primary_accuracy']:.2%}")

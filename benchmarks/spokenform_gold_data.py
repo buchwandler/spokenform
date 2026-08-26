@@ -13,8 +13,8 @@ from types import ModuleType
 from urllib.request import urlopen
 
 SPOKENFORM_GOLD_REPOSITORY = "https://github.com/buchwandler/spokenform-gold"
-SPOKENFORM_GOLD_COMMIT = "ba55d631a45a0fe8b3d87ad58beef2843c617151"
-SPOKENFORM_GOLD_RELEASE_VERSION = "0.1.0-exp"
+SPOKENFORM_GOLD_COMMIT = "7b9107a4193475a05f8d2c1eb41e833c9d2c08c5"
+SPOKENFORM_GOLD_RELEASE_VERSION = "0.2.0-exp"
 SPOKENFORM_GOLD_POLICY_CONTRACT = "v0.3.0"
 SPOKENFORM_GOLD_ARCHIVE_URL = (
     f"https://codeload.github.com/buchwandler/spokenform-gold/zip/{SPOKENFORM_GOLD_COMMIT}"
@@ -24,11 +24,9 @@ _REQUIRED_FILES = (
     "spokenform_gold/benchmark.py",
     "spokenform_gold/release.py",
     "spokenform_gold/scoring.py",
-    "data/dev",
-    "data/test",
+    "data/corpus.jsonl",
     "schemas",
     "sources/manifest.json",
-    "splits/family_assignments.json",
     "taxonomy",
     "pyproject.toml",
     "LICENSE",
@@ -118,10 +116,32 @@ def _verify_release(release_root: Path, *, source_root: Path) -> dict[str, objec
             "cached Spokenform Gold release has unexpected benchmark version: "
             f"{manifest.get('benchmark_version')!r}"
         )
+    if manifest.get("format") != "v2":
+        raise ValueError(
+            f"cached Spokenform Gold release is not a v2 corpus release: {manifest.get('format')!r}"
+        )
+    if manifest.get("schema_version") != "2.0.0":
+        raise ValueError(
+            "cached Spokenform Gold release has unexpected schema version: "
+            f"{manifest.get('schema_version')!r}"
+        )
+    if manifest.get("corpus_file") != "corpus.jsonl":
+        raise ValueError(
+            "cached Spokenform Gold release has unexpected corpus file: "
+            f"{manifest.get('corpus_file')!r}"
+        )
+    if manifest.get("record_files") != ["corpus.jsonl"]:
+        raise ValueError(
+            "cached Spokenform Gold release has unexpected record files: "
+            f"{manifest.get('record_files')!r}"
+        )
+    if manifest.get("split_registry") is not None:
+        raise ValueError("cached Spokenform Gold v2 release must not have a split registry")
     return verification
 
 
 def _metadata(*, verification: dict[str, object], gold_version: str) -> dict[str, object]:
+    manifest = verification.get("manifest", {})
     return {
         "benchmark": "spokenform_gold",
         "repository": SPOKENFORM_GOLD_REPOSITORY,
@@ -131,6 +151,9 @@ def _metadata(*, verification: dict[str, object], gold_version: str) -> dict[str
         "spokenform_policy_contract": SPOKENFORM_GOLD_POLICY_CONTRACT,
         "gold_package_version": gold_version,
         "release_manifest_hash": verification["manifest_hash"],
+        "release_format": manifest.get("format"),
+        "gold_schema_version": manifest.get("schema_version"),
+        "corpus_file": manifest.get("corpus_file"),
     }
 
 
@@ -171,10 +194,9 @@ def _build_cache(target: Path, archive: Path) -> None:
     release_module = load_gold_module("spokenform_gold.release", source_root=materialized_source)
     release_module.build_release(
         version=SPOKENFORM_GOLD_RELEASE_VERSION,
-        data_paths=[str(materialized_source / "data/dev"), str(materialized_source / "data/test")],
+        data_paths=[str(materialized_source / "data/corpus.jsonl")],
         out_root=release,
         maturity="experimental",
-        registry_path=materialized_source / "splits/family_assignments.json",
         source_manifest_path=materialized_source / "sources/manifest.json",
     )
     verification = _verify_release(release, source_root=materialized_source)

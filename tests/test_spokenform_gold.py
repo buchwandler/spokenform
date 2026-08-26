@@ -31,7 +31,7 @@ def test_parser_defaults_and_options() -> None:
         ]
     )
     assert cli._parser().parse_args([]).gold_root is None
-    assert cli._parser().parse_args([]).split == "test"
+    assert cli._parser().parse_args([]).split == "corpus"
     assert cli._parser().parse_args([]).report == "html"
     assert args.offline and args.refresh and args.download_only
     assert args.split == "all"
@@ -52,6 +52,13 @@ def test_prepare_gold_record_requires_profile() -> None:
 
     with pytest.raises(ValueError, match="gold-v1"):
         cli.prepare_gold_record("Alarm at 08:05.", "en", "en-US", None)
+
+
+def test_v2_release_rejects_legacy_split() -> None:
+    from benchmarks import spokenform_gold as cli
+
+    with pytest.raises(ValueError, match="unsplit corpus"):
+        cli._validate_split_for_manifest("test", {"format": "v2"})
 
 
 def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
@@ -75,16 +82,26 @@ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
             "id": "second",
             "family_id": "family-two",
             "input": "Second 2.",
-            "expected_output": "Second two.",
             "language": "en",
             "locale": "en-US",
             "status": "gold",
-            "source": {"benchmark": "spokenform_curated"},
+            "oracle": {
+                "canonical_output": "Second two.",
+                "accepted_outputs": ["Second two."],
+            },
+            "source_observations": [
+                {"benchmark": "spokenform_z", "source_id": "z", "source_version": "2"},
+                {"benchmark": "spokenform_a", "source_id": "a", "source_version": "1"},
+            ],
             "units": [{"category": "cardinal"}],
         },
     ]
 
     class FakeBenchmark:
+        @staticmethod
+        def verify_release(root: Path) -> dict[str, object]:
+            return {"manifest": {"format": "v2"}, "manifest_hash": "manifest-hash"}
+
         @staticmethod
         def run_benchmark(**kwargs: object) -> dict:
             output = Path(kwargs["results_dir"])
@@ -125,7 +142,7 @@ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
                     },
                     {
                         "id": "second",
-                        "expected_output": "Second two.",
+                        "expected_output": None,
                         "prediction": "WRONG",
                         "canonical_match": False,
                         "accepted_match": False,
@@ -141,9 +158,9 @@ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
                 "timestamp_utc": "now",
                 "spokenform_version": SPOKENFORM_VERSION,
                 "spokenform_commit": "spokenform-commit",
-                "spokenform_gold_version": "0.1.0-exp",
+                "spokenform_gold_version": "0.2.0-exp",
                 "gold_manifest_hash": "manifest-hash",
-                "split": "test",
+                "split": None,
                 "record_count": 2,
                 "profile_name": "gold-v1",
                 "profile_config": {"name": "gold-v1"},
@@ -174,8 +191,13 @@ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
     assert persisted["adapter"]["source_mode"] == "explicit-root"
     assert rows[1]["id"] == "second"
     assert rows[1]["expected"] == "Second two."
+    assert rows[1]["source_benchmarks"] == ["spokenform_a", "spokenform_z"]
+    assert rows[1]["source_benchmark"] == "spokenform_a, spokenform_z"
     assert rows[1]["actual"] == "WRONG"
     assert summary["profile_name"] == "gold-v1"
+    assert summary["selection"] == "corpus"
+    assert "Second two." in (run_dir / "report.html").read_text(encoding="utf-8")
+    assert "spokenform_a" in (run_dir / "report.html").read_text(encoding="utf-8")
 
 
 def test_report_none_skips_html(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
