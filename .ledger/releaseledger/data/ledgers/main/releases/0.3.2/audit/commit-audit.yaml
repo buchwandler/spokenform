@@ -1,0 +1,289 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: 0.3.2
+git_base_ref: v0.3.1
+git_base_sha: bbe7f1098a60ffb52573227ae9dad1793ba94057
+git_head_ref: HEAD
+git_head_sha: b04089056be9e24029893056ec6ac4ff0228852f
+git_range: bbe7f1098a60ffb52573227ae9dad1793ba94057..b04089056be9e24029893056ec6ac4ff0228852f
+commit_count: 5
+rows:
+  - sha: 2b289122f180d1845d24d9ab320fca1790d53dac
+    source_ref: git:2b289122f180d1845d24d9ab320fca1790d53dac
+    short_sha: 2b28912
+    changed_paths:
+      - spokenform/api.py
+      - spokenform/config.py
+      - spokenform/locales/de.py
+      - spokenform/locales/en.py
+      - spokenform/locales/es.py
+      - spokenform/locales/fr.py
+      - spokenform/locales/it.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/recognizers/product.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_complexity_reduction_parity.py
+    stats:
+      files_changed: 0
+      insertions: 1762
+      deletions: 888
+    inspected: true
+    inspected_paths:
+      - spokenform/api.py
+      - spokenform/config.py
+      - spokenform/locales/de.py
+      - spokenform/locales/en.py
+      - spokenform/locales/es.py
+      - spokenform/locales/fr.py
+      - spokenform/locales/it.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/recognizers/product.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_complexity_reduction_parity.py
+    observed_behavior:
+      Preparation processing is split into focused stages and structured
+      candidate groups, while parity and configuration contract tests preserve the existing
+      supported behavior.
+    public_impact: none
+    decision: accepted
+    evidence_subject: "feat: reduce complexity"
+    target_entry_id: entry-0001
+    notes: Reviewed the refactor and its added parity and validation coverage.
+  - sha: 6d73089133d7ead74f603b962ec58938d9e19e35
+    source_ref: git:6d73089133d7ead74f603b962ec58938d9e19e35
+    short_sha: 6d73089
+    changed_paths:
+      - benchmarks/README.md
+      - benchmarks/spokenform_gold.py
+      - benchmarks/spokenform_gold_adapter.py
+      - benchmarks/spokenform_gold_data.py
+      - benchmarks/spokenform_gold_report.py
+      - tests/test_spokenform_gold.py
+      - tests/test_spokenform_gold_adapter.py
+      - tests/test_spokenform_gold_data.py
+    stats:
+      files_changed: 0
+      insertions: 219
+      deletions: 39
+    inspected: true
+    inspected_paths:
+      - benchmarks/README.md
+      - benchmarks/spokenform_gold.py
+      - benchmarks/spokenform_gold_adapter.py
+      - benchmarks/spokenform_gold_data.py
+      - benchmarks/spokenform_gold_report.py
+      - tests/test_spokenform_gold.py
+      - tests/test_spokenform_gold_adapter.py
+      - tests/test_spokenform_gold_data.py
+    observed_behavior:
+      Spokenform Gold evaluation now consumes the v2 unsplit corpus,
+      validates release shape before scoring, and records source, manifest, schema,
+      corpus, and observation provenance in reports.
+    public_impact: docs
+    decision: accepted
+    evidence_subject: "feat: update spokenform gold benchmark usage"
+    target_entry_id: entry-0002
+    notes:
+      Reviewed benchmark adapter, release verification, report enrichment, and
+      focused tests.
+  - sha: 2a3be9cc5cc78b23ac066562b0a3e97d15761337
+    source_ref: git:2a3be9cc5cc78b23ac066562b0a3e97d15761337
+    short_sha: 2a3be9c
+    changed_paths:
+      - .github/workflows/tests.yml
+      - README.md
+      - docs/api.md
+      - docs/architecture.md
+      - docs/benchmarks.md
+      - docs/changelog.md
+      - docs/cli.md
+      - docs/index.md
+      - docs/languages.md
+      - docs/limitations.md
+      - docs/migration-kokorog2p.md
+      - docs/polynorm.md
+      - docs/quickstart.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/config.py
+      - spokenform/dates.py
+      - spokenform/language.py
+      - spokenform/locales/_cjk.py
+      - spokenform/locales/cs.py
+      - spokenform/locales/de.py
+      - spokenform/locales/en.py
+      - spokenform/locales/es.py
+      - spokenform/locales/fr.py
+      - spokenform/locales/it.py
+      - spokenform/locales/ja.py
+      - spokenform/locales/ko.py
+      - spokenform/locales/pt.py
+      - spokenform/locales/zh.py
+      - spokenform/number_words.py
+      - spokenform/numbers.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/recognizers/biology.py
+      - spokenform/recognizers/ranges.py
+      - spokenform/recognizers/references.py
+      - spokenform/recognizers/sequences.py
+      - spokenform/recognizers/temporal.py
+      - spokenform/sequences.py
+      - spokenform/structured.py
+      - tests/test_cjk_architecture.py
+      - tests/test_cjk_fullwidth_numbers.py
+      - tests/test_cjk_no_english_fallback.py
+      - tests/test_dependency_contract.py
+      - tests/test_ja.py
+      - tests/test_ko.py
+      - tests/test_language.py
+      - tests/test_number_words.py
+      - tests/test_packaging.py
+      - tests/test_sequence_fallback.py
+      - tests/test_sequences.py
+      - tests/test_zh_cn.py
+    stats:
+      files_changed: 0
+      insertions: 1209
+      deletions: 137
+    inspected: true
+    inspected_paths:
+      - .github/workflows/tests.yml
+      - README.md
+      - docs/api.md
+      - docs/architecture.md
+      - docs/benchmarks.md
+      - docs/changelog.md
+      - docs/cli.md
+      - docs/index.md
+      - docs/languages.md
+      - docs/limitations.md
+      - docs/migration-kokorog2p.md
+      - docs/polynorm.md
+      - docs/quickstart.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/config.py
+      - spokenform/dates.py
+      - spokenform/language.py
+      - spokenform/locales/_cjk.py
+      - spokenform/locales/cs.py
+      - spokenform/locales/de.py
+      - spokenform/locales/en.py
+      - spokenform/locales/es.py
+      - spokenform/locales/fr.py
+      - spokenform/locales/it.py
+      - spokenform/locales/ja.py
+      - spokenform/locales/ko.py
+      - spokenform/locales/pt.py
+      - spokenform/locales/zh.py
+      - spokenform/number_words.py
+      - spokenform/numbers.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/recognizers/biology.py
+      - spokenform/recognizers/ranges.py
+      - spokenform/recognizers/references.py
+      - spokenform/recognizers/sequences.py
+      - spokenform/recognizers/temporal.py
+      - spokenform/sequences.py
+      - spokenform/structured.py
+      - tests/test_cjk_architecture.py
+      - tests/test_cjk_fullwidth_numbers.py
+      - tests/test_cjk_no_english_fallback.py
+      - tests/test_dependency_contract.py
+      - tests/test_ja.py
+      - tests/test_ko.py
+      - tests/test_language.py
+      - tests/test_number_words.py
+      - tests/test_packaging.py
+      - tests/test_sequence_fallback.py
+      - tests/test_sequences.py
+      - tests/test_zh_cn.py
+    observed_behavior:
+      Japanese, Korean, and Chinese runtime profiles provide locale-aware
+      number, date, time, quantity, currency, and conservative sequence handling, with
+      aliases, explicit backends, full-width numeric normalization, and regression coverage
+      that prevents silent English fallback.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: add japanese, korean and chinese"
+    target_entry_id: entry-0003
+    notes:
+      Reviewed the runtime policies, dependency routing, documentation, CI contract,
+      and CJK regression tests.
+  - sha: d833d0e59e95bb0ddaa772b4c9ade7cb2babbfe4
+    source_ref: git:d833d0e59e95bb0ddaa772b4c9ade7cb2babbfe4
+    short_sha: d833d0e
+    changed_paths:
+      - README.md
+      - spokenform/api.py
+      - spokenform/mapping.py
+      - tests/test_abbreviations.py
+      - tests/test_annotations.py
+      - tests/test_dependency_contract.py
+    stats:
+      files_changed: 0
+      insertions: 96
+      deletions: 52
+    inspected: true
+    inspected_paths:
+      - README.md
+      - spokenform/api.py
+      - spokenform/mapping.py
+      - tests/test_abbreviations.py
+      - tests/test_annotations.py
+      - tests/test_dependency_contract.py
+    observed_behavior:
+      Abbreviation expansion consumes source-aligned replacement records
+      directly and preserves dependency metadata, source coordinates, and mapped stage
+      edits without reconstructing a diff.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: add changes from abbr2words"
+    target_entry_id: entry-0004
+    notes:
+      Reviewed the dependency replacement conversion and its source-alignment and
+      metadata tests.
+  - sha: b04089056be9e24029893056ec6ac4ff0228852f
+    source_ref: git:b04089056be9e24029893056ec6ac4ff0228852f
+    short_sha: b040890
+    changed_paths:
+      - .github/workflows/tests.yml
+      - README.md
+      - docs/migration-kokorog2p.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - spokenform/mapping.py
+      - tests/test_abbreviations.py
+      - tests/test_packaging.py
+    stats:
+      files_changed: 0
+      insertions: 69
+      deletions: 23
+    inspected: true
+    inspected_paths:
+      - .github/workflows/tests.yml
+      - README.md
+      - docs/migration-kokorog2p.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - spokenform/mapping.py
+      - tests/test_abbreviations.py
+      - tests/test_packaging.py
+    observed_behavior:
+      The package now requires abbr2words 0.2.11 for the public source-aligned
+      replacement contract, uses matched source text for punctuation handling, and verifies
+      the minimum dependency in CI and packaging tests.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: use newest abbr2words"
+    target_entry_id: entry-0005
+    notes:
+      Reviewed dependency floor, source-surface handling, documentation, CI, and
+      packaging contract coverage.
