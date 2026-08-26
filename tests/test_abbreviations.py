@@ -52,3 +52,32 @@ def test_abbreviation_expansion_does_not_depend_on_repeated_substrings() -> None
         (0, 3),
         (4, 7),
     ]
+
+
+def test_abbreviation_stage_never_needs_diff(monkeypatch) -> None:
+    import spokenform.api as api
+
+    def forbidden(*args: object, **kwargs: object) -> None:
+        raise AssertionError("abbreviation stage must use dependency replacements")
+
+    monkeypatch.setattr(api, "replacements_from_diff", forbidden)
+    result = prepare(
+        "Prof. Klein",
+        language="de",
+        expand_structured=False,
+        expand_numbers=False,
+        normalize_whitespace=False,
+        use_spacy=False,
+    )
+
+    stage = next(item for item in result.stages if item.name == "abbreviations")
+    assert stage.mapped_edits
+
+
+def test_abbreviation_metadata_uses_public_dependency_contract() -> None:
+    dependency_item = abbr2words_with_replacements("Prof. Klein", lang="de").replacements[0]
+    converted_item = convert_abbr_replacements((dependency_item,), language="de")[0]
+
+    assert converted_item.rule == dependency_item.rule_id
+    assert converted_item.kind == dependency_item.kind
+    assert converted_item.language == dependency_item.language

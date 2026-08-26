@@ -6,9 +6,15 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import replace
-from typing import Any, cast
+from typing import cast
 
-from abbr2words import abbr2words_with_replacements, iter_unit_matches
+from abbr2words import (
+    InitialismCase,
+    InitialismMode,
+    RegisteredInitialismMode,
+    abbr2words_with_replacements,
+    iter_unit_matches,
+)
 
 from .annotations import (
     _SpacyPipeline,
@@ -239,36 +245,38 @@ def _run_abbreviation_stage(
             protected.values,
             protected.placeholders,
         ) + tuple((item.start, item.end) for item in reserved_spans)
-        abbreviation_kwargs: dict[str, object] = {
-            "lang": resolve_abbr2words_language(language_code),
-            "context": (
-                selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL
-            ),
-            "annotations": to_abbr2words_annotations(visible_annotations),
-            "protected_spans": abbreviation_protected_spans,
-        }
-        if selected.registered_acronym_mode != "expand":
-            abbreviation_kwargs["registered_initialism_mode"] = selected.registered_acronym_mode
+        abbreviation_language = resolve_abbr2words_language(language_code)
+        abbreviation_context = (
+            selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL
+        )
+        abbreviation_annotations = to_abbr2words_annotations(visible_annotations)
+        abbreviation_initialism_mode: InitialismMode = "dotted_only"
+        abbreviation_initialism_case: InitialismCase = "source"
+        abbreviation_registered_initialism_mode: RegisteredInitialismMode = (
+            selected.registered_acronym_mode
+        )
+        if selected.generic_acronym_mode == "conservative_unknown":
+            abbreviation_initialism_mode = "conservative_undotted"
+        elif selected.generic_acronym_mode == "spell_unknown":
+            abbreviation_initialism_mode = "spell_undotted"
         if (
-            selected.generic_acronym_mode in {"conservative_unknown", "spell_unknown"}
+            selected.generic_acronym_mode != "known_only"
             or selected.generic_acronym_case != "upper"
         ):
-            initialism_mode = {
-                "conservative_unknown": "conservative_undotted",
-                "spell_unknown": "spell_undotted",
-            }.get(selected.generic_acronym_mode, "dotted_only")
-            abbreviation_kwargs.update(
-                {
-                    "initialism_mode": initialism_mode,
-                    "initialism_case": selected.generic_acronym_case,
-                }
-            )
+            abbreviation_initialism_case = selected.generic_acronym_case
         # abbr2words 0.2.9 is the first release containing the reviewed
         # conservative initialism policy. It is the sole policy owner here;
         # Spokenform deliberately has no compatibility fallback or duplicate
         # acronym heuristic.
-        abbreviation_result = cast(Any, abbr2words_with_replacements)(
-            protected.restore(current), **abbreviation_kwargs
+        abbreviation_result = abbr2words_with_replacements(
+            protected.restore(current),
+            lang=abbreviation_language,
+            context=abbreviation_context,
+            initialism_mode=abbreviation_initialism_mode,
+            initialism_case=abbreviation_initialism_case,
+            registered_initialism_mode=abbreviation_registered_initialism_mode,
+            annotations=abbreviation_annotations,
+            protected_spans=abbreviation_protected_spans,
         )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,

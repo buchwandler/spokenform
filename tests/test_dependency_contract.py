@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import pytest
-from abbr2words import iter_unit_matches
+from abbr2words import abbr2words_with_replacements, iter_unit_matches
 
-from spokenform import iter_structured_replacements
+from spokenform import convert_abbr_replacements, iter_structured_replacements
 
 
 @pytest.mark.parametrize(
@@ -35,3 +35,14 @@ def test_migrated_locale_uses_canonical_abbr2words_identity(
     assert replacements
     assert replacements[0].start == matches[0].start
     assert replacements[0].end == matches[0].end
+
+
+def test_abbreviation_conversion_preserves_dependency_metadata() -> None:
+    dependency_item = abbr2words_with_replacements("Prof.", lang="de").replacements[0]
+    converted_item = convert_abbr_replacements((dependency_item,), language="de")[0]
+
+    assert converted_item.start == dependency_item.start
+    assert converted_item.end == dependency_item.end
+    assert converted_item.kind == dependency_item.kind
+    assert converted_item.language == dependency_item.language
+    assert converted_item.rule == dependency_item.rule_id

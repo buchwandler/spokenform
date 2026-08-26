@@ -328,7 +328,7 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
   ordinary decimals retain digit-wise zero wording. English years, suffix
   ordinals, Roman numerals, phone/ID and arbitrary multi-dot sequences, numeric
   suffixes, and G2P decisions remain downstream in kokorog2p.
-- `abbr2words` currently exposes final expanded text rather than semantic replacement objects, so stage edits are reconstructed deterministically from diffs.
+- `abbr2words` lexical expansion exposes exact source-aligned replacement records, and Spokenform consumes those records directly. Deterministic stage-local diffs remain only for internal text-only stages such as Unicode, generic number, or whitespace normalization.
 - Trained spaCy pipelines must be installed and version-compatible with the spaCy runtime.
 
 ## Dependency direction

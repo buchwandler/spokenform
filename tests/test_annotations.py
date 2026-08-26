@@ -69,6 +69,7 @@ def test_annotations_are_remapped_after_protected_spans(
         context: bool,
         annotations: object,
         protected_spans: object,
+        **_kwargs: object,
     ) -> object:
         captured["text"] = text
         captured["annotations"] = annotations

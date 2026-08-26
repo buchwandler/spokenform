@@ -5,15 +5,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Any, Protocol
+from typing import Any
+
+from abbr2words import ExpansionReplacement
 
 from .models import MappedEdit, PreparationStage, SourceReplacement
-
-
-class _AbbreviationReplacement(Protocol):
-    start: int
-    end: int
-    text: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -475,32 +471,31 @@ def _replacement_priority(replacement: Replacement) -> int:
 
 
 def convert_abbr_replacements(
-    replacements: Iterable[_AbbreviationReplacement],
+    replacements: Iterable[ExpansionReplacement],
     *,
     language: str | None = None,
 ) -> tuple[Replacement, ...]:
-    """Convert abbr2words exact replacements to spokenform replacements.
+    """Convert exact abbr2words replacements to Spokenform replacements.
 
-    The dependency's result is already aligned to the text it received. Keep
-    that coordinate system and carry the dependency's semantic kind, language,
-    and stable rule/source identifier instead of reconstructing edits from two
-    strings.
+    The dependency records are already aligned to the text they received. Keep
+    that coordinate system and carry their semantic metadata directly instead
+    of reconstructing edits from the expanded text.
     """
     converted: list[Replacement] = []
     for item in replacements:
-        text = str(item.text)
-        abbreviation = getattr(item, "abbreviation", None)
+        text = item.text
+        abbreviation = item.abbreviation
         # The abbreviation marker is consumed by the source span. Do not
         # duplicate it in generated speech when abbr2words includes the
         # marker in its expansion text.
         if (
-            getattr(item, "kind", None) == "abbreviation"
-            and isinstance(abbreviation, str)
+            item.kind == "abbreviation"
+            and abbreviation is not None
             and abbreviation.endswith(".")
             and text.endswith(".")
         ):
             text = text[:-1]
-        if getattr(item, "kind", None) == "abbreviation" and isinstance(abbreviation, str):
+        if item.kind == "abbreviation" and abbreviation is not None:
             base = (language or "").replace("-", "_").split("_", 1)[0].casefold()
             if base in {"es", "it"} and abbreviation[:1].isupper() and text[:1].islower():
                 text = text[:1].upper() + text[1:]
@@ -508,12 +503,12 @@ def convert_abbr_replacements(
                 text = text[:1].lower() + text[1:]
         converted.append(
             Replacement(
-                start=int(item.start),
-                end=int(item.end),
+                start=item.start,
+                end=item.end,
                 text=text,
-                kind=str(getattr(item, "kind", "abbreviation")),
-                language=getattr(item, "language", None) or language,
-                rule=getattr(item, "rule", None) or getattr(item, "source", None),
+                kind=item.kind,
+                language=item.language or language,
+                rule=item.rule_id,
             )
         )
     return tuple(converted)
