@@ -161,3 +161,6 @@
 {"data":{"fields":["previous_version"]},"event":"release.updated","event_id":"event-0161","record_revisions":{"release:0.2.8":34},"release_version":"0.2.8","schema_version":2}
 {"data":{"fields":["previous_version"]},"event":"release.updated","event_id":"event-0162","record_revisions":{"release:0.3.2":6},"release_version":"0.3.2","schema_version":2}
 {"data":{"fields":["previous_version"]},"event":"release.updated","event_id":"event-0163","record_revisions":{"release:v0.1.0":7},"release_version":"v0.1.0","schema_version":2}
+{"data":{"kind":"added","status":"accepted"},"entry_id":"entry-0007","event":"entry.added","event_id":"event-0164","record_revisions":{"entry:0.3.3/entry-0007":1,"release:0.3.3":4},"release_version":"0.3.3","schema_version":2}
+{"data":{"kind":"docs","status":"accepted"},"entry_id":"entry-0008","event":"entry.added","event_id":"event-0165","record_revisions":{"entry:0.3.3/entry-0008":1,"release:0.3.3":5},"release_version":"0.3.3","schema_version":2}
+{"data":{"kind":"quality","status":"accepted"},"entry_id":"entry-0009","event":"entry.added","event_id":"event-0166","record_revisions":{"entry:0.3.3/entry-0009":1,"release:0.3.3":6},"release_version":"0.3.3","schema_version":2}

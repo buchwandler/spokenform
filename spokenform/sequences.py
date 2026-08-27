@@ -57,6 +57,7 @@ _DIGIT_NAMES: dict[str, tuple[str, ...]] = {
     "ko": ("영", "일", "이", "삼", "사", "오", "육", "칠", "팔", "구"),
     "zh": ("零", "一", "二", "三", "四", "五", "六", "七", "八", "九"),
     "vi": ("không", "một", "hai", "ba", "bốn", "năm", "sáu", "bảy", "tám", "chín"),
+    "th": ("ศูนย์", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"),
 }
 
 _LETTER_NAMES: dict[str, Mapping[str, str]] = {
@@ -163,6 +164,7 @@ _LETTER_NAMES: dict[str, Mapping[str, str]] = {
     "sv": {},
     "ru": {},
     "vi": {},
+    "th": {},
     "ja": {},
     "ko": {},
     "zh": {},
@@ -277,6 +279,19 @@ _DEFAULT_VOCABULARY = {
         close_paren=None,
     ),
     "vi": SequenceVocabulary(
+        point=None,
+        slash=None,
+        hyphen=None,
+        underscore=None,
+        colon=None,
+        at=None,
+        hash=None,
+        plus=None,
+        equals=None,
+        open_paren=None,
+        close_paren=None,
+    ),
+    "th": SequenceVocabulary(
         point=None,
         slash=None,
         hyphen=None,

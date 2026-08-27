@@ -34,6 +34,10 @@ from spokenform.language import (
         ("vi", "vi"),
         ("vi-VN", "vi_VN"),
         ("VI-vn", "vi_VN"),
+        ("th", "th"),
+        ("th-TH", "th_TH"),
+        ("th_TH", "th_TH"),
+        ("TH-th", "th_TH"),
     ],
 )
 def test_normalize_language(value: str, expected: str) -> None:
@@ -59,6 +63,7 @@ def test_base_language_and_supported_languages() -> None:
             "ru",
             "sv",
             "vi",
+            "th",
             "zh",
         )
     )
@@ -103,6 +108,13 @@ def test_vietnamese_dependency_fallbacks() -> None:
     assert resolve_num2words_language("vi-VN") == "vi"
     assert resolve_abbr2words_language("vi") == "vi"
     assert resolve_abbr2words_language("vi-VN") == "vi"
+
+
+def test_thai_dependency_fallbacks() -> None:
+    assert resolve_num2words_language("th") == "th"
+    assert resolve_num2words_language("th-TH") == "th"
+    assert resolve_abbr2words_language("th") == "th"
+    assert resolve_abbr2words_language("th-TH") == "th"
 
 
 def test_russian_dependency_fallbacks() -> None:

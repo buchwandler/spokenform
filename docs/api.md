@@ -251,6 +251,8 @@ The Swedish `normalize_numbers(language="sv")` path preserves comma-decimal prec
 
 The Vietnamese `normalize_numbers(language="vi")` path uses structured-safe normalization. Comma decimals preserve exact fractional precision, dot and space-family grouping are validated, and reviewed quantities and VND/₫ are locale-owned through `abbr2words`. Date, time, and ordinal semantics remain caller-managed.
 
+Thai `normalize_numbers(language="th")` uses point decimals, comma or space-family grouping, accepts Thai digits, and preserves decimal precision digitwise. Structured quantities, temperatures, and THB/`฿` use reviewed `abbr2words` identities while Spokenform owns numeric realization. `th_TH` and `th-TH` resolve to the base dependency registries; dates, times, eras, ordinals, ranges, and unsupported specialist semantics remain caller-managed or fail closed.
+
 Russian `normalize_numbers(language="ru")` uses the structured-safe path. It preserves comma-decimal precision, accepts regular/NBSP/NNBSP grouping, and renders reviewed quantity grammar through `abbr2words` canonical IDs. Dates, digital times, year abbreviations, phone spans, RUB, and unreviewed specialist semantics remain caller-managed or fail closed. `rus` is accepted only as a compatibility alias.
 
 ## Lexhint evidence provider

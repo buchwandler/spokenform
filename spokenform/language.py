@@ -31,6 +31,7 @@ SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = (
     "ru",
     "sv",
     "vi",
+    "th",
     "zh",
 )
 

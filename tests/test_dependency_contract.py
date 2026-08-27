@@ -34,6 +34,10 @@ from spokenform import convert_abbr_replacements, iter_structured_replacements
         ("ru", "кПа", "pressure-kilopascal"),
         ("ru", "km/h", "speed-kilometer-per-hour"),
         ("vi", "kg", "mass-kilogram"),
+        ("th", "กม.", "length-kilometer"),
+        ("th", "kg", "mass-kilogram"),
+        ("th", "฿", "currency-thai-baht"),
+        ("th", "THB", "currency-thai-baht"),
     ],
 )
 def test_migrated_locale_uses_canonical_abbr2words_identity(

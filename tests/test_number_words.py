@@ -20,6 +20,7 @@ from spokenform.number_words import (
         ("ja", "num2words"),
         ("ko", "num2words"),
         ("vi", "num2words"),
+        ("th", "num2words"),
         ("vi-VN", "num2words"),
         ("zh", "cn2an"),
         ("zh_CN", "cn2an"),
@@ -36,6 +37,9 @@ def test_number_backend_selection(language: str, backend: str) -> None:
         ("ko", 21, "이십일"),
         ("zh", 123, "一百二十三"),
         ("zh_CN", -123, "负一百二十三"),
+        ("th", 0, "ศูนย์"),
+        ("th", 21, "ยี่สิบเอ็ด"),
+        ("th", 101, "หนึ่งร้อยเอ็ด"),
     ],
 )
 def test_cardinal_rendering(language: str, value: int, expected: str) -> None:
@@ -45,6 +49,7 @@ def test_cardinal_rendering(language: str, value: int, expected: str) -> None:
 def test_chinese_decimal_and_digitwise_rendering() -> None:
     assert cardinal("1.23", "zh_CN") == "一点二三"
     assert digits("012", "zh_CN") == ("零", "一", "二")
+    assert digits("012", "th") == ("ศูนย์", "หนึ่ง", "สอง")
 
 
 def test_released_num2words_ordinals_remain_available() -> None:

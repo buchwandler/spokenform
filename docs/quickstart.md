@@ -49,6 +49,14 @@ assert prepare(
 ```
 
 Vietnamese uses comma decimals with exact fractional precision, dot or space-family grouping, reviewed quantities and VND/₫ amounts, and guarded dependency abbreviations. Dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist domains remain caller-managed or fail closed.
+
+## Thai
+
+```python
+assert prepare("ระยะ 5 กม.", language="th").spoken_text == "ระยะ ห้า กิโลเมตร"
+```
+
+Thai accepts Latin and Thai digits, point decimals, comma or space-family grouping, reviewed quantities, temperatures, and THB amounts. Dates, times, ordinals, ranges, and unreviewed specialist sequences remain caller-managed or fail closed.
 Use canonical `ja`, `ko`, and `zh_CN` identifiers. The compatibility aliases are `jp` and `cn`.
 
 The output is a `PreparedText` object. Its main fields are:

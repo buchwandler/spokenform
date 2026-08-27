@@ -76,6 +76,10 @@ def _iter_locale_replacements(
         from .locales.vi import iter_replacements
 
         return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "th":
+        from .locales.th import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
     if base == "cs":
         from .locales.cs import iter_replacements
 

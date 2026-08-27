@@ -177,6 +177,30 @@ _VI_FRACTIONAL_VND_RE = re.compile(
     r"[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)\s*VND)(?!\w)",
     re.IGNORECASE,
 )
+_THAI_MONTH_NAME = (
+    r"(?:มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|"
+    r"กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม)"
+)
+_THAI_TEXT_DATE_RE = re.compile(
+    rf"(?<!\d)\d{{1,2}}[ \t\u00a0\u202f]+{_THAI_MONTH_NAME}"
+    rf"(?:[ \t\u00a0\u202f]+\d{{2,4}})?(?!\d)"
+)
+_THAI_MONTH_YEAR_RE = re.compile(rf"(?<!\w){_THAI_MONTH_NAME}[ \t\u00a0\u202f]+\d{{2,4}}(?!\d)")
+_THAI_ERA_YEAR_RE = re.compile(r"(?<!\w)(?:พุทธศักราช|คริสต์ศักราช)[ \t\u00a0\u202f]*\d{1,4}(?!\d)")
+_THAI_BAHT_PRECISION_RE = re.compile(
+    r"(?<!\w)(?:(?:฿|THB)\s*[+\-−]?[\d,]+\.\d{3,}|"
+    r"[+\-−]?[\d,]+\.\d{3,}\s*(?:฿|THB))(?!\w)",
+    re.IGNORECASE,
+)
+_THAI_UNREVIEWED_SEQUENCE_RE = re.compile(
+    r"(?<!\w)(?:ISBN(?:-\d+)?\s+[\dXx][\dXx -]*|"
+    r"[A-Za-z]{2,}-\d+(?:-[A-Za-z0-9]+)*|\d+\s*[-–]\s*\d+|"
+    r"\d+\s*/\s*\d+|\d+\s*[+−*=×÷<>^/]\s*\d+)(?!\w)",
+    re.IGNORECASE,
+)
+_THAI_PHONE_RE = re.compile(
+    r"(?<!\w)\+?(?:\d[ \t()./-]?){7,}\d(?!\w)",
+)
 _RU_YEAR_ABBREVIATION_RE = re.compile(
     r"(?<!\d)\d{4}\s*(?:\u00a0|\u202f)?г\.(?!\w)",
     re.IGNORECASE,
@@ -534,7 +558,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
         raise TypeError("text must be a string")
     language = normalize_language(language)
     base = _base_language(language)
-    if base in {"cs", "ru", "sv", "vi"}:
+    if base in {"cs", "ru", "sv", "vi", "th"}:
         # stage. Keep this convenience API on the same engine rather than
         # allowing older generic morphology to drift independently.
         from .structured import normalize_structured
@@ -572,6 +596,8 @@ def _protect_plain_numbers(text: str, language: str | None = None) -> _Protected
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
+    if language is not None and base_language(language) == "th":
+        protected = _THAI_BAHT_PRECISION_RE.sub(replace, protected)
     if language is not None and base_language(language) == "ru":
         protected = _RU_YEAR_ABBREVIATION_RE.sub(replace, protected)
         protected = _RU_CURRENCY_RE.sub(replace, protected)
@@ -582,6 +608,9 @@ def _protect_plain_numbers(text: str, language: str | None = None) -> _Protected
         protected = _VI_PHONE_MARKER_RE.sub(replace, protected)
     if language is not None and base_language(language) == "sv":
         protected = _SWEDISH_IDENTIFIER_CANDIDATE_RE.sub(replace, protected)
+    if language is not None and base_language(language) == "th":
+        for pattern in (_THAI_TEXT_DATE_RE, _THAI_MONTH_YEAR_RE, _THAI_ERA_YEAR_RE):
+            protected = pattern.sub(replace, protected)
     for pattern in (
         _DATE_CANDIDATE_RE,
         _ISO_DATE_CANDIDATE_RE,
@@ -590,6 +619,9 @@ def _protect_plain_numbers(text: str, language: str | None = None) -> _Protected
         protected = pattern.sub(replace, protected)
     if language is not None and base_language(language) == "sv":
         protected = _SWEDISH_TIME_CANDIDATE_RE.sub(replace, protected)
+    if language is not None and base_language(language) == "th":
+        protected = _THAI_UNREVIEWED_SEQUENCE_RE.sub(replace, protected)
+        protected = _THAI_PHONE_RE.sub(replace, protected)
     return _ProtectedText(protected, tuple(values), placeholder_start)
 
 
@@ -765,6 +797,7 @@ def _negative_word(language: str) -> str:
         "sv": "minus",
         "ru": "минус",
         "vi": "âm",
+        "th": "ติดลบ",
         "zh": "负",
     }.get(base_language(language), "minus")
 
@@ -775,6 +808,7 @@ def _positive_word(language: str) -> str:
         "ja": "プラス",
         "ko": "플러스",
         "vi": "dương",
+        "th": "บวก",
         "zh": "正",
     }.get(base_language(language), "plus")
 
@@ -824,13 +858,13 @@ def _render_numeric_lexeme(
             if base_language(language) == "en"
             else _spell(int(lexeme.integer_digits), language)
         )
-    if base_language(language) == "zh":
+    if base_language(language) in {"zh", "th"}:
         result = result.replace(" ", "")
     if lexeme.negative:
-        separator = "" if base_language(language) in {"ja", "zh"} else " "
+        separator = "" if base_language(language) in {"ja", "zh", "th"} else " "
         return f"{_negative_word(language)}{separator}{result}"
     if positive:
-        separator = "" if base_language(language) in {"ja", "zh"} else " "
+        separator = "" if base_language(language) in {"ja", "zh", "th"} else " "
         return f"{_positive_word(language)}{separator}{result}"
     return result
 

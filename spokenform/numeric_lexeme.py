@@ -97,6 +97,7 @@ _BASE_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
     "vi": NumericPunctuationPolicy(
         ",", (".", " ", "\u00a0", "\u202f"), infer_decimal_in_strong_context=False
     ),
+    "th": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "ja": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "ko": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "zh": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
@@ -112,6 +113,7 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "sv": NumericSpeechPolicy("komma", "digitwise"),
     "ru": NumericSpeechPolicy("запятая", "digitwise"),
     "vi": NumericSpeechPolicy("phẩy", "digitwise"),
+    "th": NumericSpeechPolicy("จุด", "digitwise"),
     "ja": NumericSpeechPolicy("点", "digitwise"),
     "ko": NumericSpeechPolicy("점", "digitwise"),
     "zh": NumericSpeechPolicy("点", "digitwise"),
@@ -314,7 +316,7 @@ def _build_numeric_lexeme(
             if separator != decimal_separator:
                 grouping_separators.append(separator)
         integer = _clean_grouping(remaining)
-        if any(character not in "0123456789" for character in integer):
+        if not integer.isdigit():
             return None
         return NumericLexeme(
             raw,

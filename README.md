@@ -112,6 +112,17 @@ result = prepare(
 
 `PreparedText.text` is an alias for `spoken_text`.
 
+## Thai runtime support
+
+Thai (`th`, `th-TH`, or `th_TH`) uses point decimals, comma or space-family grouping, accepts Latin and Thai digits, and provides reviewed quantities, temperatures, and THB/`฿` amounts through `abbr2words`.
+
+```python
+prepare("ระยะ 5 กม.", language="th").spoken_text
+# "ระยะ ห้า กิโลเมตร"
+```
+
+Thai date, era, and digital-time bodies remain caller-managed in this release. Ordinals, ranges, specialist sequences, and unsupported punctuation semantics fail closed rather than borrowing English vocabulary.
+
 ## kokorog2p adapter
 
 Use `prepare_for_kokorog2p(text, language=...)` for one explicitly selected

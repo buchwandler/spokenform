@@ -3556,7 +3556,7 @@ def iter_sequence_replacements(
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""
     language = normalize_language(language)
-    if base_language(language) in {"ru", "sv", "vi"}:
+    if base_language(language) in {"ru", "sv", "vi", "th"}:
         return ()
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []

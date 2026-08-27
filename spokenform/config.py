@@ -85,6 +85,7 @@ def number_policy_for_language(language: str) -> NumberPolicy:
         "ru",
         "sv",
         "vi",
+        "th",
         "zh",
     }:
         return NumberPolicy.STRUCTURED_AND_PLAIN
