@@ -63,7 +63,7 @@ print(prepared.render_changes())
 
 ## Language support
 
-The exhaustive runtime language matrix is maintained in [`docs/languages.md`](docs/languages.md). It covers `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, and `zh`, including regional forms, number policies, structured ownership, and conservative boundaries.
+The exhaustive runtime language matrix is maintained in [`docs/languages.md`](docs/languages.md). It covers `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, `vi`, and `zh`, including regional forms, number policies, structured ownership, and conservative boundaries.
 
 Swedish is available as `sv`, `sv-SE`, or `sv_SE`; `swe` and `swe-SE` are compatibility aliases.
 
@@ -75,7 +75,19 @@ result = prepare(
 ````
 
 Swedish uses comma decimals, space/NBSP/NNBSP grouping, reviewed quantities and temperatures, and Swedish krona amounts. Dates, digital times, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
-The result contains:
+
+Vietnamese (`vi`, `vi-VN`, or `vi_VN`) uses comma decimals, dot or space-family grouping, exact digitwise fractional speech, reviewed quantities and temperatures, VND/`₫`, and guarded `abbr2words` abbreviations. Dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist domains remain caller-managed or fail closed.
+
+```python
+result = prepare(
+    "TP. Hà Nội có 2 kg hàng với giá 1000 VND.",
+    language="vi",
+)
+```
+
+> > > result.spoken_text
+> > > 'thành phố Hà Nội có hai kilôgam hàng với giá một nghìn đồng Việt Nam.'
+> > > The result contains:
 
 - `source_text`: unchanged caller input;
 - `clean_text`: plain text used by the normalization pipeline;

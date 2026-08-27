@@ -64,6 +64,7 @@ vocabularies, with Chinese routed through `cn2an`. Swedish owns comma-decimal
 numbers, reviewed quantities, temperatures, SEK grammar, and canonical
 `abbr2words` unit identities. Swedish dates, digital times, arbitrary initialisms,
 and unreviewed specialist sequence domains remain caller-managed or fail closed.
+Vietnamese owns comma-decimal numbers, exact fractional precision, reviewed quantities, temperatures, VND/₫ currency, and canonical `abbr2words` unit identities. `num2words` owns generic Vietnamese cardinals, while `abbr2words` owns reviewed Vietnamese abbreviation, unit, currency recognition, and labels. Vietnamese dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
 Every locale replacement retains exact source spans and composed source/output
 mapping. Supported languages never borrow English fallback words merely because a
 shared renderer lacks a locale entry. All reviewed quantity and currency symbols
@@ -73,7 +74,7 @@ The dependency direction is:
 
 ```text
 abbr2words ──────────┐
-num2words (ja/ko/sv) ──┼─> spokenform
+num2words (ja/ko/sv/vi) ──┼─> spokenform
 cn2an (zh) ─────────┘
 ```
 

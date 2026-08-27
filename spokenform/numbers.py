@@ -26,7 +26,7 @@ from .numeric_lexeme import (
 )
 
 _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt", "sv"})
-_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de"})
+_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de", "vi"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
         "ledna",
@@ -168,6 +168,19 @@ _ISO_DATE_CANDIDATE_RE = re.compile(
     r"(?<!\d)(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)"
 )
 _TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
+_VI_LEGAL_REFERENCE_RE = re.compile(
+    r"(?<!\w)Số\s+\d+(?:/\d+)+/[A-ZĐ][\w-]*(?!\w)",
+    re.IGNORECASE,
+)
+_VI_FRACTIONAL_VND_RE = re.compile(
+    r"(?<!\w)(?:₫\s*[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)|"
+    r"[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)\s*VND)(?!\w)",
+    re.IGNORECASE,
+)
+_VI_PHONE_MARKER_RE = re.compile(
+    r"(?<!\w)(?:số điện thoại|điện thoại)\s*:\s*[+\d(][\d ()/.\-]*\d(?!\w)",
+    re.IGNORECASE,
+)
 _SWEDISH_TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?:[01]?\d|2[0-3])\.[0-5]\d(?!\d)")
 _SWEDISH_IDENTIFIER_CANDIDATE_RE = re.compile(r"(?<!\w)[A-ZÅÄÖ]{1,4}-\d+(?!\w)")
 _SPANISH_PLAIN_NUMBER_RE = re.compile(
@@ -504,7 +517,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
         raise TypeError("text must be a string")
     language = normalize_language(language)
     base = _base_language(language)
-    if base in {"cs", "sv"}:
+    if base in {"cs", "sv", "vi"}:
         # Czech and Swedish have reviewed semantic grammars in the structured
         # stage. Keep this convenience API on the same engine rather than
         # allowing older generic morphology to drift independently.
@@ -543,6 +556,10 @@ def _protect_plain_numbers(text: str, language: str | None = None) -> _Protected
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
+    if language is not None and base_language(language) == "vi":
+        protected = _VI_LEGAL_REFERENCE_RE.sub(replace, protected)
+        protected = _VI_FRACTIONAL_VND_RE.sub(replace, protected)
+        protected = _VI_PHONE_MARKER_RE.sub(replace, protected)
     if language is not None and base_language(language) == "sv":
         protected = _SWEDISH_IDENTIFIER_CANDIDATE_RE.sub(replace, protected)
     for pattern in (
@@ -726,6 +743,7 @@ def _negative_word(language: str) -> str:
         "ko": "마이너스",
         "pt": "menos",
         "sv": "minus",
+        "vi": "âm",
         "zh": "负",
     }.get(base_language(language), "minus")
 
@@ -734,6 +752,7 @@ def _positive_word(language: str) -> str:
     return {
         "ja": "プラス",
         "ko": "플러스",
+        "vi": "dương",
         "zh": "正",
     }.get(base_language(language), "plus")
 

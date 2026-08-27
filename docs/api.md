@@ -23,7 +23,7 @@ caller-protected spans always take precedence.
 
 ## Language identifiers and number backends
 
-Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, and `zh`. Regional forms such as `sv-SE` and `sv_SE` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` aliases to `sv`; `kr` is not accepted.
+Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, `vi`, and `zh`. Regional forms such as `sv-SE`, `vi-VN`, and `vi_VN` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` aliases to `sv`; `vn` and `kr` are not accepted.
 
 All existing supported languages use released `num2words` except Chinese, which uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. Swedish resolves to `sv` for both numeric and abbreviation dependency calls, while `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese. `resolve_abbr2words_language()` preserves exact regional overlays such as `zh_CN`.
 
@@ -40,6 +40,11 @@ assert normalize_language("sv-SE") == "sv_SE"
 assert resolve_num2words_language("sv-SE") == "sv"
 assert resolve_abbr2words_language("sv-SE") == "sv"
 ```
+
+assert "vi" in supported_languages()
+assert normalize_language("vi-VN") == "vi_VN"
+assert resolve_num2words_language("vi-VN") == "vi"
+assert resolve_abbr2words_language("vi-VN") == "vi"
 
 `symbol_mode="none"` is the backward-compatible default and applies no general
 residual-symbol filter. `symbol_mode="remove"` removes Unicode punctuation and
@@ -243,6 +248,8 @@ prepare(
 `sequence_fallback_mode="preserve"` is the compatibility default. Set it to `"spell"` to render conservative residual sequence-shaped spans such as `AAPL` or `H2O` orthographically after semantic recognition. It does not spell ordinary lexical prose, does not claim a semantic domain, and never overrides caller-protected or auto-protected literal spans. `SequenceFallbackMode`, `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
 
 The Swedish `normalize_numbers(language="sv")` path preserves comma-decimal precision and valid numeric grouping, while dates, digital times, and ambiguous dot forms remain caller-managed. Swedish structured quantities, temperatures, and SEK currency are owned by the locale grammar used by `prepare()`.
+
+The Vietnamese `normalize_numbers(language="vi")` path uses structured-safe normalization. Comma decimals preserve exact fractional precision, dot and space-family grouping are validated, and reviewed quantities and VND/₫ are locale-owned through `abbr2words`. Date, time, and ordinal semantics remain caller-managed.
 
 ## Lexhint evidence provider
 

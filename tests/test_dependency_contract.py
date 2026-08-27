@@ -25,6 +25,9 @@ from spokenform import convert_abbr_replacements, iter_structured_replacements
         ("sv", "SEK", "currency-swedish-krona"),
         ("sv", "kr", "currency-swedish-krona"),
         ("sv", "km/h", "speed-kilometer-per-hour"),
+        ("vi", "VND", "currency-vietnamese-dong"),
+        ("vi", "km/h", "speed-kilometer-per-hour"),
+        ("vi", "kg", "mass-kilogram"),
     ],
 )
 def test_migrated_locale_uses_canonical_abbr2words_identity(
@@ -49,3 +52,19 @@ def test_abbreviation_conversion_preserves_dependency_metadata() -> None:
     assert converted_item.kind == dependency_item.kind
     assert converted_item.language == dependency_item.language
     assert converted_item.rule == dependency_item.rule_id
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_id", "expansion"),
+    [
+        ("VND", "currency-vietnamese-dong", "đồng Việt Nam"),
+        ("km/h", "speed-kilometer-per-hour", "kilômét trên giờ"),
+        ("kg", "mass-kilogram", "kilôgam"),
+    ],
+)
+def test_released_vietnamese_unit_contract(symbol: str, canonical_id: str, expansion: str) -> None:
+    matches = tuple(iter_unit_matches(f"2 {symbol}", "vi"))
+
+    assert len(matches) == 1
+    assert matches[0].canonical_id == canonical_id
+    assert matches[0].expansion == expansion

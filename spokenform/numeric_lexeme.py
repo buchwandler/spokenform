@@ -50,6 +50,7 @@ class NumericPunctuationPolicy:
     decimal_separator: str
     grouping_separators: tuple[str, ...]
     alternate_decimal_separators: tuple[str, ...] = ()
+    infer_decimal_in_strong_context: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +93,9 @@ _BASE_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
     "it": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
     "pt": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
     "sv": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f")),
+    "vi": NumericPunctuationPolicy(
+        ",", (".", " ", "\u00a0", "\u202f"), infer_decimal_in_strong_context=False
+    ),
     "ja": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "ko": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "zh": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
@@ -105,6 +109,7 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "it": NumericSpeechPolicy("virgola", "digitwise"),
     "pt": NumericSpeechPolicy("vírgula", "digitwise"),
     "sv": NumericSpeechPolicy("komma", "digitwise"),
+    "vi": NumericSpeechPolicy("phẩy", "digitwise"),
     "ja": NumericSpeechPolicy("点", "digitwise"),
     "ko": NumericSpeechPolicy("점", "digitwise"),
     "zh": NumericSpeechPolicy("点", "digitwise"),
@@ -252,7 +257,11 @@ def _resolve_single_separator(
         return _SeparatorResolution(separator)
     if len(tail) == 3 and separator in policy.grouping_separators:
         return _SeparatorResolution(None, (separator,))
-    if context in _STRONG_DECIMAL_CONTEXTS and len(tail) in {1, 2}:
+    if (
+        policy.infer_decimal_in_strong_context
+        and context in _STRONG_DECIMAL_CONTEXTS
+        and len(tail) in {1, 2}
+    ):
         return _SeparatorResolution(separator)
     return None
 

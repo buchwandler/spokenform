@@ -19,6 +19,8 @@ from spokenform.number_words import (
         ("en", "num2words"),
         ("ja", "num2words"),
         ("ko", "num2words"),
+        ("vi", "num2words"),
+        ("vi-VN", "num2words"),
         ("zh", "cn2an"),
         ("zh_CN", "cn2an"),
     ],

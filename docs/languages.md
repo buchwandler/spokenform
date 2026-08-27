@@ -4,19 +4,20 @@ This page is the canonical runtime support matrix for `spokenform`. It describes
 implemented capabilities, not full parity with PolyNorm, benchmarks, or
 kokorog2p.
 
-| Canonical code | Accepted aliases | Region forms      | Number backend | Abbreviation profile | Plain numbers | Decimals                 | Quantities | Currencies   | Dates and times                        | Shared specialist sequences        |
-| -------------- | ---------------- | ----------------- | -------------- | -------------------- | ------------- | ------------------------ | ---------- | ------------ | -------------------------------------- | ---------------------------------- |
-| `cs`           | none             | none              | `num2words`    | `cs`                 | yes           | comma                    | yes        | CZK          | reviewed, conservative time            | reviewed, conservative             |
-| `de`           | none             | `de_DE`           | `num2words`    | `de`                 | yes           | comma                    | yes        | EUR          | reviewed                               | reviewed, conservative             |
-| `en`           | none             | `en_GB`, `en_US`  | `num2words`    | `en`                 | yes           | point                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
-| `es`           | none             | `es_MX`           | `num2words`    | `es`, exact `es_MX`  | yes           | comma or point by locale | yes        | reviewed     | reviewed                               | reviewed, conservative             |
-| `fr`           | none             | `fr_FR`           | `num2words`    | `fr`                 | yes           | comma                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
-| `it`           | none             | `it_IT`           | `num2words`    | `it`                 | yes           | comma                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
-| `ja`           | `jp`             | `ja_JP`           | `num2words`    | `ja`                 | yes           | reviewed                 | yes        | JPY          | reviewed                               | conservative                       |
-| `ko`           | none             | `ko_KR`           | `num2words`    | `ko`                 | yes           | reviewed                 | yes        | KRW          | reviewed                               | conservative                       |
-| `pt`           | none             | `pt_BR`           | `num2words`    | `pt`, `pt_BR`        | yes           | comma                    | yes        | EUR          | reviewed                               | reviewed, conservative             |
-| `sv`           | `swe`            | `sv_SE` / `sv-SE` | `num2words`    | `sv`                 | yes           | comma                    | yes        | SEK / `kr`   | caller-managed dates and digital times | fail closed for unreviewed domains |
-| `zh`           | none             | none              | `cn2an`        | `zh`                 | yes           | reviewed                 | yes        | conservative | reviewed                               | conservative                       |
+| Canonical code | Accepted aliases | Region forms      | Number backend | Abbreviation profile | Plain numbers | Decimals                                    | Quantities | Currencies   | Dates and times                        | Shared specialist sequences        |
+| -------------- | ---------------- | ----------------- | -------------- | -------------------- | ------------- | ------------------------------------------- | ---------- | ------------ | -------------------------------------- | ---------------------------------- |
+| `cs`           | none             | none              | `num2words`    | `cs`                 | yes           | comma                                       | yes        | CZK          | reviewed, conservative time            | reviewed, conservative             |
+| `de`           | none             | `de_DE`           | `num2words`    | `de`                 | yes           | comma                                       | yes        | EUR          | reviewed                               | reviewed, conservative             |
+| `en`           | none             | `en_GB`, `en_US`  | `num2words`    | `en`                 | yes           | point                                       | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `es`           | none             | `es_MX`           | `num2words`    | `es`, exact `es_MX`  | yes           | comma or point by locale                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `fr`           | none             | `fr_FR`           | `num2words`    | `fr`                 | yes           | comma                                       | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `it`           | none             | `it_IT`           | `num2words`    | `it`                 | yes           | comma                                       | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `ja`           | `jp`             | `ja_JP`           | `num2words`    | `ja`                 | yes           | reviewed                                    | yes        | JPY          | reviewed                               | conservative                       |
+| `ko`           | none             | `ko_KR`           | `num2words`    | `ko`                 | yes           | reviewed                                    | yes        | KRW          | reviewed                               | conservative                       |
+| `pt`           | none             | `pt_BR`           | `num2words`    | `pt`, `pt_BR`        | yes           | comma                                       | yes        | EUR          | reviewed                               | reviewed, conservative             |
+| `sv`           | `swe`            | `sv_SE` / `sv-SE` | `num2words`    | `sv`                 | yes           | comma                                       | yes        | SEK / `kr`   | caller-managed dates and digital times | fail closed for unreviewed domains |
+| `vi`           | none             | `vi_VN` / `vi-VN` | `num2words`    | `vi`                 | yes           | comma decimal; dot or space-family grouping | reviewed   | VND / `₫`    | caller-managed dates and digital times | fail closed for unreviewed domains |
+| `zh`           | none             | none              | `cn2an`        | `zh`                 | yes           | reviewed                                    | yes        | conservative | reviewed                               | conservative                       |
 
 ## Swedish scope
 
@@ -35,6 +36,12 @@ Arbitrary initialisms and unreviewed address, legal, phone, ISBN, music,
 biology, chemistry, math, and range semantics fail closed. Supported languages
 must not borrow English fallback vocabulary solely because a shared semantic
 renderer lacks a locale entry.
+
+## Vietnamese scope
+
+Vietnamese uses comma decimal punctuation. Spokenform accepts CLDR-style dot grouping and regular, non-breaking, or narrow non-breaking space grouping; fractional digits are rendered digitwise to preserve written precision. Reviewed quantities, temperatures, and VND/₫ identities come from `abbr2words`, while Spokenform owns numeric realization and source mapping. `vi-VN` and `vi_VN` normalize to the regional form and resolve to the Vietnamese base dependency registries. Dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
+
+Spokenform does not use `vn` as a language alias.
 
 ## Identifier rules
 

@@ -28,6 +28,7 @@ SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = (
     "ko",
     "pt",
     "sv",
+    "vi",
     "zh",
 )
 

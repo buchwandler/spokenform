@@ -25,6 +25,9 @@ from spokenform.language import (
         ("SV-se", "sv_SE"),
         ("swe", "sv"),
         ("swe-SE", "sv_SE"),
+        ("vi", "vi"),
+        ("vi-VN", "vi_VN"),
+        ("VI-vn", "vi_VN"),
     ],
 )
 def test_normalize_language(value: str, expected: str) -> None:
@@ -48,6 +51,7 @@ def test_base_language_and_supported_languages() -> None:
             "ko",
             "pt",
             "sv",
+            "vi",
             "zh",
         )
     )
@@ -85,3 +89,15 @@ def test_cjk_dependency_language_routing() -> None:
 def test_kr_is_not_an_alias() -> None:
     with pytest.raises(ValueError, match="Unsupported language"):
         resolve_abbr2words_language("kr")
+
+
+def test_vietnamese_dependency_fallbacks() -> None:
+    assert resolve_num2words_language("vi") == "vi"
+    assert resolve_num2words_language("vi-VN") == "vi"
+    assert resolve_abbr2words_language("vi") == "vi"
+    assert resolve_abbr2words_language("vi-VN") == "vi"
+
+
+def test_vn_is_not_a_language_alias() -> None:
+    with pytest.raises(ValueError, match="Unsupported language"):
+        resolve_abbr2words_language("vn")
