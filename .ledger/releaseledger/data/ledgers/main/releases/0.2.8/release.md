@@ -3,7 +3,7 @@ schema_version: 2
 object_type: release
 versioning:
   schema_version: 1
-  revision: 32
+  revision: 34
 version: 0.2.8
 status: released
 title: Release v0.2.8

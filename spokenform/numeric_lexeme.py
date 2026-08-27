@@ -93,6 +93,7 @@ _BASE_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
     "it": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
     "pt": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
     "sv": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f")),
+    "ru": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f")),
     "vi": NumericPunctuationPolicy(
         ",", (".", " ", "\u00a0", "\u202f"), infer_decimal_in_strong_context=False
     ),
@@ -109,6 +110,7 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "it": NumericSpeechPolicy("virgola", "digitwise"),
     "pt": NumericSpeechPolicy("vírgula", "digitwise"),
     "sv": NumericSpeechPolicy("komma", "digitwise"),
+    "ru": NumericSpeechPolicy("запятая", "digitwise"),
     "vi": NumericSpeechPolicy("phẩy", "digitwise"),
     "ja": NumericSpeechPolicy("点", "digitwise"),
     "ko": NumericSpeechPolicy("점", "digitwise"),
@@ -365,7 +367,7 @@ def parse_numeric_lexeme(
     negative, unsigned = validated
     language = normalize_language(language)
     policy = numeric_punctuation_policy(language)
-    if base_language(language) == "sv" and "." in unsigned:
+    if base_language(language) in {"sv", "ru"} and "." in unsigned:
         return None
     if not any(character in unsigned for character in ".,"):
         return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())

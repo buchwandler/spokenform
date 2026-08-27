@@ -23,7 +23,7 @@ caller-protected spans always take precedence.
 
 ## Language identifiers and number backends
 
-Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, `vi`, and `zh`. Regional forms such as `sv-SE`, `vi-VN`, and `vi_VN` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` aliases to `sv`; `vn` and `kr` are not accepted.
+Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `ru`, `sv`, `vi`, and `zh`. Regional forms such as `ru-RU`, `ru_RU`, `sv-SE`, `vi-VN`, and `vi_VN` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` and `rus` are compatibility aliases; `vn` and `kr` are not accepted.
 
 All existing supported languages use released `num2words` except Chinese, which uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. Swedish resolves to `sv` for both numeric and abbreviation dependency calls, while `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese. `resolve_abbr2words_language()` preserves exact regional overlays such as `zh_CN`.
 
@@ -250,6 +250,8 @@ prepare(
 The Swedish `normalize_numbers(language="sv")` path preserves comma-decimal precision and valid numeric grouping, while dates, digital times, and ambiguous dot forms remain caller-managed. Swedish structured quantities, temperatures, and SEK currency are owned by the locale grammar used by `prepare()`.
 
 The Vietnamese `normalize_numbers(language="vi")` path uses structured-safe normalization. Comma decimals preserve exact fractional precision, dot and space-family grouping are validated, and reviewed quantities and VND/₫ are locale-owned through `abbr2words`. Date, time, and ordinal semantics remain caller-managed.
+
+Russian `normalize_numbers(language="ru")` uses the structured-safe path. It preserves comma-decimal precision, accepts regular/NBSP/NNBSP grouping, and renders reviewed quantity grammar through `abbr2words` canonical IDs. Dates, digital times, year abbreviations, phone spans, RUB, and unreviewed specialist semantics remain caller-managed or fail closed. `rus` is accepted only as a compatibility alias.
 
 ## Lexhint evidence provider
 

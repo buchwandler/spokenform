@@ -3,12 +3,12 @@ schema_version: 2
 object_type: release
 versioning:
   schema_version: 1
-  revision: 6
+  revision: 7
 version: v0.1.0
 status: canceled
 title: null
 released_at: "2026-08-06"
-previous_version: 0.1.0
+previous_version: null
 cancel_reason: Imported tag duplicate; canonical release is v0.1.0
 superseded_by: null
 changelog_file: null

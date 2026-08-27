@@ -71,3 +71,9 @@ def test_runtime_languages_are_present_in_canonical_matrix() -> None:
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "docs/languages.md" in readme
+
+
+def test_russian_runtime_boundaries_are_documented() -> None:
+    text = (ROOT / "docs" / "languages.md").read_text(encoding="utf-8")
+    for phrase in ("`ru`", "`ru_RU`", "`rus`", "caller-managed", "numeral government", "RUB"):
+        assert phrase in text

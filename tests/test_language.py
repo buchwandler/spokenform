@@ -1,5 +1,6 @@
 import pytest
 
+from spokenform.config import NumberPolicy
 from spokenform.language import (
     SUPPORTED_BASE_LANGUAGES,
     base_language,
@@ -25,6 +26,11 @@ from spokenform.language import (
         ("SV-se", "sv_SE"),
         ("swe", "sv"),
         ("swe-SE", "sv_SE"),
+        ("ru", "ru"),
+        ("ru-RU", "ru_RU"),
+        ("RU-ru", "ru_RU"),
+        ("rus", "ru"),
+        ("rus-RU", "ru_RU"),
         ("vi", "vi"),
         ("vi-VN", "vi_VN"),
         ("VI-vn", "vi_VN"),
@@ -50,6 +56,7 @@ def test_base_language_and_supported_languages() -> None:
             "ja",
             "ko",
             "pt",
+            "ru",
             "sv",
             "vi",
             "zh",
@@ -96,6 +103,22 @@ def test_vietnamese_dependency_fallbacks() -> None:
     assert resolve_num2words_language("vi-VN") == "vi"
     assert resolve_abbr2words_language("vi") == "vi"
     assert resolve_abbr2words_language("vi-VN") == "vi"
+
+
+def test_russian_dependency_fallbacks() -> None:
+    assert resolve_num2words_language("ru") == "ru"
+    assert resolve_num2words_language("ru-RU") == "ru"
+    assert resolve_abbr2words_language("ru") == "ru"
+    assert resolve_abbr2words_language("ru-RU") == "ru"
+    assert resolve_num2words_language("rus-RU") == "ru"
+    assert resolve_abbr2words_language("rus-RU") == "ru"
+
+
+def test_russian_number_policy() -> None:
+    from spokenform.config import number_policy_for_language
+
+    assert number_policy_for_language("ru") is NumberPolicy.STRUCTURED_AND_PLAIN
+    assert number_policy_for_language("ru-RU") is NumberPolicy.STRUCTURED_AND_PLAIN
 
 
 def test_vn_is_not_a_language_alias() -> None:

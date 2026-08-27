@@ -63,7 +63,7 @@ print(prepared.render_changes())
 
 ## Language support
 
-The exhaustive runtime language matrix is maintained in [`docs/languages.md`](docs/languages.md). It covers `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, `vi`, and `zh`, including regional forms, number policies, structured ownership, and conservative boundaries.
+The exhaustive runtime language matrix is maintained in [`docs/languages.md`](docs/languages.md). It covers `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `ru`, `sv`, `vi`, and `zh`, including regional forms, number policies, structured ownership, and conservative boundaries.
 
 Swedish is available as `sv`, `sv-SE`, or `sv_SE`; `swe` and `swe-SE` are compatibility aliases.
 
@@ -75,6 +75,19 @@ result = prepare(
 ````
 
 Swedish uses comma decimals, space/NBSP/NNBSP grouping, reviewed quantities and temperatures, and Swedish krona amounts. Dates, digital times, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
+
+Russian (`ru`, `ru-RU`, or `ru_RU`) also accepts `rus` as a compatibility alias. It uses comma decimals, space/NBSP/NNBSP grouping, digitwise fractions, and reviewed canonical quantities with explicit numeral government.
+
+```python
+result = prepare(
+    "Путь составляет 22 км.",
+    language="ru",
+    use_spacy=False,
+ )
+print(result.spoken_text)
+```
+
+This produces `Путь составляет двадцать два километра.` Dates, digital times, specialist sequences, and currency are caller-managed or fail closed; RUB remains caller-managed until `abbr2words` provides a reviewed identity.
 
 Vietnamese (`vi`, `vi-VN`, or `vi_VN`) uses comma decimals, dot or space-family grouping, exact digitwise fractional speech, reviewed quantities and temperatures, VND/`₫`, and guarded `abbr2words` abbreviations. Dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist domains remain caller-managed or fail closed.
 

@@ -157,7 +157,7 @@ def domain_for_rule(rule: str | None) -> RecognitionDomain | None:
         return _DOMAIN_BY_RULE[rule]
     if "." in rule:
         prefix, name = rule.split(".", 1)
-        if prefix in {"en", "de", "es", "fr", "it", "pt", "cs", "sv", "vi"}:
+        if prefix in {"en", "de", "es", "fr", "it", "pt", "cs", "ru", "sv", "vi"}:
             return _LOCALE_DOMAIN_BY_PREFIX.get(name.split(".", 1)[0])
     return None
 
@@ -170,7 +170,17 @@ def evidence_for_rule(rule: str | None) -> RecognitionEvidence | None:
         return RecognitionEvidence.CONTEXTUAL
     if domain_for_rule(rule) is not None:
         return RecognitionEvidence.INTRINSIC
-    if "." in rule and rule.split(".", 1)[0] in {"en", "de", "es", "fr", "it", "pt", "cs", "sv"}:
+    if "." in rule and rule.split(".", 1)[0] in {
+        "en",
+        "de",
+        "es",
+        "fr",
+        "it",
+        "pt",
+        "cs",
+        "ru",
+        "sv",
+    }:
         return RecognitionEvidence.INTRINSIC
     return None
 

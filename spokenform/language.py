@@ -15,6 +15,7 @@ _LANGUAGE_ALIASES: Final[dict[str, str]] = {
 }
 _BASE_LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "swe": "sv",
+    "rus": "ru",
 }
 
 SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = (
@@ -27,6 +28,7 @@ SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = (
     "ja",
     "ko",
     "pt",
+    "ru",
     "sv",
     "vi",
     "zh",

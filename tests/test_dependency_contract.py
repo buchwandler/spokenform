@@ -27,6 +27,12 @@ from spokenform import convert_abbr_replacements, iter_structured_replacements
         ("sv", "km/h", "speed-kilometer-per-hour"),
         ("vi", "VND", "currency-vietnamese-dong"),
         ("vi", "km/h", "speed-kilometer-per-hour"),
+        ("ru", "кг", "mass-kilogram"),
+        ("ru", "Гц", "frequency-hertz"),
+        ("ru", "Вт", "power-watt"),
+        ("ru", "В", "voltage-volt"),
+        ("ru", "кПа", "pressure-kilopascal"),
+        ("ru", "km/h", "speed-kilometer-per-hour"),
         ("vi", "kg", "mass-kilogram"),
     ],
 )

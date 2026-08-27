@@ -64,6 +64,10 @@ def _iter_locale_replacements(
         return iter_portuguese_replacements(
             text, language=language, protected_ranges=protected_ranges
         )
+    if base == "ru":
+        from .locales.ru import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
     if base == "sv":
         from .locales.sv import iter_replacements
 

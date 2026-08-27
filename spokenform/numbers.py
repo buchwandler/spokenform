@@ -25,7 +25,7 @@ from .numeric_lexeme import (
     parse_numeric_lexeme,
 )
 
-_COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt", "sv"})
+_COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt", "ru", "sv"})
 _BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de", "vi"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
@@ -177,6 +177,19 @@ _VI_FRACTIONAL_VND_RE = re.compile(
     r"[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+)\s*VND)(?!\w)",
     re.IGNORECASE,
 )
+_RU_YEAR_ABBREVIATION_RE = re.compile(
+    r"(?<!\d)\d{4}\s*(?:\u00a0|\u202f)?г\.(?!\w)",
+    re.IGNORECASE,
+)
+_RU_CURRENCY_RE = re.compile(
+    r"(?<!\w)(?:(?:₽|RUB)\s*[+\-−]?(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+)(?:,\d+)?|"
+    r"[+\-−]?(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+|\d+)(?:,\d+)?\s*(?:₽|RUB))(?!\w)",
+    re.IGNORECASE,
+)
+_RU_PHONE_MARKER_RE = re.compile(
+    r"(?<!\w)(?:тел\.?|телефон)\s*:?[ \t]*[+]?[\d(][\d ()/.-]*\d(?!\w)",
+    re.IGNORECASE,
+)
 _VI_PHONE_MARKER_RE = re.compile(
     r"(?<!\w)(?:số điện thoại|điện thoại)\s*:\s*[+\d(][\d ()/.\-]*\d(?!\w)",
     re.IGNORECASE,
@@ -248,6 +261,10 @@ def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
         return replace(match)
 
     protected = _BARE_VERSION_RE.sub(bare_version, protected)
+    if base == "ru":
+        protected = _RU_YEAR_ABBREVIATION_RE.sub(replace, protected)
+        protected = _RU_CURRENCY_RE.sub(replace, protected)
+        protected = _RU_PHONE_MARKER_RE.sub(replace, protected)
     if base == "sv":
         protected = _SWEDISH_IDENTIFIER_CANDIDATE_RE.sub(replace, protected)
 
@@ -517,8 +534,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
         raise TypeError("text must be a string")
     language = normalize_language(language)
     base = _base_language(language)
-    if base in {"cs", "sv", "vi"}:
-        # Czech and Swedish have reviewed semantic grammars in the structured
+    if base in {"cs", "ru", "sv", "vi"}:
         # stage. Keep this convenience API on the same engine rather than
         # allowing older generic morphology to drift independently.
         from .structured import normalize_structured
@@ -556,6 +572,10 @@ def _protect_plain_numbers(text: str, language: str | None = None) -> _Protected
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
+    if language is not None and base_language(language) == "ru":
+        protected = _RU_YEAR_ABBREVIATION_RE.sub(replace, protected)
+        protected = _RU_CURRENCY_RE.sub(replace, protected)
+        protected = _RU_PHONE_MARKER_RE.sub(replace, protected)
     if language is not None and base_language(language) == "vi":
         protected = _VI_LEGAL_REFERENCE_RE.sub(replace, protected)
         protected = _VI_FRACTIONAL_VND_RE.sub(replace, protected)
@@ -743,6 +763,7 @@ def _negative_word(language: str) -> str:
         "ko": "마이너스",
         "pt": "menos",
         "sv": "minus",
+        "ru": "минус",
         "vi": "âm",
         "zh": "负",
     }.get(base_language(language), "minus")
@@ -750,6 +771,7 @@ def _negative_word(language: str) -> str:
 
 def _positive_word(language: str) -> str:
     return {
+        "ru": "плюс",
         "ja": "プラス",
         "ko": "플러스",
         "vi": "dương",

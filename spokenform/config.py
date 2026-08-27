@@ -72,7 +72,21 @@ RegisteredAcronymMode = Literal["expand", "spell"]
 def number_policy_for_language(language: str) -> NumberPolicy:
     """Return the initial kokorog2p policy for a normalized language code."""
     base = base_language(language)
-    if base in {"cs", "de", "en", "es", "fr", "it", "ja", "ko", "pt", "sv", "vi", "zh"}:
+    if base in {
+        "cs",
+        "de",
+        "en",
+        "es",
+        "fr",
+        "it",
+        "ja",
+        "ko",
+        "pt",
+        "ru",
+        "sv",
+        "vi",
+        "zh",
+    }:
         return NumberPolicy.STRUCTURED_AND_PLAIN
     return NumberPolicy.NONE
 
