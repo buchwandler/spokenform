@@ -1,6 +1,8 @@
 import re
 from pathlib import Path
 
+from spokenform.language import SUPPORTED_BASE_LANGUAGES
+
 try:
     import tomllib
 except ModuleNotFoundError:  # pragma: no cover - exercised on Python 3.10
@@ -60,3 +62,12 @@ def test_benchmark_docs_are_reachable_from_main_navigation() -> None:
     assert "kokorog2p-0.2.3-handoff" in index
     for document in ("polynorm", "proteno", "google_tn"):
         assert document in benchmark_page
+
+
+def test_runtime_languages_are_present_in_canonical_matrix() -> None:
+    matrix = (ROOT / "docs" / "languages.md").read_text(encoding="utf-8")
+    documented = set(re.findall(r"^\|\s*`([^`]+)`\s*\|", matrix, re.MULTILINE))
+    assert set(SUPPORTED_BASE_LANGUAGES) <= documented
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "docs/languages.md" in readme

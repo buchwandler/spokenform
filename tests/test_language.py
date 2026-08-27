@@ -20,6 +20,11 @@ from spokenform.language import (
         ("JP", "ja"),
         ("cn", "zh_CN"),
         ("zh-CN", "zh_CN"),
+        ("sv", "sv"),
+        ("sv-SE", "sv_SE"),
+        ("SV-se", "sv_SE"),
+        ("swe", "sv"),
+        ("swe-SE", "sv_SE"),
     ],
 )
 def test_normalize_language(value: str, expected: str) -> None:
@@ -42,6 +47,7 @@ def test_base_language_and_supported_languages() -> None:
             "ja",
             "ko",
             "pt",
+            "sv",
             "zh",
         )
     )

@@ -14,7 +14,7 @@ print(result.render_changes())
 
 ## Japanese, Korean, and Chinese
 
-```python
+````python
 assert prepare("㈱東京は 20°C で 5 km 進む。", language="ja").spoken_text == (
     "株式会社東京は 摂氏 二十 度 で 五 キロメートル 進む。"
 )
@@ -24,8 +24,18 @@ assert prepare("AI 시스템은 20°C 에서 5 km 이동한다.", language="ko")
 assert prepare("AI系统在 20°C 下运行，距离 5 km。", language="zh_CN").spoken_text == (
     "人工智能系统在 二十 摄氏度 下运行，距离 五 公里。"
 )
-```
 
+## Swedish
+
+```python
+from spokenform import prepare
+
+assert prepare("Vi har t.ex. 2 kg och temperaturen är 5 °C.", language="sv").spoken_text == (
+    "Vi har till exempel två kilogram och temperaturen är fem grader Celsius."
+)
+````
+
+Swedish uses comma decimals and reviewed quantities, temperatures, and Swedish krona amounts. Dates, digital times, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
 Use canonical `ja`, `ko`, and `zh_CN` identifiers. The compatibility aliases are `jp` and `cn`.
 
 The output is a `PreparedText` object. Its main fields are:

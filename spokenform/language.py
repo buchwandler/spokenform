@@ -13,6 +13,9 @@ _LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "jp": "ja",
     "cn": "zh_CN",
 }
+_BASE_LANGUAGE_ALIASES: Final[dict[str, str]] = {
+    "swe": "sv",
+}
 
 SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = (
     "cs",
@@ -24,6 +27,7 @@ SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = (
     "ja",
     "ko",
     "pt",
+    "sv",
     "zh",
 )
 
@@ -44,7 +48,7 @@ def normalize_language(language: str) -> str:
         return alias
     value = value.replace("-", "_")
     parts = value.split("_", 1)
-    base = parts[0].lower()
+    base = _BASE_LANGUAGE_ALIASES.get(parts[0].casefold(), parts[0].lower())
     if len(parts) == 1:
         return base
     return f"{base}_{parts[1].upper()}"

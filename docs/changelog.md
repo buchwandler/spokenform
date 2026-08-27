@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### Added
+
+- Added Swedish (`sv`) runtime support with Swedish numeric punctuation, reviewed quantities and temperatures, Swedish krona handling, and integration with the existing `abbr2words` Swedish registry.
+- Added Swedish regression coverage for numeric precision, source mapping, protection, and sequence fallback safety.
+
+### Documentation
+
+- Expanded the runtime language matrix and documented Swedish ownership boundaries.
+
 ## [0.3.2] - 2026-08-26
 
 ### Added

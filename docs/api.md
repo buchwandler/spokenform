@@ -23,9 +23,23 @@ caller-protected spans always take precedence.
 
 ## Language identifiers and number backends
 
-Canonical runtime identifiers are `ja` (Japanese), `ko` (Korean), `zh` (conservative Chinese), and `zh_CN` (Mainland Chinese overlay). Hyphenated regional forms such as `ja-JP`, `ko-KR`, and `zh-CN` are normalized internally. `jp` aliases to `ja` and `cn` aliases to `zh_CN` for compatibility; `kr` is not accepted.
+Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, and `zh`. Regional forms such as `sv-SE` and `sv_SE` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` aliases to `sv`; `kr` is not accepted.
 
-Japanese, Korean, and all existing supported languages use released `num2words` for number words. Chinese uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese rather than returning a fake converter key. `resolve_abbr2words_language()` preserves exact `zh_CN` routing so Mainland reviewed terminology and RMB are not replaced by the generic `zh` profile.
+All existing supported languages use released `num2words` except Chinese, which uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. Swedish resolves to `sv` for both numeric and abbreviation dependency calls, while `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese. `resolve_abbr2words_language()` preserves exact regional overlays such as `zh_CN`.
+
+```python
+from spokenform import (
+    normalize_language,
+    resolve_abbr2words_language,
+    resolve_num2words_language,
+    supported_languages,
+)
+
+assert "sv" in supported_languages()
+assert normalize_language("sv-SE") == "sv_SE"
+assert resolve_num2words_language("sv-SE") == "sv"
+assert resolve_abbr2words_language("sv-SE") == "sv"
+```
 
 `symbol_mode="none"` is the backward-compatible default and applies no general
 residual-symbol filter. `symbol_mode="remove"` removes Unicode punctuation and
@@ -227,6 +241,8 @@ prepare(
 `context` remains the legacy abbreviation-context switch. Surface mode clamps its effective abbreviation context off, but `context=False` under contextual mode does not disable structured recognizers. `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
 
 `sequence_fallback_mode="preserve"` is the compatibility default. Set it to `"spell"` to render conservative residual sequence-shaped spans such as `AAPL` or `H2O` orthographically after semantic recognition. It does not spell ordinary lexical prose, does not claim a semantic domain, and never overrides caller-protected or auto-protected literal spans. `SequenceFallbackMode`, `InterpretationMode`, `RecognitionDomain`, and `RecognitionEvidence` are exported public types. Policy-suppressed candidates are visible in structured trace diagnostics.
+
+The Swedish `normalize_numbers(language="sv")` path preserves comma-decimal precision and valid numeric grouping, while dates, digital times, and ambiguous dot forms remain caller-managed. Swedish structured quantities, temperatures, and SEK currency are owned by the locale grammar used by `prepare()`.
 
 ## Lexhint evidence provider
 

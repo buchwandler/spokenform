@@ -51,58 +51,29 @@ punctuation remains downstream unless the caller explicitly requests filtering.
 
 The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical
-identity; `spokenform.structured` dispatches to locale-owned English, German, French,
-Spanish, Italian, Portuguese, Czech, Japanese, Korean, or Chinese semantic grammar. No symbol or alias inventory is copied
-into spokenform. French owns its dates, h/colon times, ordinals, decimal digit
-reading, quantities, temperatures, and currency decomposition. Spanish owns
-reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
-Spanish colon times remain caller-managed. Italian owns reviewed dates,
-quantities, temperatures, currencies, and ordinary numbers; Italian colon times
-remain caller-managed. Portuguese owns reviewed dates, quantities, temperatures,
-currencies, and ordinary numbers; Portuguese colon times remain caller-managed.
-Czech owns reviewed dates, quantities, temperatures, currencies, ordinary numbers,
-and canonical extended units; Czech colon times remain caller-managed. English
-owns reviewed dates, validated clock times, canonical quantities and currencies,
-a conservative ordinary-number pass, and reviewed contextual single-dot release
-labels such as `bot 2.0`. That label rule uses `point oh` only in the reviewed
-version context; ordinary decimals retain digit-wise zero wording. English
-deliberately leaves years, suffix ordinals, Roman numerals, phone/ID sequences,
-arbitrary multi-dot versions/IDs, numeric suffixes, and phoneme-sensitive helpers
-downstream. G2P typography and phonemes stay downstream.
-
-French is promoted to `NumberPolicy.STRUCTURED_AND_PLAIN` only after its parity
-corpus and real downstream gate pass. Every locale replacement retains exact
-source spans and composed source/output mapping, and partial caller protection
-expands to a complete structured candidate before semantic matching.
-
-Spanish is promoted to the same policy only after its parity corpus and real
-`kokorog2p` `es`/`la` gate pass. Its plain-number stage protects reviewed dates,
-time candidates, URLs, e-mail addresses, and semantic versions so policy
-promotion cannot silently claim an unreviewed category.
-
-Italian is promoted to the same policy after its parity corpus and real
-`kokorog2p` Italian gate pass. Its plain-number stage protects valid and invalid
-date candidates, colon-time candidates, URLs, e-mail addresses, and semantic
-versions. Portuguese is promoted to the same policy after its parity corpus and
-real `kokorog2p` Portuguese gate pass; its plain-number stage protects reviewed
-dates, time candidates, URLs, e-mail addresses, and semantic versions. Czech is
-promoted to the same policy with a structured-safe plain-number stage that
-protects date/time candidates, URLs, e-mail addresses, semantic versions, and
-canonical structured values; Czech colon times remain caller-managed. English is
-promoted to the same policy after its parity corpus and real `kokorog2p` English
-gate pass; its plain-number stage protects reviewed date/time candidates, URLs,
-e-mail addresses, semantic versions, canonical unit candidates, and ambiguous
-long digit strings. Its structured single-dot release-label rule is contextual
-and yields to recognized quantity spans. All reviewed quantity and currency
-symbols continue to come from `abbr2words`.
-
-Japanese, Korean, and Chinese use explicit numeric and sequence vocabularies. Japanese and Korean route cardinal and ordinal values through released `num2words`; Chinese routes cardinal and digitwise values through released `cn2an`. `zh_CN` remains an exact `abbr2words` overlay, and all CJK unknown shared domains decline rather than borrowing English connectors or policy words.
+identity; `spokenform.structured` dispatches to locale-owned semantic grammar.
+No symbol or alias inventory is copied into spokenform. French owns its dates,
+h/colon times, ordinals, decimal digit reading, quantities, temperatures, and
+currency decomposition. Spanish, Italian, Portuguese, and Czech own their
+reviewed dates, quantities, temperatures, currencies, ordinary numbers, and
+locale-specific extensions; caller-managed time boundaries remain documented.
+English owns reviewed dates, validated clock times, canonical quantities and
+currencies, conservative ordinary numbers, and contextual release labels.
+Japanese, Korean, and Chinese use explicit native numeric and sequence
+vocabularies, with Chinese routed through `cn2an`. Swedish owns comma-decimal
+numbers, reviewed quantities, temperatures, SEK grammar, and canonical
+`abbr2words` unit identities. Swedish dates, digital times, arbitrary initialisms,
+and unreviewed specialist sequence domains remain caller-managed or fail closed.
+Every locale replacement retains exact source spans and composed source/output
+mapping. Supported languages never borrow English fallback words merely because a
+shared renderer lacks a locale entry. All reviewed quantity and currency symbols
+continue to come from `abbr2words`.
 
 The dependency direction is:
 
 ```text
 abbr2words ──────────┐
-num2words (ja/ko) ──┼─> spokenform
+num2words (ja/ko/sv) ──┼─> spokenform
 cn2an (zh) ─────────┘
 ```
 

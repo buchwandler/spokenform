@@ -14,8 +14,9 @@
   default output.
 - German quantity recognition depends on the released `abbr2words` structured
   match API. spokenform owns the semantic grammar, not the symbol inventory.
-- English, German, French, Spanish, Italian, Portuguese, Czech, Japanese, Korean, and Chinese have explicit runtime structured policies. Japanese, Korean, and Chinese runtime support is covered by focused regression tests, but it does not imply kokorog2p or PolyNorm parity.
+- English, German, French, Spanish, Italian, Portuguese, Czech, Japanese, Korean, Swedish, and Chinese have explicit runtime structured policies. Japanese, Korean, Swedish, and Chinese runtime support is covered by focused regression tests, but it does not imply kokorog2p or PolyNorm parity.
 - Japanese and Korean use released `num2words`; Chinese uses released `cn2an`. Generic `zh` is conservative, while Mainland reviewed terminology and RMB live under exact `zh_CN`. `zh_TW` and `zh_HK` are not claimed.
+- Swedish uses comma decimals, space/NBSP/NNBSP grouping, reviewed quantities, temperatures, and SEK currency grammar. Numeric dates and digital times are caller-managed but protected from generic rewriting; arbitrary initialisms and unreviewed specialist domains fail closed instead of borrowing English vocabulary.
 - `jp` and `cn` are compatibility aliases for `ja` and `zh_CN`; `kr` is intentionally rejected. Unknown CJK-adjacent Latin identifiers remain unchanged, and ambiguous date formats remain unclaimed.
 - CJK date/time and semantic renderers use reviewed native forms. Unsupported phone, ISBN, reference, legal, music, biology, geography, sports, chemistry, and math constructions decline rather than borrowing English words.
   Spanish explicit AM/PM forms use a 12-hour conversational branch, while

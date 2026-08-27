@@ -167,6 +167,8 @@ def iter_replacements(
 ) -> tuple[Replacement, ...]:
     """Return positive-evidence year and numeric-range replacements."""
     language = normalize_language(language)
+    if base_language(language) == "sv":
+        return ()
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
 

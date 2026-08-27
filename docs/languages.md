@@ -1,30 +1,58 @@
 # Language support matrix
 
-This page is the runtime support matrix for `spokenform`. It is separate from
-kokorog2p migration parity and from the current seven-language PolyNorm benchmark.
+This page is the canonical runtime support matrix for `spokenform`. It describes
+implemented capabilities, not full parity with PolyNorm, benchmarks, or
+kokorog2p.
 
-| Canonical code | Accepted aliases | Region overlays             | Number backend | Abbreviation profile | Plain numbers | Decimals | Quantities | Currencies   | Native dates/times | Reviewed initialisms    | Literal/URL promotion | Benchmark status | kokorog2p parity |
-| -------------- | ---------------- | --------------------------- | -------------- | -------------------- | ------------- | -------- | ---------- | ------------ | ------------------ | ----------------------- | --------------------- | ---------------- | ---------------- |
-| `ja`           | `jp`             | `ja_JP`                     | `num2words`    | `ja`                 | yes           | yes      | yes        | JPY          | yes                | conservative            | limited               | regression tests | not claimed      |
-| `ko`           | none             | `ko_KR`                     | `num2words`    | `ko`                 | yes           | yes      | yes        | KRW          | yes                | reviewed only           | limited               | regression tests | not claimed      |
-| `zh`           | none             | none                        | `cn2an`        | `zh`                 | yes           | yes      | yes        | conservative | yes                | conservative            | limited               | regression tests | not claimed      |
-| `zh_CN`        | `cn`             | Mainland/Simplified overlay | `cn2an`        | exact `zh_CN`        | yes           | yes      | yes        | RMB          | yes                | reviewed Mainland terms | limited               | regression tests | not claimed      |
+| Canonical code | Accepted aliases | Region forms      | Number backend | Abbreviation profile | Plain numbers | Decimals                 | Quantities | Currencies   | Dates and times                        | Shared specialist sequences        |
+| -------------- | ---------------- | ----------------- | -------------- | -------------------- | ------------- | ------------------------ | ---------- | ------------ | -------------------------------------- | ---------------------------------- |
+| `cs`           | none             | none              | `num2words`    | `cs`                 | yes           | comma                    | yes        | CZK          | reviewed, conservative time            | reviewed, conservative             |
+| `de`           | none             | `de_DE`           | `num2words`    | `de`                 | yes           | comma                    | yes        | EUR          | reviewed                               | reviewed, conservative             |
+| `en`           | none             | `en_GB`, `en_US`  | `num2words`    | `en`                 | yes           | point                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `es`           | none             | `es_MX`           | `num2words`    | `es`, exact `es_MX`  | yes           | comma or point by locale | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `fr`           | none             | `fr_FR`           | `num2words`    | `fr`                 | yes           | comma                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `it`           | none             | `it_IT`           | `num2words`    | `it`                 | yes           | comma                    | yes        | reviewed     | reviewed                               | reviewed, conservative             |
+| `ja`           | `jp`             | `ja_JP`           | `num2words`    | `ja`                 | yes           | reviewed                 | yes        | JPY          | reviewed                               | conservative                       |
+| `ko`           | none             | `ko_KR`           | `num2words`    | `ko`                 | yes           | reviewed                 | yes        | KRW          | reviewed                               | conservative                       |
+| `pt`           | none             | `pt_BR`           | `num2words`    | `pt`, `pt_BR`        | yes           | comma                    | yes        | EUR          | reviewed                               | reviewed, conservative             |
+| `sv`           | `swe`            | `sv_SE` / `sv-SE` | `num2words`    | `sv`                 | yes           | comma                    | yes        | SEK / `kr`   | caller-managed dates and digital times | fail closed for unreviewed domains |
+| `zh`           | none             | none              | `cn2an`        | `zh`                 | yes           | reviewed                 | yes        | conservative | reviewed                               | conservative                       |
+
+## Swedish scope
+
+Swedish uses comma decimal punctuation and space, NBSP, or NNBSP grouping.
+Plain numbers, reviewed quantities, Celsius and Fahrenheit temperatures, and
+Swedish krona amounts are supported. Swedish quantity grammar uses the reviewed
+`abbr2words` canonical unit identities and explicit singular and plural forms.
+
+`sv-SE` and `sv_SE` are normalized to the regional form and routed to the
+Swedish base language. `swe` is accepted as a compatibility alias, and
+`swe-SE` normalizes to `sv_SE`.
+
+Swedish digital clock bodies and numeric dates remain caller-managed in this
+release, although valid shapes are protected from generic number rewriting.
+Arbitrary initialisms and unreviewed address, legal, phone, ISBN, music,
+biology, chemistry, math, and range semantics fail closed. Supported languages
+must not borrow English fallback vocabulary solely because a shared semantic
+renderer lacks a locale entry.
 
 ## Identifier rules
 
-Canonical documentation and new code use `ja`, `ko`, and `zh_CN` where Mainland
-Chinese terminology is intended. Hyphenated forms such as `ja-JP`, `ko-KR`, and
-`zh-CN` are normalized. `jp` and `cn` are compatibility aliases. `kr`, `zh_TW`,
-and `zh_HK` are not claimed by this support matrix.
+Canonical documentation and new code use the canonical codes in the first
+column. Hyphenated regional forms are normalized to underscore forms. `jp`,
+`cn`, and `swe` are compatibility aliases where shown. `kr` is not a language
+alias. Unknown language identifiers are rejected by the runtime rather than
+being guessed.
 
 ## Ownership and safety
 
-`abbr2words` owns reviewed abbreviation, initialism, unit, currency identity, and
-quantity-template data. `num2words` renders Japanese and Korean numbers. `cn2an`
-renders Chinese cardinal and digitwise numbers. Unknown Latin identifiers remain
-unchanged, and unsupported CJK semantic domains decline instead of using English
-connectors or nouns. Numeric full-width compatibility folding is limited to
-numeric-looking spans and does not replace the global NFC policy.
+`abbr2words` owns reviewed abbreviation, initialism, unit, currency identity,
+and quantity-template recognition. `spokenform` owns locale semantic grammar,
+numeric punctuation policies, source-aligned replacements, and protection.
+`num2words` owns generic Swedish number words. Unsupported Swedish specialist
+sequence domains preserve source text instead of emitting English connectors,
+nouns, or punctuation names.
 
-Runtime CJK support is covered by focused repository regression tests. It does not
-claim PolyNorm corpus parity, spokenform-gold parity, or kokorog2p migration parity.
+Runtime support is covered by focused regression tests. It does not claim
+benchmark parity, PolyNorm parity, or kokorog2p parity unless those gates are
+listed separately for a language.

@@ -25,7 +25,7 @@ from .numeric_lexeme import (
     parse_numeric_lexeme,
 )
 
-_COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt"})
+_COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt", "sv"})
 _BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
@@ -168,6 +168,8 @@ _ISO_DATE_CANDIDATE_RE = re.compile(
     r"(?<!\d)(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)"
 )
 _TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?P<hour>\d{1,2}):(?P<minute>\d{2})(?!\d)")
+_SWEDISH_TIME_CANDIDATE_RE = re.compile(r"(?<!\d)(?:[01]?\d|2[0-3])\.[0-5]\d(?!\d)")
+_SWEDISH_IDENTIFIER_CANDIDATE_RE = re.compile(r"(?<!\w)[A-ZÅÄÖ]{1,4}-\d+(?!\w)")
 _SPANISH_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?|,\d+)(?![\w.])"
 )
@@ -233,8 +235,12 @@ def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
         return replace(match)
 
     protected = _BARE_VERSION_RE.sub(bare_version, protected)
+    if base == "sv":
+        protected = _SWEDISH_IDENTIFIER_CANDIDATE_RE.sub(replace, protected)
 
     def invalid_date(match: re.Match[str]) -> str:
+        if base == "sv":
+            return replace(match)
         try:
             date(int(match["year"]), int(match["month"]), int(match["day"]))
         except ValueError:
@@ -242,6 +248,8 @@ def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
         return match.group(0)
 
     protected = _DATE_CANDIDATE_RE.sub(invalid_date, protected)
+    if base == "sv":
+        protected = _ISO_DATE_CANDIDATE_RE.sub(replace, protected)
 
     def invalid_time(match: re.Match[str]) -> str:
         if int(match["hour"]) > 23 or int(match["minute"]) > 59:
@@ -249,6 +257,9 @@ def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
         return match.group(0)
 
     protected = _TIME_CANDIDATE_RE.sub(invalid_time, protected)
+    if base == "sv":
+        protected = _SWEDISH_TIME_CANDIDATE_RE.sub(replace, protected)
+        protected = _TIME_CANDIDATE_RE.sub(replace, protected)
     return _ProtectedText(protected, tuple(values))
 
 
@@ -353,6 +364,8 @@ def _replace_dates(text: str, language: str) -> str:
 
 def _replace_times(text: str, language: str) -> str:
     base = base_language(language)
+    if base == "sv":
+        return text
 
     def replace(match: re.Match[str]) -> str:
         hour = int(match.group("hour"))
@@ -428,6 +441,15 @@ def _replace_ordinals(text: str, language: str) -> str:
 def _replace_numbers(text: str, language: str) -> str:
     base = base_language(language)
     pattern = _GERMAN_NUMBER_RE if base == "de" else _NUMBER_RE
+    if base == "sv":
+
+        def replace_swedish(match: re.Match[str]) -> str:
+            lexeme = parse_numeric_lexeme(match.group(0), language, context="plain")
+            if lexeme is None:
+                return match.group(0)
+            return _render_numeric_lexeme(lexeme, language, fraction_mode="digitwise")
+
+        return pattern.sub(replace_swedish, text)
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)
@@ -482,10 +504,10 @@ def normalize_numbers(text: str, *, language: str) -> str:
         raise TypeError("text must be a string")
     language = normalize_language(language)
     base = _base_language(language)
-    if base == "cs":
-        # Czech has a reviewed semantic grammar in the structured stage. Keep
-        # this public convenience API on that same engine rather than allowing
-        # its older generic date/currency morphology to drift independently.
+    if base in {"cs", "sv"}:
+        # Czech and Swedish have reviewed semantic grammars in the structured
+        # stage. Keep this convenience API on the same engine rather than
+        # allowing older generic morphology to drift independently.
         from .structured import normalize_structured
 
         structured = normalize_structured(text, language=language)
@@ -506,7 +528,7 @@ def normalize_numbers(text: str, *, language: str) -> str:
     return capitalize_generated_input_start(source=text, replacement=restored, language=language)
 
 
-def _protect_plain_numbers(text: str) -> _ProtectedText:
+def _protect_plain_numbers(text: str, language: str | None = None) -> _ProtectedText:
     """Protect literals and reviewed structured candidates for a plain pass."""
     values: list[str] = []
     existing_offsets = [
@@ -521,12 +543,16 @@ def _protect_plain_numbers(text: str) -> _ProtectedText:
 
     protected = _URL_OR_EMAIL_RE.sub(replace, text)
     protected = _VERSION_RE.sub(replace, protected)
+    if language is not None and base_language(language) == "sv":
+        protected = _SWEDISH_IDENTIFIER_CANDIDATE_RE.sub(replace, protected)
     for pattern in (
         _DATE_CANDIDATE_RE,
         _ISO_DATE_CANDIDATE_RE,
         _TIME_CANDIDATE_RE,
     ):
         protected = pattern.sub(replace, protected)
+    if language is not None and base_language(language) == "sv":
+        protected = _SWEDISH_TIME_CANDIDATE_RE.sub(replace, protected)
     return _ProtectedText(protected, tuple(values), placeholder_start)
 
 
@@ -562,7 +588,7 @@ def _normalize_comma_decimal_plain_numbers(
     negative_word: str,
 ) -> str:
     """Verbalize ordinary comma-decimal numbers while preserving digit precision."""
-    protected = _protect_plain_numbers(text)
+    protected = _protect_plain_numbers(text, language)
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0).replace("−", "-")
@@ -592,7 +618,7 @@ def _normalize_czech_plain_numbers(text: str, language: str = "cs") -> str:
     """Verbalize Czech ordinary numbers without consuming structured values."""
     from abbr2words import iter_unit_matches
 
-    protected = _protect_plain_numbers(text)
+    protected = _protect_plain_numbers(text, language)
     values = list(protected.values)
     result = protected.text
     occupied: list[tuple[int, int]] = []
@@ -677,7 +703,7 @@ def _normalize_english_plain_numbers(text: str, language: str = "en") -> str:
     Dates, times, versions, URLs, emails, and recognized units are protected
     atomically before this pass.
     """
-    protected = _protect_english_units(_protect_plain_numbers(text), language)
+    protected = _protect_english_units(_protect_plain_numbers(text, language), language)
 
     def replace(match: re.Match[str]) -> str:
         return _english_plain_number_text(match.group(0), language)
@@ -699,6 +725,7 @@ def _negative_word(language: str) -> str:
         "ja": "マイナス",
         "ko": "마이너스",
         "pt": "menos",
+        "sv": "minus",
         "zh": "负",
     }.get(base_language(language), "minus")
 
@@ -771,7 +798,7 @@ def _normalize_unified_plain_numbers(
     text: str, language: str, *, long_number_mode: str = "preserve"
 ) -> str:
     """Normalize plain numbers through the same lexeme parser as quantities."""
-    protected = _protect_plain_numbers(text)
+    protected = _protect_plain_numbers(text, language)
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)

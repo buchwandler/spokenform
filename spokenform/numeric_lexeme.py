@@ -91,6 +91,7 @@ _BASE_NUMERIC_PUNCTUATION_POLICIES: dict[str, NumericPunctuationPolicy] = {
     "fr": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f", "."), (".",)),
     "it": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
     "pt": NumericPunctuationPolicy(",", (".", " ", "\u00a0", "\u202f"), (".",)),
+    "sv": NumericPunctuationPolicy(",", (" ", "\u00a0", "\u202f")),
     "ja": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "ko": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
     "zh": NumericPunctuationPolicy(".", (",", " ", "\u00a0", "\u202f")),
@@ -103,6 +104,7 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "fr": NumericSpeechPolicy("virgule", "digitwise"),
     "it": NumericSpeechPolicy("virgola", "digitwise"),
     "pt": NumericSpeechPolicy("vírgula", "digitwise"),
+    "sv": NumericSpeechPolicy("komma", "digitwise"),
     "ja": NumericSpeechPolicy("点", "digitwise"),
     "ko": NumericSpeechPolicy("점", "digitwise"),
     "zh": NumericSpeechPolicy("点", "digitwise"),
@@ -294,7 +296,7 @@ def _build_numeric_lexeme(
         integer = integer or "0"
         if not fraction or not fraction.isdigit():
             return None
-        remaining = integer.replace(",", "").replace(".", "")
+        remaining = _clean_grouping(integer.replace(",", "").replace(".", ""))
         if not remaining.isdigit():
             return None
         for separator in distinct:
@@ -306,7 +308,7 @@ def _build_numeric_lexeme(
         return NumericLexeme(
             raw,
             negative,
-            remaining,
+            integer,
             fraction,
             decimal_separator,
             tuple(dict.fromkeys(grouping_separators)),
@@ -354,6 +356,8 @@ def parse_numeric_lexeme(
     negative, unsigned = validated
     language = normalize_language(language)
     policy = numeric_punctuation_policy(language)
+    if base_language(language) == "sv" and "." in unsigned:
+        return None
     if not any(character in unsigned for character in ".,"):
         return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())
     resolution = _resolve_separator_shape(

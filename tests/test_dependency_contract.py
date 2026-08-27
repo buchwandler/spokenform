@@ -22,6 +22,9 @@ from spokenform import convert_abbr_replacements, iter_structured_replacements
         ("zh_CN", "人民币", "currency-chinese-yuan"),
         ("de", "m³", "volume-cubic-meter"),
         ("de", "km/h", "speed-kilometer-per-hour"),
+        ("sv", "SEK", "currency-swedish-krona"),
+        ("sv", "kr", "currency-swedish-krona"),
+        ("sv", "km/h", "speed-kilometer-per-hour"),
     ],
 )
 def test_migrated_locale_uses_canonical_abbr2words_identity(

@@ -50,7 +50,7 @@ a model automatically.
 
 ## Quickstart
 
-```python
+````python
 from spokenform import prepare
 
 prepared = prepare(
@@ -63,16 +63,18 @@ print(prepared.render_changes())
 
 ## Language support
 
-| Language | Canonical code | Common locale | Number backend | `abbr2words` profile | Initial support |
-| --- | --- | --- | --- | --- | --- |
-| Japanese | `ja` | `ja_JP` | `num2words` | `ja` | numbers, reviewed abbreviations, quantities, dates, times, currencies, and conservative sequences |
-| Korean | `ko` | `ko_KR` | `num2words` | `ko` | numbers, reviewed abbreviations, quantities, dates, times, currencies, and conservative sequences |
-| Chinese | `zh` | `zh_CN` | `cn2an` | `zh` / exact `zh_CN` | conservative generic Chinese and Mainland reviewed terminology, quantities, dates, times, and currencies |
+The exhaustive runtime language matrix is maintained in [`docs/languages.md`](docs/languages.md). It covers `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `sv`, and `zh`, including regional forms, number policies, structured ownership, and conservative boundaries.
 
-`jp` and `cn` are accepted compatibility aliases for `ja` and `zh_CN`. New code and documentation should use the canonical identifiers. `zh_CN` is intentionally preserved as an exact `abbr2words` overlay. Unknown Latin identifiers remain unchanged rather than being guessed.
+Swedish is available as `sv`, `sv-SE`, or `sv_SE`; `swe` and `swe-SE` are compatibility aliases.
 
-```
+```python
+result = prepare(
+    "Vi har t.ex. 2 kg kvar.",
+    language="sv",
+)
+````
 
+Swedish uses comma decimals, space/NBSP/NNBSP grouping, reviewed quantities and temperatures, and Swedish krona amounts. Dates, digital times, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
 The result contains:
 
 - `source_text`: unchanged caller input;
@@ -113,6 +115,7 @@ times remain caller-managed. Czech realizes reviewed dates, ordinary numbers,
 quantities, temperatures, currencies, and canonical extended units; Czech colon
 times remain caller-managed. No locale copies raw symbol inventories or
 downstream tokenizer/phoneme rules.
+Swedish realizes comma-decimal numbers, reviewed quantities, temperatures, and Swedish krona amounts from canonical `abbr2words` identities. Swedish dates, digital times, arbitrary initialisms, and unreviewed specialist domains remain caller-managed or fail closed. No locale may borrow English fallback vocabulary for a supported language.
 
 ## Language boundary
 
