@@ -1,0 +1,69 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: 0.3.4
+git_base_ref: v0.3.3
+git_base_sha: 882ad4dfc7be9b70831cdb91b418891d9ddb2ec7
+git_head_ref: HEAD
+git_head_sha: 6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
+git_range: 882ad4dfc7be9b70831cdb91b418891d9ddb2ec7..6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
+commit_count: 1
+rows:
+  - sha: 6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
+    source_ref: git:6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
+    short_sha: 6fafaa1
+    changed_paths:
+      - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0010.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0011.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0012.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0013.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0014.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/release.md
+      - README.md
+      - docs/languages.md
+      - spokenform/locales/_cjk.py
+      - spokenform/locales/cs.py
+      - spokenform/locales/de.py
+      - spokenform/locales/fr.py
+      - spokenform/locales/it.py
+      - spokenform/locales/pt.py
+      - spokenform/locales/sv.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_misaki_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 498
+      deletions: 46
+    inspected: true
+    inspected_paths:
+      - README.md
+      - docs/languages.md
+      - spokenform/locales/_cjk.py
+      - spokenform/locales/cs.py
+      - spokenform/locales/de.py
+      - spokenform/locales/fr.py
+      - spokenform/locales/it.py
+      - spokenform/locales/pt.py
+      - spokenform/locales/sv.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_misaki_regressions.py
+    observed_behavior:
+      German structured normalization now enforces complete-word time
+      boundaries, validates dates, applies bounded contextual inflection, and supports
+      typed plural paragraph references and ranges with domain-aware precedence. Currency
+      renderers preserve fractional precision beyond two minor-unit digits instead of
+      silently rounding or truncating, with regression coverage and updated language
+      documentation.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: improve german normalization"
+    target_entry_key: german-structured-normalization-and-precision
+    target_entry_id: entry-0001
+    notes:
+      The commit also updates releaseledger provenance for the preceding planned
+      release; that metadata is not release prose.
