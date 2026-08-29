@@ -10,7 +10,11 @@ from abbr2words import UnitMatch, iter_unit_matches
 from ..language import base_language, resolve_abbr2words_language
 from ..mapping import Replacement
 from ..numbers import _render_numeric_lexeme
-from ..numeric_lexeme import NumberRenderMode, parse_numeric_lexeme
+from ..numeric_lexeme import (
+    NumberRenderMode,
+    has_excess_fractional_precision,
+    parse_numeric_lexeme,
+)
 
 _PERCENT = re.compile(r"(?<!\w)(?P<value>[+\-−]?(?:\d+(?:[.,]\d+)?|[.,]\d+))\s*%")
 _FRACTION = re.compile(r"(?<!\w)(?P<numerator>\d+)\s*/\s*(?P<denominator>\d+)(?!\w)")
@@ -35,11 +39,19 @@ def render_currency(match: UnitMatch, language: str) -> str | None:
     numeric = render_numeric(match.value, language)
     if numeric is None:
         return None
-    lexeme = parse_numeric_lexeme(match.value, language, context="currency")
+    lexeme = parse_numeric_lexeme(match.value, language, context="quantity")
     if lexeme is None:
         return None
     integer = render_numeric(lexeme.integer_digits, language)
     if integer is None:
+        return None
+    if has_excess_fractional_precision(lexeme.fraction_digits):
+        if match.canonical_id == "currency-japanese-yen":
+            return f"{numeric}円"
+        if match.canonical_id == "currency-south-korean-won":
+            return f"{numeric} 원"
+        if match.canonical_id == "currency-chinese-yuan":
+            return f"{integer}元"
         return None
     if match.canonical_id == "currency-japanese-yen":
         return f"{numeric}円"

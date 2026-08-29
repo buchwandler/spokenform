@@ -16,7 +16,12 @@ from ..evidence import EvidenceSession
 from ..language import base_language, normalize_language
 from ..mapping import Replacement
 from ..number_words import number_words
-from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
+from ..numeric_lexeme import (
+    fraction_digit_groups,
+    has_excess_fractional_precision,
+    numeric_speech_policy,
+    parse_numeric_lexeme,
+)
 from ..sequences import (
     SEGMENT_BOUNDARY,
     SequenceRenderPolicy,
@@ -51,7 +56,7 @@ _COMPOUND_UNIT_RE = re.compile(
     re.IGNORECASE,
 )
 _CURRENCY_SYMBOL_RE = re.compile(
-    r"(?<!\w)(?:(?P<prefix>[€$£])\s*)?(?P<number>[+\-−]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d{1,2})?)(?![.,]\d)\s*(?P<suffix>[€$£])?(?!\w)"
+    r"(?<!\w)(?:(?P<prefix>[€$£])\s*)?(?P<number>[+\-−]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?)(?![.,]\d)\s*(?P<suffix>[€$£])?(?!\w)"
 )
 _CURRENCY_MAGNITUDE_RE = re.compile(
     r"(?<!\w)(?P<symbol>[€$£])\s*(?P<number>[+\-−]?\d+(?:[.,]\d+)?)\s+(?P<magnitude>thousand|million|billion|tausend|million(?:en)?|milliard(?:en)?|mil|millón(?:es)?|milli(?:one|ardi)?)(?!\w)",
@@ -900,13 +905,15 @@ def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
         "pt": "centavos",
         "cs": "centů",
     }
-    negative, integer, fraction = _decimal_parts(raw, language, context="currency")
-    major = _cardinal(integer, language)
-    if negative:
-        major = f"minus {major}"
+    negative, integer, fraction = _decimal_parts(raw, language, context="quantity")
     currency_name = names[symbol].get(base, names[symbol]["en"])
     if base == "en" and (integer != 1 or fraction):
         currency_name += "s"
+    if has_excess_fractional_precision(fraction):
+        return f"{_decimal_text(raw, language, context='quantity')} {currency_name}"
+    major = _cardinal(integer, language)
+    if negative:
+        major = f"minus {major}"
     result = f"{major} {currency_name}"
     if fraction:
         minor = int((fraction + "00")[:2])
@@ -964,7 +971,7 @@ _CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP"}
 def _currency_code_text(number: str, code: str, language: str) -> str:
     canonical = _CURRENCY_SYMBOL_CODES.get(code, code.upper())
     name = _CURRENCY_CODE_NAMES.get(canonical, {}).get(base_language(language), canonical)
-    return f"{_decimal_text(number, language, context='currency')} {name}"
+    return f"{_decimal_text(number, language, context='quantity')} {name}"
 
 
 def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
@@ -2064,6 +2071,12 @@ _LEGAL_LABELED_VALUE_RE = re.compile(
 _LEGAL_GERMAN_PARAGRAPH_VALUE_RE = re.compile(
     r"§\s*(\d+)(?:\s+Abs\.?\s*(\d+))?\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,})",
 )
+_LEGAL_GERMAN_PARAGRAPH_LIST_RE = re.compile(
+    r"(?<!\w)(?P<value>§§\s*(?P<start>\d+)\s*(?:"
+    r"(?P<list_separator>,|und)\s*(?P<second>\d+)"
+    r"|(?P<range_separator>[–-])\s*(?P<end>\d+)"
+    r")\s+(?P<law>[A-ZÄÖÜ][A-Za-zÄÖÜäöüß]{1,}))(?!\w)"
+)
 _LEGAL_GERMAN_ARTICLE_VALUE_RE = re.compile(
     r"(?:Art\.?|Artikel)\s*(\d+)\s+Abs\.?\s*(\d+)\s+([A-ZÄÖÜ]{2,})",
     re.IGNORECASE,
@@ -2100,6 +2113,21 @@ def _render_labeled_legal(value: str, language: str) -> str | None:
     if match.group(3):
         result += f" {_cardinal(int(match.group(3)), language)}"
     return result
+
+
+def _render_german_paragraph_list(value: str, language: str) -> str | None:
+    if base_language(language) != "de":
+        return None
+    match = _LEGAL_GERMAN_PARAGRAPH_LIST_RE.fullmatch(value)
+    if match is None:
+        return None
+    start = _cardinal(int(match["start"]), language)
+    if match["second"]:
+        separator = " und " if match["list_separator"] == "und" else ", "
+        paragraphs = f"{start}{separator}{_cardinal(int(match['second']), language)}"
+    else:
+        paragraphs = f"{start} bis {_cardinal(int(match['end']), language)}"
+    return f"Paragrafen {paragraphs} {render_sequence(match['law'], language=language)}"
 
 
 def _render_german_paragraph(value: str, language: str) -> str | None:
@@ -2262,6 +2290,7 @@ def _render_generic_legal(value: str, language: str) -> str | None:
 
 _LEGAL_RENDERERS = (
     _render_labeled_legal,
+    _render_german_paragraph_list,
     _render_german_paragraph,
     _render_german_article,
     _render_german_roman,
@@ -3292,6 +3321,7 @@ def _iter_product_vehicle_candidates(
         )
 
     for pattern in (
+        _LEGAL_GERMAN_PARAGRAPH_LIST_RE,
         _LEGAL_RE,
         _LEGAL_PREFIX_RE,
         _LEGAL_US_RE,

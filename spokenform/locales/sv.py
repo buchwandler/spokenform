@@ -15,7 +15,7 @@ from ..config import NumberPolicy
 from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
 from ..number_words import number_words
-from ..numeric_lexeme import NumericLexeme, parse_numeric_lexeme
+from ..numeric_lexeme import NumericLexeme, has_excess_fractional_precision, parse_numeric_lexeme
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -112,6 +112,8 @@ def _currency_text(lexeme: NumericLexeme, *, language: str) -> str:
         major = f"minus {major}"
     result = f"{major} {major_noun}"
     fraction = lexeme.fraction_digits
+    if has_excess_fractional_precision(fraction):
+        return f"{number_text(lexeme, language=language)} {major_noun}"
     if fraction is not None:
         minor_value = int((fraction + "00")[:2])
         if minor_value:

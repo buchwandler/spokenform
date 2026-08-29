@@ -161,6 +161,11 @@ def fraction_digit_groups(
     return tuple(fraction_digits)
 
 
+def has_excess_fractional_precision(fraction_digits: str | None, *, minor_digits: int = 2) -> bool:
+    """Return whether fractional digits exceed a currency's minor-unit precision."""
+    return fraction_digits is not None and len(fraction_digits) > minor_digits
+
+
 _NUMERIC_RE = re.compile(
     r"^[+\-−]?(?:\d(?:[\d\s\u00a0\u202f.,'’]*\d)?|[.,]\d[\d\s\u00a0\u202f.,'’]*)$"
 )
@@ -395,6 +400,7 @@ __all__ = [
     "NumericPunctuationPolicy",
     "NumericSpeechPolicy",
     "fraction_digit_groups",
+    "has_excess_fractional_precision",
     "normalize_numeric_compatibility",
     "numeric_punctuation_policy",
     "numeric_speech_policy",

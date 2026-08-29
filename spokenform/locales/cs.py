@@ -18,6 +18,7 @@ from ..dates import _valid_date
 from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
 from ..number_words import number_words
+from ..numeric_lexeme import has_excess_fractional_precision
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
 
@@ -265,6 +266,8 @@ def _currency_text(raw: str, canonical_id: str, language: str = "cs") -> str | N
     major_noun = major_one if integer == 1 else major_few if integer in {2, 3, 4} else major_many
     major_raw = f"{'-' if negative else ''}{integer}"
     result = f"{number_text(major_raw, gender=gender, language=language)} {major_noun}"
+    if has_excess_fractional_precision(fraction):
+        return f"{number_text(raw, gender=gender, language=language)} {major_noun}"
     if fraction is not None:
         minor_value = int((fraction + "00")[:2])
         if minor_value:

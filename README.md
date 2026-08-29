@@ -143,6 +143,7 @@ digits. French likewise realizes canonical `abbr2words` quantity and currency
 identities, including French dates, times, ordinals, decimal digits, plural
 grammar, temperatures, and major/minor currency units. Spanish realizes
 canonical quantities, temperatures, currencies, dates, and ordinary numbers;
+German currency precision beyond two fractional digits is spoken exactly rather than silently rounded or truncated.
 Spanish `18:20`-style time expressions remain caller-managed. Italian realizes
 reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
 Italian colon times remain caller-managed. Portuguese realizes reviewed dates,

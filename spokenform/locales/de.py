@@ -14,7 +14,12 @@ from ..config import NumberPolicy
 from ..dates import expand_year, parsed_date, render_year
 from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
-from ..numeric_lexeme import fraction_digit_groups, numeric_speech_policy, parse_numeric_lexeme
+from ..numeric_lexeme import (
+    fraction_digit_groups,
+    has_excess_fractional_precision,
+    numeric_speech_policy,
+    parse_numeric_lexeme,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -167,12 +172,12 @@ _DAY_MONTH = re.compile(
     r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])\.(?P<month>0?[1-9]|1[0-2])\.(?!\d)"
 )
 _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
-_TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr)?(?!\d)")
+_TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr\b)?(?!\d)")
 _TIME_RANGE = re.compile(
     r"(?<!\d)(?P<start_hour>[01]?\d|2[0-3]):(?P<start_minute>[0-5]\d)\s*[–-]\s*"
-    r"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?:\s+Uhr)?(?!\d)|"
+    r"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?:\s+Uhr\b)?(?!\d)|"
     r"(?<!\d)(?P<start_hour_bis>[01]?\d|2[0-3]):(?P<start_minute_bis>[0-5]\d)\s+bis\s+"
-    r"(?P<end_hour_bis>[01]?\d|2[0-3]):(?P<end_minute_bis>[0-5]\d)(?:\s+Uhr)?(?!\d)"
+    r"(?P<end_hour_bis>[01]?\d|2[0-3]):(?P<end_minute_bis>[0-5]\d)(?:\s+Uhr\b)?(?!\d)"
 )
 _CURRENCY_PREFIX = re.compile(
     rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
@@ -188,6 +193,17 @@ _LABEL = re.compile(
     re.IGNORECASE,
 )
 _ORDINAL = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÄÖÜäöüß])")
+_DE_ORDINAL_ENDING_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (
+        re.compile(r"(?:^|\s)(?:am|im|vom|zum|zur|bis|auf der|an der|in dem|in den|auf den)$"),
+        "en",
+    ),
+    (
+        re.compile(r"(?:^|\s)(?:ans|ins|die|das|auf die|der)$"),
+        "e",
+    ),
+    (re.compile(r"(?:^|\s)(?:ihren|deren)$"), "en"),
+)
 _MONTHS = {
     "januar": (1, "Januar"),
     "jan": (1, "Januar"),
@@ -285,15 +301,10 @@ def _ordinal(value: int, ending: str, language: str = "de") -> str:
 
 
 def _ending(text: str, start: int) -> str:
-    prefix = re.sub(r"\s+", " ", text[max(0, start - 48) : start].lower()).rstrip()
-    if prefix.endswith(
-        ("am", "im", "vom", "zum", "zur", "bis", "auf der", "an der", "in dem", "in den", "auf den")
-    ):
-        return "en"
-    if prefix.endswith(("ans", "ins", "die", "das", "auf die", "der")):
-        return "e"
-    if prefix.endswith(("ihren", "deren")):
-        return "en"
+    prefix = re.sub(r"\s+", " ", text[max(0, start - 48) : start].casefold()).rstrip()
+    for pattern, ending in _DE_ORDINAL_ENDING_PATTERNS:
+        if pattern.search(prefix):
+            return ending
     return "er"
 
 
@@ -360,9 +371,10 @@ def _currency_name(canonical_id: str) -> str:
 
 def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
     negative, integer, fraction = _parts(raw)
-    result = (
-        f"{'ein' if integer == 1 else _spell(integer, language)} {_currency_name(canonical_id)}"
-    )
+    currency_name = _currency_name(canonical_id)
+    if has_excess_fractional_precision(fraction):
+        return f"{_number(raw, language=language)} {currency_name}"
+    result = f"{'ein' if integer == 1 else _spell(integer, language)} {currency_name}"
     if fraction:
         cents = int((fraction + "00")[:2])
         if cents:
