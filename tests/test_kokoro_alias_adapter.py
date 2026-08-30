@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pytest
+
+pytest.importorskip("kokorog2p")
 from kokorog2p.pipeline_api import _spokenform_language, _uses_spokenform_semantics
 
 from spokenform import (
