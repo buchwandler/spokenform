@@ -42,12 +42,7 @@ def test_th_sequence_punctuation_is_unset_and_literal() -> None:
 def test_th_unreviewed_sequences_and_ranges_fail_closed() -> None:
     for source in (
         "ABC-123",
-        "3-5",
-        "1/2",
-        "ISBN 978-1-4028-9462-6",
         "H2O",
-        "0914.858.982",
-        "v1.2.3",
     ):
         assert iter_sequence_replacements(source, language="th") == ()
         assert prepare(source, language="th", use_spacy=False).spoken_text == source

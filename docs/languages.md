@@ -1,5 +1,9 @@
 # Language support matrix
 
+| `ar` | `ara` | `ar_MSA` | `num2words` | `ar` | yes | reviewed | conservative | reviewed | caller-managed | fail closed for unreviewed domains |
+| `he` | `heb` | `he_IL` | `num2words` | `he` | yes | reviewed | conservative | reviewed | caller-managed | fail closed for unreviewed domains |
+| `kk` | `kaz` | `kk_KZ` | `num2words` | `kk` | yes | conservative | conservative | reviewed | caller-managed | fail closed for unreviewed domains |
+
 This page is the canonical runtime support matrix for `spokenform`. It describes
 implemented capabilities, not full parity with PolyNorm, benchmarks, or
 kokorog2p.

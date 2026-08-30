@@ -51,19 +51,22 @@ def test_base_language_and_supported_languages() -> None:
         supported_languages()
         == SUPPORTED_BASE_LANGUAGES
         == (
+            "ar",
             "cs",
             "de",
             "en",
             "es",
             "fr",
+            "he",
             "it",
             "ja",
+            "kk",
             "ko",
             "pt",
             "ru",
             "sv",
-            "vi",
             "th",
+            "vi",
             "zh",
         )
     )

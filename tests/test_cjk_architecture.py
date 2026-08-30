@@ -11,7 +11,12 @@ from spokenform.sequences import vocabulary
 
 def test_every_supported_language_has_explicit_runtime_policies() -> None:
     for language in SUPPORTED_BASE_LANGUAGES:
-        assert number_policy_for_language(language) is NumberPolicy.STRUCTURED_AND_PLAIN
+        expected_policy = (
+            NumberPolicy.NONE
+            if language in {"ar", "he", "kk"}
+            else NumberPolicy.STRUCTURED_AND_PLAIN
+        )
+        assert number_policy_for_language(language) is expected_policy
         assert numeric_punctuation_policy(language)
         assert numeric_speech_policy(language)
         assert vocabulary(language)

@@ -96,6 +96,19 @@ def _iter_locale_replacements(
         from .locales.zh import iter_replacements
 
         return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+
+    if base == "ar":
+        from .locales.ar import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "he":
+        from .locales.he import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
+    if base == "kk":
+        from .locales.kk import iter_replacements
+
+        return iter_replacements(text, language=language, protected_ranges=protected_ranges)
     return ()
 
 

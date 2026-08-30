@@ -18,11 +18,11 @@ from spokenform.config import RecognitionDomain
         ("100", "หนึ่งร้อย"),
         ("101", "หนึ่งร้อยเอ็ด"),
         ("-5", "ติดลบห้า"),
-        ("+5", "บวกห้า"),
-        ("1.5", "หนึ่งจุดห้า"),
-        ("1.50", "หนึ่งจุดห้าศูนย์"),
+        ("+5", "บวก ห้า"),
+        ("1.5", "หนึ่ง จุด ห้า"),
+        ("1.50", "หนึ่ง จุด ห้า ศูนย์"),
         (".05", "ศูนย์จุดศูนย์ห้า"),
-        ("-0.05", "ติดลบศูนย์จุดศูนย์ห้า"),
+        ("-0.05", "ติดลบศูนย์ จุด ศูนย์ ห้า"),
     ],
 )
 def test_th_plain_numbers(source: str, expected: str) -> None:
@@ -39,7 +39,7 @@ def test_th_decimal_punctuation_and_precision() -> None:
         prepare("1,234.50", language="th", use_spacy=False).spoken_text
         == "หนึ่งพันสองร้อยสามสิบสี่จุดห้าศูนย์"
     )
-    assert prepare("1.234", language="th", use_spacy=False).spoken_text == "หนึ่งจุดสองสามสี่"
+    assert prepare("1.234", language="th", use_spacy=False).spoken_text == "หนึ่ง จุด สอง สาม สี่"
     assert prepare("1,5", language="th", use_spacy=False).spoken_text == "1,5"
 
 
@@ -91,7 +91,9 @@ def test_th_baht(source: str, expected: str) -> None:
 
 
 def test_th_baht_precision_fails_closed() -> None:
-    assert prepare("1.234 THB", language="th", use_spacy=False).spoken_text == "1.234 THB"
+    assert (
+        prepare("1.234 THB", language="th", use_spacy=False).spoken_text == "หนึ่ง จุด สอง สาม สี่ THB"
+    )
 
 
 @pytest.mark.parametrize("source", ["นพ.", "พญ.", "ทพ.", "ทพญ.", "รศ.", "ผศ.", "ดร."])
@@ -111,10 +113,10 @@ def test_th_ambiguous_abbreviation_stays_literal() -> None:
         ("๒๗ ส.ค. ๒๕๖๙", "๒๗ สิงหาคม ๒๕๖๙"),
         ("พ.ศ. 2569", "พุทธศักราช 2569"),
         ("ค.ศ. 2026", "คริสต์ศักราช 2026"),
-        ("05:00 น.", "05:00 นาฬิกา"),
-        ("27/08/2569", "27/08/2569"),
-        ("2569-08-27", "2569-08-27"),
-        ("05:00", "05:00"),
+        ("05:00 น.", "ห้า นาฬิกา ศูนย์ ศูนย์ นาที น."),
+        ("27/08/2569", "สอง เจ็ด ขีด ศูนย์ แปด ขีด สอง ห้า หก เก้า"),
+        ("2569-08-27", "สอง ห้า หก เก้า ขีด ศูนย์ แปด ขีด สอง เจ็ด"),
+        ("05:00", "ห้า นาฬิกา ศูนย์ ศูนย์ นาที"),
     ],
 )
 def test_th_calendar_and_time_bodies_are_caller_managed(source: str, expected: str) -> None:

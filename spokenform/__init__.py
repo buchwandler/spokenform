@@ -7,6 +7,12 @@ try:
 except (ImportError, AttributeError):  # source tree before setuptools_scm generation
     __version__ = "0+unknown"
 
+from .abbreviations import (
+    add_abbreviation,
+    has_abbreviation,
+    remove_abbreviation,
+    reset_abbreviations,
+)
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
 from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
 from .config import (
@@ -24,12 +30,14 @@ from .config import (
 )
 from .evidence import LexicalEvidenceProvider
 from .language import (
+    KOKOROG2P_PROFILE_VERSION,
     SUPPORTED_BASE_LANGUAGES,
     base_language,
     normalize_language,
     resolve_abbr2words_language,
     resolve_num2words_language,
     supported_languages,
+    supports_profile,
 )
 from .mapping import (
     OffsetMap,
@@ -55,6 +63,10 @@ from .structured import StageResult, iter_structured_replacements, normalize_str
 
 __all__ = [
     "PreparationConfig",
+    "add_abbreviation",
+    "remove_abbreviation",
+    "has_abbreviation",
+    "reset_abbreviations",
     "LexicalEvidenceProvider",
     "InterpretationMode",
     "SequenceFallbackMode",
@@ -71,6 +83,8 @@ __all__ = [
     "normalize_language",
     "base_language",
     "supported_languages",
+    "supports_profile",
+    "KOKOROG2P_PROFILE_VERSION",
     "resolve_num2words_language",
     "resolve_abbr2words_language",
     "MappedEdit",
