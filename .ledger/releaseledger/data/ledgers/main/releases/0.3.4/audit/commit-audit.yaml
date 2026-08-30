@@ -2,14 +2,14 @@ schema_version: 1
 object_type: commit_audit_sheet
 versioning:
   schema_version: 1
-  revision: 3
+  revision: 6
 release_version: 0.3.4
 git_base_ref: v0.3.3
 git_base_sha: 882ad4dfc7be9b70831cdb91b418891d9ddb2ec7
 git_head_ref: HEAD
-git_head_sha: 6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
-git_range: 882ad4dfc7be9b70831cdb91b418891d9ddb2ec7..6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
-commit_count: 1
+git_head_sha: 8edca8427497de89b92424b9fce197ea09dc7eb7
+git_range: 882ad4dfc7be9b70831cdb91b418891d9ddb2ec7..8edca8427497de89b92424b9fce197ea09dc7eb7
+commit_count: 3
 rows:
   - sha: 6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
     source_ref: git:6fafaa1c9e69cfc4d25b5f3bbe19c710a0d3e72f
@@ -67,3 +67,99 @@ rows:
     notes:
       The commit also updates releaseledger provenance for the preceding planned
       release; that metadata is not release prose.
+  - sha: 4b91c6ca1e76a3910af90950cb6488fdb06b78d2
+    source_ref: git:4b91c6ca1e76a3910af90950cb6488fdb06b78d2
+    short_sha: 4b91c6c
+    changed_paths:
+      - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/audit/commit-audit.yaml
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/entries/entry-0001.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/entries/entry-0002.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/entries/entry-0003.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/entries/entry-0004.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/entries/entry-0005.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.4/release.md
+      - docs/changelog.md
+    stats:
+      files_changed: 0
+      insertions: 279
+      deletions: 0
+    inspected: true
+    inspected_paths:
+      - docs/changelog.md
+    observed_behavior:
+      Regenerated the pending v0.3.4 changelog section from releaseledger
+      entries; it adds no independent product behavior beyond the already recorded German
+      release notes.
+    public_impact: none
+    decision: internal
+    evidence_subject: "doc: changelog"
+    target_entry_id: entry-0010
+    notes:
+      Bookkeeping-only changelog and ledger state update; retain as internal audit
+      coverage and exclude it from public release prose.
+  - sha: 8edca8427497de89b92424b9fce197ea09dc7eb7
+    source_ref: git:8edca8427497de89b92424b9fce197ea09dc7eb7
+    short_sha: 8edca84
+    changed_paths:
+      - docs/languages.md
+      - spokenform/__init__.py
+      - spokenform/abbreviations.py
+      - spokenform/language.py
+      - spokenform/locales/ar.py
+      - spokenform/locales/he.py
+      - spokenform/locales/kk.py
+      - spokenform/locales/ko.py
+      - spokenform/locales/th.py
+      - spokenform/sequences.py
+      - spokenform/structured.py
+      - tests/test_cjk_architecture.py
+      - tests/test_ko.py
+      - tests/test_ko_counters.py
+      - tests/test_kokoro_alias_adapter.py
+      - tests/test_kokorog2p_profiles.py
+      - tests/test_language.py
+      - tests/test_th_kokorog2p_migration.py
+      - tests/test_th_sequences.py
+      - tests/test_th_structured.py
+    stats:
+      files_changed: 0
+      insertions: 709
+      deletions: 48
+    inspected: true
+    inspected_paths:
+      - docs/languages.md
+      - spokenform/__init__.py
+      - spokenform/abbreviations.py
+      - spokenform/language.py
+      - spokenform/locales/ar.py
+      - spokenform/locales/he.py
+      - spokenform/locales/kk.py
+      - spokenform/locales/ko.py
+      - spokenform/locales/th.py
+      - spokenform/sequences.py
+      - spokenform/structured.py
+      - tests/test_cjk_architecture.py
+      - tests/test_ko.py
+      - tests/test_ko_counters.py
+      - tests/test_kokoro_alias_adapter.py
+      - tests/test_kokorog2p_profiles.py
+      - tests/test_language.py
+      - tests/test_th_kokorog2p_migration.py
+      - tests/test_th_sequences.py
+      - tests/test_th_structured.py
+    observed_behavior:
+      Adds public abbreviation-registry controls and explicit KokoroG2P
+      profile and language-resolution APIs; adds conservative Arabic, Hebrew, and Kazakh
+      profiles; adds Korean native counter morphology; and moves Thai time, decimal,
+      range, identifier, laughter, repetition, operator, and currency handling into
+      source-aligned structured replacements. New and updated tests cover aliases, profile
+      policies, protected spans, counters, and Thai semantics.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: add more languages"
+    target_entry_key: kokorog2p-language-and-semantic-profiles
+    target_entry_id: entry-0006
+    notes:
+      Reviewed implementation paths and the associated regression and integration
+      tests; release prose should describe behavior, not the commit subject.
