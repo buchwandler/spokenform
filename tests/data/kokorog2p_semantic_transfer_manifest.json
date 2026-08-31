@@ -1,0 +1,2174 @@
+[
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_professor_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_doctor_title_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_reverend_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_mister_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_misses_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_miss_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_lieutenant_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_general_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_colonel_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_captain_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_sergeant_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_monday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_tuesday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_tuesday_alt_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_wednesday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_thursday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_friday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_saturday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_sunday_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_january_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_february_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_march_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_april_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_september_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_september_alt_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_october_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_november_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_december_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_street_expansion_with_address",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_saint_expansion_without_address",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_saint_expansion_with_name",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_avenue_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_road_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_boulevard_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_apartment_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_am_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_pm_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_ad_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_bc_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_phd_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_md_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_ba_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_junior_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_senior_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_et_cetera_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_versus_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_for_example_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_that_is_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_no_dot_only_expands_when_followed_by_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_inch_only_expands_when_preceded_by_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_inch_does_not_expand_for_sentence_final_in",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_inch_does_not_expand_after_word_attached_digit",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_foot_only_expands_when_preceded_by_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_ounce_only_expands_when_preceded_by_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_pound_only_expands_when_preceded_by_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_case_insensitive_prof",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_case_insensitive_dr",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_word_boundary_protection",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_punctuation_boundary",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_multiple_abbreviations_in_sentence",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_same_abbreviation_multiple_times",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_empty_string",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_no_abbreviations",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_abbreviation_at_end_of_sentence",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishAbbreviationExpander.test_abbreviation_with_comma",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_abbreviation_expansion_in_normalizer",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_abbreviation_disabled",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_abbreviation_with_quote_normalization",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_abbreviation_expansion_tracked",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_context_aware_st_street",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_context_aware_st_saint",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_no_dot_guard_in_normalizer",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_units_guard_in_normalizer",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestEnglishNormalizerWithAbbreviations.test_inch_regression_in_normalizer",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_street_typical_house_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_street_with_direction",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_street_single_digit_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_street_ordinal_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_common_saints",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_city_names",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_with_possessive",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_with_distant_year",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_with_birthday_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_with_zip_code",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_before_numbered_avenue",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_street_named_after_saint",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_with_apartment_number_after",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_in_middle_of_compound_address",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_default_to_saint_unknown_name",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_st_saint_no_following_text",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_normalizer_st_house_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_normalizer_st_saint_name",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_normalizer_st_city_name",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestStAbbreviationRobust.test_normalizer_st_distant_number",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestGetExpander.test_get_expander_returns_instance",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestGetExpander.test_get_expander_is_singleton",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::TestGetExpander.test_expander_has_abbreviations",
+    "classification": "already-covered",
+    "destination": "tests/test_en_abbreviation_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardInventory.test_all_guarded_entries_are_known_and_expected",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardInventory.test_public_inventory_does_not_drop_guarded_entries",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardInventory.test_guarded_inventory_updates_with_shared_expander",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestMergeWithoutSourceText.test_guarded_entry_is_not_merged_without_source_text",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestMergeWithoutSourceText.test_unguarded_entry_still_merges_without_source_text",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardMatcher.test_string_guards_match_at_exact_offsets",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardMatcher.test_compiled_guards_match_at_exact_offsets",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardMatcher.test_invalid_offsets_fail_closed",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestFollowedByNumberMerging.test_valid_context_merges",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestFollowedByNumberMerging.test_adjacent_number_without_separator_does_not_merge",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestFollowedByNumberMerging.test_sentence_final_context_does_not_merge",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestFollowedByNumberMerging.test_newline_before_number_does_not_merge",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestPrecededByNumberMerging.test_valid_context_merges",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestPrecededByNumberMerging.test_non_numeric_context_does_not_merge",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestPrecededByNumberMerging.test_word_attached_digit_does_not_satisfy_guard",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestPrecededByNumberMerging.test_number_on_previous_line_does_not_satisfy_guard",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestGuardedMergingWithoutTrackedPositions.test_context_is_inferred_from_source_text",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_valid_integer_unit_expands",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_word_attached_digit_is_not_a_unit_context",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_previous_line_number_is_not_a_unit_context",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_next_line_number_is_not_a_reference_context",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_adjacent_number_is_not_a_reference_context",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_same_line_number_is_a_reference_context",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_supported_numeric_forms_expand",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestNormalizerGuardHardening.test_reported_and_related_false_contexts_remain_unchanged",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_guarded_abbreviation_merging.py::TestOffsetNumericConsistency.test_numeric_token_is_preserved_with_offsets",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "tokenizer and guard matcher implementation mechanics"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::test_shared_dotted_abbreviation_boundary_handles_punctuation",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_remove_abbreviation",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_add_simple_abbreviation",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_replace_abbreviation",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_context_aware_abbreviation",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_list_abbreviations",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_persistence_across_instances",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_remove_nonexistent_abbreviation",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_reset_abbreviations",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_case_sensitivity",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_invalid_context",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_dict_expansion_with_default",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "Kokoro compatibility or expander implementation API"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestAbbreviationCustomization.test_dict_expansion_without_default",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "Kokoro compatibility or expander implementation API"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestNormalizerAbbreviationMethods.test_normalizer_without_abbreviations_enabled",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "Kokoro compatibility or expander implementation API"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestExpanderMethods.test_expander_get_abbreviation",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "Kokoro compatibility or expander implementation API"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestExpanderMethods.test_expander_nonexistent_abbreviation",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "Kokoro compatibility or expander implementation API"
+  },
+  {
+    "origin": "kokorog2p:tests/test_abbreviation_customization.py::TestExpanderMethods.test_expander_context_modes_use_separate_shared_registries",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "Kokoro compatibility or expander implementation API"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_requested_lexical_abbreviations",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_abbreviation_false_positive_protection",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_numbered_units",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_extended_quantities_use_released_spokenform_grammar",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_numbered_units_handle_decimals_negatives_and_overlap",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_unit_letters_are_not_expanded_without_numbers",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_numbered_unit_boundaries_and_attached_forms",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_currency",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_numeric_date_month_mapping",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_dates_times_and_invalid_forms",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_temperature_and_numeric_classification",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_contextual_ordinal_before_capitalized_noun",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_requested_cooking_paragraph",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_requested_cooking_paragraph_reaches_rule_based_g2p",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_structured_numbers_are_independent_of_lexical_abbreviations",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_structured_normalization_is_tracked",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_structured_replacements_are_source_aligned_and_prioritized",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_german_lexicon_data_is_packaged",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_grouped_integer_currency_keeps_currency_name",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_numbered_unit_case_variants_use_numeric_grammar",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_minimum_and_minute_abbreviations_do_not_collide",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_dotted_abbreviations_before_closers_and_punctuation",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::test_contextual_ordinals_keep_full_prepositional_context",
+    "classification": "already-covered",
+    "destination": "tests/test_de_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberHelpers.test_is_digit",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberHelpers.test_is_currency_amount",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberHelpers.test_is_roman_numeral",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_cardinal_basic",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_ordinal_suffix",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_year_conversion_4_digits",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_negative_number",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_roman_ii_converts_to_two_mid_sentence",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_roman_iv_and_xii",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_decimal_leading_point",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_decimal_regular",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_currency_amount_dollars_cents",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_append_currency_helper",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_grouped_thousands_not_head_reads_as_cardinal",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_grouped_thousands_real_num2words",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_phone_sequence_digit_by_digit_when_not_head",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_three_digit_305_becomes_three_o_five",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_dotted_sequence_version_style",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_flag_n_contracts_and",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_flag_ampersand_keeps_and",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_flag_a_turns_leading_one_into_schwa",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_add_s_rules",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_add_ed_rules",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_add_ing_rules",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_numbers.py::TestEnglishNumberConverter.test_unparseable_number_returns_none",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_temperature_normalization.py::TestTemperatureNormalization.test_celsius_with_period",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_temperature_normalization.py::TestTemperatureNormalization.test_fahrenheit_with_period",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_temperature_normalization.py::TestTemperatureNormalization.test_celsius_without_period",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_temperature_normalization.py::TestTemperatureNormalization.test_celsius_mid_sentence",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_temperature_normalization.py::TestTemperatureNormalization.test_negative_celsius",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_temperature_normalization.py::TestTemperatureNormalization.test_normalizer_directly",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_normalizer_matches_spokenform_parity_cases",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_normalizer_tracks_source_aligned_semantics",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_normalizer_preserves_repeated_source_positions",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_normalizer_protected_spans_are_untouched",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_token_normalization_is_typography_only",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "downstream typography wrapper behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_typography_composition_is_preserved",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "downstream typography wrapper behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_cs_normalizer.py::test_czech_normalize_for_g2p_only_applies_typography",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "downstream typography wrapper behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_thai_digits_and_cardinals",
+    "classification": "already-covered",
+    "destination": "tests/test_th_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_decimal_zeroes_and_ranges",
+    "classification": "already-covered",
+    "destination": "tests/test_th_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_laughter_and_quantity_context",
+    "classification": "already-covered",
+    "destination": "tests/test_th_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_currency_math_and_repetition",
+    "classification": "already-covered",
+    "destination": "tests/test_th_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_punctuation_accents_and_combining_marks",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "model-input sanitation and typography behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_p1_identifier_time_and_address_forms",
+    "classification": "already-covered",
+    "destination": "tests/test_th_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_th_normalizer.py::test_structured_replacement_is_source_aligned",
+    "classification": "already-covered",
+    "destination": "tests/test_th_kokorog2p_regressions.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_compact_spokenform_handoff_cases",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_runtime_spokenform_is_supported_release",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_countdown_preserves_spokenform_segment_boundary",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_countdown_segment_boundary_becomes_kokoro_em_dash",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_non_countdown_hyphens_do_not_gain_kokoro_pause_dashes",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_countdown_separator_variants_keep_two_model_em_dashes",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_direct_normalizer_preserves_countdown_em_dashes",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_migrated_pipeline_passes_original_symbols_to_spokenform",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_aliases_use_the_generic_spokenform_adapter",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_parity_corpus",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_dot_zero_version_label_is_prepared_by_spokenform",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_supported_spokenform_regressions_follow_upstream",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_leading_decimal_pipeline_preserves_source_spacing_contract",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_version_label_adapter_rebases_exact_span_and_excludes_period",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_version_label_public_pipeline_preserves_source_alignment",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_adapter_rebases_repeated_sources_and_preserves_provenance",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_adapter_keeps_terminal_quantity_punctuation_outside_span",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_adapter_protection_fails_closed_but_adjacent_semantics_apply",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_adapter_keeps_abbreviations_adjacent_to_quantities",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_runs_are_isolated_from_other_languages",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_symbols_survive_top_level_preprocessing",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_direct_and_public_pipeline_have_phoneme_parity",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_english_preparation_is_idempotent_before_direct_g2p",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_parity_corpus",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_german_parity_corpus",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_parity_corpus",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_parity_corpus",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_czech_parity_corpus",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_czech_direct_g2p_speaks_supported_semantics_without_unknowns",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_czech_public_pipeline_prepares_semantics_once_and_preserves_alignment",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spokenform_adapter_rebases_and_preserves_source_provenance",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spokenform_adapter_propagates_upstream_warnings",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spokenform_run_result_warnings_reach_pipeline",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spokenform_adapter_handles_empty_and_protected_ranges",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_adapter_rebases_repeated_source_fragments",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_protection_fails_closed_for_partial_structured_spans",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_adapter_rebases_repeated_source_fragments",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_protection_allows_adjacent_semantics",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_adapter_rebases_repeated_source_fragments",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_protection_allows_adjacent_semantics",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_adapter_rebases_repeated_source_fragments",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_protection_preserves_intersecting_quantity_and_allows_adjacent",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_runs_are_isolated_from_other_languages",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_normalizer_routes_dialect_semantics",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_normalizer_token_api_is_typography_only",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_direct_g2p_accepts_spoken_semantic_forms_and_is_idempotent",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_portuguese_full_pipeline_prepares_semantics_before_g2p",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_runs_are_isolated_from_other_languages",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_normalizer_direct_api_and_tracking",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_token_normalization_is_typography_only",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_override_protects_quantity_and_preserves_coordinates",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_currency_and_temperature_symbols_survive_top_level_preprocessing",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_direct_and_span_paths_have_phoneme_parity",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_top_level_result_uses_reviewed_semantics",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_italian_direct_g2p_accepts_spoken_semantic_forms_and_is_idempotent",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_runs_are_isolated_from_other_languages",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_normalizer_direct_api_and_tracking",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_token_normalization_is_typography_only",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_direct_and_span_paths_have_phoneme_parity",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_typography_regressions",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_spanish_public_factory_aliases",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_runs_are_isolated_from_other_languages",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_normalizer_direct_api_and_tracking",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_expand_nums_compatibility",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_french_direct_and_span_paths_have_phoneme_parity",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_german_runs_are_prepared_independently",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_german_extended_quantity_replacements_rebase_and_repeat",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_german_extended_quantity_protection_is_fail_closed",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_german_extended_quantity_preparation_is_idempotent",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_german_extended_quantity_runs_remain_language_isolated",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_override_protects_quantity_but_allows_adjacent_quantity",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_override_protects_number_plus_unit_and_preserves_offsets",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_representative_direct_and_pipeline_phonemes_match",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_prepared_mode_matches_written_spokenform_output",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_prepared_mode_never_calls_spokenform",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_prepared_mode_preserves_coordinates_and_overrides",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_spokenform_migration.py::test_prepared_mode_reuses_g2p_without_semantic_expansion",
+    "classification": "already-covered",
+    "destination": "tests/test_kokorog2p_semantic_transfer.py",
+    "reason": "semantic behavior retained by Spokenform tests"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_prepared_pipeline_preserves_supplied_coordinate_space",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_written_uses_spokenform_once_and_prepared_bypasses_semantics",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_coarse_g2p_span_is_consumed_once_across_domain_source_tokens",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_fine_grained_domain_tokens_are_not_dropped",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_partial_overlap_with_consumed_g2p_span_warns_and_preserves_token",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_explicit_override_inside_consumed_g2p_span_is_preserved_with_warning",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_build_phoneme_string_skips_whitespace_only_punctuation_normalization",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_span_alignment_bare_domain_matches_direct_whole_text_g2p",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_span_alignment_email_matches_direct_whole_text_g2p",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_simple_phonemization",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_span_alignment_matches_regex_quote_direction",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_span_alignment_espeak_spaced_ellipsis",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_with_phoneme_override",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_phrase_ph_override_new_york_is_applied_once",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_phrase_ph_override_new_york_twice_two_spans",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_with_multiple_phoneme_override",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_phrase_language_override_new_york_is_phonemized_in_english",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_with_language_override",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_duplicate_words_with_different_overrides",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_punctuation_handling",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_punctuation_normalization_dash_ellipsis",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_model_version_ids_v11",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_alignment_repeated_substrings",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_abbreviation_sentence_phonemes",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_number_expansion_extended_text",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_temperature_expansion_extended_text",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_abbreviation_expansion_metadata",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_abbreviation_token_span",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_return_only_phonemes",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_return_only_ids",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_return_ids_only_for_hello_world",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_return_both",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_empty_text",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_german_structured_forms_use_source_aligned_span_normalization",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_german_semantic_stage_reaches_backend_without_normalizer",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_german_span_and_legacy_paths_have_semantic_parity",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_german_extended_quantity_public_path_matches_direct_normalizer",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_whitespace_only",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_legacy_alignment",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_span_alignment_with_duplicates",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_partial_overlap_warning",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_no_overlap_warning",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_german_phonemization",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_multiple_language_switches",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_custom_attributes_preserved",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_phoneme_override_with_language",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_reuse_g2p_instance",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_normalizer_state_restored",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_normalizer_thread_safety",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_long_text_with_multiple_overrides",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_contraction_apostrophe_s_preserved",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_matches_g2p_without_overrides",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_normalization_alignment_preserves_pronouns",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_nested_contractions_with_quotes",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_leading_quote_does_not_duplicate_pronoun",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_adjacent_quotes_without_space",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_punctuation_inside_quotes",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_nested_quotes_with_contractions",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_multiple_ellipsis_positions",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_contractions_with_trailing_punctuation",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_abbreviation_inside_quotes_with_ellipsis",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_language_override_inside_quotes",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_override_inside_quoted_word",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_various_contractions_preserved",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_hyphenated_words_preserved",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::TestPhonemizeToResult.test_multiple_hyphenated_words",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "phoneme, token, or downstream pipeline behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_en_abbreviations.py::semantic source/expected corpus",
+    "classification": "ported",
+    "destination": "tests/test_en_abbreviation_regressions.py::test_legacy_english_abbreviation_pairs",
+    "reason": "source-to-spoken abbreviation behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_de_normalizer.py::78 exact source/expected cases",
+    "classification": "ported",
+    "destination": "tests/test_de_kokorog2p_regressions.py::test_legacy_german_semantic_pairs",
+    "reason": "exact German semantic regression inputs"
+  },
+  {
+    "origin": "kokorog2p:tests/data/de_semantic_parity.json",
+    "classification": "already-covered",
+    "destination": "tests/test_de_structured.py",
+    "reason": "German parity behavior is covered by structured tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/en_spokenform_parity.json",
+    "classification": "already-covered",
+    "destination": "tests/test_en_structured.py",
+    "reason": "English parity behavior is covered by structured tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/cs_spokenform_parity.json",
+    "classification": "already-covered",
+    "destination": "tests/test_cs_structured.py",
+    "reason": "Czech parity behavior is covered by structured tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/es_spokenform_parity.json",
+    "classification": "already-covered",
+    "destination": "tests/test_es_structured.py",
+    "reason": "Spanish parity behavior is covered by structured tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/fr_spokenform_parity.json",
+    "classification": "already-covered",
+    "destination": "tests/test_fr_structured.py",
+    "reason": "French parity behavior is covered by structured tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/pt_spokenform_parity.json",
+    "classification": "already-covered",
+    "destination": "tests/test_pt_structured.py",
+    "reason": "Portuguese parity behavior is covered by structured tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/vi_gold.json",
+    "classification": "already-covered",
+    "destination": "tests/test_spokenform_gold.py",
+    "reason": "Vietnamese semantic corpus remains covered by Spokenform gold tests"
+  },
+  {
+    "origin": "kokorog2p:tests/data/text_preparation_migration.json",
+    "classification": "ported",
+    "destination": "../kokorog2p/benchmarks/text_preparation_migration.py",
+    "reason": "live 17-language migration oracle remains the parity gate"
+  },
+  {
+    "origin": "kokorog2p:tests/data/text_preparation_migration_baseline.jsonl",
+    "classification": "ported",
+    "destination": "../kokorog2p/benchmarks/text_preparation_migration.py",
+    "reason": "live baseline audit records preparation output and warnings"
+  }
+]

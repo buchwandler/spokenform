@@ -18,11 +18,9 @@ BOUND_NOUNS = frozenset(
 _COUNTER_PATTERN = re.compile(
     r"(?<!\d)(?P<number>\d[\d,]*)(?P<space> ?)(?P<noun>"
     + "|".join(sorted((re.escape(noun) for noun in BOUND_NOUNS), key=len, reverse=True))
-    + r")(?![ㄱ-힣])"
+    + r")"
 )
-_SINO_COUNTER_PATTERN = re.compile(
-    r"(?<!\d)(?P<number>\d[\d,]*)(?P<space> ?)(?P<noun>분)(?![ㄱ-힣])"
-)
+_SINO_COUNTER_PATTERN = re.compile(r"(?<!\d)(?P<number>\d[\d,]*)(?P<space> ?)(?P<noun>분)")
 _DATE = re.compile(
     r"(?<!\d)(?P<year>\d{4})년\s*(?P<month>0?[1-9]|1[0-2])월\s*(?P<day>0?[1-9]|[12]\d|3[01])일"
 )

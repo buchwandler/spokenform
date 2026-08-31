@@ -68,3 +68,9 @@ Downstream integrations should depend on the stable high-level surface:
 `PreparedText.source_replacements`, `PreparedText.offset_map`, and
 `NumberPolicy`. Low-level mapping and stage helpers remain exported for advanced
 use but are not required for a normal kokorog2p adapter.
+
+## Compatibility cleanup
+
+KokoroG2P's historical Thai and Korean normalizer modules are compatibility adapters only. Their semantic number, counter, unit, currency, and time behavior delegates to Spokenform. Prepared-input G2P paths bypass these adapters and perform pronunciation, tokenization, and model sanitation only.
+
+The semantic transfer manifest at `tests/data/kokorog2p_semantic_transfer_manifest.json` records the source test or fixture, its classification, and its permanent Spokenform destination. The refreshed KokoroG2P oracle baseline resolves product aliases before calling Spokenform.
