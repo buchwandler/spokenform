@@ -2170,5 +2170,17 @@
     "classification": "ported",
     "destination": "../kokorog2p/benchmarks/text_preparation_migration.py",
     "reason": "live baseline audit records preparation output and warnings"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_migrated_span_pipeline_marks_default_g2p_input_prepared",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "downstream prepared-input marker behavior"
+  },
+  {
+    "origin": "kokorog2p:tests/test_pipeline_api.py::test_migrated_language_override_g2p_receives_prepared_input",
+    "classification": "g2p-only",
+    "destination": null,
+    "reason": "downstream prepared-input marker behavior"
   }
 ]

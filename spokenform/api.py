@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from collections.abc import Iterable
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import cast
 
 from abbr2words import (
@@ -36,7 +36,7 @@ from .config import (
 )
 from .evidence import EvidenceSession, LexicalEvidenceProvider, validate_provider
 from .fallback import iter_sequence_fallback_replacements
-from .language import base_language, resolve_abbr2words_language
+from .language import base_language, normalize_language, resolve_abbr2words_language
 from .mapping import (
     OffsetMap,
     Replacement,
@@ -48,6 +48,11 @@ from .mapping import (
 from .models import PreparationStage, PreparedText, ReservedSpan, SourceReplacement, TokenAnnotation
 from .numbers import normalize_plain_numbers
 from .numeric_lexeme import normalize_numeric_compatibility
+from .profiles import (
+    SpeechProfile,
+    get_compiled_profile_expander,
+    profile_requires_registered_spelling,
+)
 from .protection import (
     ProtectedSpan,
     ProtectedText,
@@ -218,6 +223,39 @@ def _run_structured_stage(
     return current, current_annotations, reserved_spans
 
 
+@dataclass(frozen=True, slots=True)
+class _AbbreviationPolicy:
+    context: bool
+    initialism_mode: InitialismMode
+    initialism_case: InitialismCase
+    registered_initialism_mode: RegisteredInitialismMode
+
+
+
+def _resolve_abbreviation_policy(
+    selected: PreparationConfig,
+    profile: SpeechProfile | None,
+) -> _AbbreviationPolicy:
+    initialism_mode: InitialismMode = "dotted_only"
+    initialism_case: InitialismCase = "source"
+    if selected.generic_acronym_mode == "conservative_unknown":
+        initialism_mode = "conservative_undotted"
+    elif selected.generic_acronym_mode == "spell_unknown":
+        initialism_mode = "spell_undotted"
+    if selected.generic_acronym_mode != "known_only" or selected.generic_acronym_case != "upper":
+        initialism_case = selected.generic_acronym_case
+    registered_mode: RegisteredInitialismMode = selected.registered_acronym_mode
+    if profile is not None and profile_requires_registered_spelling(profile):
+        registered_mode = "spell"
+    return _AbbreviationPolicy(
+        context=selected.context
+        and selected.interpretation_mode is InterpretationMode.CONTEXTUAL,
+        initialism_mode=initialism_mode,
+        initialism_case=initialism_case,
+        registered_initialism_mode=registered_mode,
+    )
+
+
 def _run_abbreviation_stage(
     current: str,
     current_annotations: Iterable[TokenAnnotation] | None,
@@ -226,6 +264,7 @@ def _run_abbreviation_stage(
     protected: ProtectedText,
     selected: PreparationConfig,
     language_code: str,
+    profile: SpeechProfile | None,
 ) -> tuple[str, Iterable[TokenAnnotation] | None, tuple[ReservedSpan, ...]]:
     if selected.expand_abbreviations:
         protected_value_by_placeholder = dict(
@@ -246,38 +285,33 @@ def _run_abbreviation_stage(
             protected.placeholders,
         ) + tuple((item.start, item.end) for item in reserved_spans)
         abbreviation_language = resolve_abbr2words_language(language_code)
-        abbreviation_context = (
-            selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL
-        )
+        policy = _resolve_abbreviation_policy(selected, profile)
         abbreviation_annotations = to_abbr2words_annotations(visible_annotations)
-        abbreviation_initialism_mode: InitialismMode = "dotted_only"
-        abbreviation_initialism_case: InitialismCase = "source"
-        abbreviation_registered_initialism_mode: RegisteredInitialismMode = (
-            selected.registered_acronym_mode
-        )
-        if selected.generic_acronym_mode == "conservative_unknown":
-            abbreviation_initialism_mode = "conservative_undotted"
-        elif selected.generic_acronym_mode == "spell_unknown":
-            abbreviation_initialism_mode = "spell_undotted"
-        if (
-            selected.generic_acronym_mode != "known_only"
-            or selected.generic_acronym_case != "upper"
-        ):
-            abbreviation_initialism_case = selected.generic_acronym_case
-        # abbr2words 0.2.9 is the first release containing the reviewed
-        # conservative initialism policy. It is the sole policy owner here;
-        # Spokenform deliberately has no compatibility fallback or duplicate
-        # acronym heuristic.
-        abbreviation_result = abbr2words_with_replacements(
-            protected.restore(current),
-            lang=abbreviation_language,
-            context=abbreviation_context,
-            initialism_mode=abbreviation_initialism_mode,
-            initialism_case=abbreviation_initialism_case,
-            registered_initialism_mode=abbreviation_registered_initialism_mode,
-            annotations=abbreviation_annotations,
-            protected_spans=abbreviation_protected_spans,
-        )
+        if profile is None:
+            abbreviation_result = abbr2words_with_replacements(
+                protected.restore(current),
+                lang=abbreviation_language,
+                context=policy.context,
+                initialism_mode=policy.initialism_mode,
+                initialism_case=policy.initialism_case,
+                registered_initialism_mode=policy.registered_initialism_mode,
+                annotations=abbreviation_annotations,
+                protected_spans=abbreviation_protected_spans,
+            )
+        else:
+            expander = get_compiled_profile_expander(
+                profile,
+                abbreviation_language,
+                policy.context,
+                policy.initialism_mode,
+                policy.initialism_case,
+                policy.registered_initialism_mode,
+            )
+            abbreviation_result = expander.expand_with_replacements(
+                protected.restore(current),
+                annotations=abbreviation_annotations,
+                protected_spans=abbreviation_protected_spans,
+            )
         abbreviation_replacements = convert_abbr_replacements(
             abbreviation_result.replacements,
             language=language_code,
@@ -545,6 +579,7 @@ def prepare(
     *,
     language: str = "en",
     config: PreparationConfig | None = None,
+    profile: SpeechProfile | None = None,
     annotations: Iterable[TokenAnnotation] | None = None,
     nlp: object | None = None,
     protected_spans: Iterable[ProtectedSpan | tuple[int, int]] | None = None,
@@ -587,6 +622,8 @@ def prepare(
     """
     if not isinstance(text, str):
         raise TypeError("text must be a string")
+    if profile is not None and not isinstance(profile, SpeechProfile):
+        raise TypeError("profile must be a SpeechProfile or None")
 
     selected = config or PreparationConfig(
         language=language,
@@ -619,6 +656,11 @@ def prepare(
         strict=strict,
     )
 
+    if profile is not None and normalize_language(profile.language) != normalize_language(selected.language):
+        raise ValueError(
+            "profile language does not match selected preparation language: "
+            f"{profile.language!r} != {selected.language!r}"
+        )
     clean_text = text
     language_code = selected.language
     validate_provider(lexical_evidence, language_code)
@@ -682,7 +724,14 @@ def prepare(
         structured_numbers_enabled,
     )
     current, current_annotations, reserved_spans = _run_abbreviation_stage(
-        current, current_annotations, reserved_spans, stages, protected, selected, language_code
+        current,
+        current_annotations,
+        reserved_spans,
+        stages,
+        protected,
+        selected,
+        language_code,
+        profile,
     )
     current, current_annotations, reserved_spans = _run_number_stage(
         current,
@@ -733,11 +782,12 @@ def prepare_for_kokorog2p(
     language: str = "en",
     *,
     config: PreparationConfig | None = None,
+    profile: SpeechProfile | None = None,
     **kwargs: object,
 ) -> PreparedText:
     """Prepare one language with the kokorog2p-safe profile."""
     selected = config or PreparationConfig.for_kokorog2p(language)
-    return prepare(text, config=selected, **kwargs)  # type: ignore[arg-type]
+    return prepare(text, config=selected, profile=profile, **kwargs)  # type: ignore[arg-type]
 
 
 __all__ = ["prepare", "prepare_text", "prepare_for_kokorog2p", "normalize_spacing"]

@@ -334,6 +334,34 @@ python -m pip install -r docs/requirements.txt
 sphinx-build -W -b html docs docs/_build/html
 ```
 
+## Reusable speech profiles
+
+Use `SpeechProfile` for an isolated, reusable domain glossary. Profile entries can expand to their long form, spell the source as letters, or use a deterministic custom pronunciation:
+
+```python
+from spokenform import GlossaryEntry, SpeechProfile, prepare
+
+profile = SpeechProfile(
+    name="operations",
+    language="en",
+    glossary=(
+        GlossaryEntry("AAR", "after-action review"),
+        GlossaryEntry("AO", "area of operations", read_as="letters"),
+        GlossaryEntry(
+            "AAA",
+            "anti-aircraft artillery",
+            read_as="custom",
+            spoken_form="Triple A",
+        ),
+    ),
+)
+
+result = prepare("AAA enters the AO after the AAR.", profile=profile)
+print(result.spoken_text)
+```
+
+The profile produces `Triple A enters the A O after the after-action review.`. Profiles are immutable and do not inherit process-global `add_abbreviation()` customizations. Calls without a profile continue to use the shared registry. Explicit profile entries override bundled meanings, while unrelated registered and generic acronym policies remain controlled by `PreparationConfig`. See [`docs/profiles.md`](docs/profiles.md) for validation, guards, aliases, and current v1 boundaries.
+
 ## Development
 
 ```bash
@@ -390,7 +418,7 @@ release, for example `vX.Y.Z`.
 The source-tree fallback when SCM metadata has not been generated is the neutral
 version `0+unknown`; release builds derive their version from the annotated tag.
 
-Before publishing, ensure the released `abbr2words>=0.2.12,<0.3.0` prerequisite containing
+Before publishing, ensure the released `abbr2words>=0.2.13,<0.3.0` prerequisite containing
 the source-aligned replacement contract exists on the target package index and run the checklist in
 [`docs/release-checklist.md`](docs/release-checklist.md).
 

@@ -34,8 +34,8 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  # 0.2.12 owns the reviewed Vietnamese and Thai registries used by Spokenform.
-  "abbr2words>=0.2.12,<0.3.0",
+  # 0.2.13 provides isolated expanders and profile speech strategies.
+  "abbr2words>=0.2.13,<0.3.0",
   "cn2an>=0.5.24,<0.6",
   "num2words>=0.5.14,<0.6",
 ]

@@ -57,12 +57,17 @@ from .models import (
 )
 from .number_words import number_backend_for_language
 from .numbers import normalize_numbers
+from .profiles import GlossaryConflictError, GlossaryEntry, GlossaryReadAs, SpeechProfile
 from .protection import ProtectedSpan, ProtectionError
 from .spacy_support import SpacyModelError, load_spacy_model, reset_spacy_cache
 from .structured import StageResult, iter_structured_replacements, normalize_structured
 
 __all__ = [
     "PreparationConfig",
+    "GlossaryEntry",
+    "GlossaryReadAs",
+    "SpeechProfile",
+    "GlossaryConflictError",
     "add_abbreviation",
     "remove_abbreviation",
     "has_abbreviation",
