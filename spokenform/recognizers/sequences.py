@@ -228,6 +228,7 @@ _TEMPO_RE = re.compile(r"(?P<note>[♩♪♫])\s*=\s*(?P<value>\d{1,3})(?!\w)")
 _BIOLOGY_RE = re.compile(
     r"(?<!\w)(?P<value>[A-Z]\.\s*[a-z][a-z-]{2,}(?:\s+(?:strain|subsp\.)\s*[A-Za-z0-9-]+)?)(?!\w)"
 )
+_DOTTED_INITIALISM_PREFIX_RE = re.compile(r"(?:\b[A-Za-z]\.\s*){2,}$")
 _BIOLOGY_NON_SPECIES_WORDS = frozenset(
     {
         "headquarters",
@@ -1862,6 +1863,8 @@ def _biology_is_plausible(value: str, text: str, start: int) -> bool:
         return False
     if re.match(r"(?:m|mme|z|dr|etc)\.\s", value, re.IGNORECASE):
         return False
+    if _DOTTED_INITIALISM_PREFIX_RE.search(prefix):
+        return False
     return not bool(re.search(r"(?:\bz|\bm|\bmme|\bdr|\betc)\.\s*$", prefix, re.IGNORECASE))
 
 
@@ -2553,7 +2556,7 @@ def _iter_finance_quantity_candidates(
 
     for match in _CURRENCY_SYMBOL_RE.finditer(text):
         symbol = match["prefix"] or match["suffix"]
-        if symbol and base_language(language) in {"de", "it"}:
+        if symbol and base_language(language) == "it":
             _add(
                 candidates,
                 match,

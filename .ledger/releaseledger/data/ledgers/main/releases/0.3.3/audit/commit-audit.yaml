@@ -11,118 +11,116 @@ git_head_sha: 679ccfd8732ddc086158f21470baa6905553d751
 git_range: 96198d3cf430c8aa0990f4262c88be409c8c4025..679ccfd8732ddc086158f21470baa6905553d751
 commit_count: 2
 rows:
-  - sha: 48526f647c1ce5c186c461d0e1e744454b76a3fd
-    source_ref: git:48526f647c1ce5c186c461d0e1e744454b76a3fd
-    short_sha: 48526f6
-    changed_paths:
-      - README.md
-      - docs/api.md
-      - docs/architecture.md
-      - docs/changelog.md
-      - docs/languages.md
-      - docs/limitations.md
-      - docs/quickstart.md
-      - spokenform/config.py
-      - spokenform/language.py
-      - spokenform/locales/sv.py
-      - spokenform/numbers.py
-      - spokenform/numeric_lexeme.py
-      - spokenform/recognition_policy.py
-      - spokenform/recognizers/ranges.py
-      - spokenform/recognizers/sequences.py
-      - spokenform/sequences.py
-      - spokenform/structured.py
-      - tests/test_dependency_contract.py
-      - tests/test_docs_consistency.py
-      - tests/test_language.py
-      - tests/test_sv_sequences.py
-      - tests/test_sv_structured.py
-    stats:
-      files_changed: 0
-      insertions: 635
-      deletions: 96
-    inspected: true
-    inspected_paths:
-      - spokenform/language.py
-      - spokenform/locales/sv.py
-      - spokenform/numbers.py
-      - spokenform/structured.py
-      - spokenform/sequences.py
-      - spokenform/recognizers/ranges.py
-      - spokenform/recognizers/sequences.py
-      - tests/test_sv_structured.py
-      - tests/test_sv_sequences.py
-      - docs/api.md
-      - docs/languages.md
-      - docs/limitations.md
-      - docs/quickstart.md
-      - README.md
-    observed_behavior:
-      Adds Swedish runtime language routing and locale-owned number,
-      quantity, temperature, and SEK currency rendering, with protected caller-managed
-      dates, times, and unsupported specialist sequences. Adds focused Swedish regression
-      coverage and updates public language documentation.
-    public_impact: public
-    decision: accepted
-    evidence_subject: "feat: add swedish"
-    target_entry_key: swedish-runtime-support
-    target_entry_id: entry-0001
-    notes: Reviewed the implementation and focused regression tests.
-  - sha: 679ccfd8732ddc086158f21470baa6905553d751
-    source_ref: git:679ccfd8732ddc086158f21470baa6905553d751
-    short_sha: 679ccfd
-    changed_paths:
-      - README.md
-      - docs/api.md
-      - docs/architecture.md
-      - docs/changelog.md
-      - docs/languages.md
-      - docs/limitations.md
-      - docs/quickstart.md
-      - spokenform/config.py
-      - spokenform/language.py
-      - spokenform/locales/vi.py
-      - spokenform/numbers.py
-      - spokenform/numeric_lexeme.py
-      - spokenform/recognition_policy.py
-      - spokenform/recognizers/ranges.py
-      - spokenform/recognizers/sequences.py
-      - spokenform/sequences.py
-      - spokenform/structured.py
-      - tests/test_dependency_contract.py
-      - tests/test_language.py
-      - tests/test_number_words.py
-      - tests/test_vi_sequences.py
-      - tests/test_vi_structured.py
-    stats:
-      files_changed: 0
-      insertions: 505
-      deletions: 25
-    inspected: true
-    inspected_paths:
-      - spokenform/language.py
-      - spokenform/locales/vi.py
-      - spokenform/numbers.py
-      - spokenform/structured.py
-      - spokenform/sequences.py
-      - spokenform/recognizers/ranges.py
-      - spokenform/recognizers/sequences.py
-      - tests/test_vi_structured.py
-      - tests/test_vi_sequences.py
-      - tests/test_number_words.py
-      - docs/api.md
-      - docs/languages.md
-      - docs/limitations.md
-      - docs/quickstart.md
-      - README.md
-    observed_behavior:
-      Adds Vietnamese runtime language routing and locale-owned number,
-      quantity, temperature, and VND currency rendering, preserving decimal precision
-      and failing closed for unsupported dates, times, ordinals, and specialist sequences.
-      Adds focused Vietnamese regression coverage and updates public language documentation.
-    public_impact: public
-    decision: accepted
-    evidence_subject: "feat: add vietnamese"
-    target_entry_key: vietnamese-runtime-support
-    target_entry_id: entry-0004
-    notes: Reviewed the implementation and focused regression tests.
+- sha: 48526f647c1ce5c186c461d0e1e744454b76a3fd
+  source_ref: git:48526f647c1ce5c186c461d0e1e744454b76a3fd
+  short_sha: 48526f6
+  changed_paths:
+  - README.md
+  - docs/api.md
+  - docs/architecture.md
+  - docs/changelog.md
+  - docs/languages.md
+  - docs/limitations.md
+  - docs/quickstart.md
+  - spokenform/config.py
+  - spokenform/language.py
+  - spokenform/locales/sv.py
+  - spokenform/numbers.py
+  - spokenform/numeric_lexeme.py
+  - spokenform/recognition_policy.py
+  - spokenform/recognizers/ranges.py
+  - spokenform/recognizers/sequences.py
+  - spokenform/sequences.py
+  - spokenform/structured.py
+  - tests/test_dependency_contract.py
+  - tests/test_docs_consistency.py
+  - tests/test_language.py
+  - tests/test_sv_sequences.py
+  - tests/test_sv_structured.py
+  stats:
+    files_changed: 0
+    insertions: 635
+    deletions: 96
+  inspected: true
+  inspected_paths:
+  - spokenform/language.py
+  - spokenform/locales/sv.py
+  - spokenform/numbers.py
+  - spokenform/structured.py
+  - spokenform/sequences.py
+  - spokenform/recognizers/ranges.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_sv_structured.py
+  - tests/test_sv_sequences.py
+  - docs/api.md
+  - docs/languages.md
+  - docs/limitations.md
+  - docs/quickstart.md
+  - README.md
+  observed_behavior: Adds Swedish runtime language routing and locale-owned number,
+    quantity, temperature, and SEK currency rendering, with protected caller-managed
+    dates, times, and unsupported specialist sequences. Adds focused Swedish regression
+    coverage and updates public language documentation.
+  public_impact: public
+  decision: accepted
+  evidence_subject: 'feat: add swedish'
+  target_entry_key: swedish-runtime-support
+  target_entry_id: entry-0001
+  notes: Reviewed the implementation and focused regression tests.
+- sha: 679ccfd8732ddc086158f21470baa6905553d751
+  source_ref: git:679ccfd8732ddc086158f21470baa6905553d751
+  short_sha: 679ccfd
+  changed_paths:
+  - README.md
+  - docs/api.md
+  - docs/architecture.md
+  - docs/changelog.md
+  - docs/languages.md
+  - docs/limitations.md
+  - docs/quickstart.md
+  - spokenform/config.py
+  - spokenform/language.py
+  - spokenform/locales/vi.py
+  - spokenform/numbers.py
+  - spokenform/numeric_lexeme.py
+  - spokenform/recognition_policy.py
+  - spokenform/recognizers/ranges.py
+  - spokenform/recognizers/sequences.py
+  - spokenform/sequences.py
+  - spokenform/structured.py
+  - tests/test_dependency_contract.py
+  - tests/test_language.py
+  - tests/test_number_words.py
+  - tests/test_vi_sequences.py
+  - tests/test_vi_structured.py
+  stats:
+    files_changed: 0
+    insertions: 505
+    deletions: 25
+  inspected: true
+  inspected_paths:
+  - spokenform/language.py
+  - spokenform/locales/vi.py
+  - spokenform/numbers.py
+  - spokenform/structured.py
+  - spokenform/sequences.py
+  - spokenform/recognizers/ranges.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_vi_structured.py
+  - tests/test_vi_sequences.py
+  - tests/test_number_words.py
+  - docs/api.md
+  - docs/languages.md
+  - docs/limitations.md
+  - docs/quickstart.md
+  - README.md
+  observed_behavior: Adds Vietnamese runtime language routing and locale-owned number,
+    quantity, temperature, and VND currency rendering, preserving decimal precision
+    and failing closed for unsupported dates, times, ordinals, and specialist sequences.
+    Adds focused Vietnamese regression coverage and updates public language documentation.
+  public_impact: public
+  decision: accepted
+  evidence_subject: 'feat: add vietnamese'
+  target_entry_key: vietnamese-runtime-support
+  target_entry_id: entry-0004
+  notes: Reviewed the implementation and focused regression tests.

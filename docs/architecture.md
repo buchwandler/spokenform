@@ -53,10 +53,15 @@ The structured boundary is deliberately split by locale: `abbr2words` recognizes
 numeric symbols and returns the exact span, numeric lexeme, category, and canonical
 identity; `spokenform.structured` dispatches to locale-owned semantic grammar.
 No symbol or alias inventory is copied into spokenform. French owns its dates,
-h/colon times, ordinals, decimal digit reading, quantities, temperatures, and
-currency decomposition. Spanish, Italian, Portuguese, and Czech own their
-reviewed dates, quantities, temperatures, currencies, ordinary numbers, and
-locale-specific extensions; caller-managed time boundaries remain documented.
+times, ordinals, decimal digit reading, quantities, temperatures, and currency
+decomposition. German owns validated dates and times, conservative contextual years
+through the shared `render_year()` policy, reviewed Euro major/minor realization
+with explicit Cent labels, exact excess-fraction preservation, and lexical-boundary
+validation. German ordinary abbreviations remain supplied by `abbr2words`, while
+German currencies without reviewed minor grammar use a safe exact decimal fallback
+or fail closed. Spanish, Italian, Portuguese, and Czech own their reviewed dates,
+quantities, temperatures, currencies, ordinary numbers, and locale-specific
+extensions; caller-managed time boundaries remain documented.
 English owns reviewed dates, validated clock times, canonical quantities and
 currencies, conservative ordinary numbers, and contextual release labels.
 Japanese, Korean, and Chinese use explicit native numeric and sequence

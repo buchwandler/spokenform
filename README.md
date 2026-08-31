@@ -136,14 +136,18 @@ ordinary-number categories; phoneme-sensitive years, suffix ordinals, Roman
 numerals, phone/ID and arbitrary multi-dot sequences, numeric suffixes, and G2P
 decisions remain downstream in kokorog2p.
 
-German quantity symbols are recognized by `abbr2words.iter_unit_matches()`.
-spokenform owns only the canonical German grammar that realizes those matches,
-including gender, invariant `Stück`, currency decomposition, and lexical decimal
-digits. French likewise realizes canonical `abbr2words` quantity and currency
+German quantity and currency symbols are recognized by `abbr2words.iter_unit_matches()`
+or the reviewed symbol identities, while Spokenform owns the canonical German grammar
+that realizes them. German now owns validated dates and times, conservative contextual
+year speech via `render_year()`, reviewed Euro major/minor realization with explicit
+Cent labels, exact excess-fraction preservation, and full lexical-boundary validation
+against identifier adjacency. The reviewed `vgl.`, `i.d.R.`, `o.ä.`, and `u.U.` lexical
+abbreviations are supplied by `abbr2words`, not duplicated in Spokenform. German
+currencies without reviewed minor grammar use a safe exact decimal fallback or fail
+closed. French likewise realizes canonical `abbr2words` quantity and currency
 identities, including French dates, times, ordinals, decimal digits, plural
 grammar, temperatures, and major/minor currency units. Spanish realizes
 canonical quantities, temperatures, currencies, dates, and ordinary numbers;
-German currency precision beyond two fractional digits is spoken exactly rather than silently rounded or truncated.
 Spanish `18:20`-style time expressions remain caller-managed. Italian realizes
 reviewed dates, quantities, temperatures, currencies, and ordinary numbers;
 Italian colon times remain caller-managed. Portuguese realizes reviewed dates,

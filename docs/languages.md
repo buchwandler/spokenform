@@ -29,13 +29,16 @@ kokorog2p.
 
 German structured normalization validates Gregorian dates and digital times, including
 complete-word handling for `Uhr`, and applies bounded contextual inflection to dates
-and ordinals. Currency output preserves the established two-digit minor-unit style;
-fractional precision beyond two digits is rendered as an exact decimal rather than
-silently rounded or truncated. German `§` and conservative `§§` paragraph references,
-percentages, and contextual phone sequences are owned by typed structured recognizers
-and remain subject to precedence, protection, and recognition-domain policy. Ordinary
-abbreviations remain owned by `abbr2words`; unsupported additions such as `gem.` and
-`Abt.` are not duplicated in this locale.
+and ordinals. German owns conservative contextual year speech through the shared
+`render_year()` policy, reviewed Euro major/minor realization with explicit Cent
+labels, and exact excess-fraction preservation. Date, text-date, hyphen-date, and
+time candidates validate full lexical boundaries and reject identifier adjacency.
+German `§` and conservative `§§` paragraph references, percentages, and contextual
+phone sequences are owned by typed structured recognizers and remain subject to
+precedence, protection, and recognition-domain policy. Ordinary abbreviations,
+including the reviewed `vgl.`, `i.d.R.`, `o.ä.`, and `u.U.` forms, remain owned by
+`abbr2words`; they are not duplicated in this locale. Currencies without reviewed
+minor-unit grammar use a safe exact decimal fallback or fail closed.
 
 ## Swedish scope
 

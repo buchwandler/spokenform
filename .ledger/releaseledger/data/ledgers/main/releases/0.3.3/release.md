@@ -3,7 +3,7 @@ schema_version: 2
 object_type: release
 versioning:
   schema_version: 1
-  revision: 11
+  revision: 12
 version: 0.3.3
 status: planned
 title: null
@@ -15,7 +15,7 @@ changelog_file: null
 boundary_ref: null
 source_refs: []
 source_count: null
-entry_count: 14
+entry_count: 18
 artifact_count: 0
 git_base_ref: v0.3.2
 git_base_sha: 96198d3cf430c8aa0990f4262c88be409c8c4025

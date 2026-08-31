@@ -22,6 +22,7 @@ class SequencePriority(IntEnum):
     COUNTDOWN = 92
     SCORE = 90
     VERSION = 85
+    CONTEXTUAL_YEAR = 85
     TYPED_CODE = 80
     QUANTITY = 70
     YEAR = 65
@@ -51,6 +52,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.quantity": SequencePriority.QUANTITY,
     "en.quantity": SequencePriority.QUANTITY,
     "sequence.year": SequencePriority.YEAR,
+    "de.year": SequencePriority.CONTEXTUAL_YEAR,
     "sequence.year-range": SequencePriority.YEAR,
     "sequence.numeric-range": SequencePriority.NUMERIC_RANGE,
     "sequence.phone-ambiguous": SequencePriority.PHONE_AMBIGUOUS,

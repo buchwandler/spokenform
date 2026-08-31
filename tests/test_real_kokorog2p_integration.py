@@ -78,11 +78,11 @@ def test_real_german_downstream_contract() -> None:
     source = "Zum 14.05.2026 kosten 12,50 EUR."
     prepared = prepare_for_kokorog2p(source, "de")
     assert prepared.spoken_text == (
-        "Zum vierzehnten Mai zweitausendsechsundzwanzig kosten zwölf Euro fünfzig."
+        "Zum vierzehnten Mai zweitausendsechsundzwanzig kosten zwölf Euro fünfzig Cent."
     )
     assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
         ("14.05.2026", "vierzehnten Mai zweitausendsechsundzwanzig"),
-        ("12,50 EUR", "zwölf Euro fünfzig"),
+        ("12,50 EUR", "zwölf Euro fünfzig Cent"),
     ]
     tokens = _real_g2p()(prepared.spoken_text)
     assert [token.text for token in tokens] == [
@@ -94,6 +94,7 @@ def test_real_german_downstream_contract() -> None:
         "zwölf",
         "Euro",
         "fünfzig",
+        "Cent",
         ".",
     ]
     assert all(token.phonemes for token in tokens)
@@ -103,6 +104,34 @@ def test_real_german_downstream_contract() -> None:
     )
     assert not any(character.isdigit() for token in tokens for character in token.text)
     assert not prepared.warnings
+
+
+def test_real_german_new_semantic_categories_downstream_contract() -> None:
+    source = "Im Jahr 1989 kostete es i.d.R. 9,99 EUR; vgl. Abschnitt 2"
+    prepared = prepare_for_kokorog2p(source, "de")
+    assert "neunzehnhundertneunundachtzig" in prepared.spoken_text
+    assert "in der Regel" in prepared.spoken_text
+    assert "neun Euro neunundneunzig Cent" in prepared.spoken_text
+    assert "vergleiche Abschnitt zwei" in prepared.spoken_text
+    assert {item.rule for item in prepared.source_replacements} >= {
+        "de.year",
+        "abbr:i.d.R.",
+        "de.currency",
+        "abbr:vgl.",
+    }
+    for item in prepared.source_replacements:
+        assert source[item.source_start : item.source_end] == item.source
+        assert prepared.spoken_text[item.output_start : item.output_end] == item.replacement
+    tokens = _real_g2p()(prepared.spoken_text)
+    assert tokens
+    assert all(token.phonemes for token in tokens)
+    assert all(
+        prepared.spoken_text[token._["char_start"] : token._["char_end"]] == token.text
+        for token in tokens
+    )
+    assert not any(character.isdigit() for token in tokens for character in token.text)
+    assert not prepared.warnings
+
 
 
 def test_real_german_extended_quantity_public_path_matches_semantic_expectation() -> None:

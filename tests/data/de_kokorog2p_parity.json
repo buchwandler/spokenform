@@ -5,12 +5,12 @@
   {
     "name": "grouped currency",
     "input": "1.234,56 EUR",
-    "expected": "eintausendzweihundertvierunddreißig Euro sechsundfünfzig"
+    "expected": "eintausendzweihundertvierunddreißig Euro sechsundfünfzig Cent"
   },
   {
     "name": "prefix currency",
     "input": "CHF 12,80",
-    "expected": "zwölf Schweizer Franken achtzig"
+    "expected": "zwölf Komma acht null Schweizer Franken"
   },
   {
     "name": "valid date",
@@ -65,7 +65,7 @@
   {
     "name": "currency suffix",
     "input": "12,80 EUR",
-    "expected": "zwölf Euro achtzig"
+    "expected": "zwölf Euro achtzig Cent"
   },
   {
     "name": "flexible abbreviation variants",
@@ -126,17 +126,17 @@
   {
     "name": "currency dot decimal",
     "input": "12.50 EUR",
-    "expected": "zwölf Euro fünfzig"
+    "expected": "zwölf Euro fünfzig Cent"
   },
   {
     "name": "currency negative",
     "input": "-1,25 EUR",
-    "expected": "minus ein Euro fünfundzwanzig"
+    "expected": "minus ein Euro fünfundzwanzig Cent"
   },
   {
     "name": "currency leading zero cents",
     "input": "0,05 EUR",
-    "expected": "null Euro fünf"
+    "expected": "null Euro fünf Cent"
   },
   {
     "name": "plain trailing fractional zero",
@@ -329,5 +329,55 @@
     "name": "ASCII cubic centimeter alias",
     "input": "1 cm3",
     "expected": "ein Kubikzentimeter"
+  },
+  {
+    "name": "Phase-01 vgl abbreviation",
+    "input": "vgl. Abschnitt 2",
+    "expected": "vergleiche Abschnitt zwei"
+  },
+  {
+    "name": "Phase-01 i.d.R abbreviation",
+    "input": "i.d.R. reicht das",
+    "expected": "in der Regel reicht das"
+  },
+  {
+    "name": "Phase-01 spaced i.d.R abbreviation",
+    "input": "i. d. R. reicht das",
+    "expected": "in der Regel reicht das"
+  },
+  {
+    "name": "Phase-01 o.ae abbreviation",
+    "input": "o.ä. Geräte",
+    "expected": "oder ähnliches Geräte"
+  },
+  {
+    "name": "Phase-01 u.U abbreviation",
+    "input": "u.U. später",
+    "expected": "unter Umständen später"
+  },
+  {
+    "name": "contextual year",
+    "input": "Im Jahr 1989",
+    "expected": "Im Jahr neunzehnhundertneunundachtzig"
+  },
+  {
+    "name": "Euro cents",
+    "input": "€1,01",
+    "expected": "ein Euro ein Cent"
+  },
+  {
+    "name": "exact currency precision",
+    "input": "€9,999",
+    "expected": "neun Komma neun neun neun Euro"
+  },
+  {
+    "name": "embedded time remains literal",
+    "input": "ID14:30",
+    "expected": "ID14:30"
+  },
+  {
+    "name": "embedded date remains literal",
+    "input": "x24.12.2024",
+    "expected": "x24.12.2024"
   }
 ]

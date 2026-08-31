@@ -34,7 +34,7 @@ classifiers = [
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = [
-  # 0.2.13 provides isolated expanders and profile speech strategies.
+  # 0.2.13 owns isolated expanders and the reviewed German vgl./i.d.R./o.ä./u.U. lexical registry.
   "abbr2words>=0.2.13,<0.3.0",
   "cn2an>=0.5.24,<0.6",
   "num2words>=0.5.14,<0.6",

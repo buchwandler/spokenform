@@ -139,10 +139,10 @@ def test_german_structured_values_and_invalid_candidates() -> None:
         "29.02.2025": "29.02.2025",
         "3°C": "drei Grad Celsius",
         "-1,2 °F": "minus eins Komma zwei Grad Fahrenheit",
-        "12,50 EUR": "zwölf Euro fünfzig",
-        "EUR 12,50": "zwölf Euro fünfzig",
+        "12,50 EUR": "zwölf Euro fünfzig Cent",
+        "EUR 12,50": "zwölf Euro fünfzig Cent",
         "1.234 EUR": "eintausendzweihundertvierunddreißig Euro",
-        "CHF 12,80": "zwölf Schweizer Franken achtzig",
+        "CHF 12,80": "zwölf Komma acht null Schweizer Franken",
         ".02": "null Komma null zwei",
         ",02": "null Komma null zwei",
         "Lfd. Nr. 12.": "laufende Nummer zwölf.",
@@ -193,7 +193,7 @@ def test_cooking_paragraph_golden() -> None:
         "Auflauf brauchen wir eins Komma fünf Kilogramm Kartoffeln, fünfhundert Gramm Quark, zwei Eier, ein Liter\n"
         'Milch und gegebenenfalls drei Zentimeter mehr Backpapier. Professor Klein sagt: "Bitte stelle\n'
         "die Form auf die zweite Schiene, backe alles für fünfundvierzig Minuten und lass es danach\n"
-        'eine Minute oder auch zwei Minuten ruhen." Die Kosten liegen bei zirka zwölf Euro achtzig\n'
+        'eine Minute oder auch zwei Minuten ruhen." Die Kosten liegen bei zirka zwölf Euro achtzig Cent\n'
         "zuzüglich Pfand."
     )
     assert prepare(source, language="de", use_spacy=False).spoken_text == expected
@@ -229,9 +229,9 @@ def test_brief_german_parity_categories() -> None:
         "2 mrd. EUR": "zwei Milliarden Euro",
         "1 EUR": "ein Euro",
         "2 EUR": "zwei Euro",
-        "12.50 EUR": "zwölf Euro fünfzig",
-        "-1,25 EUR": "minus ein Euro fünfundzwanzig",
-        "0,05 EUR": "null Euro fünf",
+        "12.50 EUR": "zwölf Euro fünfzig Cent",
+        "-1,25 EUR": "minus ein Euro fünfundzwanzig Cent",
+        "0,05 EUR": "null Euro fünf Cent",
         "1.000,50": "eintausend Komma fünf null",
         "3,14": "drei Komma eins vier",
         ".02": "null Komma null zwei",

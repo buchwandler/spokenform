@@ -142,43 +142,59 @@ QUANTITY_GRAMMAR.update(
     }
 )
 
+_DE_LEFT_BOUNDARY = r"(?<![\w.])"
+_DE_RIGHT_BOUNDARY = r"(?!\w)"
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
 _DATE = re.compile(
-    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{2,4})(?!\d)"
-)
-_TEXT_DATE = re.compile(
-    r"(?P<day>0?[1-9]|[12]\d|3[01])\.\s+(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Nov\.?|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)((?!\w))(?:\s+(?P<year>\d{2,4}))?",
+    rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY}"
+ )
+_YEAR_CONTEXT = re.compile(
+    rf"{_DE_LEFT_BOUNDARY}(?P<prefix>im\s+Jahre?|das\s+Jahr|Jahr)\s+"
+    rf"(?P<year>1[1-9]\d{{2}}|20\d{{2}}){_DE_RIGHT_BOUNDARY}",
     re.IGNORECASE,
-)
+ )
+_TEXT_DATE = re.compile(
+    rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])\.\s+"
+    rf"(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Nov\.?|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?){_DE_RIGHT_BOUNDARY}"
+    rf"(?:\s+(?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY})?",
+    re.IGNORECASE,
+ )
 _MIXED_TEXT_DATE = re.compile(
-    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])(?P<suffix>st|nd|rd|th)\s+"
+    rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])(?P<suffix>st|nd|rd|th)\s+"
     r"(?P<month>Jan(?:uary)?\.?|Feb(?:ruary)?\.?|Mar(?:ch)?\.?|Apr(?:il)?\.?|"
     r"May|Jun(?:e)?\.?|Jul(?:y)?\.?|Aug(?:ust)?\.?|Sep(?:tember)?\.?|"
     r"Oct(?:ober)?\.?|Nov(?:ember)?\.?|Dec(?:ember)?\.?)"
-    r"(?:\s+(?P<year>\d{4})(?!\d))?",
+    rf"{_DE_RIGHT_BOUNDARY}(?:\s+(?P<year>\d{{4}}){_DE_RIGHT_BOUNDARY})?",
     re.IGNORECASE,
-)
+ )
 _TEXT_DATE_RANGE = re.compile(
-    r"(?P<start>0?[1-9]|[12]\d|3[01])\.-(?P<end>0?[1-9]|[12]\d|3[01])\.\s+"
+    rf"{_DE_LEFT_BOUNDARY}(?P<start>0?[1-9]|[12]\d|3[01])\.-"
+    rf"(?P<end>0?[1-9]|[12]\d|3[01])\.\s+"
     r"(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)"
-    r"(?:\s+(?P<year>\d{2,4}))?",
+    rf"{_DE_RIGHT_BOUNDARY}(?:\s+(?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY})?",
     re.IGNORECASE,
-)
+ )
 _HYPHEN_DATE = re.compile(
-    r"(?P<day>0?[1-9]|[12]\d|3[01])-(?P<month>\d{1,2}|Jan(?:uar)?\.?|Feb(?:ruar)?\.?|März?\.?|Apr(?:il)?\.?|Mai|Jun(?:i)?\.?|Jul(?:i)?\.?|Aug(?:ust)?\.?|Sep(?:t(?:ember)?)?\.?|Okt(?:ober)?\.?|Nov(?:ember)?\.?|Dez(?:ember)?\.?)-(?P<year>\d{2,4})",
+    rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])-"
+    r"(?P<month>\d{1,2}|Jan(?:uar)?\.?|Feb(?:ruar)?\.?|März?\.?|Apr(?:il)?\.?|Mai|Jun(?:i)?\.?|Jul(?:i)?\.?|Aug(?:ust)?\.?|Sep(?:t(?:ember)?)?\.?|Okt(?:ober)?\.?|Nov(?:ember)?\.?|Dez(?:ember)?\.?)-"
+    rf"(?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY}",
     re.IGNORECASE,
-)
+ )
 _DAY_MONTH = re.compile(
-    r"(?<![\w.])(?P<day>0?[1-9]|[12]\d|3[01])\.(?P<month>0?[1-9]|1[0-2])\.(?!\d)"
-)
+    rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])\."
+    rf"(?P<month>0?[1-9]|1[0-2])\.{_DE_RIGHT_BOUNDARY}",
+ )
 _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
-_TIME = re.compile(r"(?<!\d)(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)(?:\s+Uhr\b)?(?!\d)")
+_TIME = re.compile(
+    rf"{_DE_LEFT_BOUNDARY}(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)"
+    rf"(?:\s+Uhr\b)?{_DE_RIGHT_BOUNDARY}",
+ )
 _TIME_RANGE = re.compile(
-    r"(?<!\d)(?P<start_hour>[01]?\d|2[0-3]):(?P<start_minute>[0-5]\d)\s*[–-]\s*"
-    r"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?:\s+Uhr\b)?(?!\d)|"
-    r"(?<!\d)(?P<start_hour_bis>[01]?\d|2[0-3]):(?P<start_minute_bis>[0-5]\d)\s+bis\s+"
-    r"(?P<end_hour_bis>[01]?\d|2[0-3]):(?P<end_minute_bis>[0-5]\d)(?:\s+Uhr\b)?(?!\d)"
-)
+    rf"{_DE_LEFT_BOUNDARY}(?P<start_hour>[01]?\d|2[0-3]):(?P<start_minute>[0-5]\d)\s*[–-]\s*"
+    rf"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?:\s+Uhr\b)?{_DE_RIGHT_BOUNDARY}|"
+    rf"{_DE_LEFT_BOUNDARY}(?P<start_hour_bis>[01]?\d|2[0-3]):(?P<start_minute_bis>[0-5]\d)\s+bis\s+"
+    rf"(?P<end_hour_bis>[01]?\d|2[0-3]):(?P<end_minute_bis>[0-5]\d)(?:\s+Uhr\b)?{_DE_RIGHT_BOUNDARY}",
+ )
 _CURRENCY_PREFIX = re.compile(
     rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
 )
@@ -349,38 +365,136 @@ def _quantity(match: UnitMatch, text: str, language: str = "de") -> str | None:
 
 
 def _currency_id(symbol: str, language: str = "de") -> str | None:
+    symbol_ids = {
+        "€": "currency-euro",
+        "$": "currency-us-dollar",
+        "£": "currency-pound",
+    }
+    if symbol in symbol_ids:
+        return symbol_ids[symbol]
     for match in iter_unit_matches(f"1 {symbol}", resolve_abbr2words_language(language)):
         if match.category == "currency":
             return match.canonical_id
     return None
 
 
-def _currency_name(canonical_id: str) -> str:
-    return {
-        "currency-euro": "Euro",
-        "currency-us-dollar": "US-Dollar",
-        "currency-dollar": "Dollar",
-        "currency-pound": "Pfund",
-        "currency-swiss-franc": "Schweizer Franken",
-        "currency-japanese-yen": "Yen",
-        "currency-indian-rupee": "Indische Rupien",
-        "currency-south-korean-won": "Won",
-        "currency-mexican-peso": "Mexikanische Pesos",
-    }.get(canonical_id, "")
+@dataclass(frozen=True, slots=True)
+class CurrencyGrammar:
+    canonical_id: str
+    major_singular: str
+    major_plural: str
+    major_gender: str
+    major_invariant: bool = False
+    minor_singular: str | None = None
+    minor_plural: str | None = None
+    minor_gender: str | None = None
+    minor_invariant: bool = False
+    fractional_digits: int = 2
+
+
+
+CURRENCY_GRAMMAR: dict[str, CurrencyGrammar] = {
+    "currency-euro": CurrencyGrammar(
+        canonical_id="currency-euro",
+        major_singular="Euro",
+        major_plural="Euro",
+        major_gender="m",
+        major_invariant=True,
+        minor_singular="Cent",
+        minor_plural="Cent",
+        minor_gender="m",
+        minor_invariant=True,
+    ),
+    "currency-us-dollar": CurrencyGrammar(
+        "currency-us-dollar", "US-Dollar", "US-Dollar", "m", major_invariant=True
+    ),
+    "currency-dollar": CurrencyGrammar(
+        "currency-dollar", "Dollar", "Dollar", "m", major_invariant=True
+    ),
+    "currency-pound": CurrencyGrammar(
+        "currency-pound", "Pfund", "Pfund", "n", major_invariant=True
+    ),
+    "currency-swiss-franc": CurrencyGrammar(
+        "currency-swiss-franc", "Schweizer Franken", "Schweizer Franken", "m", major_invariant=True
+    ),
+    "currency-japanese-yen": CurrencyGrammar(
+        "currency-japanese-yen", "Yen", "Yen", "m", major_invariant=True
+    ),
+    "currency-indian-rupee": CurrencyGrammar(
+        "currency-indian-rupee", "Indische Rupien", "Indische Rupien", "m", major_invariant=True
+    ),
+    "currency-south-korean-won": CurrencyGrammar(
+        "currency-south-korean-won", "Won", "Won", "m", major_invariant=True
+    ),
+    "currency-mexican-peso": CurrencyGrammar(
+        "currency-mexican-peso", "Mexikanische Pesos", "Mexikanische Pesos", "m", major_invariant=True
+    ),
+}
+
+
+
+def _currency_grammar(canonical_id: str) -> CurrencyGrammar | None:
+    return CURRENCY_GRAMMAR.get(canonical_id)
+
+
+
+def _currency_noun(grammar: CurrencyGrammar, value: int, *, minor: bool = False) -> str:
+    if minor:
+        singular, plural, invariant = (
+            grammar.minor_singular,
+            grammar.minor_plural,
+            grammar.minor_invariant,
+        )
+    else:
+        singular, plural, invariant = (
+            grammar.major_singular,
+            grammar.major_plural,
+            grammar.major_invariant,
+        )
+    if singular is None or plural is None:
+        return ""
+    return singular if value == 1 or invariant else plural
+
+
+
+def _currency_number(value: int, grammar: CurrencyGrammar, language: str) -> str:
+    if value != 1:
+        return _spell(value, language)
+    gender = grammar.minor_gender if grammar.minor_singular else grammar.major_gender
+    return "eine" if gender == "f" else "ein"
+
+
+
+def _currency_safe_fallback(
+    raw: str, grammar: CurrencyGrammar, integer: int, language: str
+ ) -> str:
+    unsigned_raw = raw.lstrip("+-−")
+    noun = _currency_noun(grammar, integer)
+    return f"{_number(unsigned_raw, language=language)} {noun}"
+
 
 
 def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
-    negative, integer, fraction = _parts(raw)
-    currency_name = _currency_name(canonical_id)
+    negative, integer, fraction = _parts(raw, language)
+    grammar = _currency_grammar(canonical_id)
+    if grammar is None:
+        raise ValueError(f"Unknown German currency {canonical_id!r}")
+    major_noun = _currency_noun(grammar, integer)
     if has_excess_fractional_precision(fraction):
-        return f"{_number(raw, language=language)} {currency_name}"
-    result = f"{'ein' if integer == 1 else _spell(integer, language)} {currency_name}"
-    if fraction:
-        cents = int((fraction + "00")[:2])
-        if cents:
-            result += f" {_spell(cents, language)}"
+        result = _currency_safe_fallback(raw, grammar, integer, language)
+    else:
+        major_text = f"{_currency_number(integer, grammar, language)} {major_noun}"
+        result = major_text
+        if fraction:
+            minor_value = int((fraction + "0" * grammar.fractional_digits)[: grammar.fractional_digits])
+            if minor_value:
+                if grammar.minor_singular is None or grammar.minor_plural is None:
+                    result = _currency_safe_fallback(raw, grammar, integer, language)
+                else:
+                    minor_noun = _currency_noun(grammar, minor_value, minor=True)
+                    minor_text = f"{_currency_number(minor_value, grammar, language)} {minor_noun}"
+                    result = f"{major_text} {minor_text}"
     return f"minus {result}" if negative else result
-
 
 def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
     return any(start < right and left < end for left, right in protected)
@@ -402,6 +516,19 @@ def _add_candidate(
 def _iter_de_dates(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
+    for match in _YEAR_CONTEXT.finditer(text):
+        start, end = match.span("year")
+        if not _overlaps(start, end, protected):
+            candidates.append(
+                Replacement(
+                    start,
+                    end,
+                    _year(int(match["year"]), language, year_digits=4),
+                    "structured",
+                    "de",
+                    "de.year",
+                )
+            )
     for match in _DATE.finditer(text):
         day, month, year_raw = int(match["day"]), int(match["month"]), match["year"]
         separator = "." if "." in match.group(0) else "/"
@@ -554,14 +681,15 @@ def _iter_de_unit_matches(
         if unit_match.category == "magnitude":
             tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[unit_match.end :])
             canonical_id = _currency_id(tail["symbol"], language) if tail else None
-            if tail and canonical_id:
+            grammar = _currency_grammar(canonical_id) if canonical_id else None
+            if tail and grammar:
                 base = _quantity(unit_match, text, language)
                 if base and not _overlaps(unit_match.start, unit_match.end + tail.end(), protected):
                     candidates.append(
                         Replacement(
                             unit_match.start,
                             unit_match.end + tail.end(),
-                            f"{base} {_currency_name(canonical_id)}",
+                            f"{base} {_currency_noun(grammar, 1)}",
                             "structured",
                             "de",
                             "de.magnitude-currency",
@@ -625,4 +753,11 @@ def iter_replacements(
     return tuple(candidates)
 
 
-__all__ = ["NUMBER_POLICY", "QUANTITY_GRAMMAR", "QuantityGrammar", "iter_replacements"]
+__all__ = [
+    "NUMBER_POLICY",
+    "QUANTITY_GRAMMAR",
+    "QuantityGrammar",
+    "CURRENCY_GRAMMAR",
+    "CurrencyGrammar",
+    "iter_replacements",
+]
