@@ -14,6 +14,7 @@ languages
 quickstart
 architecture
 api
+profiles
 migration-kokorog2p
 cli
 spacy
