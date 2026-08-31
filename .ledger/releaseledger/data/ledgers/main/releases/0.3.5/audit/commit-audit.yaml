@@ -1,0 +1,156 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: 0.3.5
+git_base_ref: v0.3.4
+git_base_sha: 403ab6ea08750491bd117c9c5df3e3594fa50dc3
+git_head_ref: HEAD
+git_head_sha: 01ed0705f7116d250e18e445765da40c013a193f
+git_range: 403ab6ea08750491bd117c9c5df3e3594fa50dc3..01ed0705f7116d250e18e445765da40c013a193f
+commit_count: 3
+rows:
+  - sha: feab45920b9282b33ddebdcda3f9a81286a99d2a
+    source_ref: git:feab45920b9282b33ddebdcda3f9a81286a99d2a
+    short_sha: feab459
+    changed_paths:
+      - docs/migration-kokorog2p.md
+      - spokenform/locales/ko.py
+      - tests/data/de_kokorog2p_regressions.json
+      - tests/data/kokorog2p_semantic_transfer_manifest.json
+      - tests/test_de_kokorog2p_regressions.py
+      - tests/test_en_abbreviation_regressions.py
+      - tests/test_kokorog2p_semantic_transfer.py
+      - tests/test_semantic_transfer_manifest.py
+      - tests/test_th_kokorog2p_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 2765
+      deletions: 4
+    inspected: true
+    inspected_paths:
+      - docs/migration-kokorog2p.md
+      - spokenform/locales/ko.py
+      - tests/data/de_kokorog2p_regressions.json
+      - tests/data/kokorog2p_semantic_transfer_manifest.json
+      - tests/test_de_kokorog2p_regressions.py
+      - tests/test_en_abbreviation_regressions.py
+      - tests/test_kokorog2p_semantic_transfer.py
+      - tests/test_semantic_transfer_manifest.py
+      - tests/test_th_kokorog2p_regressions.py
+    observed_behavior:
+      Semantic normalization and source-aligned regression coverage
+      were expanded across migrated Czech, Korean, Thai, English abbreviation, and cross-locale
+      paths; migration documentation and the transfer manifest record the supported
+      boundaries.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: transfer more logic from kokorog2p into spokenform"
+    target_entry_key: semantic-migration
+    target_entry_id: entry-0001
+    notes:
+      Reviewed the implementation and tests; release prose is based on behavior
+      and changed paths, not the commit subject.
+  - sha: 5a13511449968a56a932d439b20c615cd078b7b2
+    source_ref: git:5a13511449968a56a932d439b20c615cd078b7b2
+    short_sha: 5a13511
+    changed_paths:
+      - README.md
+      - docs/migration-kokorog2p.md
+      - docs/profiles.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/profiles.py
+      - tests/data/kokorog2p_semantic_transfer_manifest.json
+      - tests/test_packaging.py
+      - tests/test_profile_abbreviations.py
+      - tests/test_profiles.py
+    stats:
+      files_changed: 0
+      insertions: 728
+      deletions: 43
+    inspected: true
+    inspected_paths:
+      - README.md
+      - docs/migration-kokorog2p.md
+      - docs/profiles.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/profiles.py
+      - tests/data/kokorog2p_semantic_transfer_manifest.json
+      - tests/test_packaging.py
+      - tests/test_profile_abbreviations.py
+      - tests/test_profiles.py
+    observed_behavior:
+      The public API now supports immutable isolated SpeechProfile
+      glossaries with long-form, source-spelling, and custom pronunciations, while preserving
+      shared-registry compatibility; the dependency floor and user documentation were
+      updated.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: support new abbr2words api"
+    target_entry_key: speech-profiles
+    target_entry_id: entry-0002
+    notes:
+      Reviewed implementation, API exports, documentation, packaging, and regression
+      tests.
+  - sha: 01ed0705f7116d250e18e445765da40c013a193f
+    source_ref: git:01ed0705f7116d250e18e445765da40c013a193f
+    short_sha: 01ed070
+    changed_paths:
+      - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/audit/commit-audit.yaml
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0015.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0016.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0017.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/entries/entry-0018.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.3.3/release.md
+      - README.md
+      - docs/architecture.md
+      - docs/changelog.md
+      - docs/languages.md
+      - pyproject.toml
+      - spokenform/locales/de.py
+      - spokenform/precedence.py
+      - spokenform/recognizers/sequences.py
+      - tests/data/de_kokorog2p_parity.json
+      - tests/test_de_misaki_regressions.py
+      - tests/test_de_structured.py
+      - tests/test_mapping.py
+      - tests/test_real_kokorog2p_integration.py
+    stats:
+      files_changed: 0
+      insertions: 674
+      deletions: 201
+    inspected: true
+    inspected_paths:
+      - README.md
+      - docs/architecture.md
+      - docs/changelog.md
+      - docs/languages.md
+      - pyproject.toml
+      - spokenform/locales/de.py
+      - spokenform/precedence.py
+      - spokenform/recognizers/sequences.py
+      - tests/data/de_kokorog2p_parity.json
+      - tests/test_de_misaki_regressions.py
+      - tests/test_de_structured.py
+      - tests/test_mapping.py
+      - tests/test_real_kokorog2p_integration.py
+    observed_behavior:
+      German structured normalization now validates identifier boundaries,
+      renders contextual years, realizes reviewed Euro major and minor units with exact
+      excess-precision fallback, and adds regression and integration coverage.
+    public_impact: public
+    decision: accepted
+    evidence_subject: "feat: improve german support based on misaki"
+    target_entry_key: german-normalization
+    target_entry_id: entry-0003
+    notes:
+      Reviewed public code, documentation, and tests; release bookkeeping files
+      were excluded from public impact assessment.

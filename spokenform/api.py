@@ -231,7 +231,6 @@ class _AbbreviationPolicy:
     registered_initialism_mode: RegisteredInitialismMode
 
 
-
 def _resolve_abbreviation_policy(
     selected: PreparationConfig,
     profile: SpeechProfile | None,
@@ -248,8 +247,7 @@ def _resolve_abbreviation_policy(
     if profile is not None and profile_requires_registered_spelling(profile):
         registered_mode = "spell"
     return _AbbreviationPolicy(
-        context=selected.context
-        and selected.interpretation_mode is InterpretationMode.CONTEXTUAL,
+        context=selected.context and selected.interpretation_mode is InterpretationMode.CONTEXTUAL,
         initialism_mode=initialism_mode,
         initialism_case=initialism_case,
         registered_initialism_mode=registered_mode,
@@ -656,7 +654,9 @@ def prepare(
         strict=strict,
     )
 
-    if profile is not None and normalize_language(profile.language) != normalize_language(selected.language):
+    if profile is not None and normalize_language(profile.language) != normalize_language(
+        selected.language
+    ):
         raise ValueError(
             "profile language does not match selected preparation language: "
             f"{profile.language!r} != {selected.language!r}"

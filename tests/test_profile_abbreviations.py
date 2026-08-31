@@ -76,7 +76,10 @@ def test_profiles_are_isolated_from_each_other() -> None:
     assert _lexical_prepare("XYZ", first).spoken_text == "first meaning"
     assert _lexical_prepare("XYZ", second).spoken_text == "second meaning"
     assert _lexical_prepare("XYZ", first).spoken_text == "first meaning"
-    assert prepare("XYZ", use_spacy=False, expand_structured=False, expand_numbers=False).spoken_text == "XYZ"
+    assert (
+        prepare("XYZ", use_spacy=False, expand_structured=False, expand_numbers=False).spoken_text
+        == "XYZ"
+    )
 
 
 def test_profile_does_not_inherit_shared_customizations() -> None:
@@ -131,12 +134,18 @@ def test_guards_are_delegated_to_dependency() -> None:
     )
     assert _lexical_prepare("prefix CTX ready", profile).spoken_text == "prefix context term ready"
     assert _lexical_prepare("other CTX ready", profile).spoken_text == "other CTX ready"
-    assert _lexical_prepare(
-        "POS", profile, annotations=(TokenAnnotation(0, 3, text="POS", pos="NOUN"),)
-    ).spoken_text == "noun term"
-    assert _lexical_prepare(
-        "POS", profile, annotations=(TokenAnnotation(0, 3, text="POS", pos="VERB"),)
-    ).spoken_text == "POS"
+    assert (
+        _lexical_prepare(
+            "POS", profile, annotations=(TokenAnnotation(0, 3, text="POS", pos="NOUN"),)
+        ).spoken_text
+        == "noun term"
+    )
+    assert (
+        _lexical_prepare(
+            "POS", profile, annotations=(TokenAnnotation(0, 3, text="POS", pos="VERB"),)
+        ).spoken_text
+        == "POS"
+    )
 
 
 def test_case_sensitive_profile_entry() -> None:
@@ -168,7 +177,8 @@ def test_structured_reserved_span_blocks_profile_replacement() -> None:
 
 def test_exact_profile_replacement_metadata_and_offsets() -> None:
     profile = SpeechProfile(
-        "metadata", glossary=(GlossaryEntry("AAA", "anti-aircraft", read_as="custom", spoken_form="Triple A"),)
+        "metadata",
+        glossary=(GlossaryEntry("AAA", "anti-aircraft", read_as="custom", spoken_form="Triple A"),),
     )
     source = "Use AAA now."
     result = _lexical_prepare(source, profile)

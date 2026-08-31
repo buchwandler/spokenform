@@ -18,21 +18,21 @@ from spokenform.config import RecognitionDomain
         ("u. U. später", "unter Umständen später"),
     ],
 )
-def test_german_phase01_abbreviations_flow_through_spokenform(
-    source: str, fragment: str
- ) -> None:
+def test_german_phase01_abbreviations_flow_through_spokenform(source: str, fragment: str) -> None:
     result = prepare(source, language="de", use_spacy=False)
     assert fragment in result.spoken_text
     abbreviation = next(
         item for item in result.source_replacements if item.rule and item.rule.startswith("abbr:")
     )
     assert source[abbreviation.source_start : abbreviation.source_end] == abbreviation.source
-    assert result.spoken_text[abbreviation.output_start : abbreviation.output_end] == abbreviation.replacement
+    assert (
+        result.spoken_text[abbreviation.output_start : abbreviation.output_end]
+        == abbreviation.replacement
+    )
     assert result.offset_map is not None
     assert result.offset_map.map_source_span(
         abbreviation.source_start, abbreviation.source_end
     ) == (abbreviation.output_start, abbreviation.output_end)
-
 
 
 def test_german_time_does_not_consume_uhrzeit_prefix() -> None:
@@ -101,6 +101,7 @@ def test_german_structured_dates_and_times_reject_identifier_adjacency(source: s
         for item in result.source_replacements
     )
 
+
 @pytest.mark.parametrize(
     ("source", "fragment"),
     [
@@ -153,20 +154,33 @@ def test_german_contextual_year_uses_year_renderer(source: str, expected: str) -
     replacement = replacements[0]
     assert replacement.source in {"1989", "1900", "2024", "2000"}
     assert source[replacement.source_start : replacement.source_end] == replacement.source
-    assert result.spoken_text[replacement.output_start : replacement.output_end] == replacement.replacement
+    assert (
+        result.spoken_text[replacement.output_start : replacement.output_end]
+        == replacement.replacement
+    )
     assert result.offset_map is not None
-    assert result.offset_map.map_source_span(
-        replacement.source_start, replacement.source_end
-    ) == (replacement.output_start, replacement.output_end)
+    assert result.offset_map.map_source_span(replacement.source_start, replacement.source_end) == (
+        replacement.output_start,
+        replacement.output_end,
+    )
 
 
 @pytest.mark.parametrize(
     "source",
-    ["Version 1989", "Modell 1989", "Artikel 1989", "ID 1989", "PIN 1989", "Port 1989", "Build 1989"],
+    [
+        "Version 1989",
+        "Modell 1989",
+        "Artikel 1989",
+        "ID 1989",
+        "PIN 1989",
+        "Port 1989",
+        "Build 1989",
+    ],
 )
 def test_german_contextual_year_rejects_non_temporal_contexts(source: str) -> None:
     result = prepare(source, language="de", use_spacy=False)
     assert not any(item.rule == "de.year" for item in result.source_replacements)
+
 
 def test_german_large_ordinals_and_calendar_validation() -> None:
     assert prepare("am 100. Tag", language="de", use_spacy=False).spoken_text == (
@@ -207,13 +221,20 @@ def test_german_currency_cent_replacement_maps_exactly() -> None:
     source = "Preis: €1,01"
     result = prepare(source, language="de", use_spacy=False)
     replacement = next(item for item in result.source_replacements if item.rule == "de.currency")
-    assert source[replacement.source_start : replacement.source_end] == replacement.source == "€1,01"
-    assert result.spoken_text[replacement.output_start : replacement.output_end] == replacement.replacement
+    assert (
+        source[replacement.source_start : replacement.source_end] == replacement.source == "€1,01"
+    )
+    assert (
+        result.spoken_text[replacement.output_start : replacement.output_end]
+        == replacement.replacement
+    )
     assert replacement.replacement == "ein Euro ein Cent"
     assert result.offset_map is not None
-    assert result.offset_map.map_source_span(
-        replacement.source_start, replacement.source_end
-    ) == (replacement.output_start, replacement.output_end)
+    assert result.offset_map.map_source_span(replacement.source_start, replacement.source_end) == (
+        replacement.output_start,
+        replacement.output_end,
+    )
+
 
 def test_currency_preserves_excess_fractional_precision() -> None:
     cases = [
@@ -339,9 +360,12 @@ def test_german_protected_text_is_not_claimed_by_new_regressions() -> None:
 
 
 def test_german_unicode_whitespace_and_downstream_typography_ownership() -> None:
-    assert prepare(
-        "Äpfel, Österreich, Überraschung, Größe", language="de", use_spacy=False
-    ).spoken_text == "Äpfel, Österreich, Überraschung, Größe"
+    assert (
+        prepare(
+            "Äpfel, Österreich, Überraschung, Größe", language="de", use_spacy=False
+        ).spoken_text
+        == "Äpfel, Österreich, Überraschung, Größe"
+    )
     assert prepare("Hallo\u00a0Welt", language="de", use_spacy=False).spoken_text == "Hallo Welt"
     assert prepare("Hallo   Welt", language="de", use_spacy=False).spoken_text == "Hallo Welt"
 

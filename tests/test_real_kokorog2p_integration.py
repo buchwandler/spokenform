@@ -133,7 +133,6 @@ def test_real_german_new_semantic_categories_downstream_contract() -> None:
     assert not prepared.warnings
 
 
-
 def test_real_german_extended_quantity_public_path_matches_semantic_expectation() -> None:
     cases = (
         ("1 mm²", "ein Quadratmillimeter"),

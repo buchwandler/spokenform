@@ -147,18 +147,18 @@ _DE_RIGHT_BOUNDARY = r"(?!\w)"
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
 _DATE = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])[./](?P<month>0?[1-9]|1[0-2])[./](?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY}"
- )
+)
 _YEAR_CONTEXT = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<prefix>im\s+Jahre?|das\s+Jahr|Jahr)\s+"
     rf"(?P<year>1[1-9]\d{{2}}|20\d{{2}}){_DE_RIGHT_BOUNDARY}",
     re.IGNORECASE,
- )
+)
 _TEXT_DATE = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])\.\s+"
     rf"(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Nov\.?|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?){_DE_RIGHT_BOUNDARY}"
     rf"(?:\s+(?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY})?",
     re.IGNORECASE,
- )
+)
 _MIXED_TEXT_DATE = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])(?P<suffix>st|nd|rd|th)\s+"
     r"(?P<month>Jan(?:uary)?\.?|Feb(?:ruary)?\.?|Mar(?:ch)?\.?|Apr(?:il)?\.?|"
@@ -166,35 +166,35 @@ _MIXED_TEXT_DATE = re.compile(
     r"Oct(?:ober)?\.?|Nov(?:ember)?\.?|Dec(?:ember)?\.?)"
     rf"{_DE_RIGHT_BOUNDARY}(?:\s+(?P<year>\d{{4}}){_DE_RIGHT_BOUNDARY})?",
     re.IGNORECASE,
- )
+)
 _TEXT_DATE_RANGE = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<start>0?[1-9]|[12]\d|3[01])\.-"
     rf"(?P<end>0?[1-9]|[12]\d|3[01])\.\s+"
     r"(?P<month>Januar|Februar|März|Maerz|April|Mai|Juni|Juli|August|September|Oktober|November|Dezember|Mär\.?|Apr\.?|Aug\.?|Sept\.?|Dez\.?)"
     rf"{_DE_RIGHT_BOUNDARY}(?:\s+(?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY})?",
     re.IGNORECASE,
- )
+)
 _HYPHEN_DATE = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])-"
     r"(?P<month>\d{1,2}|Jan(?:uar)?\.?|Feb(?:ruar)?\.?|März?\.?|Apr(?:il)?\.?|Mai|Jun(?:i)?\.?|Jul(?:i)?\.?|Aug(?:ust)?\.?|Sep(?:t(?:ember)?)?\.?|Okt(?:ober)?\.?|Nov(?:ember)?\.?|Dez(?:ember)?\.?)-"
     rf"(?P<year>\d{{2,4}}){_DE_RIGHT_BOUNDARY}",
     re.IGNORECASE,
- )
+)
 _DAY_MONTH = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])\."
     rf"(?P<month>0?[1-9]|1[0-2])\.{_DE_RIGHT_BOUNDARY}",
- )
+)
 _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
 _TIME = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)"
     rf"(?:\s+Uhr\b)?{_DE_RIGHT_BOUNDARY}",
- )
+)
 _TIME_RANGE = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<start_hour>[01]?\d|2[0-3]):(?P<start_minute>[0-5]\d)\s*[–-]\s*"
     rf"(?P<end_hour>[01]?\d|2[0-3]):(?P<end_minute>[0-5]\d)(?:\s+Uhr\b)?{_DE_RIGHT_BOUNDARY}|"
     rf"{_DE_LEFT_BOUNDARY}(?P<start_hour_bis>[01]?\d|2[0-3]):(?P<start_minute_bis>[0-5]\d)\s+bis\s+"
     rf"(?P<end_hour_bis>[01]?\d|2[0-3]):(?P<end_minute_bis>[0-5]\d)(?:\s+Uhr\b)?{_DE_RIGHT_BOUNDARY}",
- )
+)
 _CURRENCY_PREFIX = re.compile(
     rf"(?<![\w.])(?P<symbol>[^\W\d_€$£]+|[€$£])\s*(?P<number>{_NUMBER})(?![\w.])", re.IGNORECASE
 )
@@ -392,7 +392,6 @@ class CurrencyGrammar:
     fractional_digits: int = 2
 
 
-
 CURRENCY_GRAMMAR: dict[str, CurrencyGrammar] = {
     "currency-euro": CurrencyGrammar(
         canonical_id="currency-euro",
@@ -427,15 +426,17 @@ CURRENCY_GRAMMAR: dict[str, CurrencyGrammar] = {
         "currency-south-korean-won", "Won", "Won", "m", major_invariant=True
     ),
     "currency-mexican-peso": CurrencyGrammar(
-        "currency-mexican-peso", "Mexikanische Pesos", "Mexikanische Pesos", "m", major_invariant=True
+        "currency-mexican-peso",
+        "Mexikanische Pesos",
+        "Mexikanische Pesos",
+        "m",
+        major_invariant=True,
     ),
 }
 
 
-
 def _currency_grammar(canonical_id: str) -> CurrencyGrammar | None:
     return CURRENCY_GRAMMAR.get(canonical_id)
-
 
 
 def _currency_noun(grammar: CurrencyGrammar, value: int, *, minor: bool = False) -> str:
@@ -456,7 +457,6 @@ def _currency_noun(grammar: CurrencyGrammar, value: int, *, minor: bool = False)
     return singular if value == 1 or invariant else plural
 
 
-
 def _currency_number(value: int, grammar: CurrencyGrammar, language: str) -> str:
     if value != 1:
         return _spell(value, language)
@@ -464,14 +464,10 @@ def _currency_number(value: int, grammar: CurrencyGrammar, language: str) -> str
     return "eine" if gender == "f" else "ein"
 
 
-
-def _currency_safe_fallback(
-    raw: str, grammar: CurrencyGrammar, integer: int, language: str
- ) -> str:
+def _currency_safe_fallback(raw: str, grammar: CurrencyGrammar, integer: int, language: str) -> str:
     unsigned_raw = raw.lstrip("+-−")
     noun = _currency_noun(grammar, integer)
     return f"{_number(unsigned_raw, language=language)} {noun}"
-
 
 
 def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
@@ -486,7 +482,9 @@ def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
         major_text = f"{_currency_number(integer, grammar, language)} {major_noun}"
         result = major_text
         if fraction:
-            minor_value = int((fraction + "0" * grammar.fractional_digits)[: grammar.fractional_digits])
+            minor_value = int(
+                (fraction + "0" * grammar.fractional_digits)[: grammar.fractional_digits]
+            )
             if minor_value:
                 if grammar.minor_singular is None or grammar.minor_plural is None:
                     result = _currency_safe_fallback(raw, grammar, integer, language)
@@ -495,6 +493,7 @@ def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
                     minor_text = f"{_currency_number(minor_value, grammar, language)} {minor_noun}"
                     result = f"{major_text} {minor_text}"
     return f"minus {result}" if negative else result
+
 
 def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
     return any(start < right and left < end for left, right in protected)

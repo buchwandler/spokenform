@@ -12,10 +12,10 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- tl:task-0068
+  - tl:task-0068
 paths:
-- spokenform/locales/de.py
-- tests/test_de_misaki_regressions.py
+  - spokenform/locales/de.py
+  - tests/test_de_misaki_regressions.py
 issues: []
 prs: []
 sources: []
