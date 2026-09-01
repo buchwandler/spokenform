@@ -6,6 +6,10 @@
 
 ```
 
+```{autofunction} spokenform.prepare_language
+
+```
+
 ```{autofunction} spokenform.prepare_for_kokorog2p
 
 ```
@@ -93,7 +97,7 @@ PreparationConfig(
 )
 ```
 
-For example, with `use_spacy=False`, `prepare("ABC TST", generic_acronym_mode="conservative_unknown")`
+For example, with `use_spacy=False`, `prepare("ABC TST", language="en", generic_acronym_mode="conservative_unknown")`
 produces `"A B C T S T"` in the current English registry, while the default
 keeps the unknown `TST` unchanged. `generic_acronym_case="lower"` changes only
 generic grapheme-spaced output (`"a b c t s t"` in that example); it does not
@@ -132,7 +136,7 @@ abbreviation registry.
 PreparationConfig(language="en", long_number_mode="contextual")
 ```
 
-For English, `prepare("844361 items", long_number_mode="preserve")` keeps the
+For English, `prepare("844361 items", language="en", long_number_mode="preserve")` keeps the
 digits, while `"contextual"` and `"cardinal"` produce
 `"eight hundred forty four thousand three hundred sixty one items"`.
 
@@ -158,14 +162,23 @@ semantic replacements; partial overlap is handled fail-closed by protecting the
 complete recognized quantity expression. Use `source_replacements` and the offset
 helpers to rebase downstream token and override coordinates.
 
-The preferred downstream surface is `PreparationConfig.for_kokorog2p()`,
-`prepare_for_kokorog2p()`, `PreparedText.source_replacements`,
-`PreparedText.offset_map`, and `NumberPolicy`. The lower-level mapping and stage
-helpers are advanced exports rather than requirements for a normal adapter.
+`PreparationConfig.for_speech(language)` provides the generic one-language speech
+preset. It contains no TTS-engine policy. `prepare_for_kokorog2p()` and
+`PreparationConfig.for_kokorog2p()` remain compatibility conveniences for that
+adapter and are not the architectural center of Spokenform.
 
-## Export classification
+`PreparedText` mappings describe source and output coordinates, not a linguistic
+analysis of generated tokens. When normalization changes a token, source POS, tag,
+lemma, or morphology must not be reused for the generated text. Run a fresh
+linguistic analysis after preparation when downstream processing requires it.
+The preferred application surface is `prepare_language()` with
+`PreparationConfig.for_speech(language)`, `PreparedText.source_replacements`,
+and `PreparedText.offset_map`. The KokoroG2P compatibility surface additionally
+uses `PreparationConfig.for_kokorog2p()`, `prepare_for_kokorog2p()`, and
+`NumberPolicy`. Lower-level mapping and stage helpers are advanced exports rather
+than requirements for a normal adapter.
 
-The stable application-facing surface is `prepare()`,
+The stable application-facing surface is `prepare_language()`, `prepare()`,
 `prepare_for_kokorog2p()`, `prepare_text`, `PreparationConfig`, `NumberPolicy`,
 `PreparedText`, `ProtectedSpan`, `ProtectionError`, `TokenAnnotation`, and
 `__version__`. `number_policy_for_language()` and `normalize_numbers()` are
@@ -234,10 +247,11 @@ colon-time candidates remain unchanged for caller-managed handling.
 - `allowed_domains={"quantities", ...}` permits only selected semantic families and fails closed for candidates without domain metadata. If a domain appears in both sets, configuration raises `ValueError`.
 
 ```python
-from spokenform import prepare
+from spokenform import prepare_language
 
-prepare(
+prepare_language(
     "The sample contains H2O.",
+    language="en",
     interpretation_mode="surface",
     disabled_domains={"chemistry"},
 )

@@ -7,7 +7,7 @@ profile supplies user-owned speech data.
 ## Basic usage
 
 ```python
-from spokenform import GlossaryEntry, SpeechProfile, prepare
+from spokenform import GlossaryEntry, SpeechProfile, prepare_language
 
 profile = SpeechProfile(
     name="operations",
@@ -24,7 +24,11 @@ profile = SpeechProfile(
     ),
 )
 
-result = prepare("AAA enters the AO after the AAR.", profile=profile)
+result = prepare_language(
+    "AAA enters the AO after the AAR.",
+    language="en",
+    profile=profile,
+)
 assert result.spoken_text == (
     "Triple A enters the A O after the after-action review."
 )

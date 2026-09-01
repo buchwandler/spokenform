@@ -6,7 +6,7 @@ import re
 import unicodedata
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
-from typing import cast
+from typing import Any, cast
 
 from abbr2words import (
     InitialismCase,
@@ -774,6 +774,35 @@ def prepare(
     )
 
 
+def prepare_language(
+    text: str,
+    *,
+    language: str,
+    **kwargs: object,
+) -> PreparedText:
+    """Prepare one explicitly selected language run with generic policy.
+
+    Unlike :func:`prepare`, this future-facing entry point intentionally has no
+    compatibility default for ``language``. The optional ``config`` must use the
+    same language so the call cannot silently process a different language.
+    """
+    normalized_language = normalize_language(language)
+    config = kwargs.get("config")
+    if config is not None:
+        if not isinstance(config, PreparationConfig):
+            raise TypeError("config must be a PreparationConfig or None")
+        if config.language != normalized_language:
+            raise ValueError(
+                "config language does not match selected preparation language: "
+                f"{config.language!r} != {normalized_language!r}"
+            )
+    return prepare(
+        text,
+        language=normalized_language,
+        **cast(dict[str, Any], kwargs),
+    )
+
+
 prepare_text = prepare
 
 
@@ -790,7 +819,13 @@ def prepare_for_kokorog2p(
     return prepare(text, config=selected, profile=profile, **kwargs)  # type: ignore[arg-type]
 
 
-__all__ = ["prepare", "prepare_text", "prepare_for_kokorog2p", "normalize_spacing"]
+__all__ = [
+    "prepare",
+    "prepare_language",
+    "prepare_text",
+    "prepare_for_kokorog2p",
+    "normalize_spacing",
+]
 
 
 def _remap_reserved_spans(

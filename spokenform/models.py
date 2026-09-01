@@ -69,7 +69,12 @@ class PreparationStage:
 
 @dataclass(frozen=True, slots=True)
 class MappedEdit:
-    """A replacement with source and output coordinates."""
+    """A replacement with source and output coordinates.
+
+    Coordinates and semantic metadata describe the generated text. Source
+    linguistic annotations are not carried as a valid analysis of replacement
+    text; downstream POS or morphology consumers must analyze the final text.
+    """
 
     source_start: int
     source_end: int
@@ -81,11 +86,20 @@ class MappedEdit:
     language: str | None = None
     kind: str = "replacement"
     rule: str | None = None
+    recognition_domain: str | None = None
+    recognition_evidence: str | None = None
+    evidence_source: str | None = None
+    evidence_score: float | None = None
+    evidence_cues: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class SourceReplacement:
-    """A replacement projected from original source to final output."""
+    """A replacement projected from original source to final output.
+
+    ``rule`` and evidence fields retain semantic ownership for diagnostics. This
+    provenance does not make source POS or morphology valid for generated tokens.
+    """
 
     source_start: int
     source_end: int
@@ -97,11 +111,21 @@ class SourceReplacement:
     language: str | None = None
     kind: str = "replacement"
     rule: str | None = None
+    recognition_domain: str | None = None
+    recognition_evidence: str | None = None
+    evidence_source: str | None = None
+    evidence_score: float | None = None
+    evidence_cues: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
 class PreparedText:
-    """Readable spoken text with normalization provenance."""
+    """Readable spoken text with normalization provenance.
+
+    The mapping describes coordinates only. It does not promise that source
+    linguistic annotations remain valid for generated tokens in ``spoken_text``.
+    Downstream POS or morphology analysis must run after preparation.
+    """
 
     source_text: str
     clean_text: str

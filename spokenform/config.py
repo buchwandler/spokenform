@@ -265,6 +265,11 @@ class PreparationConfig:
         _validate_boolean_options(self)
 
     @classmethod
+    def for_speech(cls, language: str) -> PreparationConfig:
+        """Return the generic one-language speech preparation preset."""
+        return cls(language=language)
+
+    @classmethod
     def for_kokorog2p(cls, language: str) -> PreparationConfig:
         """Return a one-language profile safe for kokorog2p adapters."""
         return cls(

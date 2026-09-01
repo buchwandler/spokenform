@@ -106,11 +106,25 @@ result = prepare(
 - `clean_text`: plain text used by the normalization pipeline;
 - `spoken_text`: readable normalized output;
 - `language`: normalized processing-language code;
-- ordered stages and mapped edits;
-- a composed `offset_map`;
-- structured warnings.
+- ordered stages and mapped edits, including semantic rule and evidence metadata;
+- composed `offset_map` and source-coordinate replacements;
+- structured warnings;
 
 `PreparedText.text` is an alias for `spoken_text`.
+
+For new application code, use the strict language-explicit entry point:
+
+```python
+from spokenform import prepare_language
+
+prepared = prepare_language("2 kg", language="de")
+```
+
+`prepare()` keeps its `language="en"` default for compatibility. Both APIs process
+one language run only. Language detection, mixed-language segmentation, and markup
+parsing remain caller responsibilities. `PreparationConfig.for_speech(language)`
+is the generic TTS-neutral preset; `for_kokorog2p()` is only a compatibility
+convenience for that downstream adapter.
 
 ## Thai runtime support
 
@@ -343,7 +357,7 @@ sphinx-build -W -b html docs docs/_build/html
 Use `SpeechProfile` for an isolated, reusable domain glossary. Profile entries can expand to their long form, spell the source as letters, or use a deterministic custom pronunciation:
 
 ```python
-from spokenform import GlossaryEntry, SpeechProfile, prepare
+from spokenform import GlossaryEntry, SpeechProfile, prepare_language
 
 profile = SpeechProfile(
     name="operations",
@@ -360,7 +374,11 @@ profile = SpeechProfile(
     ),
 )
 
-result = prepare("AAA enters the AO after the AAR.", profile=profile)
+result = prepare_language(
+    "AAA enters the AO after the AAR.",
+    language="en",
+    profile=profile,
+)
 print(result.spoken_text)
 ```
 
@@ -435,10 +453,11 @@ Apache License 2.0.
 The runtime interpretation policy is separate from rendering options:
 
 ```python
-from spokenform import prepare
+from spokenform import prepare_language
 
-result = prepare(
+result = prepare_language(
     "The final was 3-2 and the sample contains H2O.",
+    language="en",
     interpretation_mode="surface",
     disabled_domains={"chemistry"},
 )

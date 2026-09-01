@@ -296,6 +296,11 @@ def apply_replacements(
                 language=replacement.language,
                 kind=replacement.kind,
                 rule=replacement.rule,
+                recognition_domain=replacement.recognition_domain,
+                recognition_evidence=replacement.recognition_evidence,
+                evidence_source=replacement.evidence_source,
+                evidence_score=replacement.evidence_score,
+                evidence_cues=replacement.evidence_cues,
             )
         )
         cursor = replacement.end
@@ -546,6 +551,11 @@ def compose_source_replacements(
                     language=edit.language,
                     kind=edit.kind,
                     rule=edit.rule,
+                    recognition_domain=edit.recognition_domain,
+                    recognition_evidence=edit.recognition_evidence,
+                    evidence_source=edit.evidence_source,
+                    evidence_score=edit.evidence_score,
+                    evidence_cues=edit.evidence_cues,
                 )
             )
         prefix = prefix.compose(stage_maps[index])
@@ -575,6 +585,21 @@ def compose_source_replacements(
             language=previous.language if previous.language == item.language else None,
             kind=previous.kind if previous.kind == item.kind else "composed",
             rule=previous.rule if previous.rule == item.rule else None,
+            recognition_domain=previous.recognition_domain
+            if previous.recognition_domain == item.recognition_domain
+            else None,
+            recognition_evidence=previous.recognition_evidence
+            if previous.recognition_evidence == item.recognition_evidence
+            else None,
+            evidence_source=previous.evidence_source
+            if previous.evidence_source == item.evidence_source
+            else None,
+            evidence_score=previous.evidence_score
+            if previous.evidence_score == item.evidence_score
+            else None,
+            evidence_cues=previous.evidence_cues
+            if previous.evidence_cues == item.evidence_cues
+            else (),
         )
     return tuple(merged)
 

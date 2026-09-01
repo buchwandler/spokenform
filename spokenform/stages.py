@@ -49,6 +49,12 @@ def apply_replacement_stage(
                 item.kind,
                 item.language or language,
                 item.rule,
+                item.specificity,
+                item.recognition_domain,
+                item.recognition_evidence,
+                item.evidence_source,
+                item.evidence_score,
+                item.evidence_cues,
             )
             for item in replacements
         ),
@@ -103,6 +109,12 @@ def map_visible_replacements_to_internal(
             item.kind,
             item.language,
             item.rule,
+            item.specificity,
+            item.recognition_domain,
+            item.recognition_evidence,
+            item.evidence_source,
+            item.evidence_score,
+            item.evidence_cues,
         )
         for item in replacements
     )

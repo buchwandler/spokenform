@@ -23,11 +23,12 @@
 
 Each stage records its input, output, edits, and mapped edits. Structured and
 abbreviation stages emit exact replacements; temporary text-only stages retain
-deterministic diff edits only at stage scope. The final
-`PreparedText.offset_map` composes all stage maps from `clean_text` coordinates to
-`spoken_text` coordinates. `PreparedText.source_edits` contains composed
-`SourceReplacement` records in original-source/final-output coordinates; it must
-not be confused with stage-local `mapped_edits`.
+deterministic diff edits only at stage scope. Semantic rule, domain, and optional
+evidence metadata are carried with mapped and composed source replacements for
+diagnostics. The final `PreparedText.offset_map` composes all stage maps from
+`clean_text` coordinates to `spoken_text` coordinates. `PreparedText.source_edits`
+contains composed `SourceReplacement` records in original-source/final-output
+coordinates; it must not be confused with stage-local `mapped_edits`.
 
 All public source offsets refer to the original string passed to `prepare()`.
 Final offsets refer to `PreparedText.spoken_text`. Boundary APIs expose explicit
@@ -40,6 +41,16 @@ mapping. Callers own language selection, markup parsing, and mixed-language
 segmentation. Downstream G2P systems own tokenization for phoneme generation,
 lexicons, pronunciations, and vocabulary IDs.
 
+`prepare_language()` is the strict application entry point and requires an explicit
+language for every call. `prepare()` retains its English default only for compatibility.
+`PreparationConfig.for_speech()` is the generic TTS-neutral preset; the KokoroG2P
+preset and adapter are compatibility conveniences implemented through the same generic
+policies.
+
+Annotations supplied to the preparation pipeline are source-aligned input evidence.
+Transformations can replace a token, so `PreparedText` and its mappings do not promise
+that source POS, tags, lemmas, or morphology remain valid for generated tokens. A
+downstream consumer that needs linguistic analysis must analyze `spoken_text` afresh.
 spokenform owns semantic spacing and punctuation consumed by a structured or
 lexical expression. Downstream G2P owns quote style, dash canonicalization,
 apostrophe variants, and punctuation choices required only by a model tokenizer.

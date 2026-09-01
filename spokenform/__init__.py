@@ -14,7 +14,7 @@ from .abbreviations import (
     reset_abbreviations,
 )
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
-from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_text
+from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_language, prepare_text
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
@@ -118,6 +118,7 @@ __all__ = [
     "normalize_structured",
     "normalize_spacing",
     "prepare",
+    "prepare_language",
     "prepare_for_kokorog2p",
     "prepare_text",
     "spacy_annotations",

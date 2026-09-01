@@ -2,6 +2,10 @@
 
 spaCy is optional. `spokenform` uses it only to obtain source-aligned lexical annotations for POS-aware abbreviation rules.
 
+`prepare_language()` is the strict entry point for new callers. It requires the
+language selected by the orchestrator and still performs one language run only.
+`prepare()` keeps its English default solely for compatibility.
+
 ## Current effect with the released `abbr2words` structured API
 
 `abbr2words` accepts POS annotations, but its bundled language registries do not
@@ -67,7 +71,7 @@ A spaCy-compatible pipeline must return iterable tokens exposing:
 
 A blank tokenizer such as `spacy.blank("en")` provides token boundaries but no
 statistical POS tags. Use a trained pipeline containing an appropriate tagging or
-morphological component when POS-aware rules are required. Annotations are remapped around protected spans so their offsets remain aligned with the internal text sent to `abbr2words`.
+component when POS-aware rules are required. Annotations are remapped around protected spans so their offsets remain aligned with the internal text sent to `abbr2words`. These annotations describe the source text only. If preparation replaces a token, its source POS, tag, lemma, or morphology must not be reused for the generated `spoken_text`; run a fresh linguistic analysis downstream.
 
 ## Error behavior
 
