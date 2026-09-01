@@ -1,0 +1,57 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: 0.3.6
+git_base_ref: v0.3.5
+git_base_sha: 35f6bbf92c3a3d245808c2bc7faa0830aac9dc1c
+git_head_ref: HEAD
+git_head_sha: 70348151b57204ec3f43c5f641c111ce294841f3
+git_range: 35f6bbf92c3a3d245808c2bc7faa0830aac9dc1c..70348151b57204ec3f43c5f641c111ce294841f3
+commit_count: 1
+rows:
+- sha: 70348151b57204ec3f43c5f641c111ce294841f3
+  source_ref: git:70348151b57204ec3f43c5f641c111ce294841f3
+  short_sha: '7034815'
+  changed_paths:
+  - README.md
+  - docs/api.md
+  - docs/architecture.md
+  - docs/profiles.md
+  - docs/spacy.md
+  - spokenform/__init__.py
+  - spokenform/api.py
+  - spokenform/config.py
+  - spokenform/mapping.py
+  - spokenform/models.py
+  - spokenform/stages.py
+  - tests/test_semantic_boundary.py
+  stats:
+    files_changed: 0
+    insertions: 294
+    deletions: 33
+  inspected: true
+  inspected_paths:
+  - README.md
+  - docs/api.md
+  - docs/architecture.md
+  - docs/profiles.md
+  - docs/spacy.md
+  - spokenform/__init__.py
+  - spokenform/api.py
+  - spokenform/config.py
+  - spokenform/mapping.py
+  - spokenform/models.py
+  - spokenform/stages.py
+  - tests/test_semantic_boundary.py
+  observed_behavior: 'Reviewed the diff: adds the public prepare_language API with
+    an explicit language requirement, adds the generic PreparationConfig.for_speech
+    preset, preserves semantic evidence through mapped and source replacements, documents
+    source-annotation boundaries, and adds regression coverage.'
+  public_impact: public
+  decision: accepted
+  evidence_subject: 'feat: new prepare_language api'
+  target_entry_key: entry-1
+  target_entry_id: entry-0001
+  notes: Public API and documentation change with regression tests.
