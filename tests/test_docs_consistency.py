@@ -1,4 +1,5 @@
 import re
+import runpy
 from pathlib import Path
 
 from spokenform.language import SUPPORTED_BASE_LANGUAGES
@@ -71,6 +72,12 @@ def test_runtime_languages_are_present_in_canonical_matrix() -> None:
 
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert "docs/languages.md" in readme
+
+
+def test_generated_language_coverage_is_fresh() -> None:
+    generator = runpy.run_path(str(ROOT / "scripts" / "generate_language_coverage.py"))
+    generated = (ROOT / "docs" / "language-coverage.md").read_text(encoding="utf-8")
+    assert generator["render"]() == generated
 
 
 def test_russian_runtime_boundaries_are_documented() -> None:

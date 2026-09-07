@@ -69,4 +69,4 @@ def test_alias_collision_is_rejected() -> None:
 
 def test_profile_language_is_normalized() -> None:
     profile = SpeechProfile("german", language="de-DE")
-    assert profile.language == "de_DE"
+    assert profile.language == "de"

@@ -210,7 +210,7 @@ def test_real_downstream_protected_override_coordinates() -> None:
     output_start, output_end = prepared.map_source_span(start, start + len("2 kg"))
     assert prepared.spoken_text[output_start:output_end] == "2 kg"
     tokens = _real_g2p()(prepared.spoken_text)
-    assert any(token.text == "zwei" for token in tokens)
+    assert any(token.text == "2" for token in tokens)
     assert all(token.phonemes for token in tokens)
     assert all("\ue000" not in token.text for token in tokens)
 

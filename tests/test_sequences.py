@@ -1,7 +1,7 @@
 import pytest
 
 from spokenform import prepare
-from spokenform.language import SUPPORTED_BASE_LANGUAGES
+from spokenform.language_support import SEQUENCE_POLICY_LANGUAGES
 from spokenform.sequences import (
     SequenceRenderPolicy,
     render_digits,
@@ -10,7 +10,7 @@ from spokenform.sequences import (
 )
 
 
-@pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
+@pytest.mark.parametrize("language", sorted(SEQUENCE_POLICY_LANGUAGES))
 def test_every_supported_language_renders_ascii_letters_without_index_errors(language: str) -> None:
     rendered = render_letters(
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", language=language
@@ -19,7 +19,7 @@ def test_every_supported_language_renders_ascii_letters_without_index_errors(lan
     assert "IndexError" not in rendered
 
 
-@pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
+@pytest.mark.parametrize("language", sorted(SEQUENCE_POLICY_LANGUAGES))
 def test_mixed_identifier_rendering_is_total(language: str) -> None:
     rendered = render_sequence("XYZ-2024/Abc", language=language)
     assert rendered

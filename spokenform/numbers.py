@@ -10,12 +10,7 @@ from decimal import Decimal, InvalidOperation
 from typing import Final, Literal
 
 from .casing import capitalize_generated_input_start, capitalize_generated_sentence_start
-from .language import (
-    SUPPORTED_BASE_LANGUAGES,
-    base_language,
-    normalize_language,
-    resolve_abbr2words_language,
-)
+from .language import base_language, normalize_language, resolve_abbr2words_language
 from .number_words import number_words
 from .numeric_lexeme import (
     NumberRenderMode,
@@ -318,11 +313,7 @@ def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
 
 
 def _base_language(language: str) -> str:
-    base = base_language(language)
-    if base not in SUPPORTED_BASE_LANGUAGES:
-        supported = ", ".join(SUPPORTED_BASE_LANGUAGES)
-        raise ValueError(f"Unsupported language {language!r}. Supported languages: {supported}")
-    return base
+    return base_language(language)
 
 
 def _spell(value: int | Decimal, language: str, *, ordinal: bool = False) -> str:
@@ -471,8 +462,6 @@ def _replace_currencies(text: str, language: str) -> str:
 
 
 def _replace_years(text: str, language: str) -> str:
-    if base_language(language) not in SUPPORTED_BASE_LANGUAGES:
-        return text
     pattern = re.compile(r"(?<![\w.])(?P<year>\d{4})(?![\w.])")
 
     def replace(match: re.Match[str]) -> str:

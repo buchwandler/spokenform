@@ -69,8 +69,8 @@ LongNumberMode = Literal["preserve", "contextual", "cardinal"]
 RegisteredAcronymMode = Literal["expand", "spell"]
 
 
-def number_policy_for_language(language: str) -> NumberPolicy:
-    """Return the initial kokorog2p policy for a normalized language code."""
+def kokorog2p_number_policy_for_language(language: str) -> NumberPolicy:
+    """Return the stable KokoroG2P numeric ownership policy."""
     base = base_language(language)
     if base in {
         "cs",
@@ -90,6 +90,25 @@ def number_policy_for_language(language: str) -> NumberPolicy:
     }:
         return NumberPolicy.STRUCTURED_AND_PLAIN
     return NumberPolicy.NONE
+
+
+def default_number_policy_for_language(language: str) -> NumberPolicy:
+    """Return generic numeric ownership from released backend capabilities."""
+    from .language_support import (
+        language_has_plain_number_backend,
+        language_has_reviewed_structured_numbers,
+    )
+
+    if language_has_reviewed_structured_numbers(language):
+        return NumberPolicy.STRUCTURED_AND_PLAIN
+    if language_has_plain_number_backend(language):
+        return NumberPolicy.PLAIN
+    return NumberPolicy.NONE
+
+
+def number_policy_for_language(language: str) -> NumberPolicy:
+    """Backward-compatible alias for the KokoroG2P policy."""
+    return kokorog2p_number_policy_for_language(language)
 
 
 def _normalized_config_language(value: object) -> str:
@@ -300,4 +319,6 @@ __all__ = [
     "PreparationConfig",
     "SymbolMode",
     "number_policy_for_language",
+    "default_number_policy_for_language",
+    "kokorog2p_number_policy_for_language",
 ]

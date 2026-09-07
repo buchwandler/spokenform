@@ -5,8 +5,12 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Final
 
-from abbr2words import supported_languages as abbr2words_supported_languages
-from abbr2words.units import unit_entries
+from abbr2words import (
+    normalize_language as normalize_abbr2words_language,
+)
+from abbr2words import (
+    supported_languages as abbr2words_supported_languages,
+)
 from num2words import CONVERTER_CLASSES
 
 _LANGUAGE_ALIASES: Final[dict[str, str]] = {
@@ -16,6 +20,7 @@ _LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "msa": "ar",
     "heb": "he",
     "kaz": "kk",
+    "kz": "kk",
 }
 _BASE_LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "swe": "sv",
@@ -25,7 +30,7 @@ _BASE_LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "kk": "kk",
 }
 KOKOROG2P_PROFILE_VERSION: Final[str] = "0.3.2"
-_KOKOROG2P_PROFILES: Final[frozenset[str]] = frozenset(
+KOKOROG2P_PROFILE_LANGUAGES: Final[frozenset[str]] = frozenset(
     {
         "ar",
         "cs",
@@ -46,20 +51,35 @@ _KOKOROG2P_PROFILES: Final[frozenset[str]] = frozenset(
         "zh",
     }
 )
-SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = tuple(sorted(_KOKOROG2P_PROFILES))
+
 _DEPENDENCY_LANGUAGE_ALIASES: Final[dict[str, str]] = {
-    # Spokenform exposes the product-standard kk name while both supported
-    # semantic dependencies publish their Kazakh tables as kz.
     "kk": "kz",
 }
 
+_RAW_ABBR2WORDS_LANGUAGES: Final[tuple[str, ...]] = abbr2words_supported_languages(
+    include_locales=True
+)
+_RAW_ABBR2WORDS_LOCALES: Final[frozenset[str]] = frozenset(
+    code for code in _RAW_ABBR2WORDS_LANGUAGES if "_" in code
+)
+_RAW_ABBR2WORDS_BASES: Final[frozenset[str]] = frozenset(
+    code for code in _RAW_ABBR2WORDS_LANGUAGES if "_" not in code
+)
 
-def normalize_language(language: str) -> str:
-    """Return a canonical Spokenform language identifier.
+# Public Spokenform keeps kk as its canonical Kazakh key while the dependency
+# registries expose kz. The remaining keys are owned by abbr2words.
+SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = tuple(
+    sorted(_LANGUAGE_ALIASES.get(code, code) for code in _RAW_ABBR2WORDS_BASES)
+)
+SUPPORTED_LOCALES: Final[tuple[str, ...]] = tuple(sorted(_RAW_ABBR2WORDS_LOCALES))
+SUPPORTED_LANGUAGE_KEYS: Final[tuple[str, ...]] = tuple(
+    sorted((*SUPPORTED_BASE_LANGUAGES, *SUPPORTED_LOCALES))
+)
+_COMPATIBILITY_LOCALES: Final[frozenset[str]] = frozenset({"pt_PT"})
 
-    Base language codes are lower-case and regional subtags are upper-case,
-    with hyphens accepted as input for interoperability with BCP-47 sources.
-    """
+
+def canonicalize_language(language: str) -> str:
+    """Normalize language syntax and compatibility aliases without validation."""
     if not isinstance(language, str):
         raise TypeError("language must be a string")
     value = language.strip()
@@ -76,14 +96,50 @@ def normalize_language(language: str) -> str:
     return f"{base}_{parts[1].upper()}"
 
 
+def _canonicalize_dependency_language(language: str) -> str:
+    value = language.strip().replace("-", "_")
+    parts = value.split("_", 1)
+    base = parts[0].lower()
+    if len(parts) == 1:
+        return base
+    return f"{base}_{parts[1].upper()}"
+
+
+def normalize_language(language: str) -> str:
+    """Return a supported canonical Spokenform language identifier.
+
+    Exact registered locales are retained. Other regional inputs resolve to
+    their registered base language, and unknown language families are rejected.
+    """
+    requested = canonicalize_language(language)
+    if requested in _COMPATIBILITY_LOCALES:
+        return requested
+    if requested in SUPPORTED_LANGUAGE_KEYS:
+        return requested
+    base = requested.split("_", 1)[0]
+    if base in SUPPORTED_BASE_LANGUAGES:
+        return base
+    supported_text = ", ".join(SUPPORTED_LANGUAGE_KEYS)
+    raise ValueError(f"Unsupported language {language!r}; Spokenform supports: {supported_text}")
+
+
 def base_language(language: str) -> str:
-    """Return the base language component of a normalized identifier."""
+    """Return the base language component of a supported identifier."""
     return normalize_language(language).split("_", 1)[0]
 
 
-def supported_languages() -> tuple[str, ...]:
-    """Return Spokenform's supported base language identifiers."""
-    return SUPPORTED_BASE_LANGUAGES
+def supported_languages(*, include_locales: bool = False) -> tuple[str, ...]:
+    """Return supported base families or all public language keys."""
+    return SUPPORTED_LANGUAGE_KEYS if include_locales else SUPPORTED_BASE_LANGUAGES
+
+
+def supports_language(language: str) -> bool:
+    """Return whether an input resolves to a supported Spokenform language."""
+    try:
+        normalize_language(language)
+    except (TypeError, ValueError):
+        return False
+    return True
 
 
 def supports_profile(language: str, profile: str = "kokorog2p") -> bool:
@@ -91,68 +147,59 @@ def supports_profile(language: str, profile: str = "kokorog2p") -> bool:
     if profile != "kokorog2p":
         return False
     try:
-        return base_language(language) in _KOKOROG2P_PROFILES
+        return base_language(language) in KOKOROG2P_PROFILE_LANGUAGES
     except (TypeError, ValueError):
         return False
 
 
 def _resolve_dependency_language(language: str, supported: Iterable[str]) -> str:
     requested = normalize_language(language)
-    supported_codes = {normalize_language(code) for code in supported}
-    if requested in supported_codes:
-        return requested
-    base = base_language(requested)
-    if base in supported_codes:
-        return base
+    dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
+        base_language(requested), base_language(requested)
+    )
+    if "_" in requested:
+        dependency_language = f"{dependency_language}_{requested.split('_', 1)[1]}"
+    supported_codes = {_canonicalize_dependency_language(code) for code in supported}
+    if dependency_language in supported_codes:
+        return dependency_language
+    dependency_base = dependency_language.split("_", 1)[0]
+    if dependency_base in supported_codes:
+        return dependency_base
     supported_text = ", ".join(sorted(supported_codes))
     raise ValueError(f"Unsupported language {language!r}; dependency supports: {supported_text}")
 
 
 def resolve_num2words_language(language: str) -> str:
     """Select an exact num2words language or its supported base fallback."""
-    requested = normalize_language(language)
-    dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
-        base_language(requested),
-        requested,
-    )
-    return _resolve_dependency_language(dependency_language, CONVERTER_CLASSES)
-
-
-_EXACT_ABBR2WORDS_LOCALES = frozenset({"es_MX", "zh_CN"})
+    return _resolve_dependency_language(language, CONVERTER_CLASSES)
 
 
 def resolve_abbr2words_language(language: str) -> str:
     """Select an exact abbr2words language or its supported base fallback."""
     requested = normalize_language(language)
     dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
-        base_language(requested),
-        requested,
+        base_language(requested), base_language(requested)
     )
-    # Regional abbr2words tables can expose the base inventory under a
-    # variant name without providing a distinct abbreviation contract.  The
-    # Mexican Spanish table is the reviewed exception: its currency symbols
-    # have a different canonical identity and must remain locale-specific.
-    if dependency_language not in _EXACT_ABBR2WORDS_LOCALES and "_" in dependency_language:
-        dependency_language = base_language(dependency_language)
-    supported = {normalize_language(code) for code in abbr2words_supported_languages()}
-    usable: set[str] = set()
-    for code in supported:
-        try:
-            unit_entries(code)
-        except KeyError:
-            continue
-        else:
-            usable.add(code)
-    return _resolve_dependency_language(dependency_language, usable)
+    if "_" in requested:
+        dependency_language = f"{dependency_language}_{requested.split('_', 1)[1]}"
+    try:
+        return normalize_abbr2words_language(dependency_language)
+    except ValueError:
+        return normalize_abbr2words_language(dependency_language.split("_", 1)[0])
 
 
 __all__ = [
+    "KOKOROG2P_PROFILE_LANGUAGES",
+    "KOKOROG2P_PROFILE_VERSION",
     "SUPPORTED_BASE_LANGUAGES",
+    "SUPPORTED_LANGUAGE_KEYS",
+    "SUPPORTED_LOCALES",
     "base_language",
+    "canonicalize_language",
     "normalize_language",
     "resolve_abbr2words_language",
     "resolve_num2words_language",
-    "KOKOROG2P_PROFILE_VERSION",
-    "supports_profile",
     "supported_languages",
+    "supports_language",
+    "supports_profile",
 ]

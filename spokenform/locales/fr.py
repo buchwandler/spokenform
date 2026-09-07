@@ -202,6 +202,8 @@ def _number_text(raw: str, language: str = "fr") -> str:
     result = _spell(integer, language)
     if fraction is not None:
         policy = numeric_speech_policy(language)
+        if policy.decimal_word is None:
+            return raw
         result += (
             " "
             + policy.decimal_word

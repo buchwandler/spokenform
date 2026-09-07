@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 
 from spokenform import (
+    KOKOROG2P_PROFILE_LANGUAGES,
     KOKOROG2P_PROFILE_VERSION,
-    SUPPORTED_BASE_LANGUAGES,
     NumberPolicy,
     PreparationConfig,
     prepare_for_kokorog2p,
@@ -35,7 +35,7 @@ EXPECTED_FAMILIES = {
 
 
 def test_kokorog2p_profile_contract_covers_all_families() -> None:
-    assert set(SUPPORTED_BASE_LANGUAGES) == EXPECTED_FAMILIES
+    assert set(KOKOROG2P_PROFILE_LANGUAGES) == EXPECTED_FAMILIES
     assert KOKOROG2P_PROFILE_VERSION == "0.3.2"
     assert all(supports_profile(language) for language in EXPECTED_FAMILIES)
     assert not supports_profile("en", "other")

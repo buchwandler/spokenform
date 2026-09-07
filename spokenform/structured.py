@@ -15,6 +15,7 @@ from .config import (
 from .diagnostics import TraceCollector
 from .evidence import EvidenceSession
 from .language import base_language, normalize_language
+from .language_support import SHARED_SEQUENCE_RECOGNIZER_LANGUAGES
 from .mapping import Replacement, resolve_replacements
 from .models import ReservedSpan
 from .recognition_policy import PolicySuppression, annotate_candidate, filter_candidates
@@ -135,7 +136,7 @@ def iter_structured_candidates(
 
     shared_candidates = (
         ()
-        if base in {"ja", "ko", "zh"}
+        if base not in SHARED_SEQUENCE_RECOGNIZER_LANGUAGES
         else iter_sequence_replacements(
             text,
             language=language,

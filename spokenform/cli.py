@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from typing import cast
 
 from .api import prepare
 from .config import InterpretationMode, RecognitionDomain, SequenceFallbackMode
@@ -20,10 +21,13 @@ def _load_lexhint(
         from lexhint import Lexicon
     except ImportError as exc:
         raise RuntimeError("--lexhint requires the spokenform[lexhint] extra") from exc
-    return Lexicon(
-        base_language(language),
-        variant=variant,
-        dataset_version=dataset_version,
+    return cast(
+        LexicalEvidenceProvider,
+        Lexicon(
+            base_language(language),
+            variant=variant,
+            dataset_version=dataset_version,
+        ),
     )
 
 

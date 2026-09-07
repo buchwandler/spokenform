@@ -27,28 +27,31 @@ caller-protected spans always take precedence.
 
 ## Language identifiers and number backends
 
-Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `ru`, `sv`, `vi`, and `zh`. Regional forms such as `ru-RU`, `ru_RU`, `sv-SE`, `vi-VN`, and `vi_VN` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` and `rus` are compatibility aliases; `vn` and `kr` are not accepted.
+Canonical runtime identifiers include 49 base families and 17 exact dependency locale overlays. `supported_languages()` returns the base families; `supported_languages(include_locales=True)` returns all 66 public keys. Exact overlays are preserved for abbreviation routing, while unregistered regional forms fall back to their base language. `kk` is Spokenform's Kazakh key and maps to dependency key `kz`.
 
-All existing supported languages use released `num2words` except Chinese, which uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. Swedish resolves to `sv` for both numeric and abbreviation dependency calls, while `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese. `resolve_abbr2words_language()` preserves exact regional overlays such as `zh_CN`.
+The installed `num2words` backend is capability-based. Chinese uses `cn2an`; `hi`, `hy`, and `mn` remain valid language inputs but preserve ordinary numeric source when the stable backend is unavailable. Reviewed decimal policies, structured locale grammar, sequence spelling, and KokoroG2P profiles are narrower capabilities and are not implied by global language support.
 
 ```python
 from spokenform import (
+    language_support,
     normalize_language,
     resolve_abbr2words_language,
     resolve_num2words_language,
     supported_languages,
+    supports_language,
 )
 
-assert "sv" in supported_languages()
-assert normalize_language("sv-SE") == "sv_SE"
-assert resolve_num2words_language("sv-SE") == "sv"
-assert resolve_abbr2words_language("sv-SE") == "sv"
+assert len(supported_languages()) == 49
+assert len(supported_languages(include_locales=True)) == 66
+assert "nl" in supported_languages()
+assert normalize_language("pt-BR") == "pt_BR"
+assert normalize_language("fr_FR") == "fr"
+assert normalize_language("en-gb") == "en_GB"
+assert resolve_abbr2words_language("es-ni") == "es_NI"
+assert resolve_num2words_language("fr-FR") == "fr"
+assert language_support("hi").plain_cardinals is False
+assert supports_language("eu") is False
 ```
-
-assert "vi" in supported_languages()
-assert normalize_language("vi-VN") == "vi_VN"
-assert resolve_num2words_language("vi-VN") == "vi"
-assert resolve_abbr2words_language("vi-VN") == "vi"
 
 `symbol_mode="none"` is the backward-compatible default and applies no general
 residual-symbol filter. `symbol_mode="remove"` removes Unicode punctuation and

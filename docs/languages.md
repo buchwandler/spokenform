@@ -1,3 +1,61 @@
+## Complete runtime registry
+
+The generated capability matrix is maintained in [`language-coverage.md`](language-coverage.md). The public registry accepts these base families:
+
+| Canonical code |
+| -------------- |
+| `am`           |
+| `ar`           |
+| `az`           |
+| `be`           |
+| `bn`           |
+| `ca`           |
+| `ce`           |
+| `cs`           |
+| `cy`           |
+| `da`           |
+| `de`           |
+| `en`           |
+| `eo`           |
+| `es`           |
+| `fa`           |
+| `fi`           |
+| `fr`           |
+| `he`           |
+| `hi`           |
+| `hu`           |
+| `hy`           |
+| `id`           |
+| `is`           |
+| `it`           |
+| `ja`           |
+| `kk`           |
+| `kn`           |
+| `ko`           |
+| `lt`           |
+| `lv`           |
+| `mn`           |
+| `nl`           |
+| `no`           |
+| `pl`           |
+| `pt`           |
+| `ro`           |
+| `ru`           |
+| `sk`           |
+| `sl`           |
+| `sr`           |
+| `sv`           |
+| `te`           |
+| `tet`          |
+| `tg`           |
+| `th`           |
+| `tr`           |
+| `uk`           |
+| `vi`           |
+| `zh`           |
+
+The 17 exact overlays are `en_GB`, `en_IN`, `en_NG`, `en_US`, `es_CO`, `es_CR`, `es_GT`, `es_MX`, `es_NI`, `es_VE`, `fr_BE`, `fr_CH`, `fr_DZ`, `pt_BR`, `zh_CN`, `zh_HK`, and `zh_TW`.
+
 # Language support matrix
 
 | `ar` | `ara` | `ar_MSA` | `num2words` | `ar` | yes | reviewed | conservative | reviewed | caller-managed | fail closed for unreviewed domains |
@@ -47,9 +105,8 @@ Plain numbers, reviewed quantities, Celsius and Fahrenheit temperatures, and
 Swedish krona amounts are supported. Swedish quantity grammar uses the reviewed
 `abbr2words` canonical unit identities and explicit singular and plural forms.
 
-`sv-SE` and `sv_SE` are normalized to the regional form and routed to the
-Swedish base language. `swe` is accepted as a compatibility alias, and
-`swe-SE` normalizes to `sv_SE`.
+`sv-SE` and `sv_SE` normalize to the registered base key `sv`. `swe` is accepted as a compatibility alias, and
+`swe-SE` also normalizes to `sv`.
 
 Swedish digital clock bodies and numeric dates remain caller-managed in this
 release, although valid shapes are protected from generic number rewriting.

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from spokenform import PreparationConfig, SequenceFallbackMode, prepare
-from spokenform.language import SUPPORTED_BASE_LANGUAGES
+from spokenform.language_support import SEQUENCE_POLICY_LANGUAGES
 
 
 def test_sequence_fallback_preserve_is_default() -> None:
@@ -86,7 +86,7 @@ def test_literal_promotion_precedes_fallback() -> None:
     assert not any(item.rule == "fallback.sequence" for item in result.source_replacements)
 
 
-@pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
+@pytest.mark.parametrize("language", sorted(SEQUENCE_POLICY_LANGUAGES))
 def test_fallback_is_total_and_mapped_in_every_supported_language(language: str) -> None:
     result = prepare("XJ9", language=language, use_spacy=False, sequence_fallback_mode="spell")
     assert result.spoken_text

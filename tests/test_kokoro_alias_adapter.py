@@ -3,13 +3,14 @@ from __future__ import annotations
 import pytest
 
 pytest.importorskip("kokorog2p")
-from kokorog2p.pipeline_api import _spokenform_language, _uses_spokenform_semantics
+from kokorog2p.language_codes import normalize_language_code
 
 from spokenform import (
     add_abbreviation,
     has_abbreviation,
     remove_abbreviation,
     reset_abbreviations,
+    supports_profile,
 )
 
 
@@ -36,11 +37,11 @@ from spokenform import (
         ("kaz", "kk"),
     ],
 )
-def test_kokoro_aliases_adapt_to_spokenform_without_alias_leakage(
+def test_kokoro_aliases_keep_independent_spokenform_profile(
     alias: str, spokenform_language: str
 ) -> None:
-    assert _spokenform_language(alias) == spokenform_language
-    assert _uses_spokenform_semantics(alias)
+    assert normalize_language_code(alias) == spokenform_language
+    assert supports_profile(spokenform_language)
 
 
 def test_spokenform_abbreviation_facade_uses_shared_registry() -> None:

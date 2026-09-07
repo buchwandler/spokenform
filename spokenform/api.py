@@ -33,6 +33,7 @@ from .config import (
     RegisteredAcronymMode,
     SequenceFallbackMode,
     SymbolMode,
+    default_number_policy_for_language,
 )
 from .evidence import EvidenceSession, LexicalEvidenceProvider, validate_provider
 from .fallback import iter_sequence_fallback_replacements
@@ -1020,10 +1021,11 @@ def _resolve_number_options(
 ) -> tuple[bool, bool, tuple[str, ...]]:
     """Resolve numeric ownership and downstream punctuation warnings once."""
     warnings: list[str] = []
+    derived_policy = number_policy is None
     if model_punctuation:
         warnings.append("[PUNCTUATION] model punctuation remains downstream")
     if number_policy is None:
-        return expand_structured, expand_numbers, tuple(warnings)
+        number_policy = default_number_policy_for_language(language_code)
 
     structured_enabled = expand_structured and number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
     plain_enabled = expand_numbers and number_policy in {
@@ -1035,7 +1037,11 @@ def _resolve_number_options(
             f"[NUMBERS] caller-managed number categories for language {language_code!r}"
         )
     elif number_policy is NumberPolicy.NONE:
-        warnings.append(f"[NUMBERS] unsupported number policy for language {language_code!r}")
+        warnings.append(
+            f"[NUMBERS] no released numeric backend for language {language_code!r}; numeric text preserved"
+            if derived_policy
+            else f"[NUMBERS] unsupported number policy for language {language_code!r}"
+        )
     return structured_enabled, plain_enabled, tuple(warnings)
 
 

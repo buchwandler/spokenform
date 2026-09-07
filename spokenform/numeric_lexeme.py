@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
 
-from .language import base_language, normalize_language
+from .language import base_language, canonicalize_language, normalize_language
 
 
 @dataclass(frozen=True, slots=True)
@@ -47,7 +47,7 @@ class NumberRenderMode(str, Enum):
 class NumericPunctuationPolicy:
     """Locale punctuation contract used before any ambiguity fallback."""
 
-    decimal_separator: str
+    decimal_separator: str | None
     grouping_separators: tuple[str, ...]
     alternate_decimal_separators: tuple[str, ...] = ()
     infer_decimal_in_strong_context: bool = True
@@ -57,7 +57,7 @@ class NumericPunctuationPolicy:
 class NumericSpeechPolicy:
     """Locale-selected wording policy for a parsed numeric lexeme."""
 
-    decimal_word: str
+    decimal_word: str | None
     fraction_mode: Literal["digitwise", "two_digit_cardinal", "cardinal"]
     preserve_leading_zero_fraction: bool = True
     omit_cardinal_conjunction: bool = False
@@ -108,7 +108,7 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
     "de": NumericSpeechPolicy("Komma", "digitwise", year_mode="split_hundreds"),
     "es": NumericSpeechPolicy("coma", "digitwise"),
     "fr": NumericSpeechPolicy("virgule", "digitwise"),
-    "it": NumericSpeechPolicy("virgola", "digitwise"),
+    "it": NumericSpeechPolicy("virgola", "two_digit_cardinal"),
     "pt": NumericSpeechPolicy("vírgula", "digitwise"),
     "sv": NumericSpeechPolicy("komma", "digitwise"),
     "ru": NumericSpeechPolicy("запятая", "digitwise"),
@@ -122,22 +122,30 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
 
 def numeric_speech_policy(language: str) -> NumericSpeechPolicy:
     """Return the immutable numeric speech policy for a normalized locale."""
+    requested = canonicalize_language(language)
     normalized = normalize_language(language)
     return _NUMERIC_SPEECH_POLICIES.get(
-        normalized,
-        _BASE_NUMERIC_SPEECH_POLICIES.get(
-            base_language(normalized), NumericSpeechPolicy("point", "digitwise")
+        requested,
+        _NUMERIC_SPEECH_POLICIES.get(
+            normalized,
+            _BASE_NUMERIC_SPEECH_POLICIES.get(
+                base_language(normalized), NumericSpeechPolicy(None, "digitwise")
+            ),
         ),
     )
 
 
 def numeric_punctuation_policy(language: str) -> NumericPunctuationPolicy:
     """Return the locale punctuation policy for numeric lexeme parsing."""
+    requested = canonicalize_language(language)
     normalized = normalize_language(language)
     return _NUMERIC_PUNCTUATION_POLICIES.get(
-        normalized,
-        _BASE_NUMERIC_PUNCTUATION_POLICIES.get(
-            base_language(normalized), NumericPunctuationPolicy(".", (",", " "))
+        requested,
+        _NUMERIC_PUNCTUATION_POLICIES.get(
+            normalized,
+            _BASE_NUMERIC_PUNCTUATION_POLICIES.get(
+                base_language(normalized), NumericPunctuationPolicy(None, ())
+            ),
         ),
     )
 
@@ -372,12 +380,14 @@ def parse_numeric_lexeme(
     if validated is None:
         return None
     negative, unsigned = validated
-    language = normalize_language(language)
     policy = numeric_punctuation_policy(language)
+    language = normalize_language(language)
     if base_language(language) in {"sv", "ru"} and "." in unsigned:
         return None
     if not any(character in unsigned for character in ".,"):
         return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())
+    if policy.decimal_separator is None and not policy.grouping_separators:
+        return None
     resolution = _resolve_separator_shape(
         unsigned,
         language=language,

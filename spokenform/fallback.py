@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from typing import Literal
 
 from .config import SequenceFallbackMode
+from .language import base_language
+from .language_support import SEQUENCE_POLICY_LANGUAGES
 from .mapping import Replacement
 from .sequences import SequenceRenderPolicy, render_sequence
 
@@ -52,6 +54,8 @@ def iter_sequence_fallback_replacements(
     protected_ranges: Iterable[tuple[int, int]] = (),
 ) -> tuple[Replacement, ...]:
     """Return conservative orthographic replacements for eligible spans."""
+    if base_language(language) not in SEQUENCE_POLICY_LANGUAGES:
+        return ()
     blocked = tuple(protected_ranges)
     replacements: list[Replacement] = []
     for match in _SEQUENCE_FALLBACK_RE.finditer(text):

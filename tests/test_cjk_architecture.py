@@ -3,24 +3,33 @@ from __future__ import annotations
 import importlib
 
 from spokenform.config import NumberPolicy, number_policy_for_language
-from spokenform.language import SUPPORTED_BASE_LANGUAGES
+from spokenform.language_support import (
+    CONSERVATIVE_INTEGRATION_LANGUAGES,
+    REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES,
+    REVIEWED_STRUCTURED_LANGUAGES,
+    SEQUENCE_POLICY_LANGUAGES,
+)
 from spokenform.number_words import number_backend_for_language
 from spokenform.numeric_lexeme import numeric_punctuation_policy, numeric_speech_policy
 from spokenform.sequences import vocabulary
 
+STRUCTURED_LOCALE_LANGUAGES = REVIEWED_STRUCTURED_LANGUAGES | CONSERVATIVE_INTEGRATION_LANGUAGES
 
-def test_every_supported_language_has_explicit_runtime_policies() -> None:
-    for language in SUPPORTED_BASE_LANGUAGES:
+
+def test_runtime_policy_sets_are_explicit() -> None:
+    for language in STRUCTURED_LOCALE_LANGUAGES:
         expected_policy = (
             NumberPolicy.NONE
-            if language in {"ar", "he", "kk"}
+            if language in CONSERVATIVE_INTEGRATION_LANGUAGES
             else NumberPolicy.STRUCTURED_AND_PLAIN
         )
         assert number_policy_for_language(language) is expected_policy
+        importlib.import_module(f"spokenform.locales.{language}")
+    for language in REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES:
         assert numeric_punctuation_policy(language)
         assert numeric_speech_policy(language)
+    for language in SEQUENCE_POLICY_LANGUAGES:
         assert vocabulary(language)
-        importlib.import_module(f"spokenform.locales.{language}")
 
 
 def test_cjk_backend_routing_is_explicit() -> None:
