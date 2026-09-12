@@ -51,16 +51,61 @@ def number_backend_for_language(language: str) -> str:
 
 def _coerce_numeralform_value(value: Number) -> int | Decimal:
     if isinstance(value, bool):
-        raise TypeError("number must be an integer or Decimal")
-    if isinstance(value, int | Decimal):
+        raise TypeError("number must be an integer, Decimal, or numeric string")
+    if isinstance(value, int):
         return value
+    if isinstance(value, Decimal):
+        if not value.is_finite():
+            raise ValueError("number must be finite")
+        return value
+    if not isinstance(value, str):
+        raise TypeError("number must be an integer, Decimal, or numeric string")
     text = value.strip()
+    if not text:
+        raise ValueError("numeric string must not be empty")
     if _INTEGER_RE.fullmatch(text):
         return int(text)
     try:
-        return Decimal(text)
+        parsed = Decimal(text)
     except InvalidOperation as exc:
         raise ValueError(f"Cannot parse numeric value {value!r}") from exc
+    if not parsed.is_finite():
+        raise ValueError("number must be finite")
+    return parsed
+
+
+def _numeralform_style(
+    value: int | Decimal,
+    language: str,
+    form: str | None,
+    style: str | None,
+) -> str | None:
+    if (
+        style is None
+        and base_language(language) == "en"
+        and form in {None, "cardinal"}
+        and isinstance(value, int)
+    ):
+        return "british-and"
+    return style
+
+
+def _apply_spokenform_numeric_surface_policy(
+    text: str,
+    *,
+    value: int | Decimal,
+    language: str,
+    form: str | None,
+) -> str:
+    if base_language(language) == "de" and form == "ordinal" and value in {100, 1000}:
+        text = text.removeprefix("ein")
+    if base_language(language) == "en" and form in {None, "cardinal"} and isinstance(value, int):
+        text = re.sub(
+            r"\b(thousand|million|billion|trillion) (?=[a-z-]+ hundred\b)",
+            r"\1, ",
+            text,
+        )
+    return text
 
 
 def _render_numeralform(
@@ -70,20 +115,14 @@ def _render_numeralform(
     form: str | None = None,
     style: str | None = None,
 ) -> str:
-    """Render Numeralform with narrowly scoped reviewed compatibility spellings."""
+    """Render Numeralform and apply reviewed Spokenform surface policy."""
     backend = require_number_backend(language)
     if backend.name == "cn2an":
         raise ValueError(
             f"Numeralform rendering is not supported for {normalize_language(language)!r}"
         )
     rendered_value = _coerce_numeralform_value(value)
-    if (
-        style is None
-        and base_language(language) == "en"
-        and form in {None, "cardinal"}
-        and isinstance(rendered_value, int)
-    ):
-        style = "british-and"
+    style = _numeralform_style(rendered_value, language, form, style)
     try:
         rendered = numeralform.render(
             rendered_value,
@@ -91,38 +130,23 @@ def _render_numeralform(
             form=form,
             style=style,
         )
-        if base_language(language) == "de" and form == "ordinal" and rendered_value in {100, 1000}:
-            rendered = rendered.removeprefix("ein")
-        if (
-            base_language(language) == "en"
-            and form in {None, "cardinal"}
-            and isinstance(rendered_value, int)
-        ):
-            rendered = re.sub(
-                r"\b(thousand|million|billion|trillion) (?=[a-z-]+ hundred\b)",
-                r"\1, ",
-                rendered,
-            )
-        return rendered
     except numeralform.NumeralFormError as exc:
-        if (
-            base_language(language) == "de"
-            and form in {None, "cardinal"}
-            and rendered_value == 1_000_000_000_000
-        ):
-            return "eine Billion"
         requested_form = form or "cardinal"
         raise ValueError(
             f"Cannot render {requested_form} for {normalize_language(language)!r}: {exc}"
         ) from exc
+    return _apply_spokenform_numeric_surface_policy(
+        rendered, value=rendered_value, language=language, form=form
+    )
 
 
 def cardinal(value: Number, language: str) -> str:
     """Render a cardinal number with the language's released backend."""
+    rendered_value = _coerce_numeralform_value(value)
     backend = require_number_backend(language)
     if backend.name == "cn2an":
-        return cn2an.an2cn(str(value), "low")
-    return _render_numeralform(value, language)
+        return cn2an.an2cn(str(rendered_value), "low")
+    return _render_numeralform(rendered_value, language)
 
 
 def ordinal(value: int, language: str) -> str:

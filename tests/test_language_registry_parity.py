@@ -21,11 +21,11 @@ def test_installed_abbr2words_registry_matches_contract() -> None:
 
 def test_spokenform_registry_matches_dependency_contract() -> None:
     expected_bases = {"kk" if key == "kz" else key for key in CONTRACT["base_keys"]}
-    expected_keys = expected_bases | set(CONTRACT["locale_keys"])
+    expected_keys = expected_bases | set(CONTRACT["locale_keys"]) | {"pt_PT"}
     assert set(SUPPORTED_BASE_LANGUAGES) == expected_bases
     assert set(supported_languages(include_locales=True)) == expected_keys
     assert len(SUPPORTED_BASE_LANGUAGES) == 49
-    assert len(supported_languages(include_locales=True)) == 66
+    assert len(supported_languages(include_locales=True)) == 67
     assert not supports_language("eu")
 
 

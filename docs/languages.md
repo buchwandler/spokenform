@@ -54,7 +54,7 @@ The generated capability matrix is maintained in [`language-coverage.md`](langua
 | `vi`           |
 | `zh`           |
 
-The 17 exact overlays are `en_GB`, `en_IN`, `en_NG`, `en_US`, `es_CO`, `es_CR`, `es_GT`, `es_MX`, `es_NI`, `es_VE`, `fr_BE`, `fr_CH`, `fr_DZ`, `pt_BR`, `zh_CN`, `zh_HK`, and `zh_TW`.
+The 18 exact overlays are `en_GB`, `en_IN`, `en_NG`, `en_US`, `es_CO`, `es_CR`, `es_GT`, `es_MX`, `es_NI`, `es_VE`, `fr_BE`, `fr_CH`, `fr_DZ`, `pt_BR`, `pt_PT`, `zh_CN`, `zh_HK`, and `zh_TW`.
 
 # Language support matrix
 
@@ -76,7 +76,7 @@ kokorog2p.
 | `it`           | none             | `it_IT`           | `numeralform`   | `it`                 | yes           | comma                                         | yes                                   | reviewed       | reviewed                                                     | reviewed, conservative                              |
 | `ja`           | `jp`             | `ja_JP`           | `numeralform`   | `ja`                 | yes           | reviewed                                      | yes                                   | JPY            | reviewed                                                     | conservative                                        |
 | `ko`           | none             | `ko_KR`           | `numeralform`   | `ko`                 | yes           | reviewed                                      | yes                                   | KRW            | reviewed                                                     | conservative                                        |
-| `pt`           | none             | `pt_BR`           | `numeralform`   | `pt`, `pt_BR`        | yes           | comma                                         | yes                                   | EUR            | reviewed                                                     | reviewed, conservative                              |
+| `pt`           | none             | `pt_BR` / `pt_PT` | `numeralform`   | `pt`, `pt_BR`, base fallback for `pt_PT` | yes           | comma                                         | yes                                   | EUR            | reviewed                                                     | reviewed, conservative                              |
 | `sv`           | `swe`            | `sv_SE` / `sv-SE` | `numeralform`   | `sv`                 | yes           | comma                                         | yes                                   | SEK / `kr`     | caller-managed dates and digital times                       | fail closed for unreviewed domains                  |
 | `vi`           | none             | `vi_VN` / `vi-VN` | `numeralform`   | `vi`                 | yes           | comma decimal; dot or space-family grouping   | reviewed                              | VND / `₫`      | caller-managed dates and digital times                       | fail closed for unreviewed domains                  |
 | `th`           | none             | `th_TH` / `th-TH` | `numeralform`   | `th`                 | yes           | point decimal; comma or space-family grouping | reviewed                              | THB / `฿`      | caller-managed dates, eras, and digital times                | fail closed for unreviewed domains                  |

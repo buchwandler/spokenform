@@ -52,7 +52,7 @@ runs and the safety-mutation gates remained at zero.
 
 ## Numeralform migration baseline
 
-This post-migration checkpoint records the renderer contract separately from the historical benchmark run above. The historical `num2words` environment is intentionally unchanged.
+This post-migration checkpoint records the renderer contract separately from the historical benchmark run above. The reviewed Numeralform 0.1.1 environment is used for current renderer checks; the historical `num2words` environment is intentionally unchanged.
 
 | Renderer    | Version contract | Chinese renderer         | Locale contract |
 | ----------- | ---------------- | ------------------------ | --------------- |

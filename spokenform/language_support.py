@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 
+import numeralform
+
 from .language import (
     KOKOROG2P_PROFILE_LANGUAGES,
     base_language,
@@ -73,6 +75,8 @@ def _number_capability(language: str) -> tuple[str | None, str | None]:
     try:
         resolved = resolve_numeralform_locale(language)
     except ValueError:
+        return None, None
+    if not numeralform.supports(resolved, form="cardinal", value=0):
         return None, None
     return "numeralform", resolved
 

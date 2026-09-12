@@ -6,8 +6,11 @@ import sys
 from decimal import Decimal
 from pathlib import Path
 
+import numeralform
 import pytest
 
+from spokenform.language import base_language, supported_languages
+from spokenform.language_support import language_support
 from spokenform.number_words import (
     cardinal,
     currency,
@@ -66,6 +69,21 @@ def test_cardinal_contract_covers_representative_numeralform_locales() -> None:
     assert cardinal(21, "mn") == "хорин нэг"
 
 
+@pytest.mark.parametrize(
+    "language",
+    [
+        language
+        for language in supported_languages(include_locales=True)
+        if base_language(language) != "zh" and language_support(language).plain_cardinals
+    ],
+)
+def test_claimed_numeralform_backend_has_cardinal_capability(language: str) -> None:
+    support = language_support(language)
+    assert support.number_backend == "numeralform"
+    assert support.number_language is not None
+    assert numeralform.supports(support.number_language, form="cardinal", value=0)
+
+
 def test_numeralform_decimal_and_currency_contracts() -> None:
     assert decimal(Decimal("1.20"), "en") == "one point two zero"
     assert currency(Decimal("12.80"), "en", "EUR") == "twelve euros and eighty cents"
@@ -94,6 +112,25 @@ def test_numeralform_errors_are_translated_at_facade_boundary() -> None:
         ordinal(3, "th")
 
 
+@pytest.mark.parametrize("value", [1.5, object(), None])
+def test_numeric_facade_rejects_unsupported_runtime_types(value: object) -> None:
+    with pytest.raises(TypeError):
+        cardinal(value, "en")  # type: ignore[arg-type]
+    with pytest.raises(TypeError):
+        currency(value, "en", "EUR")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("value", ["", " ", "abc", "--1"])
+def test_numeric_facade_rejects_invalid_strings(value: str) -> None:
+    with pytest.raises(ValueError):
+        cardinal(value, "en")
+
+
+def test_numeric_facade_rejects_non_finite_decimal() -> None:
+    with pytest.raises(ValueError, match="finite"):
+        cardinal(Decimal("NaN"), "en")
+
+
 def test_upstream_num2words_is_not_used_in_spokenform_runtime() -> None:
     root = Path(__file__).parents[1] / "spokenform"
     violations: list[str] = []
@@ -101,12 +138,25 @@ def test_upstream_num2words_is_not_used_in_spokenform_runtime() -> None:
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.Import) and any(
-                alias.name == "num2words" for alias in node.names
-            ):
-                violations.append(str(path.relative_to(root.parent)))
-            if isinstance(node, ast.ImportFrom) and node.module == "num2words":
-                violations.append(str(path.relative_to(root.parent)))
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    if alias.name == "num2words" or alias.name.startswith("numeralform.compat"):
+                        violations.append(str(path.relative_to(root.parent)))
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if module == "num2words" or module.startswith("numeralform.compat"):
+                    violations.append(str(path.relative_to(root.parent)))
+            if isinstance(node, ast.Attribute):
+                parts: list[str] = []
+                current: ast.expr = node
+                while isinstance(current, ast.Attribute):
+                    parts.append(current.attr)
+                    current = current.value
+                if isinstance(current, ast.Name):
+                    parts.append(current.id)
+                dotted = ".".join(reversed(parts))
+                if dotted.startswith("numeralform.compat") or dotted.startswith("num2words"):
+                    violations.append(str(path.relative_to(root.parent)))
             if isinstance(node, ast.Name) and node.id == "CONVERTER_CLASSES":
                 violations.append(str(path.relative_to(root.parent)))
         if 'package_version("num2words")' in source:

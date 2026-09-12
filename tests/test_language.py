@@ -85,6 +85,7 @@ EXPECTED_LOCALES = {
     "zh_CN",
     "zh_HK",
     "zh_TW",
+    "pt_PT",
 }
 
 
@@ -118,7 +119,7 @@ def test_base_language_and_supported_languages() -> None:
     assert set(supported_languages()) == EXPECTED_BASES
     assert set(SUPPORTED_LOCALES) == EXPECTED_LOCALES
     assert set(supported_languages(include_locales=True)) == EXPECTED_BASES | EXPECTED_LOCALES
-    assert len(supported_languages(include_locales=True)) == 66
+    assert len(supported_languages(include_locales=True)) == 67
 
 
 def test_language_validation() -> None:
@@ -235,3 +236,15 @@ def test_renderer_availability_is_separate_from_plain_number_ownership(language:
     assert support.number_backend == "numeralform"
     assert support.number_backend_available
     assert not support.plain_cardinals
+
+
+def test_supported_language_enumeration_matches_acceptance() -> None:
+    accepted = set(supported_languages(include_locales=True))
+    for language in accepted:
+        assert supports_language(language)
+        assert normalize_language(language) in accepted
+    assert "pt_PT" in accepted
+    assert supports_language("pt-PT")
+    assert normalize_language("pt-PT") == "pt_PT"
+    assert resolve_numeralform_locale("pt_PT") == "pt-PT"
+    assert resolve_abbr2words_language("pt_PT") == "pt"

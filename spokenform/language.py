@@ -67,14 +67,16 @@ _RAW_ABBR2WORDS_BASES: Final[frozenset[str]] = frozenset(
 
 # Public Spokenform keeps kk as its canonical Kazakh key while the dependency
 # registries expose kz. The remaining keys are owned by abbr2words.
+_COMPATIBILITY_LOCALES: Final[frozenset[str]] = frozenset({"pt_PT"})
 SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = tuple(
     sorted(_LANGUAGE_ALIASES.get(code, code) for code in _RAW_ABBR2WORDS_BASES)
 )
-SUPPORTED_LOCALES: Final[tuple[str, ...]] = tuple(sorted(_RAW_ABBR2WORDS_LOCALES))
+SUPPORTED_LOCALES: Final[tuple[str, ...]] = tuple(
+    sorted(_RAW_ABBR2WORDS_LOCALES | _COMPATIBILITY_LOCALES)
+)
 SUPPORTED_LANGUAGE_KEYS: Final[tuple[str, ...]] = tuple(
     sorted((*SUPPORTED_BASE_LANGUAGES, *SUPPORTED_LOCALES))
 )
-_COMPATIBILITY_LOCALES: Final[frozenset[str]] = frozenset({"pt_PT"})
 
 
 def canonicalize_language(language: str) -> str:

@@ -345,7 +345,7 @@ def test_german_percent_uses_shared_typed_renderer(source: str, expected: str) -
         ("am 1000. Tag", "am tausendsten Tag"),
     ],
 )
-def test_german_scale_boundaries_and_large_ordinals_keep_num2words_contract(
+def test_german_scale_boundaries_and_large_ordinals_keep_spokenform_contract(
     source: str,
     expected: str,
 ) -> None:

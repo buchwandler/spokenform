@@ -27,7 +27,7 @@ caller-protected spans always take precedence.
 
 ## Language identifiers and number backends
 
-Canonical runtime identifiers include 49 base families and 17 exact public locale overlays. `supported_languages()` returns the base families; `supported_languages(include_locales=True)` returns all 66 public keys. Exact overlays are preserved for abbreviation routing, while unregistered regional forms fall back to their base language. `kk` is Spokenform's Kazakh key, maps to `kz` for `abbr2words`, and maps to `kk` for Numeralform.
+Canonical runtime identifiers include 49 base families and 18 exact public locale overlays. `supported_languages()` returns the base families; `supported_languages(include_locales=True)` returns all 67 public keys. Exact overlays are preserved for abbreviation routing, while unregistered regional forms fall back to their base language. `kk` is Spokenform's Kazakh key, maps to `kz` for `abbr2words`, and maps to `kk` for Numeralform.
 
 The installed Numeralform renderer is capability-based. Chinese uses `cn2an`; Numeralform availability is reported separately from automatic plain-cardinal ownership, so `hi`, `hy`, and `mn` remain valid language inputs while preserving ordinary numeric source until their normalization ownership is reviewed. Reviewed decimal policies, structured locale grammar, sequence spelling, and KokoroG2P profiles are narrower capabilities and are not implied by global language support.
 
