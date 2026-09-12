@@ -10,6 +10,63 @@ ROOT = Path(__file__).parents[1]
 OUTPUT = ROOT / "docs" / "language-coverage.md"
 
 
+def _render_table() -> list[str]:
+    header = [
+        "Spokenform key",
+        "Dependency key",
+        "Exact locale",
+        "Abbreviations",
+        "Number backend",
+        "Decimal policy",
+        "Structured",
+        "Sequence policy",
+        "KokoroG2P",
+        "Tier",
+    ]
+    rows = [header]
+    for language in supported_languages(include_locales=True):
+        support = language_support(language)
+        rows.append(
+            [
+                f"`{language}`",
+                f"`{resolve_abbr2words_language(language)}`",
+                "yes" if support.exact_locale else "no",
+                "yes",
+                support.number_backend or "none",
+                "yes" if support.decimal_policy else "no",
+                "yes" if support.structured else "no",
+                "yes" if support.sequence_policy else "no",
+                "yes" if support.kokorog2p_profile else "no",
+                support.tier.value,
+            ]
+        )
+    widths = [max(len(row[index]) for row in rows) for index in range(len(header))]
+    rendered = [
+        "| "
+        + " | ".join(
+            f"{cell:>{width}}" if index == 2 else f"{cell:<{width}}"
+            for index, (cell, width) in enumerate(zip(rows[0], widths, strict=True))
+        )
+        + " |",
+        "| "
+        + " | ".join(
+            ("-" * (width - 1) + ":") if index == 2 else "-" * width
+            for index, width in enumerate(widths)
+        )
+        + " |",
+    ]
+    rendered.extend(
+        "| "
+        + " | ".join(
+            f"{cell:>{width}}" if index == 2 else f"{cell:<{width}}"
+            for index, (cell, width) in enumerate(zip(row, widths, strict=True))
+        )
+        + " |"
+        for row in rows[1:]
+    )
+    return rendered
+
+
 def render() -> str:
     lines = [
         "# Generated language coverage",
@@ -19,25 +76,8 @@ def render() -> str:
         "Spokenform accepts 49 base families and 17 explicit dependency locale overlays.",
         "Specialist capabilities remain independent from global language acceptance.",
         "",
-        "| Spokenform key | Dependency key | Exact locale | Abbreviations | Number backend | Decimal policy | Structured | Sequence policy | KokoroG2P | Tier |",
-        "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |",
     ]
-    for language in supported_languages(include_locales=True):
-        support = language_support(language)
-        dependency = resolve_abbr2words_language(language)
-        lines.append(
-            "| `{language}` | `{dependency}` | {exact} | yes | {backend} | {decimal} | {structured} | {sequence} | {kokoro} | {tier} |".format(
-                language=language,
-                dependency=dependency,
-                exact="yes" if support.exact_locale else "no",
-                backend=support.number_backend or "none",
-                decimal="yes" if support.decimal_policy else "no",
-                structured="yes" if support.structured else "no",
-                sequence="yes" if support.sequence_policy else "no",
-                kokoro="yes" if support.kokorog2p_profile else "no",
-                tier=support.tier.value,
-            )
-        )
+    lines.extend(_render_table())
     lines.extend(
         [
             "",
