@@ -54,6 +54,24 @@ def test_manifest_literal_includes_exist() -> None:
     assert not missing, f"MANIFEST.in includes missing files: {missing}"
 
 
+def test_numeralform_dependency_contract() -> None:
+    project = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]
+    dependencies = project["dependencies"]
+
+    assert "numeralform>=0.1.1,<0.2.0" in dependencies
+    assert not any(requirement.lower().startswith("num2words") for requirement in dependencies)
+
+
+def test_runtime_dependency_metadata_does_not_require_upstream_num2words() -> None:
+    project = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]
+
+    assert all("num2words" not in requirement.lower() for requirement in project["dependencies"])
+
+
 def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
     project = tomllib.loads(
         (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")

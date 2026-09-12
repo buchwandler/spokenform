@@ -13,10 +13,13 @@ OUTPUT = ROOT / "docs" / "language-coverage.md"
 def _render_table() -> list[str]:
     header = [
         "Spokenform key",
-        "Dependency key",
+        "Abbr2words locale",
+        "Numeralform locale",
         "Exact locale",
         "Abbreviations",
-        "Number backend",
+        "Number renderer",
+        "Renderer available",
+        "Plain cardinals",
         "Decimal policy",
         "Structured",
         "Sequence policy",
@@ -30,9 +33,12 @@ def _render_table() -> list[str]:
             [
                 f"`{language}`",
                 f"`{resolve_abbr2words_language(language)}`",
+                f"`{support.number_language or 'none'}`",
                 "yes" if support.exact_locale else "no",
                 "yes",
                 support.number_backend or "none",
+                "yes" if support.number_backend_available else "no",
+                "yes" if support.plain_cardinals else "no",
                 "yes" if support.decimal_policy else "no",
                 "yes" if support.structured else "no",
                 "yes" if support.sequence_policy else "no",
@@ -44,13 +50,13 @@ def _render_table() -> list[str]:
     rendered = [
         "| "
         + " | ".join(
-            f"{cell:>{width}}" if index == 2 else f"{cell:<{width}}"
+            f"{cell:>{width}}" if index == 3 else f"{cell:<{width}}"
             for index, (cell, width) in enumerate(zip(rows[0], widths, strict=True))
         )
         + " |",
         "| "
         + " | ".join(
-            ("-" * (width - 1) + ":") if index == 2 else "-" * width
+            ("-" * (width - 1) + ":") if index == 3 else "-" * width
             for index, width in enumerate(widths)
         )
         + " |",
@@ -81,9 +87,8 @@ def render() -> str:
     lines.extend(
         [
             "",
-            "`kk` is Spokenform's public Kazakh key and routes to dependency key `kz`.",
-            "A `none` number backend means ordinary numeric source is preserved by normal `prepare()`.",
-            "",
+            "`kk` is Spokenform's public Kazakh key. Abbr2words uses `kz`, while Numeralform uses `kk`.",
+            "Renderer availability and automatic plain-cardinal ownership are reported separately.",
         ]
     )
     return "\n".join(lines)

@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from typing import Final
 
+import numeralform
 from abbr2words import (
     normalize_language as normalize_abbr2words_language,
 )
 from abbr2words import (
     supported_languages as abbr2words_supported_languages,
 )
-from num2words import CONVERTER_CLASSES
 
 _LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "jp": "ja",
@@ -52,7 +51,7 @@ KOKOROG2P_PROFILE_LANGUAGES: Final[frozenset[str]] = frozenset(
     }
 )
 
-_DEPENDENCY_LANGUAGE_ALIASES: Final[dict[str, str]] = {
+_ABBR2WORDS_LANGUAGE_ALIASES: Final[dict[str, str]] = {
     "kk": "kz",
 }
 
@@ -91,15 +90,6 @@ def canonicalize_language(language: str) -> str:
     value = value.replace("-", "_")
     parts = value.split("_", 1)
     base = _BASE_LANGUAGE_ALIASES.get(parts[0].casefold(), parts[0].lower())
-    if len(parts) == 1:
-        return base
-    return f"{base}_{parts[1].upper()}"
-
-
-def _canonicalize_dependency_language(language: str) -> str:
-    value = language.strip().replace("-", "_")
-    parts = value.split("_", 1)
-    base = parts[0].lower()
     if len(parts) == 1:
         return base
     return f"{base}_{parts[1].upper()}"
@@ -152,32 +142,22 @@ def supports_profile(language: str, profile: str = "kokorog2p") -> bool:
         return False
 
 
-def _resolve_dependency_language(language: str, supported: Iterable[str]) -> str:
-    requested = normalize_language(language)
-    dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
-        base_language(requested), base_language(requested)
-    )
-    if "_" in requested:
-        dependency_language = f"{dependency_language}_{requested.split('_', 1)[1]}"
-    supported_codes = {_canonicalize_dependency_language(code) for code in supported}
-    if dependency_language in supported_codes:
-        return dependency_language
-    dependency_base = dependency_language.split("_", 1)[0]
-    if dependency_base in supported_codes:
-        return dependency_base
-    supported_text = ", ".join(sorted(supported_codes))
-    raise ValueError(f"Unsupported language {language!r}; dependency supports: {supported_text}")
-
-
-def resolve_num2words_language(language: str) -> str:
-    """Select an exact num2words language or its supported base fallback."""
-    return _resolve_dependency_language(language, CONVERTER_CLASSES)
+def resolve_numeralform_locale(language: str) -> str:
+    """Resolve a Spokenform language to a Numeralform BCP-47 locale."""
+    normalized = normalize_language(language)
+    requested = normalized.replace("_", "-")
+    try:
+        return numeralform.resolve_locale(requested)
+    except ValueError as exc:
+        raise ValueError(
+            f"Unsupported language {language!r}; Numeralform supports locale {requested!r}"
+        ) from exc
 
 
 def resolve_abbr2words_language(language: str) -> str:
     """Select an exact abbr2words language or its supported base fallback."""
     requested = normalize_language(language)
-    dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
+    dependency_language = _ABBR2WORDS_LANGUAGE_ALIASES.get(
         base_language(requested), base_language(requested)
     )
     if "_" in requested:
@@ -198,7 +178,7 @@ __all__ = [
     "canonicalize_language",
     "normalize_language",
     "resolve_abbr2words_language",
-    "resolve_num2words_language",
+    "resolve_numeralform_locale",
     "supported_languages",
     "supports_language",
     "supports_profile",

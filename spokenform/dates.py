@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Literal
 
-from .language import base_language, resolve_num2words_language
-from .number_words import number_words
+from .language import base_language
+from .number_words import cardinal, number_words
 
 
 def _valid_date(day: int, month: int, year: int) -> bool:
@@ -100,28 +100,26 @@ def render_english_year(
 ) -> str:
     """Render a year using the reviewed conventional English year policy."""
 
-    dependency_language = resolve_num2words_language(language)
-
-    def cardinal(value: int) -> str:
-        return str(number_words(value, lang=dependency_language)).replace(",", "").replace("-", " ")
+    def render_cardinal(value: int) -> str:
+        return cardinal(value, language).replace(",", "").replace("-", " ")
 
     if source_digits == 2:
-        return cardinal(year % 100)
+        return render_cardinal(year % 100)
     if 1000 <= year < 2000:
         century, remainder = divmod(year, 100)
-        prefix = cardinal(century)
+        prefix = render_cardinal(century)
         if remainder == 0:
             return f"{prefix} hundred"
         if remainder < 10:
-            return f"{prefix} oh {cardinal(remainder)}"
-        return f"{prefix} {cardinal(remainder)}"
+            return f"{prefix} oh {render_cardinal(remainder)}"
+        return f"{prefix} {render_cardinal(remainder)}"
     if year == 2000:
         return "two thousand"
     if 2000 < year < 2010:
-        return f"two thousand {cardinal(year % 100)}"
+        return f"two thousand {render_cardinal(year % 100)}"
     if 2010 <= year < 2100:
-        return f"twenty {cardinal(year % 100)}"
-    return cardinal(year)
+        return f"twenty {render_cardinal(year % 100)}"
+    return render_cardinal(year)
 
 
 def render_year(year: int, *, language: str = "en", source_digits: int | None = None) -> str:

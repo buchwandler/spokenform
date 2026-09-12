@@ -5,7 +5,7 @@ from abbr2words import iter_unit_matches
 
 from spokenform import prepare
 from spokenform.config import RecognitionDomain
-from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
+from spokenform.language import resolve_abbr2words_language, resolve_numeralform_locale
 from spokenform.numbers import normalize_numbers
 from spokenform.numeric_lexeme import (
     NumericLexeme,
@@ -113,7 +113,7 @@ def test_swedish_currency(source: str, expected: str) -> None:
 
 
 def test_swedish_abbr2words_integration_and_canonical_ids() -> None:
-    assert resolve_num2words_language("sv-SE") == "sv"
+    assert resolve_numeralform_locale("sv-SE") == "sv"
     assert resolve_abbr2words_language("sv-SE") == "sv"
     match = next(iter(iter_unit_matches("2 km", "sv")))
     assert match.canonical_id == "length-kilometer"

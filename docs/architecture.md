@@ -80,8 +80,8 @@ vocabularies, with Chinese routed through `cn2an`. Swedish owns comma-decimal
 numbers, reviewed quantities, temperatures, SEK grammar, and canonical
 `abbr2words` unit identities. Swedish dates, digital times, arbitrary initialisms,
 and unreviewed specialist sequence domains remain caller-managed or fail closed.
-Vietnamese owns comma-decimal numbers, exact fractional precision, reviewed quantities, temperatures, VND/₫ currency, and canonical `abbr2words` unit identities. `num2words` owns generic Vietnamese cardinals, while `abbr2words` owns reviewed Vietnamese abbreviation, unit, currency recognition, and labels. Vietnamese dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
-Thai follows the same small-locale architecture: `num2words` owns generic Thai cardinals, `abbr2words` owns reviewed Thai abbreviation, unit, and baht identities, and Spokenform owns compact digitwise numeric realization and source mapping. Thai calendar protection is applied after abbreviation expansion and before the plain number pass, so structured values -> abbreviation expansion -> plain number pass preserves date, era, and time bodies. Thai unsupported ranges and specialist sequences fail closed without English vocabulary.
+Vietnamese owns comma-decimal numbers, exact fractional precision, reviewed quantities, temperatures, VND/₫ currency, and canonical `abbr2words` unit identities. Numeralform owns generic Vietnamese cardinals, while `abbr2words` owns reviewed Vietnamese abbreviation, unit, currency recognition, and labels. Vietnamese dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist sequence domains remain caller-managed or fail closed.
+Thai follows the same small-locale architecture: Numeralform owns generic Thai cardinals, `abbr2words` owns reviewed Thai abbreviation, unit, and baht identities, and Spokenform owns compact digitwise numeric realization and source mapping. Thai calendar protection is applied after abbreviation expansion and before the plain number pass, so structured values -> abbreviation expansion -> plain number pass preserves date, era, and time bodies. Thai unsupported ranges and specialist sequences fail closed without English vocabulary.
 Every locale replacement retains exact source spans and composed source/output
 mapping. Supported languages never borrow English fallback words merely because a
 shared renderer lacks a locale entry. All reviewed quantity and currency symbols
@@ -90,9 +90,9 @@ continue to come from `abbr2words`.
 The dependency direction is:
 
 ```text
-abbr2words ──────────┐
-num2words (ja/ko/sv/vi) ──┼─> spokenform
-cn2an (zh) ─────────┘
+abbr2words ───────────────┐
+Numeralform (non-zh) ────┼─> spokenform
+cn2an (zh) ──────────────┘
 ```
 
 Full-width numeric compatibility forms are folded in a dedicated mapped stage after NFC and only inside numeric-looking spans. Compatibility symbols such as `㈱` remain available to `abbr2words`; global NFKC is not used.

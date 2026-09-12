@@ -282,7 +282,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
                             "spokenform_source_commit"
                         ],
                         "abbr2words_version": summary["environment"]["abbr2words_version"],
-                        "num2words_version": summary["environment"]["num2words_version"],
+                        "numeralform_version": summary["environment"]["numeralform_version"],
                         "profile": profile,
                         "config_hash": summary["environment"]["config_hash"],
                         "candidate_oracle_schema_version": 2,

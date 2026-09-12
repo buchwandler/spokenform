@@ -288,12 +288,12 @@ def environment_fingerprint(
     locales: Iterable[str], *, profile: LiteralProfile = "default"
 ) -> dict[str, Any]:
     """Return reproducibility metadata for one benchmark configuration."""
-    from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
+    from spokenform.language import resolve_abbr2words_language, resolve_numeralform_locale
 
     resolution = {
         locale: {
             "spokenform": POLYNORM_TO_SPOKENFORM[locale],
-            "num2words": resolve_num2words_language(POLYNORM_TO_SPOKENFORM[locale]),
+            "numeralform": resolve_numeralform_locale(POLYNORM_TO_SPOKENFORM[locale]),
             "abbr2words": resolve_abbr2words_language(POLYNORM_TO_SPOKENFORM[locale]),
         }
         for locale in sorted(set(locales))
@@ -305,7 +305,7 @@ def environment_fingerprint(
             "spokenform_version": _package_version("spokenform"),
             "spokenform_source_commit": source_commit(),
             "abbr2words_version": _package_version("abbr2words"),
-            "num2words_version": _package_version("num2words"),
+            "numeralform_version": _package_version("numeralform"),
             "python_version": sys.version.split()[0],
             "platform": platform.platform(),
             "locale_mapping": resolution,
@@ -977,7 +977,7 @@ def evaluate_and_write(
             "dataset_commit": POLYNORM_DATASET_COMMIT,
             "spokenform_source_commit": environment["spokenform_source_commit"],
             "abbr2words_version": environment["abbr2words_version"],
-            "num2words_version": environment["num2words_version"],
+            "numeralform_version": environment["numeralform_version"],
             "profile": profile,
             "config_hash": environment["config_hash"],
             "locale_mapping": environment["locale_mapping"],

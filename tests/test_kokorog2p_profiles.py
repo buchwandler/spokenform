@@ -9,7 +9,7 @@ from spokenform import (
     PreparationConfig,
     prepare_for_kokorog2p,
     resolve_abbr2words_language,
-    resolve_num2words_language,
+    resolve_numeralform_locale,
     supports_profile,
 )
 
@@ -54,7 +54,7 @@ def test_conservative_profiles_keep_numbers_caller_managed(language: str) -> Non
 def test_kazakh_dependency_key_is_explicit() -> None:
     assert resolve_abbr2words_language("kk") == "kz"
     assert resolve_abbr2words_language("kk-kz") == "kz"
-    assert resolve_num2words_language("kk") == "kz"
+    assert resolve_numeralform_locale("kk") == "kk"
 
 
 def test_new_profile_replacements_preserve_protected_text() -> None:

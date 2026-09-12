@@ -68,7 +68,7 @@ def test_date_candidates_retain_source_shape_and_locale_extensions() -> None:
         "douze octobre deux mille vingt-trois"
     )
     assert prepare("12-10-2023", language="it", use_spacy=False).spoken_text == (
-        "dodici ottobre duemilaventitre"
+        "dodici ottobre duemilaventitré"
     )
 
 

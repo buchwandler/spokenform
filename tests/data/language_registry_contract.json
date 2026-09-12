@@ -1,6 +1,6 @@
 {
   "abbr2words_minimum": "0.2.13",
-  "num2words_stable": "v0.5.14",
+  "numeralform_minimum": "0.1.1",
   "base_keys": [
     "am",
     "ar",
@@ -71,7 +71,7 @@
     "zh_HK",
     "zh_TW"
   ],
-  "spokenform_dependency_aliases": {
+  "abbr2words_dependency_aliases": {
     "kk": "kz"
   },
   "unsupported_examples": ["eu"]

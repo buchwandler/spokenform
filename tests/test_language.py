@@ -10,7 +10,7 @@ from spokenform.language import (
     base_language,
     normalize_language,
     resolve_abbr2words_language,
-    resolve_num2words_language,
+    resolve_numeralform_locale,
     supported_languages,
     supports_language,
 )
@@ -145,24 +145,24 @@ def test_dependency_language_falls_back_to_base(requested: str) -> None:
     assert resolve_abbr2words_language(requested) == base_language(requested)
 
 
-def test_num2words_uses_exact_variant_when_available() -> None:
-    assert resolve_num2words_language("en_IN") == "en_IN"
-    assert resolve_num2words_language("en_GB") == "en"
+def test_numeralform_uses_exact_variant_when_available() -> None:
+    assert resolve_numeralform_locale("en_IN") == "en-IN"
+    assert resolve_numeralform_locale("en_GB") == "en-GB"
 
 
-def test_cjk_dependency_language_routing() -> None:
-    assert resolve_num2words_language("ja_JP") == "ja"
-    assert resolve_num2words_language("ko_KR") == "ko"
-    with pytest.raises(ValueError):
-        resolve_num2words_language("zh_CN")
+def test_numeralform_locale_routing() -> None:
+    assert resolve_numeralform_locale("ja_JP") == "ja"
+    assert resolve_numeralform_locale("ko_KR") == "ko"
+    assert resolve_numeralform_locale("zh_CN") == "zh-CN"
+    assert resolve_numeralform_locale("pt-PT") == "pt-PT"
     assert resolve_abbr2words_language("zh_CN") == "zh_CN"
     assert resolve_abbr2words_language("cn") == "zh_CN"
 
 
-def test_kazakh_dependency_alias() -> None:
+def test_kazakh_dependency_aliases_are_independent() -> None:
     assert normalize_language("kz") == "kk"
     assert resolve_abbr2words_language("kk") == "kz"
-    assert resolve_num2words_language("kk") == "kz"
+    assert resolve_numeralform_locale("kk") == "kk"
 
 
 def test_compatibility_aliases_and_unknowns() -> None:
@@ -227,3 +227,11 @@ def test_language_support_metadata_is_orthogonal(language: str) -> None:
     else:
         assert support.tier in {SupportTier.FOUNDATION, SupportTier.CONSERVATIVE_INTEGRATION}
     assert support.kokorog2p_profile == (support.base in KOKOROG2P_PROFILE_LANGUAGES)
+
+
+@pytest.mark.parametrize("language", ["hi", "hy", "mn"])
+def test_renderer_availability_is_separate_from_plain_number_ownership(language: str) -> None:
+    support = language_support(language)
+    assert support.number_backend == "numeralform"
+    assert support.number_backend_available
+    assert not support.plain_cardinals

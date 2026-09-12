@@ -49,3 +49,13 @@ diagnostics. Key rollups from the fresh summaries:
 
 Compared with the 2026-08-14 checkpoint, semantic failures dropped in all four
 runs and the safety-mutation gates remained at zero.
+
+## Numeralform migration baseline
+
+This post-migration checkpoint records the renderer contract separately from the historical benchmark run above. The historical `num2words` environment is intentionally unchanged.
+
+| Renderer    | Version contract | Chinese renderer         | Locale contract |
+| ----------- | ---------------- | ------------------------ | --------------- |
+| Numeralform | `>=0.1.1,<0.2.0` | `cn2an` remains separate | BCP-47          |
+
+New benchmark summaries emit `numeralform_version` and `numeralform` locale mappings. `compare_common.py` reads both this schema and historical `num2words_version` reports.

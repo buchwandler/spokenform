@@ -9,7 +9,7 @@ from .language import (
     KOKOROG2P_PROFILE_LANGUAGES,
     base_language,
     normalize_language,
-    resolve_num2words_language,
+    resolve_numeralform_locale,
 )
 
 REVIEWED_STRUCTURED_LANGUAGES = frozenset(
@@ -56,6 +56,7 @@ class LanguageSupport:
     abbreviation_language: str
     number_backend: str | None
     number_language: str | None
+    number_backend_available: bool
     tier: SupportTier
     exact_locale: bool
     plain_cardinals: bool
@@ -70,10 +71,10 @@ def _number_capability(language: str) -> tuple[str | None, str | None]:
     if base == "zh":
         return "cn2an", language
     try:
-        resolved = resolve_num2words_language(language)
+        resolved = resolve_numeralform_locale(language)
     except ValueError:
         return None, None
-    return "num2words", resolved
+    return "numeralform", resolved
 
 
 def language_support(language: str) -> LanguageSupport:
@@ -93,9 +94,10 @@ def language_support(language: str) -> LanguageSupport:
         abbreviation_language=normalized,
         number_backend=backend,
         number_language=number_language,
+        number_backend_available=backend is not None,
         tier=tier,
         exact_locale="_" in normalized,
-        plain_cardinals=backend is not None,
+        plain_cardinals=backend is not None and base not in {"hi", "hy", "mn"},
         decimal_policy=base in REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES,
         structured=base in REVIEWED_STRUCTURED_LANGUAGES,
         sequence_policy=base in SEQUENCE_POLICY_LANGUAGES,

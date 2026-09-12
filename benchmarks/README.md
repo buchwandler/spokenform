@@ -28,7 +28,7 @@ the profile field when comparing reports.
 PolyNorm is a discovery tool, not a normal CI or release gate. The benchmark
 does not make unsupported PolyNorm locales part of Spokenform's public API.
 
-Fresh runs record the resolved Spokenform, `abbr2words`, and `num2words`
+Fresh runs record the resolved Spokenform, `abbr2words`, and `numeralform`
 versions, source and dataset commits, locale mapping, profile, and a stable
 configuration hash. Each report also contains a machine-readable `identity`
 block plus per-row ownership, phase, and risk-tier diagnostics so semantic

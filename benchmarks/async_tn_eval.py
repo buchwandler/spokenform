@@ -663,7 +663,7 @@ def _aggregate(
             "platform": platform.platform(),
             "spokenform_version": _package_version("spokenform"),
             "abbr2words_version": _package_version("abbr2words"),
-            "num2words_version": _package_version("num2words"),
+            "numeralform_version": _package_version("numeralform"),
             "configuration": {
                 "profile": profile,
                 "normalize_literals": normalize_literals,

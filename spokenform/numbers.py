@@ -11,7 +11,9 @@ from typing import Final, Literal
 
 from .casing import capitalize_generated_input_start, capitalize_generated_sentence_start
 from .language import base_language, normalize_language, resolve_abbr2words_language
-from .number_words import number_words
+from .number_words import cardinal
+from .number_words import currency as render_currency
+from .number_words import ordinal as render_ordinal
 from .numeric_lexeme import (
     NumberRenderMode,
     NumericLexeme,
@@ -317,8 +319,20 @@ def _base_language(language: str) -> str:
 
 
 def _spell(value: int | Decimal, language: str, *, ordinal: bool = False) -> str:
-    target = "ordinal" if ordinal else "cardinal"
-    return str(number_words(value, lang=language, to=target))
+    if ordinal:
+        if not isinstance(value, int):
+            raise TypeError("ordinal values must be integers")
+        return render_ordinal(value, language)
+    if isinstance(value, Decimal) and value != value.to_integral_value():
+        policy = numeric_speech_policy(language)
+        integer, fraction = format(abs(value), "f").split(".", 1)
+        rendered = f"{cardinal(int(integer), language)} {policy.decimal_word} " + " ".join(
+            cardinal(int(digit), language) for digit in fraction
+        )
+        if value < 0:
+            return f"{_negative_word(language)} {rendered}"
+        return rendered
+    return cardinal(value, language)
 
 
 def _year_text(year: int, language: str) -> str:
@@ -434,14 +448,7 @@ def _replace_currencies(text: str, language: str) -> str:
         value = _decimal_value(match.group("number"), language)
         currency = _currency_code(match.group("currency"))
         try:
-            return str(
-                number_words(
-                    value,
-                    lang=language,
-                    to="currency",
-                    currency=currency,
-                )
-            )
+            return str(render_currency(value, language, currency))
         except (NotImplementedError, TypeError, ValueError):
             if base_language(language) == "de" and value >= 0:
                 major = int(value)
@@ -658,10 +665,10 @@ def _normalize_comma_decimal_plain_numbers(
             integer, fraction = unsigned.split(",", 1)
         else:
             integer, fraction = re.sub(r"[.]", "", unsigned), None
-        result = str(number_words(int(integer), lang=language))
+        result = str(cardinal(int(integer), language))
         if fraction is not None:
             result += f" {decimal_word} " + " ".join(
-                str(number_words(int(digit), lang=language)) for digit in fraction
+                str(cardinal(int(digit), language)) for digit in fraction
             )
         return f"{negative_word} {result}" if negative else result
 
@@ -704,12 +711,7 @@ def _normalize_czech_plain_numbers(text: str, language: str = "cs") -> str:
 
 def _english_spell(value: int, language: str = "en") -> str:
     """Spell a safe English cardinal without punctuation or hyphens."""
-    return (
-        str(number_words(value, lang=language))
-        .replace(",", "")
-        .replace("-", " ")
-        .replace(" and ", " ")
-    )
+    return str(cardinal(value, language)).replace(",", "").replace("-", " ").replace(" and ", " ")
 
 
 def _english_plain_number_text(raw: str, language: str = "en") -> str:
@@ -812,9 +814,7 @@ def _render_numeric_lexeme(
     """Render a parsed lexeme without reparsing its punctuation."""
     positive = lexeme.raw.startswith("+")
     if mode is NumberRenderMode.DIGIT_SEQUENCE:
-        result = " ".join(
-            str(number_words(int(digit), lang=language)) for digit in lexeme.integer_digits
-        )
+        result = " ".join(str(cardinal(int(digit), language)) for digit in lexeme.integer_digits)
     elif mode is NumberRenderMode.YEAR:
         result = _year_text(int(lexeme.integer_digits), language)
     elif mode is NumberRenderMode.ORDINAL:
@@ -918,7 +918,7 @@ def _normalize_unified_plain_numbers(
             r"\b(?:code|numéro|identifiant)\s+est\s*$", left_context, re.IGNORECASE
         ):
             rendered = " ".join(
-                str(number_words(int(digit), lang=language)) for digit in lexeme.integer_digits
+                str(cardinal(int(digit), language)) for digit in lexeme.integer_digits
             )
         elif base_language(language) == "es" and re.match(
             r"\s+páginas\b", right_context, re.IGNORECASE

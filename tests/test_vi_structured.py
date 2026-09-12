@@ -10,7 +10,7 @@ from spokenform.config import (
     RecognitionEvidence,
     number_policy_for_language,
 )
-from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
+from spokenform.language import resolve_abbr2words_language, resolve_numeralform_locale
 from spokenform.number_words import number_backend_for_language
 from spokenform.numeric_lexeme import (
     NumericLexeme,
@@ -122,9 +122,9 @@ def test_fractional_vnd_fails_closed() -> None:
 
 def test_vietnamese_runtime_and_dependency_routing() -> None:
     assert number_policy_for_language("vi") is NumberPolicy.STRUCTURED_AND_PLAIN
-    assert number_backend_for_language("vi") == "num2words"
-    assert number_backend_for_language("vi-VN") == "num2words"
-    assert resolve_num2words_language("vi-VN") == "vi"
+    assert number_backend_for_language("vi") == "numeralform"
+    assert number_backend_for_language("vi-VN") == "numeralform"
+    assert resolve_numeralform_locale("vi-VN") == "vi"
     assert resolve_abbr2words_language("vi-VN") == "vi"
 
 

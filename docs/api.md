@@ -27,16 +27,16 @@ caller-protected spans always take precedence.
 
 ## Language identifiers and number backends
 
-Canonical runtime identifiers include 49 base families and 17 exact dependency locale overlays. `supported_languages()` returns the base families; `supported_languages(include_locales=True)` returns all 66 public keys. Exact overlays are preserved for abbreviation routing, while unregistered regional forms fall back to their base language. `kk` is Spokenform's Kazakh key and maps to dependency key `kz`.
+Canonical runtime identifiers include 49 base families and 17 exact public locale overlays. `supported_languages()` returns the base families; `supported_languages(include_locales=True)` returns all 66 public keys. Exact overlays are preserved for abbreviation routing, while unregistered regional forms fall back to their base language. `kk` is Spokenform's Kazakh key, maps to `kz` for `abbr2words`, and maps to `kk` for Numeralform.
 
-The installed `num2words` backend is capability-based. Chinese uses `cn2an`; `hi`, `hy`, and `mn` remain valid language inputs but preserve ordinary numeric source when the stable backend is unavailable. Reviewed decimal policies, structured locale grammar, sequence spelling, and KokoroG2P profiles are narrower capabilities and are not implied by global language support.
+The installed Numeralform renderer is capability-based. Chinese uses `cn2an`; Numeralform availability is reported separately from automatic plain-cardinal ownership, so `hi`, `hy`, and `mn` remain valid language inputs while preserving ordinary numeric source until their normalization ownership is reviewed. Reviewed decimal policies, structured locale grammar, sequence spelling, and KokoroG2P profiles are narrower capabilities and are not implied by global language support.
 
 ```python
 from spokenform import (
     language_support,
     normalize_language,
     resolve_abbr2words_language,
-    resolve_num2words_language,
+    resolve_numeralform_locale,
     supported_languages,
     supports_language,
 )
@@ -48,7 +48,7 @@ assert normalize_language("pt-BR") == "pt_BR"
 assert normalize_language("fr_FR") == "fr"
 assert normalize_language("en-gb") == "en_GB"
 assert resolve_abbr2words_language("es-ni") == "es_NI"
-assert resolve_num2words_language("fr-FR") == "fr"
+assert resolve_numeralform_locale("fr-FR") == "fr"
 assert language_support("hi").plain_cardinals is False
 assert supports_language("eu") is False
 ```
@@ -268,7 +268,7 @@ The Swedish `normalize_numbers(language="sv")` path preserves comma-decimal prec
 
 The Vietnamese `normalize_numbers(language="vi")` path uses structured-safe normalization. Comma decimals preserve exact fractional precision, dot and space-family grouping are validated, and reviewed quantities and VND/₫ are locale-owned through `abbr2words`. Date, time, and ordinal semantics remain caller-managed.
 
-Thai `normalize_numbers(language="th")` uses point decimals, comma or space-family grouping, accepts Thai digits, and preserves decimal precision digitwise. Structured quantities, temperatures, and THB/`฿` use reviewed `abbr2words` identities while Spokenform owns numeric realization. `th_TH` and `th-TH` resolve to the base dependency registries; dates, times, eras, ordinals, ranges, and unsupported specialist semantics remain caller-managed or fail closed.
+Thai `normalize_numbers(language="th")` uses point decimals, comma or space-family grouping, accepts Thai digits, and preserves decimal precision digitwise. Structured quantities, temperatures, and THB/`฿` use reviewed `abbr2words` identities while Numeralform owns numeric realization. `th_TH` and `th-TH` resolve to the Numeralform base locale; dates, times, eras, ordinals, ranges, and unsupported specialist semantics remain caller-managed or fail closed.
 
 Russian `normalize_numbers(language="ru")` uses the structured-safe path. It preserves comma-decimal precision, accepts regular/NBSP/NNBSP grouping, and renders reviewed quantity grammar through `abbr2words` canonical IDs. Dates, digital times, year abbreviations, phone spans, RUB, and unreviewed specialist semantics remain caller-managed or fail closed. `rus` is accepted only as a compatibility alias.
 

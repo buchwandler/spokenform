@@ -16,9 +16,9 @@ from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
 from ..dates import _valid_date
-from ..language import normalize_language, resolve_abbr2words_language, resolve_num2words_language
+from ..language import normalize_language, resolve_abbr2words_language
 from ..mapping import Replacement
-from ..number_words import number_words
+from ..number_words import cardinal
 from ..numeric_lexeme import has_excess_fractional_precision
 
 NUMBER_POLICY = NumberPolicy.STRUCTURED_AND_PLAIN
@@ -100,8 +100,8 @@ _MONTHS = (
 def _number_language(language: str) -> str:
     normalized = normalize_language(language)
     if normalized == "pt":
-        return resolve_num2words_language("pt_BR")
-    return resolve_num2words_language(normalized)
+        return "pt_BR"
+    return normalized
 
 
 def _parts(raw: str) -> tuple[bool, int, str | None]:
@@ -129,7 +129,7 @@ def _decimal(raw: str) -> Decimal:
 
 
 def _spell(value: int, language: str) -> str:
-    return str(number_words(value, lang=_number_language(language)))
+    return str(cardinal(value, _number_language(language)))
 
 
 def _feminize_integer(text: str) -> str:
@@ -169,7 +169,7 @@ def _terminal_dot(text: str, end: int) -> bool:
 
 def _currency_text(raw: str, canonical_id: str, *, language: str) -> str:
     negative, integer, fraction = _parts(raw)
-    european = _number_language(language) == "pt"
+    european = normalize_language(language) == "pt_PT"
     minor_singular, minor_plural = ("cêntimo", "cêntimos") if european else ("centavo", "centavos")
     names = {
         "currency-euro": ("euro", "euros", "m"),

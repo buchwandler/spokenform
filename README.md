@@ -426,8 +426,10 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
 ```text
 abbr2words ─┐
             ├─ spokenform ── kokorog2p
-num2words ──┘
+Numeralform ──┘
 ```
+
+`abbr2words` owns abbreviation, unit, and currency identities. Spokenform owns source recognition and semantic classification. Numeralform owns non-Chinese number realization through `spokenform.number_words`; `cn2an` remains the Chinese renderer for this migration.
 
 spaCy is an optional quality dependency. `spokenform` remains independent of
 language detection, markup parsing, and phoneme generation.

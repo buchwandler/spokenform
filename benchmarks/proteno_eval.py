@@ -142,12 +142,12 @@ def source_commit() -> str | None:
 def environment_fingerprint(
     languages: Iterable[str], *, profile: LiteralProfile = "default"
 ) -> dict[str, Any]:
-    from spokenform.language import resolve_abbr2words_language, resolve_num2words_language
+    from spokenform.language import resolve_abbr2words_language, resolve_numeralform_locale
 
     resolution = {
         language: {
             "spokenform": PROTENO_TO_SPOKENFORM[language],
-            "num2words": resolve_num2words_language(PROTENO_TO_SPOKENFORM[language]),
+            "numeralform": resolve_numeralform_locale(PROTENO_TO_SPOKENFORM[language]),
             "abbr2words": resolve_abbr2words_language(PROTENO_TO_SPOKENFORM[language]),
         }
         for language in sorted(set(languages))
@@ -159,7 +159,7 @@ def environment_fingerprint(
             "spokenform_version": _package_version("spokenform"),
             "spokenform_source_commit": source_commit(),
             "abbr2words_version": _package_version("abbr2words"),
-            "num2words_version": _package_version("num2words"),
+            "numeralform_version": _package_version("numeralform"),
             "python_version": sys.version.split()[0],
             "platform": platform.platform(),
             "locale_mapping": resolution,
@@ -872,7 +872,7 @@ def evaluate_and_write(
             "dataset_commit": PROTENO_DATASET_COMMIT,
             "spokenform_source_commit": environment["spokenform_source_commit"],
             "abbr2words_version": environment["abbr2words_version"],
-            "num2words_version": environment["num2words_version"],
+            "numeralform_version": environment["numeralform_version"],
             "profile": profile,
             "config_hash": environment["config_hash"],
             "locale_mapping": environment["locale_mapping"],

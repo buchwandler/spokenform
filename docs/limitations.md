@@ -15,7 +15,7 @@
 - German quantity recognition depends on the released `abbr2words` structured
   match API. spokenform owns the semantic grammar, not the symbol inventory.
 - English, German, French, Spanish, Italian, Portuguese, Czech, Japanese, Korean, Russian, Swedish, Vietnamese, and Chinese have explicit runtime structured policies. Japanese, Korean, Russian, Swedish, Vietnamese, and Chinese runtime support is covered by focused regression tests, but it does not imply kokorog2p or PolyNorm parity.
-- Japanese and Korean use released `num2words`; Chinese uses released `cn2an`. Generic `zh` is conservative, while Mainland reviewed terminology and RMB live under exact `zh_CN`. `zh_TW` and `zh_HK` are not claimed.
+- Numeralform is the released renderer for non-Chinese numbers; Chinese uses released `cn2an`. Generic `zh` is conservative, while Mainland reviewed terminology and RMB live under exact `zh_CN`. `hi`, `hy`, and `mn` have renderer availability but remain outside automatic plain-number ownership until reviewed. `zh_TW` and `zh_HK` are not claimed.
 - Swedish uses comma decimals, space/NBSP/NNBSP grouping, reviewed quantities, temperatures, and SEK currency grammar. Numeric dates and digital times are caller-managed but protected from generic rewriting; arbitrary initialisms and unreviewed specialist domains fail closed instead of borrowing English vocabulary.
 - Vietnamese runtime support covers reviewed plain-number punctuation, exact decimal precision, canonical quantities, temperatures, VND/₫ amounts, and dependency-backed guarded abbreviations. Vietnamese dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist semantic domains remain caller-managed or fail closed.
 - Thai runtime support covers point-decimal numbers, comma or space-family grouping, Thai and Latin digits, reviewed quantities and temperatures, exact THB/฿ amounts, and guarded Thai abbreviations. Thai ordinals are not enabled; dates, eras, and digital times remain caller-managed; unreviewed specialist sequence and range semantics remain literal or fail closed without English fallback.
@@ -35,7 +35,7 @@
   precision rather than delegating to a third-party currency string.
 - Spanish decimal quantities and money are decomposed deterministically from
   written fractional digits; reviewed fixtures define major/minor wording and
-  Spanish one-ending agreement rather than delegating grammar to `num2words`.
+  Spanish one-ending agreement rather than delegating grammar to Numeralform.
 
 High-confidence structured sequences include slash and Unicode fractions,
 coordinates, ISBNs, UUIDs, IPv4, MAC addresses, IBANs, locale-grouped phones,
@@ -72,7 +72,7 @@ ordinary-number categories. English phoneme-sensitive years, suffix ordinals,
 Roman numerals, phone/ID and arbitrary multi-dot sequences, numeric suffixes, and
 G2P decisions remain downstream-owned. Unsupported
 language categories use an explicit
-`NumberPolicy.NONE` warning rather than a generic `num2words` fallback.
+`NumberPolicy.NONE` warning rather than an automatic plain-cardinal ownership decision.
 
 Use `PreparationConfig.for_kokorog2p(language)` for a profile that keeps all run
 boundary whitespace caller-owned, enables exact protection/mapping, and makes

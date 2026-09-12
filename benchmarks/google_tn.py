@@ -188,7 +188,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict]:
         "spokenform_version": _package_version("spokenform"),
         "spokenform_source_commit": _source_commit(),
         "abbr2words_version": _package_version("abbr2words"),
-        "num2words_version": _package_version("num2words"),
+        "numeralform_version": _package_version("numeralform"),
         "python_version": sys.version.split()[0],
         "platform": platform.platform(),
         "configuration": {
@@ -232,7 +232,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict]:
                             "spokenform_source_commit"
                         ],
                         "abbr2words_version": summary["provenance"]["abbr2words_version"],
-                        "num2words_version": summary["provenance"]["num2words_version"],
+                        "numeralform_version": summary["provenance"]["numeralform_version"],
                         "profile": profile,
                         "language": args.language,
                         "split": args.split,

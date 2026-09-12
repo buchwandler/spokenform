@@ -7,7 +7,7 @@ from collections import Counter
 from dataclasses import dataclass
 from typing import Any
 
-from num2words import num2words
+from numeralform import render
 
 from .text_metrics import speech_key, speech_key_equivalent, word_error_rate
 
@@ -37,7 +37,7 @@ class RenderingOracleAnalysis:
 
 
 def _cardinal(value: int) -> str:
-    return str(num2words(value, lang="en")).replace("-", " ").replace(" and ", " ")
+    return render(value, locale="en").replace("-", " ").replace(" and ", " ")
 
 
 def time_render_alternatives(hour: int, minute: int) -> tuple[RenderAlternative, ...]:

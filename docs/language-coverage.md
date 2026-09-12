@@ -5,74 +5,74 @@
 Spokenform accepts 49 base families and 17 explicit dependency locale overlays.
 Specialist capabilities remain independent from global language acceptance.
 
-| Spokenform key | Dependency key | Exact locale | Abbreviations | Number backend | Decimal policy | Structured | Sequence policy | KokoroG2P | Tier                     |
-| -------------- | -------------- | -----------: | ------------- | -------------- | -------------- | ---------- | --------------- | --------- | ------------------------ |
-| `am`           | `am`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `ar`           | `ar`           |           no | yes           | num2words      | no             | no         | yes             | yes       | conservative_integration |
-| `az`           | `az`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `be`           | `be`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `bn`           | `bn`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `ca`           | `ca`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `ce`           | `ce`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `cs`           | `cs`           |           no | yes           | num2words      | no             | yes        | yes             | yes       | reviewed_structured      |
-| `cy`           | `cy`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `da`           | `da`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `de`           | `de`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `en`           | `en`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `en_GB`        | `en_GB`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `en_IN`        | `en_IN`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `en_NG`        | `en_NG`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `en_US`        | `en_US`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `eo`           | `eo`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `es`           | `es`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `es_CO`        | `es_CO`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `es_CR`        | `es_CR`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `es_GT`        | `es_GT`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `es_MX`        | `es_MX`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `es_NI`        | `es_NI`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `es_VE`        | `es_VE`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `fa`           | `fa`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `fi`           | `fi`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `fr`           | `fr`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `fr_BE`        | `fr_BE`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `fr_CH`        | `fr_CH`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `fr_DZ`        | `fr_DZ`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `he`           | `he`           |           no | yes           | num2words      | no             | no         | yes             | yes       | conservative_integration |
-| `hi`           | `hi`           |           no | yes           | none           | no             | no         | no              | no        | foundation               |
-| `hu`           | `hu`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `hy`           | `hy`           |           no | yes           | none           | no             | no         | no              | no        | foundation               |
-| `id`           | `id`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `is`           | `is`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `it`           | `it`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `ja`           | `ja`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `kk`           | `kz`           |           no | yes           | num2words      | no             | no         | yes             | yes       | conservative_integration |
-| `kn`           | `kn`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `ko`           | `ko`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `lt`           | `lt`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `lv`           | `lv`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `mn`           | `mn`           |           no | yes           | none           | no             | no         | no              | no        | foundation               |
-| `nl`           | `nl`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `no`           | `no`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `pl`           | `pl`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `pt`           | `pt`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `pt_BR`        | `pt_BR`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `ro`           | `ro`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `ru`           | `ru`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `sk`           | `sk`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `sl`           | `sl`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `sr`           | `sr`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `sv`           | `sv`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `te`           | `te`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `tet`          | `tet`          |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `tg`           | `tg`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `th`           | `th`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `tr`           | `tr`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `uk`           | `uk`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
-| `vi`           | `vi`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `zh`           | `zh`           |           no | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `zh_CN`        | `zh_CN`        |          yes | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `zh_HK`        | `zh_HK`        |          yes | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
-| `zh_TW`        | `zh_TW`        |          yes | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
+| Spokenform key | Abbr2words locale | Numeralform locale | Exact locale | Abbreviations | Number renderer | Renderer available | Plain cardinals | Decimal policy | Structured | Sequence policy | KokoroG2P | Tier                     |
+| -------------- | ----------------- | ------------------ | -----------: | ------------- | --------------- | ------------------ | --------------- | -------------- | ---------- | --------------- | --------- | ------------------------ |
+| `am`           | `am`              | `am`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `ar`           | `ar`              | `ar`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | yes             | yes       | conservative_integration |
+| `az`           | `az`              | `az`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `be`           | `be`              | `be`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `bn`           | `bn`              | `bn`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `ca`           | `ca`              | `ca`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `ce`           | `ce`              | `ce`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `cs`           | `cs`              | `cs`               |           no | yes           | numeralform     | yes                | yes             | no             | yes        | yes             | yes       | reviewed_structured      |
+| `cy`           | `cy`              | `cy`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `da`           | `da`              | `da`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `de`           | `de`              | `de`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `en`           | `en`              | `en`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `en_GB`        | `en_GB`           | `en-GB`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `en_IN`        | `en_IN`           | `en-IN`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `en_NG`        | `en_NG`           | `en-NG`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `en_US`        | `en_US`           | `en-US`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `eo`           | `eo`              | `eo`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `es`           | `es`              | `es`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `es_CO`        | `es_CO`           | `es-CO`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `es_CR`        | `es_CR`           | `es-CR`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `es_GT`        | `es_GT`           | `es-GT`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `es_MX`        | `es_MX`           | `es-MX`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `es_NI`        | `es_NI`           | `es-NI`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `es_VE`        | `es_VE`           | `es-VE`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `fa`           | `fa`              | `fa`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `fi`           | `fi`              | `fi`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `fr`           | `fr`              | `fr`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `fr_BE`        | `fr_BE`           | `fr-BE`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `fr_CH`        | `fr_CH`           | `fr-CH`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `fr_DZ`        | `fr_DZ`           | `fr-DZ`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `he`           | `he`              | `he`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | yes             | yes       | conservative_integration |
+| `hi`           | `hi`              | `hi`               |           no | yes           | numeralform     | yes                | no              | no             | no         | no              | no        | foundation               |
+| `hu`           | `hu`              | `hu`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `hy`           | `hy`              | `hy`               |           no | yes           | numeralform     | yes                | no              | no             | no         | no              | no        | foundation               |
+| `id`           | `id`              | `id`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `is`           | `is`              | `is`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `it`           | `it`              | `it`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `ja`           | `ja`              | `ja`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `kk`           | `kz`              | `kk`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | yes             | yes       | conservative_integration |
+| `kn`           | `kn`              | `kn`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `ko`           | `ko`              | `ko`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `lt`           | `lt`              | `lt`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `lv`           | `lv`              | `lv`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `mn`           | `mn`              | `mn`               |           no | yes           | numeralform     | yes                | no              | no             | no         | no              | no        | foundation               |
+| `nl`           | `nl`              | `nl`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `no`           | `no`              | `no`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `pl`           | `pl`              | `pl`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `pt`           | `pt`              | `pt`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `pt_BR`        | `pt_BR`           | `pt-BR`            |          yes | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `ro`           | `ro`              | `ro`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `ru`           | `ru`              | `ru`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `sk`           | `sk`              | `sk`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `sl`           | `sl`              | `sl`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `sr`           | `sr`              | `sr`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `sv`           | `sv`              | `sv`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `te`           | `te`              | `te`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `tet`          | `tet`             | `tet`              |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `tg`           | `tg`              | `tg`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `th`           | `th`              | `th`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `tr`           | `tr`              | `tr`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `uk`           | `uk`              | `uk`               |           no | yes           | numeralform     | yes                | yes             | no             | no         | no              | no        | foundation               |
+| `vi`           | `vi`              | `vi`               |           no | yes           | numeralform     | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `zh`           | `zh`              | `zh`               |           no | yes           | cn2an           | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `zh_CN`        | `zh_CN`           | `zh_CN`            |          yes | yes           | cn2an           | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `zh_HK`        | `zh_HK`           | `zh_HK`            |          yes | yes           | cn2an           | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
+| `zh_TW`        | `zh_TW`           | `zh_TW`            |          yes | yes           | cn2an           | yes                | yes             | yes            | yes        | yes             | yes       | reviewed_structured      |
 
-`kk` is Spokenform's public Kazakh key and routes to dependency key `kz`.
-A `none` number backend means ordinary numeric source is preserved by normal `prepare()`.
+`kk` is Spokenform's public Kazakh key. Abbr2words uses `kz`, while Numeralform uses `kk`.
+Renderer availability and automatic plain-cardinal ownership are reported separately.

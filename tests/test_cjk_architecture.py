@@ -33,7 +33,7 @@ def test_runtime_policy_sets_are_explicit() -> None:
 
 
 def test_cjk_backend_routing_is_explicit() -> None:
-    assert number_backend_for_language("ja") == "num2words"
-    assert number_backend_for_language("ko") == "num2words"
+    assert number_backend_for_language("ja") == "numeralform"
+    assert number_backend_for_language("ko") == "numeralform"
     assert number_backend_for_language("zh") == "cn2an"
     assert number_backend_for_language("zh_CN") == "cn2an"

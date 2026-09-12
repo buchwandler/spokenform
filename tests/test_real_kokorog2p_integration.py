@@ -30,8 +30,6 @@ def _real_english_g2p() -> EnglishG2P:
         use_espeak_fallback=False,
         use_goruut_fallback=False,
         use_spacy=False,
-        load_gold=True,
-        load_silver=True,
         strict=False,
     )
 
@@ -267,8 +265,6 @@ def _real_french_g2p() -> FrenchG2P:
         use_espeak_fallback=False,
         use_goruut_fallback=False,
         use_spacy=False,
-        load_gold=True,
-        load_silver=False,
     )
 
 

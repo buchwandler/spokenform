@@ -38,7 +38,8 @@ def report_identity(summary: dict[str, Any]) -> dict[str, Any]:
         "spokenform_source_commit": environment.get("spokenform_source_commit"),
         "spokenform_version": environment.get("spokenform_version"),
         "abbr2words_version": environment.get("abbr2words_version"),
-        "num2words_version": environment.get("num2words_version"),
+        "numeralform_version": environment.get("numeralform_version")
+        or environment.get("num2words_version"),
         "locale_mapping": environment.get("locale_mapping"),
         "profile": summary.get("profile", configuration.get("profile")),
         "config_hash": environment.get("config_hash", configuration.get("config_hash")),
@@ -55,7 +56,7 @@ def identity_mismatches(before: dict[str, Any], after: dict[str, Any]) -> dict[s
         "spokenform_source_commit",
         "spokenform_version",
         "abbr2words_version",
-        "num2words_version",
+        "numeralform_version",
         "locale_mapping",
         "profile",
         "config_hash",
