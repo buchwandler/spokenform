@@ -1,0 +1,63 @@
+{
+  "candidate_count": 2,
+  "candidates": [
+    {
+      "additions": 2649,
+      "deletions": 215,
+      "patch_file": "e5b009c.patch",
+      "patch_sha256": "1360a2709fae9575f5969304f920e7340117f8cf1a58f39fe3aabd8528c18be6",
+      "paths": [
+        "01_todo.md",
+        "README.md",
+        "docs/api.md",
+        "docs/language-coverage.md",
+        "docs/languages.md",
+        "scripts/generate_language_coverage.py",
+        "spokenform/__init__.py",
+        "spokenform/api.py",
+        "spokenform/cli.py",
+        "spokenform/config.py",
+        "spokenform/fallback.py",
+        "spokenform/language.py",
+        "spokenform/language_support.py",
+        "spokenform/locales/fr.py",
+        "spokenform/number_words.py",
+        "spokenform/numbers.py",
+        "spokenform/numeric_lexeme.py",
+        "spokenform/structured.py",
+        "tests/data/language_registry_contract.json",
+        "tests/test_cjk_architecture.py",
+        "tests/test_docs_consistency.py",
+        "tests/test_kokoro_alias_adapter.py",
+        "tests/test_kokorog2p_profiles.py",
+        "tests/test_language.py",
+        "tests/test_language_registry_parity.py",
+        "tests/test_profiles.py",
+        "tests/test_real_kokorog2p_integration.py",
+        "tests/test_sequence_fallback.py",
+        "tests/test_sequences.py"
+      ],
+      "sha": "e5b009cd4e66768a9f5304eded1ad9b5158e9d59",
+      "short_sha": "e5b009c",
+      "source_ref": "git:e5b009cd4e66768a9f5304eded1ad9b5158e9d59"
+    },
+    {
+      "additions": 58,
+      "deletions": 18,
+      "patch_file": "9c3b265.patch",
+      "patch_sha256": "36ac49f4abb4b2d220daed8c8deba201ef79bb8e8a69299fac2aee781c275192",
+      "paths": ["scripts/generate_language_coverage.py"],
+      "sha": "9c3b265b69b0ee73594185f72804d5e445173742",
+      "short_sha": "9c3b265",
+      "source_ref": "git:9c3b265b69b0ee73594185f72804d5e445173742"
+    }
+  ],
+  "git_base_ref": "4e15baa192685b02d0992eb9cdeab3a5b44420a1",
+  "git_base_sha": "4e15baa192685b02d0992eb9cdeab3a5b44420a1",
+  "git_head_ref": "9c3b265b69b0ee73594185f72804d5e445173742",
+  "git_head_sha": "9c3b265b69b0ee73594185f72804d5e445173742",
+  "include_merges": "nontrivial",
+  "object_type": "git_evidence_manifest",
+  "release_version": "0.3.7",
+  "schema_version": 1
+}

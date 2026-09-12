@@ -1,0 +1,73 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 1
+release_version: 0.3.7
+git_base_ref: v0.3.6
+git_base_sha: 4e15baa192685b02d0992eb9cdeab3a5b44420a1
+git_head_ref: HEAD
+git_head_sha: 9c3b265b69b0ee73594185f72804d5e445173742
+git_range: 4e15baa192685b02d0992eb9cdeab3a5b44420a1..9c3b265b69b0ee73594185f72804d5e445173742
+commit_count: 2
+rows:
+  - sha: e5b009cd4e66768a9f5304eded1ad9b5158e9d59
+    source_ref: git:e5b009cd4e66768a9f5304eded1ad9b5158e9d59
+    short_sha: e5b009c
+    changed_paths:
+      - 01_todo.md
+      - README.md
+      - docs/api.md
+      - docs/language-coverage.md
+      - docs/languages.md
+      - scripts/generate_language_coverage.py
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/config.py
+      - spokenform/fallback.py
+      - spokenform/language.py
+      - spokenform/language_support.py
+      - spokenform/locales/fr.py
+      - spokenform/number_words.py
+      - spokenform/numbers.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/structured.py
+      - tests/data/language_registry_contract.json
+      - tests/test_cjk_architecture.py
+      - tests/test_docs_consistency.py
+      - tests/test_kokoro_alias_adapter.py
+      - tests/test_kokorog2p_profiles.py
+      - tests/test_language.py
+      - tests/test_language_registry_parity.py
+      - tests/test_profiles.py
+      - tests/test_real_kokorog2p_integration.py
+      - tests/test_sequence_fallback.py
+      - tests/test_sequences.py
+    stats:
+      files_changed: 0
+      insertions: 2649
+      deletions: 215
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "feat: add all lang which are available in abbr2words"
+  - sha: 9c3b265b69b0ee73594185f72804d5e445173742
+    source_ref: git:9c3b265b69b0ee73594185f72804d5e445173742
+    short_sha: 9c3b265
+    changed_paths:
+      - scripts/generate_language_coverage.py
+    stats:
+      files_changed: 0
+      insertions: 58
+      deletions: 18
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "chore: fix script"

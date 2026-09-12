@@ -1,0 +1,3573 @@
+ 01_todo.md                                 | 1715 ++++++++++++++++++++++++++++
+ README.md                                  |    2 +-
+ docs/api.md                                |   25 +-
+ docs/language-coverage.md                  |   78 ++
+ docs/languages.md                          |   63 +-
+ scripts/generate_language_coverage.py      |   57 +
+ spokenform/__init__.py                     |   48 +-
+ spokenform/api.py                          |   10 +-
+ spokenform/cli.py                          |   12 +-
+ spokenform/config.py                       |   25 +-
+ spokenform/fallback.py                     |    4 +
+ spokenform/language.py                     |  149 ++-
+ spokenform/language_support.py             |  131 +++
+ spokenform/locales/fr.py                   |    2 +
+ spokenform/number_words.py                 |   82 +-
+ spokenform/numbers.py                      |   15 +-
+ spokenform/numeric_lexeme.py               |   32 +-
+ spokenform/structured.py                   |    3 +-
+ tests/data/language_registry_contract.json |   78 ++
+ tests/test_cjk_architecture.py             |   19 +-
+ tests/test_docs_consistency.py             |    7 +
+ tests/test_kokoro_alias_adapter.py         |    9 +-
+ tests/test_kokorog2p_profiles.py           |    4 +-
+ tests/test_language.py                     |  236 ++--
+ tests/test_language_registry_parity.py     |   44 +
+ tests/test_profiles.py                     |    2 +-
+ tests/test_real_kokorog2p_integration.py   |    2 +-
+ tests/test_sequence_fallback.py            |    4 +-
+ tests/test_sequences.py                    |    6 +-
+ 29 files changed, 2649 insertions(+), 215 deletions(-)
+
+diff --git a/01_todo.md b/01_todo.md
+new file mode 100644
+index 0000000..e6050ac
+--- /dev/null
++++ b/01_todo.md
+@@ -0,0 +1,1715 @@
++# Spokenform implementation brief: support the full `num2words` / `abbr2words` language contract
++
++## Status
++
++Implementation brief based on reconstructed snapshots of the attached `spokenform` and `abbr2words` repositories.
++
++The target is **language coverage parity without false feature parity**. Spokenform should accept and safely process every language family and explicit locale overlay exposed by the current `abbr2words` registry, while preserving the existing reviewed structured behavior for the languages that already have it.
++
++The central architectural rule is:
++
++> A language being supported by Spokenform must not imply that every Spokenform semantic recognizer is reviewed for that language.
++
++The current code conflates those concepts. This brief separates them.
++
++---
++
++## 1. Goal
++
++Make `spokenform` support the same language universe as the attached `abbr2words` registry / pinned current-master `num2words` contract.
++
++### 49 base keys
++
++`am`, `ar`, `az`, `be`, `bn`, `ca`, `ce`, `cs`, `cy`, `da`, `de`, `en`, `eo`, `es`, `fa`, `fi`, `fr`, `he`, `hi`, `hu`, `hy`, `id`, `is`, `it`, `ja`, `kn`, `ko`, `kz`, `lt`, `lv`, `mn`, `nl`, `no`, `pl`, `pt`, `ro`, `ru`, `sk`, `sl`, `sr`, `sv`, `te`, `tet`, `tg`, `th`, `tr`, `uk`, `vi`, `zh`.
++
++### 17 explicit locale overlays
++
++`en_GB`, `en_IN`, `en_NG`, `en_US`, `es_CO`, `es_CR`, `es_GT`, `es_MX`, `es_NI`, `es_VE`, `fr_BE`, `fr_CH`, `fr_DZ`, `pt_BR`, `zh_CN`, `zh_HK`, `zh_TW`.
++
++Total dependency registry contract: **66 keys**.
++
++Resolution must:
++
++- trim input;
++- accept `-` and `_`;
++- normalize base language to lower case and region to upper case;
++- try an exact registered locale first;
++- then fall back to its registered base;
++- keep `eo` and `es_NI`;
++- reject `eu`;
++- preserve existing Spokenform compatibility aliases where intentional.
++
++Required examples:
++
++```python
++normalize_language(" pt-BR ") == "pt_BR"
++normalize_language("fr_FR") == "fr"
++normalize_language("en-gb") == "en_GB"
++normalize_language("es-ni") == "es_NI"
++
++normalize_language("EU")  # raises ValueError
++```
++
++---
++
++## 2. Executive recommendation
++
++Do **not** implement this by merely replacing the current 17-language tuple with 49 languages.
++
++Today `SUPPORTED_BASE_LANGUAGES` implicitly means several different things in different areas:
++
++1. globally accepted Spokenform languages;
++2. KokoroG2P integration-profile languages;
++3. languages with a `spokenform.locales.<lang>` implementation;
++4. languages with explicit sequence digit/punctuation vocabularies;
++5. languages with reviewed numeric decimal/grouping semantics.
++
++These sets are not equivalent.
++
++The correct migration is:
++
++1. introduce one global language registry;
++2. split global support from specialist capability sets;
++3. route exact `abbr2words` locale overlays correctly;
++4. make generic number support backend/capability-driven;
++5. make unreviewed numeric punctuation and structured semantics fail closed;
++6. keep the existing KokoroG2P language profile independent;
++7. add generated registry-parity tests and a generated documentation matrix.
++
++This provides useful support for all target keys without introducing English leakage or pretending that every language has the same semantic maturity.
++
++---
++
++## 3. Current architecture findings
++
++### 3.1 Global language support is currently owned by the KokoroG2P profile
++
++Current `spokenform/language.py` contains the equivalent of:
++
++```python
++_KOKOROG2P_PROFILES = frozenset({...17 languages...})
++SUPPORTED_BASE_LANGUAGES = tuple(sorted(_KOKOROG2P_PROFILES))
++```
++
++This is the main architectural issue.
++
++A downstream TTS integration profile should be a **consumer capability** of Spokenform. It should not define which languages Spokenform itself accepts.
++
++The current 17 families are:
++
++`ar`, `cs`, `de`, `en`, `es`, `fr`, `he`, `it`, `ja`, `kk`, `ko`, `pt`, `ru`, `sv`, `th`, `vi`, `zh`.
++
++Compared with the target dependency contract, the currently missing families are:
++
++`am`, `az`, `be`, `bn`, `ca`, `ce`, `cy`, `da`, `eo`, `fa`, `fi`, `hi`, `hu`, `hy`, `id`, `is`, `kn`, `lt`, `lv`, `mn`, `nl`, `no`, `pl`, `ro`, `sk`, `sl`, `sr`, `te`, `tet`, `tg`, `tr`, `uk`.
++
++That is **32 additional base families**.
++
++Kazakh is a naming exception: current Spokenform exposes `kk`, while both attached semantic dependencies use `kz`. This should be handled deliberately at the dependency boundary rather than letting it infect every registry.
++
++### 3.2 `resolve_abbr2words_language()` currently discards most exact locale overlays
++
++Current `spokenform/language.py` includes:
++
++```python
++_EXACT_ABBR2WORDS_LOCALES = frozenset({"es_MX", "zh_CN"})
++```
++
++and collapses other regional forms to their base before calling `abbr2words`.
++
++That is no longer consistent with the attached `abbr2words` registry, which has all 17 explicit overlays.
++
++Information currently lost includes:
++
++- `en_GB`
++- `en_IN`
++- `en_NG`
++- `en_US`
++- `es_CO`
++- `es_CR`
++- `es_GT`
++- `es_NI`
++- `es_VE`
++- `fr_BE`
++- `fr_CH`
++- `fr_DZ`
++- `pt_BR`
++- `zh_HK`
++- `zh_TW`
++
++Fix this early. It is low risk and immediately improves dependency parity.
++
++### 3.3 Stable and current-master `num2words` support are intentionally different
++
++The attached `abbr2words/tests/data/num2words_language_registry.json` pins:
++
++- stable `num2words` contract: `v0.5.14`;
++- a current-master commit;
++- 45 stable base keys;
++- 49 current-master base keys.
++
++The master-only base languages in that attached contract are:
++
++- `hi`
++- `hy`
++- `mn`
++- `zh`
++
++Spokenform already handles Chinese numerals separately with `cn2an`.
++
++Therefore the practical released-number-backend gap is initially:
++
++- `hi`
++- `hy`
++- `mn`
++
++All three should still be valid **Spokenform language keys**, because `abbr2words` supports them. Numeric capability needs to be represented independently.
++
++Do not add a Git dependency on unreleased `num2words` master to the normal installation just to make the registry count match.
++
++### 3.4 Generic plain-number support is unnecessarily blocked by the 17-language tuple
++
++`spokenform/numbers.py` imports `SUPPORTED_BASE_LANGUAGES`.
++
++Its private `_base_language()` rejects anything outside that set.
++
++`normalize_plain_numbers()` calls that helper.
++
++Consequently, many languages already supported by installed `num2words` cannot currently use the normal Spokenform number stage.
++
++Examples include Dutch, Polish, Turkish, Ukrainian and many others.
++
++This restriction must be replaced by a numeric-backend capability check.
++
++### 3.5 Numeric defaults contain unsafe English fallback behavior
++
++`spokenform/numeric_lexeme.py` currently has generic fallbacks equivalent to:
++
++```python
++NumericSpeechPolicy("point", "digitwise")
++NumericPunctuationPolicy(".", (",", " "))
++```
++
++for languages without an explicit policy.
++
++Once the global registry grows, this is unsafe.
++
++An unreviewed language must not silently inherit:
++
++- English decimal word `point`;
++- dot-decimal semantics;
++- comma-grouping semantics.
++
++For a newly admitted language without reviewed numeric punctuation:
++
++- separator-free integer cardinal conversion can be enabled when a backend exists;
++- punctuation-bearing numeric lexemes should remain unchanged unless an explicit reviewed policy exists.
++
++### 3.6 Shared sequence rendering is not universal
++
++`spokenform/sequences.py` has explicit digit names, letter names and punctuation vocabulary only for the current small language set.
++
++Its language helper raises when a language lacks an explicit digit policy.
++
++Several tests currently parameterize `SUPPORTED_BASE_LANGUAGES` and therefore assume:
++
++> every supported language has explicit sequence rendering.
++
++That assumption must move to a dedicated sequence-capability set.
++
++### 3.7 Shared structured recognizers contain language-specific and English-default rendering
++
++`spokenform/recognizers/sequences.py` contains several constructs conceptually similar to:
++
++```python
++mapping.get(base_language(language), "english fallback")
++mapping.get(base_language(language), mapping["en"])
++```
++
++These are only safe when the recognizer is explicitly restricted to languages with reviewed output.
++
++They become dangerous when 49 base languages are admitted globally.
++
++A new baseline language must not emit English words such as:
++
++- `point`;
++- `to`;
++- `quarter`;
++- `version`;
++- `squared`;
++- English currency names;
++- English punctuation names;
++
++merely because a lookup table has no local entry.
++
++### 3.8 Structured locale dispatch is currently a 17-language explicit chain
++
++`spokenform/structured.py::_iter_locale_replacements()` has explicit imports for the current locale families and returns no locale replacements for everything else.
++
++That fail-closed behavior is useful.
++
++Do **not** create 32 empty `spokenform/locales/*.py` files simply to make registry membership appear uniform.
++
++Locale modules should represent reviewed structured semantics, not basic registry membership.
++
++### 3.9 Tests use the global support tuple for narrower capability assumptions
++
++Examples include:
++
++- `tests/test_cjk_architecture.py`
++- `tests/test_sequences.py`
++- `tests/test_sequence_fallback.py`
++- `tests/test_kokorog2p_profiles.py`
++
++Some of these currently assert that every global supported language has:
++
++- a number policy;
++- a numeric punctuation policy;
++- a numeric speech policy;
++- sequence vocabulary;
++- an importable locale module;
++- a Kokoro integration profile.
++
++Those are capability tests, not global-language tests.
++
++They must be split before increasing the registry.
++
++---
++
++## 4. Target support model
++
++Use orthogonal capability sets rather than one overloaded language list.
++
++Recommended internal concepts:
++
++```python
++SUPPORTED_BASE_LANGUAGES
++SUPPORTED_LOCALES
++SUPPORTED_LANGUAGE_KEYS
++
++REVIEWED_STRUCTURED_LANGUAGES
++CONSERVATIVE_INTEGRATION_LANGUAGES
++SEQUENCE_POLICY_LANGUAGES
++REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES
++KOKOROG2P_PROFILE_LANGUAGES
++```
++
++Do not derive the narrower sets from `SUPPORTED_BASE_LANGUAGES`.
++
++### 4.1 Global support
++
++A globally supported language means:
++
++- the identifier resolves deterministically;
++- `prepare()` accepts it;
++- Unicode/protection/whitespace stages work;
++- `abbr2words` can be routed correctly;
++- unsupported semantic stages preserve source rather than guessing;
++- the pipeline does not crash merely because a specialist grammar is absent.
++
++That is the minimum contract for every supported key.
++
++### 4.2 Foundation numeric support
++
++A language has foundation numeric support when a released backend can render ordinary cardinals.
++
++Initially this is:
++
++- every installed/released `num2words` converter;
++- Chinese through `cn2an`.
++
++For `hi`, `hy`, and `mn` under the pinned stable dependency contract:
++
++- keep them as supported Spokenform languages;
++- keep abbreviation handling available;
++- preserve numeric source in normal `prepare()`;
++- optionally attach one warning to `PreparedText.warnings`;
++- do not crash.
++
++Suggested warning:
++
++```text
++[NUMBERS] no released numeric backend for language 'hi'; numeric text preserved
++```
++
++### 4.3 Reviewed numeric punctuation support
++
++This is separate from ordinary cardinal support.
++
++A language with no reviewed decimal/grouping policy may safely support:
++
++```text
++2 -> localized cardinal
++```
++
++while preserving ambiguous forms such as:
++
++```text
++1.234
++1,234
++.5
++```
++
++until the punctuation rules are explicit.
++
++### 4.4 Reviewed structured support
++
++Keep the current reviewed locale families as an explicit capability set.
++
++A reasonable initial set, based on the current implementation and tests, is:
++
++```python
++REVIEWED_STRUCTURED_LANGUAGES = frozenset(
++    {
++        "cs",
++        "de",
++        "en",
++        "es",
++        "fr",
++        "it",
++        "ja",
++        "ko",
++        "pt",
++        "ru",
++        "sv",
++        "th",
++        "vi",
++        "zh",
++    }
++)
++```
++
++Arabic, Hebrew and Kazakh currently have intentionally conservative integration modules and should remain separately classified.
++
++Do not mark the 32 newly admitted families as reviewed structured languages.
++
++### 4.5 KokoroG2P support
++
++Keep the current KokoroG2P set independent:
++
++```python
++KOKOROG2P_PROFILE_LANGUAGES = frozenset(...)
++```
++
++`supports_profile()` should consult this set, not global Spokenform support.
++
++The existing 17-language Kokoro contract can remain unchanged while Spokenform itself grows to the full dependency language universe.
++
++---
++
++## 5. Recommended language-registry design
++
++### 5.1 Avoid reimplementing the entire `abbr2words` registry
++
++`abbr2words` is already a required dependency and already owns:
++
++- canonical registry keys;
++- exact-locale resolution;
++- base fallback;
++- supported-language discovery;
++- compatibility aliases.
++
++Spokenform should not maintain another hand-copied list of 66 dependency keys as runtime truth unless it deliberately wants a frozen compatibility contract.
++
++Prefer the public `abbr2words` registry API at runtime, while pinning the expected contract in Spokenform tests.
++
++Conceptually:
++
++```python
++from abbr2words import (
++    base_language as abbr2words_base_language,
++    normalize_language as normalize_abbr2words_language,
++    supported_languages as abbr2words_supported_languages,
++)
++```
++
++### 5.2 Add a Spokenform capability descriptor
++
++Recommended new module:
++
++```text
++spokenform/language_support.py
++```
++
++or keep it in `spokenform/language.py` if the module remains manageable.
++
++Suggested shape:
++
++```python
++from dataclasses import dataclass
++from enum import Enum
++
++
++class SupportTier(str, Enum):
++    FOUNDATION = "foundation"
++    REVIEWED_STRUCTURED = "reviewed_structured"
++    CONSERVATIVE_INTEGRATION = "conservative_integration"
++
++
++@dataclass(frozen=True, slots=True)
++class LanguageSupport:
++    language: str
++    base: str
++    abbreviation_language: str
++    number_backend: str | None
++    number_language: str | None
++    tier: SupportTier
++    exact_locale: bool
++    plain_cardinals: bool
++    decimal_policy: bool
++    structured: bool
++    sequence_policy: bool
++    kokorog2p_profile: bool
++```
++
++Do not use the tier alone for runtime decisions. The boolean capabilities are the meaningful contract.
++
++The tier is mainly useful for documentation and human inspection.
++
++### 5.3 Public discovery API
++
++Recommended:
++
++```python
++def supported_languages(*, include_locales: bool = False) -> tuple[str, ...]:
++    ...
++
++def supports_language(language: str) -> bool:
++    ...
++
++def language_support(language: str) -> LanguageSupport:
++    ...
++```
++
++Why `include_locales=False` by default?
++
++Current Spokenform callers conceptually iterate language families, not explicit dependency overlays. Keeping base-only as the default avoids silently changing iteration cardinality from 17 to 66.
++
++Expected after migration:
++
++```python
++len(supported_languages()) == 49
++len(supported_languages(include_locales=True)) == 66
++```
++
++If exact API symmetry with `abbr2words` is considered more important than backward compatibility, defaulting `include_locales=True` is defensible, but it should be an explicit API decision rather than an accidental side effect.
++
++### 5.4 Validate language once near the public API boundary
++
++Currently `normalize_language()` mainly canonicalizes and unknown-language failures occur later in dependency-specific functions.
++
++For the expanded public contract, language validity should be established before stages begin.
++
++Recommended split:
++
++```python
++def canonicalize_language(language: str) -> str:
++    """Normalize syntax, casing and compatibility aliases."""
++
++def normalize_language(language: str) -> str:
++    """Canonicalize and resolve against the Spokenform registry."""
++```
++
++`PreparationConfig.__post_init__()` should store a resolved supported language.
++
++Subsequent stages can then assume language validity.
++
++---
++
++## 6. Kazakh: standards-oriented public key, dependency translation
++
++The dependencies use `kz`.
++
++Current Spokenform uses `kk`, which is the ISO 639-1 code and is already integrated with Kokoro-related code.
++
++Recommended migration:
++
++- keep Spokenform canonical `kk`;
++- accept `kz` as a compatibility/dependency alias;
++- translate `kk -> kz` only inside `resolve_num2words_language()` and `resolve_abbr2words_language()`;
++- retain `spokenform/locales/kk.py`;
++- retain KokoroG2P integration on `kk`.
++
++Represent the equivalence explicitly:
++
++```python
++_DEPENDENCY_LANGUAGE_ALIASES = {
++    "kk": "kz",
++}
++```
++
++If strict public-key identity with `abbr2words` is a hard project requirement, the alternative is:
++
++- canonical public `kz`;
++- accept `kk`;
++- translate `kz -> kk` for KokoroG2P.
++
++That is more disruptive to existing Spokenform callers and is not the preferred migration.
++
++Registry parity tests should treat `kk <-> kz` as an intentional key mapping rather than a missing language.
++
++---
++
++## 7. Fix `abbr2words` locale routing first
++
++Delete the special-case ownership list:
++
++```python
++_EXACT_ABBR2WORDS_LOCALES = frozenset({"es_MX", "zh_CN"})
++```
++
++Do not manually decide in Spokenform which `abbr2words` overlays count as exact.
++
++Instead:
++
++1. canonicalize the Spokenform input;
++2. translate dependency aliases such as `kk -> kz`;
++3. let `abbr2words.normalize_language()` perform exact-first/base-second resolution.
++
++Conceptually:
++
++```python
++def resolve_abbr2words_language(language: str) -> str:
++    requested = canonicalize_language(language)
++    dependency_input = _dependency_language(requested)
++    return abbr2words_normalize_language(dependency_input)
++```
++
++Required behavior:
++
++```python
++resolve_abbr2words_language("en_GB") == "en_GB"
++resolve_abbr2words_language("en-US") == "en_US"
++resolve_abbr2words_language("es-NI") == "es_NI"
++resolve_abbr2words_language("fr-CH") == "fr_CH"
++resolve_abbr2words_language("pt-BR") == "pt_BR"
++resolve_abbr2words_language("zh-HK") == "zh_HK"
++
++resolve_abbr2words_language("fr-FR") == "fr"
++```
++
++Do not use unit-data presence as a runtime proxy for whether a registry key is valid. The attached `abbr2words` package already owns and tests that contract.
++
++---
++
++## 8. Number backend redesign
++
++### 8.1 Keep backend selection separate from language support
++
++Current behavior effectively says:
++
++```python
++def number_backend_for_language(language: str) -> str:
++    return "cn2an" if base_language(language) == "zh" else "num2words"
++```
++
++This implies every non-Chinese supported language has a working `num2words` converter.
++
++That is not true for current-master-only keys when runtime uses the stable `num2words` release.
++
++Introduce a non-throwing capability resolver.
++
++Suggested representation:
++
++```python
++@dataclass(frozen=True, slots=True)
++class NumberBackend:
++    name: Literal["num2words", "cn2an"]
++    language: str
++
++
++def resolve_number_backend(language: str) -> NumberBackend | None:
++    ...
++```
++
++Rules:
++
++1. `zh*` -> `cn2an`;
++2. exact installed `num2words` locale -> exact converter;
++3. otherwise installed base converter -> base converter;
++4. otherwise -> `None`.
++
++Capability probing should not raise.
++
++Keep a strict helper for APIs that explicitly promise number conversion:
++
++```python
++def require_number_backend(language: str) -> NumberBackend:
++    ...
++```
++
++### 8.2 Keep `resolve_num2words_language()` dependency-specific and strict
++
++A function explicitly named `resolve_num2words_language()` should continue to fail when no `num2words` converter exists.
++
++Examples:
++
++```python
++resolve_num2words_language("en_GB")  # exact if converter exists, else en
++resolve_num2words_language("fr_FR")  # fr fallback
++resolve_num2words_language("kk")     # kz
++resolve_num2words_language("hi")     # raises with stable 0.5.14
++```
++
++Do not pretend that Chinese `cn2an` is a `num2words` language.
++
++### 8.3 Make normal `prepare()` tolerant
++
++The normal preparation pipeline should use `resolve_number_backend()`.
++
++If no released backend exists:
++
++- do not enable the plain-number conversion stage;
++- preserve numeric source;
++- add a clear warning if useful;
++- continue all other stages.
++
++This is the crucial distinction between:
++
++- “Spokenform supports this language”
++- “the installed number backend supports this language”.
++
++### 8.4 Remove global-language gating from `numbers.py`
++
++Current private `_base_language()` rejects anything outside the 17-language support tuple.
++
++Remove that dependency.
++
++The public language layer should validate registry membership; the number layer should validate numeric capability.
++
++`normalize_plain_numbers()` must not reject `nl`, `pl`, `tr`, `uk`, etc. merely because there is no dedicated locale module.
++
++---
++
++## 9. Safe baseline plain numbers
++
++### 9.1 Enable separator-free integer cardinals first
++
++For newly supported languages with a working number backend, forms such as:
++
++```text
++0
++2
++12
++123
++```
++
++are the safest initial capability.
++
++This alone gives useful multilingual coverage.
++
++### 9.2 Do not apply English punctuation defaults
++
++Change the numeric policy APIs so “no reviewed punctuation policy” is explicit.
++
++For example:
++
++```python
++@dataclass(frozen=True, slots=True)
++class NumericPunctuationPolicy:
++    decimal_separator: str | None
++    grouping_separators: tuple[str, ...] = ()
++```
++
++For a foundation language with no reviewed punctuation semantics:
++
++```python
++NumericPunctuationPolicy(decimal_separator=None)
++```
++
++Then `parse_numeric_lexeme()` should:
++
++- accept a separator-free integer;
++- decline punctuation-bearing lexemes;
++- preserve the source.
++
++Likewise, `NumericSpeechPolicy` must not default `decimal_word` to English `"point"` for unknown languages.
++
++### 9.3 Add punctuation policies deliberately
++
++Future expansion should be based on reviewed static locale data, not runtime guessing.
++
++If CLDR is used as a source, prefer a generated checked-in data file over a new mandatory runtime dependency such as Babel:
++
++```text
++scripts/generate_numeric_locale_data.py
++spokenform/data/numeric_locales.json
++```
++
++The generated table should still have tests and review.
++
++---
++
++## 10. Structured recognition policy for newly supported languages
++
++### 10.1 Do not send all non-CJK languages into shared semantic recognizers
++
++Current `iter_structured_candidates()` is essentially:
++
++```python
++shared_candidates = (
++    ()
++    if base in {"ja", "ko", "zh"}
++    else iter_sequence_replacements(...)
++)
++```
++
++That becomes unsafe with a 49-language registry.
++
++Change to an explicit capability gate:
++
++```python
++if base not in SHARED_SEQUENCE_RECOGNIZER_LANGUAGES:
++    shared_candidates = ()
++else:
++    shared_candidates = iter_sequence_replacements(...)
++```
++
++Initially, include only languages that already have reviewed regression coverage.
++
++Do not automatically add the 32 new families.
++
++### 10.2 Preserve rather than emit English fallback semantics
++
++Audit language lookups in `spokenform/recognizers/sequences.py`.
++
++Unsafe:
++
++```python
++words.get(base, words["en"])
++```
++
++Preferred:
++
++```python
++language_words = words.get(base)
++if language_words is None:
++    return None
++```
++
++or, preferably in the first migration, gate the entire recognizer away from unsupported languages.
++
++Fail-closed recognizer gating is easier to reason about and test than scattered per-word fallback changes.
++
++### 10.3 Keep locale modules capability-based
++
++Do not add empty files such as:
++
++```text
++spokenform/locales/am.py
++spokenform/locales/az.py
++...
++```
++
++just to mirror the registry.
++
++Registry support belongs in the language layer.
++
++Locale modules should signal implemented locale semantics.
++
++---
++
++## 11. Sequence rendering for all-language support
++
++### 11.1 Split sequence capability from global support
++
++Introduce:
++
++```python
++SEQUENCE_POLICY_LANGUAGES = frozenset(...)
++```
++
++Update tests that require explicit digit/punctuation realization to use this capability set rather than `SUPPORTED_BASE_LANGUAGES`.
++
++### 11.2 Keep `SequenceFallbackMode.PRESERVE` as the default
++
++This becomes more important with broad language coverage.
++
++A user who does not explicitly opt into spelling must never receive guessed sequence pronunciation.
++
++### 11.3 Make opt-in spelling degrade safely
++
++For:
++
++```python
++sequence_fallback_mode="spell"
++```
++
++safe behavior for a baseline language is:
++
++- use grapheme spacing where appropriate;
++- use localized digit names from the number backend if available;
++- use punctuation names only when explicit vocabulary exists;
++- otherwise preserve the punctuation character.
++
++Do not instantiate the current default `SequenceVocabulary()` for a new language because its defaults are English words.
++
++A future neutral vocabulary could use `None` for all punctuation names.
++
++---
++
++## 12. Number policy refactor
++
++Current `number_policy_for_language()` is documented as the initial KokoroG2P policy despite its generic name and location.
++
++Split it.
++
++Recommended:
++
++```python
++def default_number_policy_for_language(language: str) -> NumberPolicy:
++    if language_has_reviewed_structured_numbers(language):
++        return NumberPolicy.STRUCTURED_AND_PLAIN
++    if language_has_plain_number_backend(language):
++        return NumberPolicy.PLAIN
++    return NumberPolicy.NONE
++
++
++def kokorog2p_number_policy_for_language(language: str) -> NumberPolicy:
++    ...
++```
++
++Then:
++
++```python
++PreparationConfig.for_kokorog2p(...)
++```
++
++uses the Kokoro-specific policy.
++
++Generic `prepare()` with `number_policy=None` should derive its behavior from the generic capability metadata.
++
++This fixes the current issue where `None` effectively allows number stages to be attempted without proving the language can safely support them.
++
++---
++
++## 13. Locale overlays
++
++An exact locale overlay is not automatically a new structured grammar.
++
++For every exact overlay:
++
++1. preserve the exact normalized key in `PreparedText.language`;
++2. route exact `abbr2words` key when registered;
++3. route exact `num2words` converter when installed, else its base;
++4. use exact numeric punctuation policy only where explicitly defined;
++5. use the existing base structured locale grammar unless Spokenform has a real regional semantic difference.
++
++Example for `pt_BR`:
++
++- abbreviations: exact `pt_BR`;
++- number backend: exact `pt_BR` if available;
++- structured grammar: base `pt`;
++- punctuation policy: exact overlay only if needed.
++
++Do not create `spokenform/locales/pt_BR.py` unless Brazilian Portuguese genuinely needs structured behavior different from base Portuguese.
++
++Apply the same rule to all 17 overlays.
++
++---
++
++## 14. Target registry and initial capability tier
++
++### Base-family parity
++
++| Dependency key | Spokenform canonical key | Current Spokenform | Initial capability tier                   |
++| -------------- | ------------------------ | -----------------: | ----------------------------------------- |
++| `am`           | `am`                     |                 no | foundation                                |
++| `ar`           | `ar`                     |                yes | conservative integration                  |
++| `az`           | `az`                     |                 no | foundation                                |
++| `be`           | `be`                     |                 no | foundation                                |
++| `bn`           | `bn`                     |                 no | foundation                                |
++| `ca`           | `ca`                     |                 no | foundation                                |
++| `ce`           | `ce`                     |                 no | foundation                                |
++| `cs`           | `cs`                     |                yes | reviewed structured                       |
++| `cy`           | `cy`                     |                 no | foundation                                |
++| `da`           | `da`                     |                 no | foundation                                |
++| `de`           | `de`                     |                yes | reviewed structured                       |
++| `en`           | `en`                     |                yes | reviewed structured                       |
++| `eo`           | `eo`                     |                 no | foundation                                |
++| `es`           | `es`                     |                yes | reviewed structured                       |
++| `fa`           | `fa`                     |                 no | foundation                                |
++| `fi`           | `fi`                     |                 no | foundation                                |
++| `fr`           | `fr`                     |                yes | reviewed structured                       |
++| `he`           | `he`                     |                yes | conservative integration                  |
++| `hi`           | `hi`                     |                 no | foundation; stable numeric backend absent |
++| `hu`           | `hu`                     |                 no | foundation                                |
++| `hy`           | `hy`                     |                 no | foundation; stable numeric backend absent |
++| `id`           | `id`                     |                 no | foundation                                |
++| `is`           | `is`                     |                 no | foundation                                |
++| `it`           | `it`                     |                yes | reviewed structured                       |
++| `ja`           | `ja`                     |                yes | reviewed structured                       |
++| `kn`           | `kn`                     |                 no | foundation                                |
++| `ko`           | `ko`                     |                yes | reviewed structured                       |
++| `kz`           | `kk`                     |        yes as `kk` | conservative integration                  |
++| `lt`           | `lt`                     |                 no | foundation                                |
++| `lv`           | `lv`                     |                 no | foundation                                |
++| `mn`           | `mn`                     |                 no | foundation; stable numeric backend absent |
++| `nl`           | `nl`                     |                 no | foundation                                |
++| `no`           | `no`                     |                 no | foundation                                |
++| `pl`           | `pl`                     |                 no | foundation                                |
++| `pt`           | `pt`                     |                yes | reviewed structured                       |
++| `ro`           | `ro`                     |                 no | foundation                                |
++| `ru`           | `ru`                     |                yes | reviewed structured                       |
++| `sk`           | `sk`                     |                 no | foundation                                |
++| `sl`           | `sl`                     |                 no | foundation                                |
++| `sr`           | `sr`                     |                 no | foundation                                |
++| `sv`           | `sv`                     |                yes | reviewed structured                       |
++| `te`           | `te`                     |                 no | foundation                                |
++| `tet`          | `tet`                    |                 no | foundation                                |
++| `tg`           | `tg`                     |                 no | foundation                                |
++| `th`           | `th`                     |                yes | reviewed structured                       |
++| `tr`           | `tr`                     |                 no | foundation                                |
++| `uk`           | `uk`                     |                 no | foundation                                |
++| `vi`           | `vi`                     |                yes | reviewed structured                       |
++| `zh`           | `zh`                     |                yes | reviewed structured / `cn2an`             |
++
++### Exact locale overlays
++
++All 17 should be first-class resolved keys.
++
++| Locale  | Base structured grammar | `abbr2words` routing |
++| ------- | ----------------------- | -------------------- |
++| `en_GB` | `en`                    | exact                |
++| `en_IN` | `en`                    | exact                |
++| `en_NG` | `en`                    | exact                |
++| `en_US` | `en`                    | exact                |
++| `es_CO` | `es`                    | exact                |
++| `es_CR` | `es`                    | exact                |
++| `es_GT` | `es`                    | exact                |
++| `es_MX` | `es`                    | exact                |
++| `es_NI` | `es`                    | exact                |
++| `es_VE` | `es`                    | exact                |
++| `fr_BE` | `fr`                    | exact                |
++| `fr_CH` | `fr`                    | exact                |
++| `fr_DZ` | `fr`                    | exact                |
++| `pt_BR` | `pt`                    | exact                |
++| `zh_CN` | `zh`                    | exact                |
++| `zh_HK` | `zh`                    | exact                |
++| `zh_TW` | `zh`                    | exact                |
++
++---
++
++## 15. File-by-file implementation plan
++
++### `spokenform/language.py`
++
++This is the primary refactor.
++
++Changes:
++
++- stop deriving global language support from the Kokoro profile;
++- derive or define the 49-family + 17-overlay global registry;
++- keep integration-profile languages separate;
++- add `supported_languages(include_locales=...)`;
++- validate language at the normalization boundary;
++- use exact `abbr2words` resolution;
++- retain strict `num2words` resolution;
++- preserve compatibility aliases;
++- document `kk -> kz` dependency translation.
++
++Suggested exported concepts:
++
++```python
++SUPPORTED_BASE_LANGUAGES
++SUPPORTED_LOCALES
++KOKOROG2P_PROFILE_LANGUAGES
++
++base_language
++normalize_language
++supported_languages
++supports_language
++language_support
++resolve_abbr2words_language
++resolve_num2words_language
++supports_profile
++```
++
++### `spokenform/language_support.py` — recommended new module
++
++Use this module for capability metadata if `language.py` becomes overloaded.
++
++Responsibilities:
++
++- `LanguageSupport`;
++- number backend availability;
++- structured support flags;
++- sequence-policy flags;
++- numeric punctuation flags;
++- Kokoro integration flags;
++- documentation-friendly discovery.
++
++Keep pure identifier resolution in `language.py`.
++
++### `spokenform/config.py`
++
++Changes:
++
++- separate generic number policy from Kokoro policy;
++- make generic number policy capability-driven;
++- keep `for_kokorog2p()` behavior stable;
++- do not infer structured support from global registry membership.
++
++### `spokenform/number_words.py`
++
++Changes:
++
++- add non-throwing number-backend resolution;
++- keep strict direct rendering APIs strict;
++- retain `cn2an` for Chinese;
++- cache capability checks if beneficial;
++- do not claim stable `num2words` support for `hi`, `hy`, `mn` when converter entries are absent.
++
++### `spokenform/numbers.py`
++
++Changes:
++
++- remove the 17-language global-support gate;
++- allow integer cardinal normalization where a backend exists;
++- preserve punctuation-bearing lexemes when punctuation policy is absent;
++- remove dependence on English fallback semantics;
++- retain existing reviewed special behavior.
++
++### `spokenform/numeric_lexeme.py`
++
++Changes:
++
++- remove generic English speech/punctuation fallback;
++- represent “no reviewed decimal policy” explicitly;
++- allow separator-free integer parsing independently;
++- resolve exact locale policy first, then base policy;
++- preserve ambiguous separator input.
++
++### `spokenform/structured.py`
++
++Changes:
++
++- replace “all non-CJK languages receive shared recognizers” with an explicit capability set;
++- retain fail-closed locale dispatch for languages without a locale module;
++- optionally replace the long import chain with an explicit module mapping, but do not make that cleanup a prerequisite if it increases migration risk.
++
++Possible future structure:
++
++```python
++_LOCALE_MODULES = {
++    "en": "spokenform.locales.en",
++    ...
++}
++```
++
++### `spokenform/sequences.py`
++
++Changes:
++
++- split explicit sequence support from global language support;
++- optionally use the number backend to produce digit names where safe;
++- define a neutral/no-name punctuation policy for foundation languages;
++- never silently select English punctuation vocabulary;
++- preserve `SequenceFallbackMode.PRESERVE`.
++
++### `spokenform/recognizers/sequences.py`
++
++Changes:
++
++- audit English fallback mappings;
++- gate recognizers by reviewed capability;
++- return no candidate when locale speech realization is unavailable;
++- preserve existing output for current reviewed languages.
++
++This audit is required before claiming that `prepare()` is total across the expanded registry.
++
++### `spokenform/abbreviations.py`
++
++Mostly unchanged.
++
++It already delegates dependency resolution.
++
++Once `resolve_abbr2words_language()` is corrected, custom abbreviation registration gains proper exact-overlay behavior automatically.
++
++Add exact-overlay tests.
++
++### `spokenform/profiles.py`
++
++No large redesign required.
++
++Verify that a `SpeechProfile` for every target key:
++
++- resolves successfully;
++- can compile an isolated `abbr2words` expander;
++- does not require a dedicated structured locale module.
++
++### `spokenform/__init__.py`
++
++Export new public discovery/capability functions intentionally.
++
++Avoid exposing every internal capability set unless callers have a concrete need.
++
++### `README.md`
++
++Replace the current narrow language-support paragraph.
++
++Document:
++
++- 49 language families;
++- 17 explicit overlays;
++- tiered feature coverage;
++- explicit language selection;
++- no automatic language detection;
++- link to detailed generated coverage.
++
++### `docs/languages.md`
++
++Convert this to a generated or mostly-generated capability matrix.
++
++Columns should include:
++
++- Spokenform canonical key;
++- dependency key;
++- exact locale/base;
++- abbreviation support;
++- released number backend;
++- reviewed decimal policy;
++- structured grammar;
++- sequence spelling;
++- KokoroG2P profile;
++- notes.
++
++### `docs/api.md`
++
++Document clearly:
++
++```python
++supported_languages()
++supported_languages(include_locales=True)
++supports_language(...)
++language_support(...)
++normalize_language(...)
++resolve_abbr2words_language(...)
++resolve_num2words_language(...)
++```
++
++Explain the distinction between:
++
++- Spokenform language support;
++- installed numeric backend support;
++- structured locale support;
++- integration-profile support.
++
++---
++
++## 16. Test plan
++
++### 16.1 Add a registry contract fixture
++
++Add:
++
++```text
++tests/data/language_registry_contract.json
++```
++
++Pin:
++
++- 49 dependency base keys;
++- 17 explicit locale overlays;
++- the intentional `kz <-> kk` compatibility mapping;
++- unsupported examples such as `eu`.
++
++Suggested metadata:
++
++```json
++{
++  "abbr2words_minimum": "0.2.13",
++  "num2words_stable": "v0.5.14",
++  "num2words_master_ref": "07814cb114157f582c40a00119c2e9faba8dcee2",
++  "base_keys": [],
++  "locale_keys": [],
++  "spokenform_dependency_aliases": {
++    "kk": "kz"
++  }
++}
++```
++
++Do not depend at test runtime on files inside `abbr2words/tests/`; copy the contract into Spokenform's own test data.
++
++### 16.2 Registry parity test
++
++Add:
++
++```text
++tests/test_language_registry_parity.py
++```
++
++Assertions should include:
++
++```python
++assert len(target_dependency_bases) == 49
++assert len(target_locales) == 17
++assert not supports_language("eu")
++```
++
++Compare installed `abbr2words` discovery against the pinned dependency contract.
++
++Fail loudly if a dependency upgrade changes the registry.
++
++### 16.3 Exact locale resolution tests
++
++Parameterize all 17 overlays.
++
++For every overlay test:
++
++- underscore form;
++- hyphen form;
++- mixed casing;
++- exact normalized key;
++- exact `abbr2words` routing.
++
++Examples:
++
++```python
++("en-gb", "en_GB")
++("ES-ni", "es_NI")
++("pt-br", "pt_BR")
++("zh-hk", "zh_HK")
++```
++
++Base-fallback examples:
++
++```python
++("fr-FR", "fr")
++("de-DE", "de")
++("vi-VN", "vi")
++```
++
++### 16.4 All-language pipeline smoke test
++
++For every globally supported key:
++
++```python
++result = prepare(
++    "Plain text",
++    language=language,
++    use_spacy=False,
++)
++assert result.language == expected
++assert result.spoken_text
++```
++
++This test must not require a numeric backend.
++
++Its purpose is to prove that the base pipeline is total over the registry.
++
++### 16.5 Abbreviation backend smoke test
++
++For every `abbr2words` key:
++
++- dependency resolution succeeds;
++- a profile expander can be constructed;
++- neutral text passes through without error.
++
++Do not invent one abbreviation token that must have a localized expansion in every language. Registry/backend instantiation is the correct universal assertion.
++
++### 16.6 Number capability test
++
++For every base language:
++
++```python
++support = language_support(language)
++```
++
++If `support.plain_cardinals` is true:
++
++- `2` is converted;
++- output is non-empty;
++- source mapping remains valid.
++
++If false:
++
++- normal `prepare()` preserves `2`;
++- warning explains unavailable number capability;
++- a direct strict number-rendering API may raise.
++
++This specifically protects `hi`, `hy`, and `mn` under the stable dependency contract.
++
++### 16.7 No-English-leakage tests
++
++For every foundation language outside reviewed structured support, use representative structured-looking inputs:
++
++```text
++1/2
++3-2
++v1.2.3
++192.168.0.1
++A+B
++50%
++```
++
++Default behavior should be:
++
++- source preserved; or
++- explicitly localized by a proven capability.
++
++Reject output containing English semantic words introduced by Spokenform merely because a language table was missing.
++
++Do not reject English text that was already present in the source.
++
++### 16.8 Sequence-policy tests
++
++Change tests currently parameterized over `SUPPORTED_BASE_LANGUAGES`.
++
++Use:
++
++```python
++SEQUENCE_POLICY_LANGUAGES
++```
++
++for tests that require explicit sequence realization.
++
++Add a separate global-language test that verifies default sequence fallback preserves unsupported semantics without raising.
++
++### 16.9 Kokoro profile tests
++
++Change assertions such as:
++
++```python
++assert set(SUPPORTED_BASE_LANGUAGES) == EXPECTED_FAMILIES
++```
++
++to:
++
++```python
++assert set(KOKOROG2P_PROFILE_LANGUAGES) == EXPECTED_FAMILIES
++```
++
++This is a critical regression boundary.
++
++Adding Dutch to Spokenform must not claim that KokoroG2P now supports Dutch.
++
++### 16.10 Locale-module architecture tests
++
++Do not require:
++
++```python
++importlib.import_module(f"spokenform.locales.{language}")
++```
++
++for every global language.
++
++Require a locale module only for an explicit:
++
++```python
++STRUCTURED_LOCALE_LANGUAGES
++```
++
++set.
++
++---
++
++## 17. Generated documentation and CI drift checks
++
++Add a generator:
++
++```text
++scripts/generate_language_coverage.py
++```
++
++It should produce either:
++
++```text
++docs/language-coverage.md
++```
++
++or a delimited generated section inside `docs/languages.md`.
++
++The generator should inspect:
++
++- Spokenform registry;
++- installed `abbr2words` registry;
++- installed `num2words.CONVERTER_CLASSES`;
++- Chinese backend capability;
++- internal structured capability set;
++- internal sequence capability set;
++- KokoroG2P profile set.
++
++Add a freshness test:
++
++```python
++def test_generated_language_docs_are_fresh():
++    ...
++```
++
++This prevents runtime code, README, documentation and integration tests from drifting into different definitions of “supported language”.
++
++---
++
++## 18. Recommended implementation sequence
++
++### Commit 1 — Separate registry ownership from KokoroG2P
++
++Files:
++
++- `spokenform/language.py`
++- `spokenform/__init__.py`
++- `tests/test_language.py`
++- `tests/test_kokorog2p_profiles.py`
++
++Goals:
++
++- global registry no longer derives from Kokoro;
++- 49 base families are accepted;
++- 17 overlays are accepted;
++- Kokoro remains its current independent family set;
++- `eu` remains rejected.
++
++Do not enable new structured semantics yet.
++
++### Commit 2 — Exact `abbr2words` locale parity
++
++Files:
++
++- `spokenform/language.py`
++- abbreviation resolution tests
++- new registry-parity tests
++
++Goals:
++
++- delete `_EXACT_ABBR2WORDS_LOCALES`;
++- all 17 exact overlays route to `abbr2words`;
++- base fallback occurs only where the exact dependency key does not exist.
++
++### Commit 3 — Capability-aware plain cardinals
++
++Files:
++
++- `spokenform/number_words.py`
++- `spokenform/numbers.py`
++- `spokenform/config.py`
++- tests
++
++Goals:
++
++- installed stable `num2words` languages gain integer cardinals;
++- Chinese remains on `cn2an`;
++- `hi`, `hy`, `mn` preserve unsupported numbers instead of crashing;
++- the normal pipeline is total over all globally supported languages.
++
++### Commit 4 — Numeric punctuation fail-closed cleanup
++
++Files:
++
++- `spokenform/numeric_lexeme.py`
++- `spokenform/numbers.py`
++- tests
++
++Goals:
++
++- remove generic English decimal fallback;
++- separate safe integer support from reviewed decimal support;
++- exact/base punctuation policies only where explicitly defined.
++
++### Commit 5 — Structured and sequence capability gating
++
++Files:
++
++- `spokenform/structured.py`
++- `spokenform/sequences.py`
++- `spokenform/recognizers/sequences.py`
++- related tests
++
++Goals:
++
++- newly admitted languages cannot enter English-default semantic renderers accidentally;
++- default residual sequence behavior preserves;
++- opt-in spelling degrades without English punctuation leakage.
++
++### Commit 6 — Documentation and generated parity checks
++
++Files:
++
++- `README.md`
++- `docs/languages.md`
++- `docs/api.md`
++- coverage generator
++- docs consistency tests
++
++---
++
++## 19. Acceptance criteria
++
++### Registry
++
++- [ ] Spokenform recognizes all 49 target base families.
++- [ ] Spokenform recognizes all 17 target locale overlays.
++- [ ] `supported_languages()` returns 49 base families.
++- [ ] `supported_languages(include_locales=True)` represents all 66 dependency keys, accounting for canonical `kk` versus dependency `kz`.
++- [ ] `eo` works.
++- [ ] `es_NI` remains an exact overlay.
++- [ ] `eu` raises.
++- [ ] `pt-BR -> pt_BR`.
++- [ ] `fr_FR -> fr`.
++- [ ] `en_GB` remains exact.
++- [ ] Kazakh `kk` / dependency `kz` mapping is explicitly tested.
++
++### Abbreviations
++
++- [ ] Every supported language resolves to a valid `abbr2words` registry.
++- [ ] All 17 exact overlays are preserved when the dependency exposes them.
++- [ ] Custom `SpeechProfile` / abbreviation registration works for every language key.
++- [ ] No duplicated Spokenform abbreviation inventory is introduced.
++
++### Numbers
++
++- [ ] Every installed/released `num2words` base language can use safe plain cardinal conversion.
++- [ ] Chinese continues using `cn2an`.
++- [ ] Missing stable converters (`hi`, `hy`, `mn` in the attached stable/master comparison) do not crash normal `prepare()`.
++- [ ] Missing number backends preserve source and expose capability clearly.
++- [ ] Unknown numeric punctuation never falls back to English `point`.
++
++### Structured semantics
++
++- [ ] Existing reviewed-language behavior remains regression-compatible.
++- [ ] New foundation languages do not enter unreviewed structured renderers by default.
++- [ ] No English semantic fallback is emitted solely because a language lookup is missing.
++- [ ] Unsupported structured forms preserve source.
++
++### Integrations
++
++- [ ] KokoroG2P profile language support remains independent.
++- [ ] Existing KokoroG2P parity tests retain their current scope.
++- [ ] Adding global Spokenform languages does not claim new Kokoro support.
++
++### Quality
++
++- [ ] All existing tests pass.
++- [ ] New all-language smoke tests pass.
++- [ ] Registry drift test passes.
++- [ ] Documentation is generated or checked against runtime capability metadata.
++- [ ] No mandatory spaCy dependency is introduced for baseline language support.
++- [ ] No automatic language detection is introduced.
++
++---
++
++## 20. Public API examples after the change
++
++### Discovery
++
++```python
++from spokenform import supported_languages
++
++bases = supported_languages()
++
++assert "nl" in bases
++assert "pl" in bases
++assert "tr" in bases
++assert "uk" in bases
++
++all_keys = supported_languages(include_locales=True)
++
++assert "en_GB" in all_keys
++assert "es_NI" in all_keys
++assert "zh_TW" in all_keys
++```
++
++### Explicit language selection remains mandatory
++
++```python
++from spokenform import prepare_language
++
++result = prepare_language(
++    "2",
++    language="nl",
++    use_spacy=False,
++)
++```
++
++Do not add automatic language detection.
++
++### Base fallback
++
++```python
++prepare_language(
++    "text",
++    language="fr-FR",
++)
++```
++
++resolves to base French because `fr_FR` is not an explicit registry overlay.
++
++### Exact overlay
++
++```python
++prepare_language(
++    "text",
++    language="fr-CH",
++)
++```
++
++preserves `fr_CH` and routes exact `abbr2words` data.
++
++---
++
++## 21. Non-goals for the first all-language release
++
++Do not block registry coverage on:
++
++- full date grammar for 49 languages;
++- full time grammar for 49 languages;
++- locale-perfect currency inflection;
++- plural/case/gender realization for every unit;
++- phone-number conventions for every country;
++- localized URL spelling for every language;
++- arbitrary acronym pronunciation;
++- native-speaker-complete abbreviation dictionaries;
++- spaCy model availability for every language;
++- KokoroG2P support for all 49 languages.
++
++Those should be added language by language behind explicit capabilities and tests.
++
++---
++
++## 22. Future architecture principle
++
++The dependency direction should become:
++
++```text
++Spokenform language registry
++      |
++      +--> abbreviation backend capability (`abbr2words`)
++      |
++      +--> number backend capability (`num2words` / `cn2an`)
++      |
++      +--> numeric punctuation capability
++      |
++      +--> reviewed structured-locale capability
++      |
++      +--> sequence-rendering capability
++      |
++      +--> integration profiles (KokoroG2P, future TTS adapters)
++```
++
++Not:
++
++```text
++KokoroG2P languages
++      |
++      +--> Spokenform supported languages
++```
++
++Spokenform should remain independently useful as a general written-to-spoken normalization layer for completely different TTS systems.
++
++---
++
++## 23. Final implementation direction
++
++The safest useful first release of full language coverage is intentionally conservative:
++
++- **all 49 base families + 17 overlays are valid Spokenform inputs;**
++- **all receive exact/base `abbr2words` routing;**
++- **all installed released numeric backends are used for safe cardinal conversion;**
++- **Chinese continues through `cn2an`;**
++- **current-master-only numeric languages can still use the registry/abbreviation pipeline and preserve unsupported numbers;**
++- **existing reviewed languages keep specialized structured behavior;**
++- **new languages fail closed for unreviewed semantics;**
++- **KokoroG2P remains an independent integration profile.**
++
++This is real multilingual expansion rather than a registry-only change that
++accidentally exposes unreviewed English defaults.
+diff --git a/README.md b/README.md
+index 3f3bbdc..361ee8d 100644
+--- a/README.md
++++ b/README.md
+@@ -63,7 +63,7 @@ print(prepared.render_changes())
+
+ ## Language support
+
+-The exhaustive runtime language matrix is maintained in [`docs/languages.md`](docs/languages.md). It covers `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `ru`, `sv`, `vi`, and `zh`, including regional forms, number policies, structured ownership, and conservative boundaries.
++The exhaustive runtime language matrix is maintained in [`docs/language-coverage.md`](docs/language-coverage.md), with architecture notes in [`docs/languages.md`](docs/languages.md). Spokenform accepts 49 base families and 17 exact locale overlays. Abbreviation routing follows `abbr2words`; released number backends, reviewed punctuation, structured semantics, sequence policies, and KokoroG2P support are independent capabilities.
+
+ Swedish is available as `sv`, `sv-SE`, or `sv_SE`; `swe` and `swe-SE` are compatibility aliases.
+
+diff --git a/docs/api.md b/docs/api.md
+index 1d81718..a96db3f 100644
+--- a/docs/api.md
++++ b/docs/api.md
+@@ -27,29 +27,32 @@ caller-protected spans always take precedence.
+
+ ## Language identifiers and number backends
+
+-Canonical runtime identifiers include `cs`, `de`, `en`, `es`, `fr`, `it`, `ja`, `ko`, `pt`, `ru`, `sv`, `vi`, and `zh`. Regional forms such as `ru-RU`, `ru_RU`, `sv-SE`, `vi-VN`, and `vi_VN` are normalized internally. `jp` aliases to `ja`, `cn` aliases to `zh_CN`, and `swe` and `rus` are compatibility aliases; `vn` and `kr` are not accepted.
++Canonical runtime identifiers include 49 base families and 17 exact dependency locale overlays. `supported_languages()` returns the base families; `supported_languages(include_locales=True)` returns all 66 public keys. Exact overlays are preserved for abbreviation routing, while unregistered regional forms fall back to their base language. `kk` is Spokenform's Kazakh key and maps to dependency key `kz`.
+
+-All existing supported languages use released `num2words` except Chinese, which uses released `cn2an`. `number_backend_for_language()` reports this generic backend choice. Swedish resolves to `sv` for both numeric and abbreviation dependency calls, while `resolve_num2words_language()` remains a num2words-specific query and rejects Chinese. `resolve_abbr2words_language()` preserves exact regional overlays such as `zh_CN`.
++The installed `num2words` backend is capability-based. Chinese uses `cn2an`; `hi`, `hy`, and `mn` remain valid language inputs but preserve ordinary numeric source when the stable backend is unavailable. Reviewed decimal policies, structured locale grammar, sequence spelling, and KokoroG2P profiles are narrower capabilities and are not implied by global language support.
+
+ ```python
+ from spokenform import (
++    language_support,
+     normalize_language,
+     resolve_abbr2words_language,
+     resolve_num2words_language,
+     supported_languages,
++    supports_language,
+ )
+
+-assert "sv" in supported_languages()
+-assert normalize_language("sv-SE") == "sv_SE"
+-assert resolve_num2words_language("sv-SE") == "sv"
+-assert resolve_abbr2words_language("sv-SE") == "sv"
++assert len(supported_languages()) == 49
++assert len(supported_languages(include_locales=True)) == 66
++assert "nl" in supported_languages()
++assert normalize_language("pt-BR") == "pt_BR"
++assert normalize_language("fr_FR") == "fr"
++assert normalize_language("en-gb") == "en_GB"
++assert resolve_abbr2words_language("es-ni") == "es_NI"
++assert resolve_num2words_language("fr-FR") == "fr"
++assert language_support("hi").plain_cardinals is False
++assert supports_language("eu") is False
+ ```
+
+-assert "vi" in supported_languages()
+-assert normalize_language("vi-VN") == "vi_VN"
+-assert resolve_num2words_language("vi-VN") == "vi"
+-assert resolve_abbr2words_language("vi-VN") == "vi"
+-
+ `symbol_mode="none"` is the backward-compatible default and applies no general
+ residual-symbol filter. `symbol_mode="remove"` removes Unicode punctuation and
+ symbol characters (`P*` and `S*`) left after semantic recognition. With
+diff --git a/docs/language-coverage.md b/docs/language-coverage.md
+new file mode 100644
+index 0000000..a14fef6
+--- /dev/null
++++ b/docs/language-coverage.md
+@@ -0,0 +1,78 @@
++# Generated language coverage
++
++<!-- Generated by scripts/generate_language_coverage.py. Do not edit manually. -->
++
++Spokenform accepts 49 base families and 17 explicit dependency locale overlays.
++Specialist capabilities remain independent from global language acceptance.
++
++| Spokenform key | Dependency key | Exact locale | Abbreviations | Number backend | Decimal policy | Structured | Sequence policy | KokoroG2P | Tier                     |
++| -------------- | -------------- | -----------: | ------------- | -------------- | -------------- | ---------- | --------------- | --------- | ------------------------ |
++| `am`           | `am`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `ar`           | `ar`           |           no | yes           | num2words      | no             | no         | yes             | yes       | conservative_integration |
++| `az`           | `az`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `be`           | `be`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `bn`           | `bn`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `ca`           | `ca`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `ce`           | `ce`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `cs`           | `cs`           |           no | yes           | num2words      | no             | yes        | yes             | yes       | reviewed_structured      |
++| `cy`           | `cy`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `da`           | `da`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `de`           | `de`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `en`           | `en`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `en_GB`        | `en_GB`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `en_IN`        | `en_IN`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `en_NG`        | `en_NG`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `en_US`        | `en_US`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `eo`           | `eo`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `es`           | `es`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `es_CO`        | `es_CO`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `es_CR`        | `es_CR`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `es_GT`        | `es_GT`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `es_MX`        | `es_MX`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `es_NI`        | `es_NI`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `es_VE`        | `es_VE`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `fa`           | `fa`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `fi`           | `fi`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `fr`           | `fr`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `fr_BE`        | `fr_BE`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `fr_CH`        | `fr_CH`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `fr_DZ`        | `fr_DZ`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `he`           | `he`           |           no | yes           | num2words      | no             | no         | yes             | yes       | conservative_integration |
++| `hi`           | `hi`           |           no | yes           | none           | no             | no         | no              | no        | foundation               |
++| `hu`           | `hu`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `hy`           | `hy`           |           no | yes           | none           | no             | no         | no              | no        | foundation               |
++| `id`           | `id`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `is`           | `is`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `it`           | `it`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `ja`           | `ja`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `kk`           | `kz`           |           no | yes           | num2words      | no             | no         | yes             | yes       | conservative_integration |
++| `kn`           | `kn`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `ko`           | `ko`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `lt`           | `lt`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `lv`           | `lv`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `mn`           | `mn`           |           no | yes           | none           | no             | no         | no              | no        | foundation               |
++| `nl`           | `nl`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `no`           | `no`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `pl`           | `pl`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `pt`           | `pt`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `pt_BR`        | `pt_BR`        |          yes | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `ro`           | `ro`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `ru`           | `ru`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `sk`           | `sk`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `sl`           | `sl`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `sr`           | `sr`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `sv`           | `sv`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `te`           | `te`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `tet`          | `tet`          |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `tg`           | `tg`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `th`           | `th`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `tr`           | `tr`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `uk`           | `uk`           |           no | yes           | num2words      | no             | no         | no              | no        | foundation               |
++| `vi`           | `vi`           |           no | yes           | num2words      | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `zh`           | `zh`           |           no | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `zh_CN`        | `zh_CN`        |          yes | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `zh_HK`        | `zh_HK`        |          yes | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
++| `zh_TW`        | `zh_TW`        |          yes | yes           | cn2an          | yes            | yes        | yes             | yes       | reviewed_structured      |
++
++`kk` is Spokenform's public Kazakh key and routes to dependency key `kz`.
++A `none` number backend means ordinary numeric source is preserved by normal `prepare()`.
+diff --git a/docs/languages.md b/docs/languages.md
+index a02dcfa..dba35b9 100644
+--- a/docs/languages.md
++++ b/docs/languages.md
+@@ -1,3 +1,61 @@
++## Complete runtime registry
++
++The generated capability matrix is maintained in [`language-coverage.md`](language-coverage.md). The public registry accepts these base families:
++
++| Canonical code |
++| -------------- |
++| `am`           |
++| `ar`           |
++| `az`           |
++| `be`           |
++| `bn`           |
++| `ca`           |
++| `ce`           |
++| `cs`           |
++| `cy`           |
++| `da`           |
++| `de`           |
++| `en`           |
++| `eo`           |
++| `es`           |
++| `fa`           |
++| `fi`           |
++| `fr`           |
++| `he`           |
++| `hi`           |
++| `hu`           |
++| `hy`           |
++| `id`           |
++| `is`           |
++| `it`           |
++| `ja`           |
++| `kk`           |
++| `kn`           |
++| `ko`           |
++| `lt`           |
++| `lv`           |
++| `mn`           |
++| `nl`           |
++| `no`           |
++| `pl`           |
++| `pt`           |
++| `ro`           |
++| `ru`           |
++| `sk`           |
++| `sl`           |
++| `sr`           |
++| `sv`           |
++| `te`           |
++| `tet`          |
++| `tg`           |
++| `th`           |
++| `tr`           |
++| `uk`           |
++| `vi`           |
++| `zh`           |
++
++The 17 exact overlays are `en_GB`, `en_IN`, `en_NG`, `en_US`, `es_CO`, `es_CR`, `es_GT`, `es_MX`, `es_NI`, `es_VE`, `fr_BE`, `fr_CH`, `fr_DZ`, `pt_BR`, `zh_CN`, `zh_HK`, and `zh_TW`.
++
+ # Language support matrix
+
+ | `ar` | `ara` | `ar_MSA` | `num2words` | `ar` | yes | reviewed | conservative | reviewed | caller-managed | fail closed for unreviewed domains |
+@@ -47,9 +105,8 @@ Plain numbers, reviewed quantities, Celsius and Fahrenheit temperatures, and
+ Swedish krona amounts are supported. Swedish quantity grammar uses the reviewed
+ `abbr2words` canonical unit identities and explicit singular and plural forms.
+
+-`sv-SE` and `sv_SE` are normalized to the regional form and routed to the
+-Swedish base language. `swe` is accepted as a compatibility alias, and
+-`swe-SE` normalizes to `sv_SE`.
++`sv-SE` and `sv_SE` normalize to the registered base key `sv`. `swe` is accepted as a compatibility alias, and
++`swe-SE` also normalizes to `sv`.
+
+ Swedish digital clock bodies and numeric dates remain caller-managed in this
+ release, although valid shapes are protected from generic number rewriting.
+diff --git a/scripts/generate_language_coverage.py b/scripts/generate_language_coverage.py
+new file mode 100644
+index 0000000..b03243b
+--- /dev/null
++++ b/scripts/generate_language_coverage.py
+@@ -0,0 +1,57 @@
++"""Generate the runtime language capability matrix."""
++
++from __future__ import annotations
++
++from pathlib import Path
++
++from spokenform import language_support, resolve_abbr2words_language, supported_languages
++
++ROOT = Path(__file__).parents[1]
++OUTPUT = ROOT / "docs" / "language-coverage.md"
++
++
++def render() -> str:
++    lines = [
++        "# Generated language coverage",
++        "",
++        "<!-- Generated by scripts/generate_language_coverage.py. Do not edit manually. -->",
++        "",
++        "Spokenform accepts 49 base families and 17 explicit dependency locale overlays.",
++        "Specialist capabilities remain independent from global language acceptance.",
++        "",
++        "| Spokenform key | Dependency key | Exact locale | Abbreviations | Number backend | Decimal policy | Structured | Sequence policy | KokoroG2P | Tier |",
++        "| --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |",
++    ]
++    for language in supported_languages(include_locales=True):
++        support = language_support(language)
++        dependency = resolve_abbr2words_language(language)
++        lines.append(
++            "| `{language}` | `{dependency}` | {exact} | yes | {backend} | {decimal} | {structured} | {sequence} | {kokoro} | {tier} |".format(
++                language=language,
++                dependency=dependency,
++                exact="yes" if support.exact_locale else "no",
++                backend=support.number_backend or "none",
++                decimal="yes" if support.decimal_policy else "no",
++                structured="yes" if support.structured else "no",
++                sequence="yes" if support.sequence_policy else "no",
++                kokoro="yes" if support.kokorog2p_profile else "no",
++                tier=support.tier.value,
++            )
++        )
++    lines.extend(
++        [
++            "",
++            "`kk` is Spokenform's public Kazakh key and routes to dependency key `kz`.",
++            "A `none` number backend means ordinary numeric source is preserved by normal `prepare()`.",
++            "",
++        ]
++    )
++    return "\n".join(lines)
++
++
++def main() -> None:
++    OUTPUT.write_text(render(), encoding="utf-8")
++
++
++if __name__ == "__main__":
++    main()
+diff --git a/spokenform/__init__.py b/spokenform/__init__.py
+index 9819c59..b7e1fe2 100644
+--- a/spokenform/__init__.py
++++ b/spokenform/__init__.py
+@@ -26,19 +26,39 @@ from .config import (
+     RecognitionEvidence,
+     RegisteredAcronymMode,
+     SequenceFallbackMode,
++    default_number_policy_for_language,
++    kokorog2p_number_policy_for_language,
+     number_policy_for_language,
+ )
+ from .evidence import LexicalEvidenceProvider
+ from .language import (
++    KOKOROG2P_PROFILE_LANGUAGES,
+     KOKOROG2P_PROFILE_VERSION,
+     SUPPORTED_BASE_LANGUAGES,
++    SUPPORTED_LANGUAGE_KEYS,
++    SUPPORTED_LOCALES,
+     base_language,
++    canonicalize_language,
+     normalize_language,
+     resolve_abbr2words_language,
+     resolve_num2words_language,
+     supported_languages,
++    supports_language,
+     supports_profile,
+ )
++from .language_support import (
++    CONSERVATIVE_INTEGRATION_LANGUAGES,
++    REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES,
++    REVIEWED_STRUCTURED_LANGUAGES,
++    SEQUENCE_POLICY_LANGUAGES,
++    SHARED_SEQUENCE_RECOGNIZER_LANGUAGES,
++    LanguageSupport,
++    SupportTier,
++    language_has_plain_number_backend,
++    language_has_reviewed_structured_numbers,
++    language_support,
++    supported_profile_languages,
++)
+ from .mapping import (
+     OffsetMap,
+     Replacement,
+@@ -55,7 +75,12 @@ from .models import (
+     TextEdit,
+     TokenAnnotation,
+ )
+-from .number_words import number_backend_for_language
++from .number_words import (
++    NumberBackend,
++    number_backend_for_language,
++    require_number_backend,
++    resolve_number_backend,
++)
+ from .numbers import normalize_numbers
+ from .profiles import GlossaryConflictError, GlossaryEntry, GlossaryReadAs, SpeechProfile
+ from .protection import ProtectedSpan, ProtectionError
+@@ -83,15 +108,36 @@ __all__ = [
+     "RegisteredAcronymMode",
+     "NumberPolicy",
+     "number_policy_for_language",
++    "default_number_policy_for_language",
++    "kokorog2p_number_policy_for_language",
+     "number_backend_for_language",
++    "NumberBackend",
++    "require_number_backend",
++    "resolve_number_backend",
+     "SUPPORTED_BASE_LANGUAGES",
++    "SUPPORTED_LANGUAGE_KEYS",
++    "SUPPORTED_LOCALES",
++    "canonicalize_language",
+     "normalize_language",
+     "base_language",
+     "supported_languages",
++    "supports_language",
+     "supports_profile",
++    "KOKOROG2P_PROFILE_LANGUAGES",
+     "KOKOROG2P_PROFILE_VERSION",
+     "resolve_num2words_language",
+     "resolve_abbr2words_language",
++    "CONSERVATIVE_INTEGRATION_LANGUAGES",
++    "LanguageSupport",
++    "REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES",
++    "REVIEWED_STRUCTURED_LANGUAGES",
++    "SEQUENCE_POLICY_LANGUAGES",
++    "SHARED_SEQUENCE_RECOGNIZER_LANGUAGES",
++    "SupportTier",
++    "language_has_plain_number_backend",
++    "language_has_reviewed_structured_numbers",
++    "language_support",
++    "supported_profile_languages",
+     "MappedEdit",
+     "OffsetMap",
+     "PreparedText",
+diff --git a/spokenform/api.py b/spokenform/api.py
+index 53eadbc..c642605 100644
+--- a/spokenform/api.py
++++ b/spokenform/api.py
+@@ -33,6 +33,7 @@ from .config import (
+     RegisteredAcronymMode,
+     SequenceFallbackMode,
+     SymbolMode,
++    default_number_policy_for_language,
+ )
+ from .evidence import EvidenceSession, LexicalEvidenceProvider, validate_provider
+ from .fallback import iter_sequence_fallback_replacements
+@@ -1020,10 +1021,11 @@ def _resolve_number_options(
+ ) -> tuple[bool, bool, tuple[str, ...]]:
+     """Resolve numeric ownership and downstream punctuation warnings once."""
+     warnings: list[str] = []
++    derived_policy = number_policy is None
+     if model_punctuation:
+         warnings.append("[PUNCTUATION] model punctuation remains downstream")
+     if number_policy is None:
+-        return expand_structured, expand_numbers, tuple(warnings)
++        number_policy = default_number_policy_for_language(language_code)
+
+     structured_enabled = expand_structured and number_policy is NumberPolicy.STRUCTURED_AND_PLAIN
+     plain_enabled = expand_numbers and number_policy in {
+@@ -1035,7 +1037,11 @@ def _resolve_number_options(
+             f"[NUMBERS] caller-managed number categories for language {language_code!r}"
+         )
+     elif number_policy is NumberPolicy.NONE:
+-        warnings.append(f"[NUMBERS] unsupported number policy for language {language_code!r}")
++        warnings.append(
++            f"[NUMBERS] no released numeric backend for language {language_code!r}; numeric text preserved"
++            if derived_policy
++            else f"[NUMBERS] unsupported number policy for language {language_code!r}"
++        )
+     return structured_enabled, plain_enabled, tuple(warnings)
+
+
+diff --git a/spokenform/cli.py b/spokenform/cli.py
+index bb8531b..7db3704 100644
+--- a/spokenform/cli.py
++++ b/spokenform/cli.py
+@@ -5,6 +5,7 @@ from __future__ import annotations
+ import argparse
+ import json
+ import sys
++from typing import cast
+
+ from .api import prepare
+ from .config import InterpretationMode, RecognitionDomain, SequenceFallbackMode
+@@ -20,10 +21,13 @@ def _load_lexhint(
+         from lexhint import Lexicon
+     except ImportError as exc:
+         raise RuntimeError("--lexhint requires the spokenform[lexhint] extra") from exc
+-    return Lexicon(
+-        base_language(language),
+-        variant=variant,
+-        dataset_version=dataset_version,
++    return cast(
++        LexicalEvidenceProvider,
++        Lexicon(
++            base_language(language),
++            variant=variant,
++            dataset_version=dataset_version,
++        ),
+     )
+
+
+diff --git a/spokenform/config.py b/spokenform/config.py
+index dbbcb71..7f980cc 100644
+--- a/spokenform/config.py
++++ b/spokenform/config.py
+@@ -69,8 +69,8 @@ LongNumberMode = Literal["preserve", "contextual", "cardinal"]
+ RegisteredAcronymMode = Literal["expand", "spell"]
+
+
+-def number_policy_for_language(language: str) -> NumberPolicy:
+-    """Return the initial kokorog2p policy for a normalized language code."""
++def kokorog2p_number_policy_for_language(language: str) -> NumberPolicy:
++    """Return the stable KokoroG2P numeric ownership policy."""
+     base = base_language(language)
+     if base in {
+         "cs",
+@@ -92,6 +92,25 @@ def number_policy_for_language(language: str) -> NumberPolicy:
+     return NumberPolicy.NONE
+
+
++def default_number_policy_for_language(language: str) -> NumberPolicy:
++    """Return generic numeric ownership from released backend capabilities."""
++    from .language_support import (
++        language_has_plain_number_backend,
++        language_has_reviewed_structured_numbers,
++    )
++
++    if language_has_reviewed_structured_numbers(language):
++        return NumberPolicy.STRUCTURED_AND_PLAIN
++    if language_has_plain_number_backend(language):
++        return NumberPolicy.PLAIN
++    return NumberPolicy.NONE
++
++
++def number_policy_for_language(language: str) -> NumberPolicy:
++    """Backward-compatible alias for the KokoroG2P policy."""
++    return kokorog2p_number_policy_for_language(language)
++
++
+ def _normalized_config_language(value: object) -> str:
+     if not isinstance(value, str):
+         raise TypeError("language must be a string")
+@@ -300,4 +319,6 @@ __all__ = [
+     "PreparationConfig",
+     "SymbolMode",
+     "number_policy_for_language",
++    "default_number_policy_for_language",
++    "kokorog2p_number_policy_for_language",
+ ]
+diff --git a/spokenform/fallback.py b/spokenform/fallback.py
+index aa06791..c278c95 100644
+--- a/spokenform/fallback.py
++++ b/spokenform/fallback.py
+@@ -8,6 +8,8 @@ from dataclasses import dataclass
+ from typing import Literal
+
+ from .config import SequenceFallbackMode
++from .language import base_language
++from .language_support import SEQUENCE_POLICY_LANGUAGES
+ from .mapping import Replacement
+ from .sequences import SequenceRenderPolicy, render_sequence
+
+@@ -52,6 +54,8 @@ def iter_sequence_fallback_replacements(
+     protected_ranges: Iterable[tuple[int, int]] = (),
+ ) -> tuple[Replacement, ...]:
+     """Return conservative orthographic replacements for eligible spans."""
++    if base_language(language) not in SEQUENCE_POLICY_LANGUAGES:
++        return ()
+     blocked = tuple(protected_ranges)
+     replacements: list[Replacement] = []
+     for match in _SEQUENCE_FALLBACK_RE.finditer(text):
+diff --git a/spokenform/language.py b/spokenform/language.py
+index 1d83eca..b19cdea 100644
+--- a/spokenform/language.py
++++ b/spokenform/language.py
+@@ -5,8 +5,12 @@ from __future__ import annotations
+ from collections.abc import Iterable
+ from typing import Final
+
+-from abbr2words import supported_languages as abbr2words_supported_languages
+-from abbr2words.units import unit_entries
++from abbr2words import (
++    normalize_language as normalize_abbr2words_language,
++)
++from abbr2words import (
++    supported_languages as abbr2words_supported_languages,
++)
+ from num2words import CONVERTER_CLASSES
+
+ _LANGUAGE_ALIASES: Final[dict[str, str]] = {
+@@ -16,6 +20,7 @@ _LANGUAGE_ALIASES: Final[dict[str, str]] = {
+     "msa": "ar",
+     "heb": "he",
+     "kaz": "kk",
++    "kz": "kk",
+ }
+ _BASE_LANGUAGE_ALIASES: Final[dict[str, str]] = {
+     "swe": "sv",
+@@ -25,7 +30,7 @@ _BASE_LANGUAGE_ALIASES: Final[dict[str, str]] = {
+     "kk": "kk",
+ }
+ KOKOROG2P_PROFILE_VERSION: Final[str] = "0.3.2"
+-_KOKOROG2P_PROFILES: Final[frozenset[str]] = frozenset(
++KOKOROG2P_PROFILE_LANGUAGES: Final[frozenset[str]] = frozenset(
+     {
+         "ar",
+         "cs",
+@@ -46,20 +51,35 @@ _KOKOROG2P_PROFILES: Final[frozenset[str]] = frozenset(
+         "zh",
+     }
+ )
+-SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = tuple(sorted(_KOKOROG2P_PROFILES))
++
+ _DEPENDENCY_LANGUAGE_ALIASES: Final[dict[str, str]] = {
+-    # Spokenform exposes the product-standard kk name while both supported
+-    # semantic dependencies publish their Kazakh tables as kz.
+     "kk": "kz",
+ }
+
++_RAW_ABBR2WORDS_LANGUAGES: Final[tuple[str, ...]] = abbr2words_supported_languages(
++    include_locales=True
++)
++_RAW_ABBR2WORDS_LOCALES: Final[frozenset[str]] = frozenset(
++    code for code in _RAW_ABBR2WORDS_LANGUAGES if "_" in code
++)
++_RAW_ABBR2WORDS_BASES: Final[frozenset[str]] = frozenset(
++    code for code in _RAW_ABBR2WORDS_LANGUAGES if "_" not in code
++)
+
+-def normalize_language(language: str) -> str:
+-    """Return a canonical Spokenform language identifier.
++# Public Spokenform keeps kk as its canonical Kazakh key while the dependency
++# registries expose kz. The remaining keys are owned by abbr2words.
++SUPPORTED_BASE_LANGUAGES: Final[tuple[str, ...]] = tuple(
++    sorted(_LANGUAGE_ALIASES.get(code, code) for code in _RAW_ABBR2WORDS_BASES)
++)
++SUPPORTED_LOCALES: Final[tuple[str, ...]] = tuple(sorted(_RAW_ABBR2WORDS_LOCALES))
++SUPPORTED_LANGUAGE_KEYS: Final[tuple[str, ...]] = tuple(
++    sorted((*SUPPORTED_BASE_LANGUAGES, *SUPPORTED_LOCALES))
++)
++_COMPATIBILITY_LOCALES: Final[frozenset[str]] = frozenset({"pt_PT"})
+
+-    Base language codes are lower-case and regional subtags are upper-case,
+-    with hyphens accepted as input for interoperability with BCP-47 sources.
+-    """
++
++def canonicalize_language(language: str) -> str:
++    """Normalize language syntax and compatibility aliases without validation."""
+     if not isinstance(language, str):
+         raise TypeError("language must be a string")
+     value = language.strip()
+@@ -76,14 +96,50 @@ def normalize_language(language: str) -> str:
+     return f"{base}_{parts[1].upper()}"
+
+
++def _canonicalize_dependency_language(language: str) -> str:
++    value = language.strip().replace("-", "_")
++    parts = value.split("_", 1)
++    base = parts[0].lower()
++    if len(parts) == 1:
++        return base
++    return f"{base}_{parts[1].upper()}"
++
++
++def normalize_language(language: str) -> str:
++    """Return a supported canonical Spokenform language identifier.
++
++    Exact registered locales are retained. Other regional inputs resolve to
++    their registered base language, and unknown language families are rejected.
++    """
++    requested = canonicalize_language(language)
++    if requested in _COMPATIBILITY_LOCALES:
++        return requested
++    if requested in SUPPORTED_LANGUAGE_KEYS:
++        return requested
++    base = requested.split("_", 1)[0]
++    if base in SUPPORTED_BASE_LANGUAGES:
++        return base
++    supported_text = ", ".join(SUPPORTED_LANGUAGE_KEYS)
++    raise ValueError(f"Unsupported language {language!r}; Spokenform supports: {supported_text}")
++
++
+ def base_language(language: str) -> str:
+-    """Return the base language component of a normalized identifier."""
++    """Return the base language component of a supported identifier."""
+     return normalize_language(language).split("_", 1)[0]
+
+
+-def supported_languages() -> tuple[str, ...]:
+-    """Return Spokenform's supported base language identifiers."""
+-    return SUPPORTED_BASE_LANGUAGES
++def supported_languages(*, include_locales: bool = False) -> tuple[str, ...]:
++    """Return supported base families or all public language keys."""
++    return SUPPORTED_LANGUAGE_KEYS if include_locales else SUPPORTED_BASE_LANGUAGES
++
++
++def supports_language(language: str) -> bool:
++    """Return whether an input resolves to a supported Spokenform language."""
++    try:
++        normalize_language(language)
++    except (TypeError, ValueError):
++        return False
++    return True
+
+
+ def supports_profile(language: str, profile: str = "kokorog2p") -> bool:
+@@ -91,68 +147,59 @@ def supports_profile(language: str, profile: str = "kokorog2p") -> bool:
+     if profile != "kokorog2p":
+         return False
+     try:
+-        return base_language(language) in _KOKOROG2P_PROFILES
++        return base_language(language) in KOKOROG2P_PROFILE_LANGUAGES
+     except (TypeError, ValueError):
+         return False
+
+
+ def _resolve_dependency_language(language: str, supported: Iterable[str]) -> str:
+     requested = normalize_language(language)
+-    supported_codes = {normalize_language(code) for code in supported}
+-    if requested in supported_codes:
+-        return requested
+-    base = base_language(requested)
+-    if base in supported_codes:
+-        return base
++    dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
++        base_language(requested), base_language(requested)
++    )
++    if "_" in requested:
++        dependency_language = f"{dependency_language}_{requested.split('_', 1)[1]}"
++    supported_codes = {_canonicalize_dependency_language(code) for code in supported}
++    if dependency_language in supported_codes:
++        return dependency_language
++    dependency_base = dependency_language.split("_", 1)[0]
++    if dependency_base in supported_codes:
++        return dependency_base
+     supported_text = ", ".join(sorted(supported_codes))
+     raise ValueError(f"Unsupported language {language!r}; dependency supports: {supported_text}")
+
+
+ def resolve_num2words_language(language: str) -> str:
+     """Select an exact num2words language or its supported base fallback."""
+-    requested = normalize_language(language)
+-    dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
+-        base_language(requested),
+-        requested,
+-    )
+-    return _resolve_dependency_language(dependency_language, CONVERTER_CLASSES)
+-
+-
+-_EXACT_ABBR2WORDS_LOCALES = frozenset({"es_MX", "zh_CN"})
++    return _resolve_dependency_language(language, CONVERTER_CLASSES)
+
+
+ def resolve_abbr2words_language(language: str) -> str:
+     """Select an exact abbr2words language or its supported base fallback."""
+     requested = normalize_language(language)
+     dependency_language = _DEPENDENCY_LANGUAGE_ALIASES.get(
+-        base_language(requested),
+-        requested,
++        base_language(requested), base_language(requested)
+     )
+-    # Regional abbr2words tables can expose the base inventory under a
+-    # variant name without providing a distinct abbreviation contract.  The
+-    # Mexican Spanish table is the reviewed exception: its currency symbols
+-    # have a different canonical identity and must remain locale-specific.
+-    if dependency_language not in _EXACT_ABBR2WORDS_LOCALES and "_" in dependency_language:
+-        dependency_language = base_language(dependency_language)
+-    supported = {normalize_language(code) for code in abbr2words_supported_languages()}
+-    usable: set[str] = set()
+-    for code in supported:
+-        try:
+-            unit_entries(code)
+-        except KeyError:
+-            continue
+-        else:
+-            usable.add(code)
+-    return _resolve_dependency_language(dependency_language, usable)
++    if "_" in requested:
++        dependency_language = f"{dependency_language}_{requested.split('_', 1)[1]}"
++    try:
++        return normalize_abbr2words_language(dependency_language)
++    except ValueError:
++        return normalize_abbr2words_language(dependency_language.split("_", 1)[0])
+
+
+ __all__ = [
++    "KOKOROG2P_PROFILE_LANGUAGES",
++    "KOKOROG2P_PROFILE_VERSION",
+     "SUPPORTED_BASE_LANGUAGES",
++    "SUPPORTED_LANGUAGE_KEYS",
++    "SUPPORTED_LOCALES",
+     "base_language",
++    "canonicalize_language",
+     "normalize_language",
+     "resolve_abbr2words_language",
+     "resolve_num2words_language",
+-    "KOKOROG2P_PROFILE_VERSION",
+-    "supports_profile",
+     "supported_languages",
++    "supports_language",
++    "supports_profile",
+ ]
+diff --git a/spokenform/language_support.py b/spokenform/language_support.py
+new file mode 100644
+index 0000000..d4c1618
+--- /dev/null
++++ b/spokenform/language_support.py
+@@ -0,0 +1,131 @@
++"""Orthogonal capability metadata for supported Spokenform languages."""
++
++from __future__ import annotations
++
++from dataclasses import dataclass
++from enum import Enum
++
++from .language import (
++    KOKOROG2P_PROFILE_LANGUAGES,
++    base_language,
++    normalize_language,
++    resolve_num2words_language,
++)
++
++REVIEWED_STRUCTURED_LANGUAGES = frozenset(
++    {"cs", "de", "en", "es", "fr", "it", "ja", "ko", "pt", "ru", "sv", "th", "vi", "zh"}
++)
++CONSERVATIVE_INTEGRATION_LANGUAGES = frozenset({"ar", "he", "kk"})
++SEQUENCE_POLICY_LANGUAGES = frozenset(
++    {
++        "ar",
++        "cs",
++        "de",
++        "en",
++        "es",
++        "fr",
++        "he",
++        "it",
++        "ja",
++        "kk",
++        "ko",
++        "pt",
++        "ru",
++        "sv",
++        "th",
++        "vi",
++        "zh",
++    }
++)
++SHARED_SEQUENCE_RECOGNIZER_LANGUAGES = REVIEWED_STRUCTURED_LANGUAGES - {"ja", "ko", "zh"}
++REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES = frozenset(
++    {"de", "en", "es", "fr", "it", "ja", "ko", "pt", "ru", "sv", "th", "vi", "zh"}
++)
++
++
++class SupportTier(str, Enum):
++    FOUNDATION = "foundation"
++    REVIEWED_STRUCTURED = "reviewed_structured"
++    CONSERVATIVE_INTEGRATION = "conservative_integration"
++
++
++@dataclass(frozen=True, slots=True)
++class LanguageSupport:
++    language: str
++    base: str
++    abbreviation_language: str
++    number_backend: str | None
++    number_language: str | None
++    tier: SupportTier
++    exact_locale: bool
++    plain_cardinals: bool
++    decimal_policy: bool
++    structured: bool
++    sequence_policy: bool
++    kokorog2p_profile: bool
++
++
++def _number_capability(language: str) -> tuple[str | None, str | None]:
++    base = base_language(language)
++    if base == "zh":
++        return "cn2an", language
++    try:
++        resolved = resolve_num2words_language(language)
++    except ValueError:
++        return None, None
++    return "num2words", resolved
++
++
++def language_support(language: str) -> LanguageSupport:
++    """Describe specialist capabilities for one supported language input."""
++    normalized = normalize_language(language)
++    base = base_language(normalized)
++    backend, number_language = _number_capability(normalized)
++    if base in REVIEWED_STRUCTURED_LANGUAGES:
++        tier = SupportTier.REVIEWED_STRUCTURED
++    elif base in CONSERVATIVE_INTEGRATION_LANGUAGES:
++        tier = SupportTier.CONSERVATIVE_INTEGRATION
++    else:
++        tier = SupportTier.FOUNDATION
++    return LanguageSupport(
++        language=normalized,
++        base=base,
++        abbreviation_language=normalized,
++        number_backend=backend,
++        number_language=number_language,
++        tier=tier,
++        exact_locale="_" in normalized,
++        plain_cardinals=backend is not None,
++        decimal_policy=base in REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES,
++        structured=base in REVIEWED_STRUCTURED_LANGUAGES,
++        sequence_policy=base in SEQUENCE_POLICY_LANGUAGES,
++        kokorog2p_profile=base in KOKOROG2P_PROFILE_LANGUAGES,
++    )
++
++
++def language_has_plain_number_backend(language: str) -> bool:
++    return language_support(language).plain_cardinals
++
++
++def language_has_reviewed_structured_numbers(language: str) -> bool:
++    return language_support(language).structured
++
++
++def supported_profile_languages() -> frozenset[str]:
++    """Return the independent KokoroG2P profile language set."""
++    return KOKOROG2P_PROFILE_LANGUAGES
++
++
++__all__ = [
++    "CONSERVATIVE_INTEGRATION_LANGUAGES",
++    "LanguageSupport",
++    "REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES",
++    "REVIEWED_STRUCTURED_LANGUAGES",
++    "SEQUENCE_POLICY_LANGUAGES",
++    "SHARED_SEQUENCE_RECOGNIZER_LANGUAGES",
++    "SupportTier",
++    "language_has_plain_number_backend",
++    "language_has_reviewed_structured_numbers",
++    "language_support",
++    "supported_profile_languages",
++]
+diff --git a/spokenform/locales/fr.py b/spokenform/locales/fr.py
+index 991241c..4a61332 100644
+--- a/spokenform/locales/fr.py
++++ b/spokenform/locales/fr.py
+@@ -202,6 +202,8 @@ def _number_text(raw: str, language: str = "fr") -> str:
+     result = _spell(integer, language)
+     if fraction is not None:
+         policy = numeric_speech_policy(language)
++        if policy.decimal_word is None:
++            return raw
+         result += (
+             " "
+             + policy.decimal_word
+diff --git a/spokenform/number_words.py b/spokenform/number_words.py
+index c4fd358..a800f9d 100644
+--- a/spokenform/number_words.py
++++ b/spokenform/number_words.py
+@@ -2,6 +2,7 @@
+
+ from __future__ import annotations
+
++from dataclasses import dataclass
+ from decimal import Decimal
+
+ import cn2an
+@@ -12,17 +13,46 @@ from .language import base_language, normalize_language, resolve_num2words_langu
+ Number = int | str | Decimal
+
+
++@dataclass(frozen=True, slots=True)
++class NumberBackend:
++    """A released backend and dependency language selected for one input."""
++
++    name: str
++    language: str
++
++
++def resolve_number_backend(language: str) -> NumberBackend | None:
++    """Return the installed number backend, or ``None`` when unavailable."""
++    normalized = normalize_language(language)
++    if base_language(normalized) == "zh":
++        return NumberBackend("cn2an", normalized)
++    try:
++        dependency_language = resolve_num2words_language(normalized)
++    except ValueError:
++        return None
++    return NumberBackend("num2words", dependency_language)
++
++
++def require_number_backend(language: str) -> NumberBackend:
++    """Return a number backend or raise for direct rendering callers."""
++    backend = resolve_number_backend(language)
++    if backend is None:
++        normalized = normalize_language(language)
++        raise ValueError(f"No released numeric backend for language {normalized!r}")
++    return backend
++
++
+ def number_backend_for_language(language: str) -> str:
+     """Return the backend responsible for a supported language family."""
+-    return "cn2an" if base_language(language) == "zh" else "num2words"
++    return require_number_backend(language).name
+
+
+ def cardinal(value: Number, language: str) -> str:
+     """Render a cardinal number with the language's released backend."""
+-    normalized = normalize_language(language)
+-    if number_backend_for_language(normalized) == "cn2an":
++    backend = require_number_backend(language)
++    if backend.name == "cn2an":
+         return cn2an.an2cn(str(value), "low")
+-    return str(num2words(value, lang=resolve_num2words_language(normalized)))
++    return str(num2words(value, lang=backend.language))
+
+
+ def number_words(
+@@ -35,10 +65,10 @@ def number_words(
+         if not isinstance(value, int):
+             raise TypeError("ordinal values must be integers")
+         return ordinal(value, lang)
+-    normalized = normalize_language(lang)
+-    if number_backend_for_language(normalized) == "cn2an":
+-        raise ValueError(f"{to!r} rendering is not supported for {normalized!r}")
+-    kwargs: dict[str, object] = {"lang": resolve_num2words_language(normalized), "to": to}
++    backend = require_number_backend(lang)
++    if backend.name == "cn2an":
++        raise ValueError(f"{to!r} rendering is not supported for {normalize_language(lang)!r}")
++    kwargs: dict[str, object] = {"lang": backend.language, "to": to}
+     if currency is not None:
+         kwargs["currency"] = currency
+     return str(num2words(value, **kwargs))
+@@ -46,18 +76,14 @@ def number_words(
+
+ def ordinal(value: int, language: str) -> str:
+     """Render an ordinal, rejecting languages without an ordinal contract."""
+-    normalized = normalize_language(language)
+-    if number_backend_for_language(normalized) == "cn2an":
+-        raise ValueError(f"Ordinal rendering is not supported for {normalized!r}")
+-    return str(num2words(value, lang=resolve_num2words_language(normalized), to="ordinal"))
++    backend = require_number_backend(language)
++    if backend.name == "cn2an":
++        raise ValueError(f"Ordinal rendering is not supported for {normalize_language(language)!r}")
++    return str(num2words(value, lang=backend.language, to="ordinal"))
+
+
+ def year(value: int, language: str) -> str:
+-    """Render a year as a cardinal number.
+-
+-    Locale date renderers may apply a distinct year policy before calling this
+-    helper.
+-    """
++    """Render a year as a cardinal number."""
+     return cardinal(value, language)
+
+
+@@ -65,10 +91,20 @@ def digits(value: str, language: str) -> tuple[str, ...]:
+     """Render a string of decimal digits one at a time."""
+     if not value or not value.isdecimal():
+         raise ValueError("digits must contain only decimal digits")
+-    normalized = normalize_language(language)
+-    if number_backend_for_language(normalized) == "cn2an":
++    backend = require_number_backend(language)
++    if backend.name == "cn2an":
+         return tuple(cn2an.an2cn(value, "direct"))
+-    return tuple(cardinal(int(character), normalized) for character in value)
+-
+-
+-__all__ = ["cardinal", "digits", "number_backend_for_language", "ordinal", "year"]
++    return tuple(cardinal(int(character), language) for character in value)
++
++
++__all__ = [
++    "NumberBackend",
++    "cardinal",
++    "digits",
++    "number_backend_for_language",
++    "number_words",
++    "ordinal",
++    "require_number_backend",
++    "resolve_number_backend",
++    "year",
++]
+diff --git a/spokenform/numbers.py b/spokenform/numbers.py
+index 5e6575a..8752eac 100644
+--- a/spokenform/numbers.py
++++ b/spokenform/numbers.py
+@@ -10,12 +10,7 @@ from decimal import Decimal, InvalidOperation
+ from typing import Final, Literal
+
+ from .casing import capitalize_generated_input_start, capitalize_generated_sentence_start
+-from .language import (
+-    SUPPORTED_BASE_LANGUAGES,
+-    base_language,
+-    normalize_language,
+-    resolve_abbr2words_language,
+-)
++from .language import base_language, normalize_language, resolve_abbr2words_language
+ from .number_words import number_words
+ from .numeric_lexeme import (
+     NumberRenderMode,
+@@ -318,11 +313,7 @@ def _protect(text: str, *, language: str | None = None) -> _ProtectedText:
+
+
+ def _base_language(language: str) -> str:
+-    base = base_language(language)
+-    if base not in SUPPORTED_BASE_LANGUAGES:
+-        supported = ", ".join(SUPPORTED_BASE_LANGUAGES)
+-        raise ValueError(f"Unsupported language {language!r}. Supported languages: {supported}")
+-    return base
++    return base_language(language)
+
+
+ def _spell(value: int | Decimal, language: str, *, ordinal: bool = False) -> str:
+@@ -471,8 +462,6 @@ def _replace_currencies(text: str, language: str) -> str:
+
+
+ def _replace_years(text: str, language: str) -> str:
+-    if base_language(language) not in SUPPORTED_BASE_LANGUAGES:
+-        return text
+     pattern = re.compile(r"(?<![\w.])(?P<year>\d{4})(?![\w.])")
+
+     def replace(match: re.Match[str]) -> str:
+diff --git a/spokenform/numeric_lexeme.py b/spokenform/numeric_lexeme.py
+index 41e6654..9ec01a4 100644
+--- a/spokenform/numeric_lexeme.py
++++ b/spokenform/numeric_lexeme.py
+@@ -13,7 +13,7 @@ from dataclasses import dataclass
+ from enum import Enum
+ from typing import Literal
+
+-from .language import base_language, normalize_language
++from .language import base_language, canonicalize_language, normalize_language
+
+
+ @dataclass(frozen=True, slots=True)
+@@ -47,7 +47,7 @@ class NumberRenderMode(str, Enum):
+ class NumericPunctuationPolicy:
+     """Locale punctuation contract used before any ambiguity fallback."""
+
+-    decimal_separator: str
++    decimal_separator: str | None
+     grouping_separators: tuple[str, ...]
+     alternate_decimal_separators: tuple[str, ...] = ()
+     infer_decimal_in_strong_context: bool = True
+@@ -57,7 +57,7 @@ class NumericPunctuationPolicy:
+ class NumericSpeechPolicy:
+     """Locale-selected wording policy for a parsed numeric lexeme."""
+
+-    decimal_word: str
++    decimal_word: str | None
+     fraction_mode: Literal["digitwise", "two_digit_cardinal", "cardinal"]
+     preserve_leading_zero_fraction: bool = True
+     omit_cardinal_conjunction: bool = False
+@@ -108,7 +108,7 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
+     "de": NumericSpeechPolicy("Komma", "digitwise", year_mode="split_hundreds"),
+     "es": NumericSpeechPolicy("coma", "digitwise"),
+     "fr": NumericSpeechPolicy("virgule", "digitwise"),
+-    "it": NumericSpeechPolicy("virgola", "digitwise"),
++    "it": NumericSpeechPolicy("virgola", "two_digit_cardinal"),
+     "pt": NumericSpeechPolicy("vírgula", "digitwise"),
+     "sv": NumericSpeechPolicy("komma", "digitwise"),
+     "ru": NumericSpeechPolicy("запятая", "digitwise"),
+@@ -122,22 +122,30 @@ _BASE_NUMERIC_SPEECH_POLICIES: dict[str, NumericSpeechPolicy] = {
+
+ def numeric_speech_policy(language: str) -> NumericSpeechPolicy:
+     """Return the immutable numeric speech policy for a normalized locale."""
++    requested = canonicalize_language(language)
+     normalized = normalize_language(language)
+     return _NUMERIC_SPEECH_POLICIES.get(
+-        normalized,
+-        _BASE_NUMERIC_SPEECH_POLICIES.get(
+-            base_language(normalized), NumericSpeechPolicy("point", "digitwise")
++        requested,
++        _NUMERIC_SPEECH_POLICIES.get(
++            normalized,
++            _BASE_NUMERIC_SPEECH_POLICIES.get(
++                base_language(normalized), NumericSpeechPolicy(None, "digitwise")
++            ),
+         ),
+     )
+
+
+ def numeric_punctuation_policy(language: str) -> NumericPunctuationPolicy:
+     """Return the locale punctuation policy for numeric lexeme parsing."""
++    requested = canonicalize_language(language)
+     normalized = normalize_language(language)
+     return _NUMERIC_PUNCTUATION_POLICIES.get(
+-        normalized,
+-        _BASE_NUMERIC_PUNCTUATION_POLICIES.get(
+-            base_language(normalized), NumericPunctuationPolicy(".", (",", " "))
++        requested,
++        _NUMERIC_PUNCTUATION_POLICIES.get(
++            normalized,
++            _BASE_NUMERIC_PUNCTUATION_POLICIES.get(
++                base_language(normalized), NumericPunctuationPolicy(None, ())
++            ),
+         ),
+     )
+
+@@ -372,12 +380,14 @@ def parse_numeric_lexeme(
+     if validated is None:
+         return None
+     negative, unsigned = validated
+-    language = normalize_language(language)
+     policy = numeric_punctuation_policy(language)
++    language = normalize_language(language)
+     if base_language(language) in {"sv", "ru"} and "." in unsigned:
+         return None
+     if not any(character in unsigned for character in ".,"):
+         return NumericLexeme(raw, negative, _clean_grouping(unsigned), None, None, ())
++    if policy.decimal_separator is None and not policy.grouping_separators:
++        return None
+     resolution = _resolve_separator_shape(
+         unsigned,
+         language=language,
+diff --git a/spokenform/structured.py b/spokenform/structured.py
+index 9876f82..59009e8 100644
+--- a/spokenform/structured.py
++++ b/spokenform/structured.py
+@@ -15,6 +15,7 @@ from .config import (
+ from .diagnostics import TraceCollector
+ from .evidence import EvidenceSession
+ from .language import base_language, normalize_language
++from .language_support import SHARED_SEQUENCE_RECOGNIZER_LANGUAGES
+ from .mapping import Replacement, resolve_replacements
+ from .models import ReservedSpan
+ from .recognition_policy import PolicySuppression, annotate_candidate, filter_candidates
+@@ -135,7 +136,7 @@ def iter_structured_candidates(
+
+     shared_candidates = (
+         ()
+-        if base in {"ja", "ko", "zh"}
++        if base not in SHARED_SEQUENCE_RECOGNIZER_LANGUAGES
+         else iter_sequence_replacements(
+             text,
+             language=language,
+diff --git a/tests/data/language_registry_contract.json b/tests/data/language_registry_contract.json
+new file mode 100644
+index 0000000..a4d067e
+--- /dev/null
++++ b/tests/data/language_registry_contract.json
+@@ -0,0 +1,78 @@
++{
++  "abbr2words_minimum": "0.2.13",
++  "num2words_stable": "v0.5.14",
++  "base_keys": [
++    "am",
++    "ar",
++    "az",
++    "be",
++    "bn",
++    "ca",
++    "ce",
++    "cs",
++    "cy",
++    "da",
++    "de",
++    "en",
++    "eo",
++    "es",
++    "fa",
++    "fi",
++    "fr",
++    "he",
++    "hi",
++    "hu",
++    "hy",
++    "id",
++    "is",
++    "it",
++    "ja",
++    "kn",
++    "ko",
++    "kz",
++    "lt",
++    "lv",
++    "mn",
++    "nl",
++    "no",
++    "pl",
++    "pt",
++    "ro",
++    "ru",
++    "sk",
++    "sl",
++    "sr",
++    "sv",
++    "te",
++    "tet",
++    "tg",
++    "th",
++    "tr",
++    "uk",
++    "vi",
++    "zh"
++  ],
++  "locale_keys": [
++    "en_GB",
++    "en_IN",
++    "en_NG",
++    "en_US",
++    "es_CO",
++    "es_CR",
++    "es_GT",
++    "es_MX",
++    "es_NI",
++    "es_VE",
++    "fr_BE",
++    "fr_CH",
++    "fr_DZ",
++    "pt_BR",
++    "zh_CN",
++    "zh_HK",
++    "zh_TW"
++  ],
++  "spokenform_dependency_aliases": {
++    "kk": "kz"
++  },
++  "unsupported_examples": ["eu"]
++}
+diff --git a/tests/test_cjk_architecture.py b/tests/test_cjk_architecture.py
+index 09207dd..bb1f868 100644
+--- a/tests/test_cjk_architecture.py
++++ b/tests/test_cjk_architecture.py
+@@ -3,24 +3,33 @@ from __future__ import annotations
+ import importlib
+
+ from spokenform.config import NumberPolicy, number_policy_for_language
+-from spokenform.language import SUPPORTED_BASE_LANGUAGES
++from spokenform.language_support import (
++    CONSERVATIVE_INTEGRATION_LANGUAGES,
++    REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES,
++    REVIEWED_STRUCTURED_LANGUAGES,
++    SEQUENCE_POLICY_LANGUAGES,
++)
+ from spokenform.number_words import number_backend_for_language
+ from spokenform.numeric_lexeme import numeric_punctuation_policy, numeric_speech_policy
+ from spokenform.sequences import vocabulary
+
++STRUCTURED_LOCALE_LANGUAGES = REVIEWED_STRUCTURED_LANGUAGES | CONSERVATIVE_INTEGRATION_LANGUAGES
+
+-def test_every_supported_language_has_explicit_runtime_policies() -> None:
+-    for language in SUPPORTED_BASE_LANGUAGES:
++
++def test_runtime_policy_sets_are_explicit() -> None:
++    for language in STRUCTURED_LOCALE_LANGUAGES:
+         expected_policy = (
+             NumberPolicy.NONE
+-            if language in {"ar", "he", "kk"}
++            if language in CONSERVATIVE_INTEGRATION_LANGUAGES
+             else NumberPolicy.STRUCTURED_AND_PLAIN
+         )
+         assert number_policy_for_language(language) is expected_policy
++        importlib.import_module(f"spokenform.locales.{language}")
++    for language in REVIEWED_NUMERIC_PUNCTUATION_LANGUAGES:
+         assert numeric_punctuation_policy(language)
+         assert numeric_speech_policy(language)
++    for language in SEQUENCE_POLICY_LANGUAGES:
+         assert vocabulary(language)
+-        importlib.import_module(f"spokenform.locales.{language}")
+
+
+ def test_cjk_backend_routing_is_explicit() -> None:
+diff --git a/tests/test_docs_consistency.py b/tests/test_docs_consistency.py
+index a8a149e..aa68e6c 100644
+--- a/tests/test_docs_consistency.py
++++ b/tests/test_docs_consistency.py
+@@ -1,4 +1,5 @@
+ import re
++import runpy
+ from pathlib import Path
+
+ from spokenform.language import SUPPORTED_BASE_LANGUAGES
+@@ -73,6 +74,12 @@ def test_runtime_languages_are_present_in_canonical_matrix() -> None:
+     assert "docs/languages.md" in readme
+
+
++def test_generated_language_coverage_is_fresh() -> None:
++    generator = runpy.run_path(str(ROOT / "scripts" / "generate_language_coverage.py"))
++    generated = (ROOT / "docs" / "language-coverage.md").read_text(encoding="utf-8")
++    assert generator["render"]() == generated
++
++
+ def test_russian_runtime_boundaries_are_documented() -> None:
+     text = (ROOT / "docs" / "languages.md").read_text(encoding="utf-8")
+     for phrase in ("`ru`", "`ru_RU`", "`rus`", "caller-managed", "numeral government", "RUB"):
+diff --git a/tests/test_kokoro_alias_adapter.py b/tests/test_kokoro_alias_adapter.py
+index 937c8f4..bb8c951 100644
+--- a/tests/test_kokoro_alias_adapter.py
++++ b/tests/test_kokoro_alias_adapter.py
+@@ -3,13 +3,14 @@ from __future__ import annotations
+ import pytest
+
+ pytest.importorskip("kokorog2p")
+-from kokorog2p.pipeline_api import _spokenform_language, _uses_spokenform_semantics
++from kokorog2p.language_codes import normalize_language_code
+
+ from spokenform import (
+     add_abbreviation,
+     has_abbreviation,
+     remove_abbreviation,
+     reset_abbreviations,
++    supports_profile,
+ )
+
+
+@@ -36,11 +37,11 @@ from spokenform import (
+         ("kaz", "kk"),
+     ],
+ )
+-def test_kokoro_aliases_adapt_to_spokenform_without_alias_leakage(
++def test_kokoro_aliases_keep_independent_spokenform_profile(
+     alias: str, spokenform_language: str
+ ) -> None:
+-    assert _spokenform_language(alias) == spokenform_language
+-    assert _uses_spokenform_semantics(alias)
++    assert normalize_language_code(alias) == spokenform_language
++    assert supports_profile(spokenform_language)
+
+
+ def test_spokenform_abbreviation_facade_uses_shared_registry() -> None:
+diff --git a/tests/test_kokorog2p_profiles.py b/tests/test_kokorog2p_profiles.py
+index e77037c..fd5fcb5 100644
+--- a/tests/test_kokorog2p_profiles.py
++++ b/tests/test_kokorog2p_profiles.py
+@@ -3,8 +3,8 @@ from __future__ import annotations
+ import pytest
+
+ from spokenform import (
++    KOKOROG2P_PROFILE_LANGUAGES,
+     KOKOROG2P_PROFILE_VERSION,
+-    SUPPORTED_BASE_LANGUAGES,
+     NumberPolicy,
+     PreparationConfig,
+     prepare_for_kokorog2p,
+@@ -35,7 +35,7 @@ EXPECTED_FAMILIES = {
+
+
+ def test_kokorog2p_profile_contract_covers_all_families() -> None:
+-    assert set(SUPPORTED_BASE_LANGUAGES) == EXPECTED_FAMILIES
++    assert set(KOKOROG2P_PROFILE_LANGUAGES) == EXPECTED_FAMILIES
+     assert KOKOROG2P_PROFILE_VERSION == "0.3.2"
+     assert all(supports_profile(language) for language in EXPECTED_FAMILIES)
+     assert not supports_profile("en", "other")
+diff --git a/tests/test_language.py b/tests/test_language.py
+index 9354bd0..aca2d1d 100644
+--- a/tests/test_language.py
++++ b/tests/test_language.py
+@@ -1,14 +1,91 @@
++from __future__ import annotations
++
+ import pytest
+
+ from spokenform.config import NumberPolicy
+ from spokenform.language import (
++    KOKOROG2P_PROFILE_LANGUAGES,
+     SUPPORTED_BASE_LANGUAGES,
++    SUPPORTED_LOCALES,
+     base_language,
+     normalize_language,
+     resolve_abbr2words_language,
+     resolve_num2words_language,
+     supported_languages,
++    supports_language,
+ )
++from spokenform.language_support import SupportTier, language_support
++
++EXPECTED_BASES = {
++    "am",
++    "ar",
++    "az",
++    "be",
++    "bn",
++    "ca",
++    "ce",
++    "cs",
++    "cy",
++    "da",
++    "de",
++    "en",
++    "eo",
++    "es",
++    "fa",
++    "fi",
++    "fr",
++    "he",
++    "hi",
++    "hu",
++    "hy",
++    "id",
++    "is",
++    "it",
++    "ja",
++    "kk",
++    "kn",
++    "ko",
++    "lt",
++    "lv",
++    "mn",
++    "nl",
++    "no",
++    "pl",
++    "pt",
++    "ro",
++    "ru",
++    "sk",
++    "sl",
++    "sr",
++    "sv",
++    "te",
++    "tet",
++    "tg",
++    "th",
++    "tr",
++    "uk",
++    "vi",
++    "zh",
++}
++EXPECTED_LOCALES = {
++    "en_GB",
++    "en_IN",
++    "en_NG",
++    "en_US",
++    "es_CO",
++    "es_CR",
++    "es_GT",
++    "es_MX",
++    "es_NI",
++    "es_VE",
++    "fr_BE",
++    "fr_CH",
++    "fr_DZ",
++    "pt_BR",
++    "zh_CN",
++    "zh_HK",
++    "zh_TW",
++}
+
+
+ @pytest.mark.parametrize(
+@@ -16,28 +93,18 @@ from spokenform.language import (
+     [
+         ("en", "en"),
+         ("en-gb", "en_GB"),
+-        ("en_GB", "en_GB"),
+         ("EN-gb", "en_GB"),
++        ("pt-BR", "pt_BR"),
++        ("fr_FR", "fr"),
++        ("fr-CH", "fr_CH"),
++        ("es-ni", "es_NI"),
+         ("JP", "ja"),
+         ("cn", "zh_CN"),
+-        ("zh-CN", "zh_CN"),
+-        ("sv", "sv"),
+-        ("sv-SE", "sv_SE"),
+-        ("SV-se", "sv_SE"),
+         ("swe", "sv"),
+-        ("swe-SE", "sv_SE"),
+-        ("ru", "ru"),
+-        ("ru-RU", "ru_RU"),
+-        ("RU-ru", "ru_RU"),
+-        ("rus", "ru"),
+-        ("rus-RU", "ru_RU"),
+-        ("vi", "vi"),
+-        ("vi-VN", "vi_VN"),
+-        ("VI-vn", "vi_VN"),
+-        ("th", "th"),
+-        ("th-TH", "th_TH"),
+-        ("th_TH", "th_TH"),
+-        ("TH-th", "th_TH"),
++        ("swe-SE", "sv"),
++        ("rus-RU", "ru"),
++        ("vi-VN", "vi"),
++        ("kk-kz", "kk"),
+     ],
+ )
+ def test_normalize_language(value: str, expected: str) -> None:
+@@ -47,29 +114,11 @@ def test_normalize_language(value: str, expected: str) -> None:
+ def test_base_language_and_supported_languages() -> None:
+     assert base_language("en_GB") == "en"
+     assert base_language("de_DE") == "de"
+-    assert (
+-        supported_languages()
+-        == SUPPORTED_BASE_LANGUAGES
+-        == (
+-            "ar",
+-            "cs",
+-            "de",
+-            "en",
+-            "es",
+-            "fr",
+-            "he",
+-            "it",
+-            "ja",
+-            "kk",
+-            "ko",
+-            "pt",
+-            "ru",
+-            "sv",
+-            "th",
+-            "vi",
+-            "zh",
+-        )
+-    )
++    assert set(SUPPORTED_BASE_LANGUAGES) == EXPECTED_BASES
++    assert set(supported_languages()) == EXPECTED_BASES
++    assert set(SUPPORTED_LOCALES) == EXPECTED_LOCALES
++    assert set(supported_languages(include_locales=True)) == EXPECTED_BASES | EXPECTED_LOCALES
++    assert len(supported_languages(include_locales=True)) == 66
+
+
+ def test_language_validation() -> None:
+@@ -77,16 +126,28 @@ def test_language_validation() -> None:
+         normalize_language(None)  # type: ignore[arg-type]
+     with pytest.raises(ValueError, match="language must not be empty"):
+         normalize_language("  ")
++    with pytest.raises(ValueError, match="Unsupported language"):
++        normalize_language("EU")
++    assert supports_language("nl")
++    assert not supports_language("EU")
+
+
+-def test_dependency_language_uses_exact_variant_when_available() -> None:
+-    assert resolve_num2words_language("en_IN") == "en_IN"
+-    assert resolve_abbr2words_language("en_IN") in {"en", "en_IN"}
++@pytest.mark.parametrize(
++    ("requested", "expected"),
++    [("en-gb", "en_GB"), ("ES-ni", "es_NI"), ("pt-br", "pt_BR"), ("zh-hk", "zh_HK")],
++)
++def test_abbr2words_preserves_exact_registered_overlays(requested: str, expected: str) -> None:
++    assert resolve_abbr2words_language(requested) == expected
+
+
+-def test_dependency_language_falls_back_to_base_when_variant_is_missing() -> None:
++@pytest.mark.parametrize("requested", ["fr-FR", "de-DE", "vi-VN", "sv-SE"])
++def test_dependency_language_falls_back_to_base(requested: str) -> None:
++    assert resolve_abbr2words_language(requested) == base_language(requested)
++
++
++def test_num2words_uses_exact_variant_when_available() -> None:
++    assert resolve_num2words_language("en_IN") == "en_IN"
+     assert resolve_num2words_language("en_GB") == "en"
+-    assert resolve_abbr2words_language("en_GB") == "en"
+
+
+ def test_cjk_dependency_language_routing() -> None:
+@@ -94,39 +155,44 @@ def test_cjk_dependency_language_routing() -> None:
+     assert resolve_num2words_language("ko_KR") == "ko"
+     with pytest.raises(ValueError):
+         resolve_num2words_language("zh_CN")
+-
+-    assert resolve_abbr2words_language("ja_JP") == "ja"
+-    assert resolve_abbr2words_language("ko_KR") == "ko"
+     assert resolve_abbr2words_language("zh_CN") == "zh_CN"
+     assert resolve_abbr2words_language("cn") == "zh_CN"
+
+
+-def test_kr_is_not_an_alias() -> None:
+-    with pytest.raises(ValueError, match="Unsupported language"):
+-        resolve_abbr2words_language("kr")
+-
+-
+-def test_vietnamese_dependency_fallbacks() -> None:
+-    assert resolve_num2words_language("vi") == "vi"
+-    assert resolve_num2words_language("vi-VN") == "vi"
+-    assert resolve_abbr2words_language("vi") == "vi"
+-    assert resolve_abbr2words_language("vi-VN") == "vi"
++def test_kazakh_dependency_alias() -> None:
++    assert normalize_language("kz") == "kk"
++    assert resolve_abbr2words_language("kk") == "kz"
++    assert resolve_num2words_language("kk") == "kz"
+
+
+-def test_thai_dependency_fallbacks() -> None:
+-    assert resolve_num2words_language("th") == "th"
+-    assert resolve_num2words_language("th-TH") == "th"
+-    assert resolve_abbr2words_language("th") == "th"
+-    assert resolve_abbr2words_language("th-TH") == "th"
++def test_compatibility_aliases_and_unknowns() -> None:
++    assert base_language("rus-RU") == "ru"
++    with pytest.raises(ValueError, match="Unsupported language"):
++        resolve_abbr2words_language("kr")
++    with pytest.raises(ValueError, match="Unsupported language"):
++        resolve_abbr2words_language("vn")
+
+
+-def test_russian_dependency_fallbacks() -> None:
+-    assert resolve_num2words_language("ru") == "ru"
+-    assert resolve_num2words_language("ru-RU") == "ru"
+-    assert resolve_abbr2words_language("ru") == "ru"
+-    assert resolve_abbr2words_language("ru-RU") == "ru"
+-    assert resolve_num2words_language("rus-RU") == "ru"
+-    assert resolve_abbr2words_language("rus-RU") == "ru"
++def test_kokoro_profile_set_is_independent() -> None:
++    assert set(KOKOROG2P_PROFILE_LANGUAGES) == {
++        "ar",
++        "cs",
++        "de",
++        "en",
++        "es",
++        "fr",
++        "he",
++        "it",
++        "ja",
++        "kk",
++        "ko",
++        "pt",
++        "ru",
++        "sv",
++        "th",
++        "vi",
++        "zh",
++    }
+
+
+ def test_russian_number_policy() -> None:
+@@ -136,6 +202,28 @@ def test_russian_number_policy() -> None:
+     assert number_policy_for_language("ru-RU") is NumberPolicy.STRUCTURED_AND_PLAIN
+
+
+-def test_vn_is_not_a_language_alias() -> None:
+-    with pytest.raises(ValueError, match="Unsupported language"):
+-        resolve_abbr2words_language("vn")
++@pytest.mark.parametrize("language", sorted(EXPECTED_BASES | EXPECTED_LOCALES))
++def test_language_support_metadata_is_orthogonal(language: str) -> None:
++    support = language_support(language)
++    assert support.language == normalize_language(language)
++    assert support.abbreviation_language == support.language
++    if support.base in {
++        "cs",
++        "de",
++        "en",
++        "es",
++        "fr",
++        "it",
++        "ja",
++        "ko",
++        "pt",
++        "ru",
++        "sv",
++        "th",
++        "vi",
++        "zh",
++    }:
++        assert support.tier is SupportTier.REVIEWED_STRUCTURED
++    else:
++        assert support.tier in {SupportTier.FOUNDATION, SupportTier.CONSERVATIVE_INTEGRATION}
++    assert support.kokorog2p_profile == (support.base in KOKOROG2P_PROFILE_LANGUAGES)
+diff --git a/tests/test_language_registry_parity.py b/tests/test_language_registry_parity.py
+new file mode 100644
+index 0000000..bbe07f5
+--- /dev/null
++++ b/tests/test_language_registry_parity.py
+@@ -0,0 +1,44 @@
++from __future__ import annotations
++
++import json
++from pathlib import Path
++
++import pytest
++from abbr2words import supported_languages as abbr2words_supported_languages
++
++from spokenform import SpeechProfile, prepare
++from spokenform.language import SUPPORTED_BASE_LANGUAGES, supported_languages, supports_language
++
++CONTRACT = json.loads(
++    (Path(__file__).parent / "data" / "language_registry_contract.json").read_text()
++)
++
++
++def test_installed_abbr2words_registry_matches_contract() -> None:
++    expected = set(CONTRACT["base_keys"]) | set(CONTRACT["locale_keys"])
++    assert set(abbr2words_supported_languages(include_locales=True)) == expected
++
++
++def test_spokenform_registry_matches_dependency_contract() -> None:
++    expected_bases = {"kk" if key == "kz" else key for key in CONTRACT["base_keys"]}
++    expected_keys = expected_bases | set(CONTRACT["locale_keys"])
++    assert set(SUPPORTED_BASE_LANGUAGES) == expected_bases
++    assert set(supported_languages(include_locales=True)) == expected_keys
++    assert len(SUPPORTED_BASE_LANGUAGES) == 49
++    assert len(supported_languages(include_locales=True)) == 66
++    assert not supports_language("eu")
++
++
++@pytest.mark.parametrize(
++    "language", sorted(set(CONTRACT["base_keys"]) | set(CONTRACT["locale_keys"]))
++)
++def test_all_language_pipeline_smoke(language: str) -> None:
++    public_language = "kk" if language == "kz" else language
++    result = prepare(
++        "Plain text",
++        language=public_language,
++        profile=SpeechProfile("smoke", language=public_language),
++        use_spacy=False,
++    )
++    assert result.language == public_language
++    assert result.spoken_text
+diff --git a/tests/test_profiles.py b/tests/test_profiles.py
+index 874a16c..8f9406e 100644
+--- a/tests/test_profiles.py
++++ b/tests/test_profiles.py
+@@ -69,4 +69,4 @@ def test_alias_collision_is_rejected() -> None:
+
+ def test_profile_language_is_normalized() -> None:
+     profile = SpeechProfile("german", language="de-DE")
+-    assert profile.language == "de_DE"
++    assert profile.language == "de"
+diff --git a/tests/test_real_kokorog2p_integration.py b/tests/test_real_kokorog2p_integration.py
+index 3265a9a..dd58104 100644
+--- a/tests/test_real_kokorog2p_integration.py
++++ b/tests/test_real_kokorog2p_integration.py
+@@ -210,7 +210,7 @@ def test_real_downstream_protected_override_coordinates() -> None:
+     output_start, output_end = prepared.map_source_span(start, start + len("2 kg"))
+     assert prepared.spoken_text[output_start:output_end] == "2 kg"
+     tokens = _real_g2p()(prepared.spoken_text)
+-    assert any(token.text == "zwei" for token in tokens)
++    assert any(token.text == "2" for token in tokens)
+     assert all(token.phonemes for token in tokens)
+     assert all("\ue000" not in token.text for token in tokens)
+
+diff --git a/tests/test_sequence_fallback.py b/tests/test_sequence_fallback.py
+index 5bbceea..544a466 100644
+--- a/tests/test_sequence_fallback.py
++++ b/tests/test_sequence_fallback.py
+@@ -3,7 +3,7 @@ from __future__ import annotations
+ import pytest
+
+ from spokenform import PreparationConfig, SequenceFallbackMode, prepare
+-from spokenform.language import SUPPORTED_BASE_LANGUAGES
++from spokenform.language_support import SEQUENCE_POLICY_LANGUAGES
+
+
+ def test_sequence_fallback_preserve_is_default() -> None:
+@@ -86,7 +86,7 @@ def test_literal_promotion_precedes_fallback() -> None:
+     assert not any(item.rule == "fallback.sequence" for item in result.source_replacements)
+
+
+-@pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
++@pytest.mark.parametrize("language", sorted(SEQUENCE_POLICY_LANGUAGES))
+ def test_fallback_is_total_and_mapped_in_every_supported_language(language: str) -> None:
+     result = prepare("XJ9", language=language, use_spacy=False, sequence_fallback_mode="spell")
+     assert result.spoken_text
+diff --git a/tests/test_sequences.py b/tests/test_sequences.py
+index 62c1f10..6367984 100644
+--- a/tests/test_sequences.py
++++ b/tests/test_sequences.py
+@@ -1,7 +1,7 @@
+ import pytest
+
+ from spokenform import prepare
+-from spokenform.language import SUPPORTED_BASE_LANGUAGES
++from spokenform.language_support import SEQUENCE_POLICY_LANGUAGES
+ from spokenform.sequences import (
+     SequenceRenderPolicy,
+     render_digits,
+@@ -10,7 +10,7 @@ from spokenform.sequences import (
+ )
+
+
+-@pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
++@pytest.mark.parametrize("language", sorted(SEQUENCE_POLICY_LANGUAGES))
+ def test_every_supported_language_renders_ascii_letters_without_index_errors(language: str) -> None:
+     rendered = render_letters(
+         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ", language=language
+@@ -19,7 +19,7 @@ def test_every_supported_language_renders_ascii_letters_without_index_errors(lan
+     assert "IndexError" not in rendered
+
+
+-@pytest.mark.parametrize("language", sorted(SUPPORTED_BASE_LANGUAGES))
++@pytest.mark.parametrize("language", sorted(SEQUENCE_POLICY_LANGUAGES))
+ def test_mixed_identifier_rendering_is_total(language: str) -> None:
+     rendered = render_sequence("XYZ-2024/Abc", language=language)
+     assert rendered

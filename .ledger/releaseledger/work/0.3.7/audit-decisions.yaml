@@ -1,0 +1,51 @@
+rows:
+  - sha: e5b009cd4e66768a9f5304eded1ad9b5158e9d59
+    inspected: true
+    inspected_paths:
+      - 01_todo.md
+      - README.md
+      - docs/api.md
+      - docs/language-coverage.md
+      - docs/languages.md
+      - scripts/generate_language_coverage.py
+      - spokenform/__init__.py
+      - spokenform/api.py
+      - spokenform/cli.py
+      - spokenform/config.py
+      - spokenform/fallback.py
+      - spokenform/language.py
+      - spokenform/language_support.py
+      - spokenform/locales/fr.py
+      - spokenform/number_words.py
+      - spokenform/numbers.py
+      - spokenform/numeric_lexeme.py
+      - spokenform/structured.py
+      - tests/data/language_registry_contract.json
+      - tests/test_cjk_architecture.py
+      - tests/test_docs_consistency.py
+      - tests/test_kokoro_alias_adapter.py
+      - tests/test_kokorog2p_profiles.py
+      - tests/test_language.py
+      - tests/test_language_registry_parity.py
+      - tests/test_profiles.py
+      - tests/test_real_kokorog2p_integration.py
+      - tests/test_sequence_fallback.py
+      - tests/test_sequences.py
+    observed_behavior: Added support for all registered abbr2words languages, including locale overlays, with capability-aware numeric and sequence processing
+    public_impact: public
+    decision: accepted
+    target_entry_key: language-registry-and-capability-policies
+    target_entry_id: null
+    notes: Reviewed implementation, documentation, contract data, and regression coverage
+    stale: false
+  - sha: 9c3b265b69b0ee73594185f72804d5e445173742
+    inspected: true
+    inspected_paths:
+      - scripts/generate_language_coverage.py
+    observed_behavior: Refined generated language coverage table formatting and rendering
+    public_impact: internal
+    decision: internal
+    target_entry_key: null
+    target_entry_id: null
+    notes: Generator maintenance only; no standalone public release note
+    stale: false
