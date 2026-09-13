@@ -1,0 +1,75 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 3
+release_version: v0.4.1
+git_base_ref: v0.4.0
+git_base_sha: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6
+git_head_ref: HEAD
+git_head_sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+git_range: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6..09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+commit_count: 2
+rows:
+- sha: 75510e391bdc768c99e75242c70f625a82f8d14b
+  source_ref: git:75510e391bdc768c99e75242c70f625a82f8d14b
+  short_sha: 75510e3
+  changed_paths:
+  - benchmarks/failure_reporting.py
+  - benchmarks/polynorm_eval.py
+  - spokenform/locales/de.py
+  - spokenform/locales/it.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_numeralform_migration_regressions.py
+  - tests/test_polynorm_eval.py
+  stats:
+    files_changed: 0
+    insertions: 255
+    deletions: 17
+  inspected: true
+  inspected_paths:
+  - benchmarks/failure_reporting.py
+  - benchmarks/polynorm_eval.py
+  - spokenform/locales/de.py
+  - spokenform/locales/it.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_numeralform_migration_regressions.py
+  - tests/test_polynorm_eval.py
+  observed_behavior: Added German section-reference recognition and date-context guards,
+    expanded currency and emergency-number recognition, corrected identifier rendering,
+    and classified benchmark failures by observed ownership; added regression coverage.
+  public_impact: public
+  decision: accepted
+  stale: false
+  evidence_subject: 'feat: improve spokenform'
+  target_entry_key: numeric-and-context-normalization
+  target_entry_id: entry-0001
+  notes: Reviewed the complete feature diff and its regression tests.
+- sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+  source_ref: git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+  short_sha: 09a4ecd
+  changed_paths:
+  - benchmarks/polynorm_eval.py
+  - spokenform/locales/de.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_numeralform_migration_regressions.py
+  - tests/test_polynorm_eval.py
+  stats:
+    files_changed: 0
+    insertions: 67
+    deletions: 52
+  inspected: true
+  inspected_paths:
+  - benchmarks/polynorm_eval.py
+  - spokenform/locales/de.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_numeralform_migration_regressions.py
+  - tests/test_polynorm_eval.py
+  observed_behavior: Applied formatting-only pre-commit changes; no runtime or documented
+    behavior changed.
+  public_impact: internal
+  decision: internal
+  stale: false
+  evidence_subject: 'chore: pre-commit'
+  target_entry_id: entry-0002
+  notes: Formatting-only commit intentionally excluded from public release notes.
