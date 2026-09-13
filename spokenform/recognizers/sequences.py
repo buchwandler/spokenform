@@ -56,7 +56,7 @@ _COMPOUND_UNIT_RE = re.compile(
     re.IGNORECASE,
 )
 _CURRENCY_SYMBOL_RE = re.compile(
-    r"(?<!\w)(?:(?P<prefix>[€$£])\s*)?(?P<number>[+\-−]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?)(?![.,]\d)\s*(?P<suffix>[€$£])?(?!\w)"
+    r"(?<!\w)(?:(?P<prefix>[€$£¥])\s*)?(?P<number>[+\-−]?(?:\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,]\d+)?)(?![.,]\d)\s*(?P<suffix>[€$£¥])?(?!\w)"
 )
 _CURRENCY_MAGNITUDE_RE = re.compile(
     r"(?<!\w)(?P<symbol>[€$£])\s*(?P<number>[+\-−]?\d+(?:[.,]\d+)?)\s+(?P<magnitude>thousand|million|billion|tausend|million(?:en)?|milliard(?:en)?|mil|millón(?:es)?|milli(?:one|ardi)?)(?!\w)",
@@ -126,7 +126,14 @@ _PHONE_BLOCKING_CONTEXT_RE = re.compile(
     re.IGNORECASE,
 )
 _EMERGENCY_RE = re.compile(
-    r"\b(?:call|dial|emergency|notruf|emergencia|número\s+de\s+emergencia|urgence|numéro\s+d['’]urgence|emergenza|numero\s+di\s+emergenza)\s*[:#-]?\s*(?P<value>110|112|911|999)\b",
+    r"\b(?:call|dial|emergency|notruf|emergencia|número\s+de\s+emergencia|urgence|numéro\s+d['’]urgence|emergenza|numero\s+di\s+emergenza)\s*[:#-]?\s*(?P<value>110|112|118|911|999)\b",
+    re.IGNORECASE,
+)
+_SHORT_EMERGENCY_CONTEXT_RE = re.compile(
+    r"\b(?:call|dial|chiama|chiamare|telefonare|llama|appelle|anrufen)\s+"
+    r"(?:the\s+|il\s+|lo\s+|la\s+|le\s+|el\s+)?"
+    r"(?P<value>\d{3,6})\b[^.\n]{0,40}\b"
+    r"(?:ambulance|ambulanza|ambulan[țt]ă|emergency|emergenza|police|polizia|fire|pompieri|support|hotline)\b",
     re.IGNORECASE,
 )
 _VERSION_CONTEXT_RE = re.compile(
@@ -896,6 +903,15 @@ def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
             "pt": "libras",
             "cs": "libry",
         },
+        "¥": {
+            "de": "Yen",
+            "en": "yen",
+            "es": "yenes",
+            "fr": "yens",
+            "it": "yen",
+            "pt": "ienes",
+            "cs": "jenů",
+        },
     }
     minor_names = {
         "de": "Cent",
@@ -966,7 +982,7 @@ _CURRENCY_CODE_NAMES = {
         "it": "pesos messicani",
     },
 }
-_CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP"}
+_CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY"}
 
 
 def _currency_code_text(number: str, code: str, language: str) -> str:
@@ -1481,14 +1497,6 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
                     rendered.append(render_english_year(int(token), language=language))
                 else:
                     rendered.append(_cardinal(int(token), language))
-            elif any(
-                adjacent_kind == "alpha" and not adjacent_token.isupper()
-                for adjacent_kind, adjacent_token in (
-                    tokens[index - 1] if index else ("", ""),
-                    tokens[index + 1] if index + 1 < len(tokens) else ("", ""),
-                )
-            ):
-                rendered.append(_cardinal(int(token), language))
             else:
                 rendered.append(_digitwise(token, language))
         elif kind == "separator":
@@ -2556,7 +2564,7 @@ def _iter_finance_quantity_candidates(
 
     for match in _CURRENCY_SYMBOL_RE.finditer(text):
         symbol = match["prefix"] or match["suffix"]
-        if symbol and base_language(language) == "it":
+        if symbol and (base_language(language) == "it" or symbol == "¥"):
             _add(
                 candidates,
                 match,
@@ -2646,8 +2654,6 @@ def _iter_identifier_candidates(
         tail = text[search_start:search_end]
         for value_match in _ISBN_VALUE_RE.finditer(tail):
             value = value_match["value"]
-            if not _isbn_shape_is_valid(value):
-                continue
             value_start = search_start + value_match.start("value")
             value_end = search_start + value_match.end("value")
             if not _claimed(value_start, value_end, protected):
@@ -2802,6 +2808,16 @@ def _iter_identifier_candidates(
                     )
                 )
 
+
+    for match in _SHORT_EMERGENCY_CONTEXT_RE.finditer(text):
+        _add(
+            candidates,
+            match,
+            match.group(0).replace(match["value"], _digitwise(match["value"], language)),
+            language,
+            "sequence.emergency",
+            protected,
+        )
     for match in _ITALIAN_SERIAL_RE.finditer(text):
         start, end = match.span("value")
         if _claimed(start, end, protected):

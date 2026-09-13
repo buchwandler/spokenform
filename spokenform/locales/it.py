@@ -238,6 +238,8 @@ def _dotted_time_is_unambiguous(text: str, start: int, end: int) -> bool:
         return True
     left = text[max(0, start - 24) : start]
     right = text[end : end + 24]
+    if left.rstrip().endswith(("€", "$", "£", "¥")):
+        return False
     if re.search(r"\b(?:alle|ore|h)\s*$", left, re.IGNORECASE):
         return True
     if re.match(r"\s*(?:alle|ore|h)\b", right, re.IGNORECASE):

@@ -43,6 +43,8 @@ FAILURE_FAMILIES = (
 
 OWNERSHIP_STATES = (
     "owned",
+    "spokenform",
+    "benchmark-questionable",
     "dependency-abbr2words",
     "extended-candidate",
     "protected",

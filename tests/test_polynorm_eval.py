@@ -9,6 +9,7 @@ from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
     NUMBER_RELATED_CATEGORIES,
+    classify_failure_ownership,
     POLYNORM_DATASET_COMMIT,
     POLYNORM_QUARANTINE,
     _filter_failures_by_speech_wer,
@@ -114,6 +115,8 @@ def test_evaluation_reports_claim_provenance_and_gate_views() -> None:
     assert set(summary["gate_metrics"]) == {
         "safety",
         "owned",
+        "spokenform",
+        "benchmark-questionable",
         "dependency-abbr2words",
         "extended",
         "protected",
@@ -138,13 +141,56 @@ def test_category_ownership_separates_dependency_and_extended_families() -> None
     summary, failures = evaluate_cases(cases)
 
     assert summary["by_ownership"]["dependency-abbr2words"]["cases"] == 1
-    assert summary["by_ownership"]["extended-candidate"]["cases"] == 1
+    assert summary["by_ownership"]["spokenform"]["cases"] == 1
     assert summary["by_ownership"]["unsupported"]["cases"] == 1
     assert summary["risk_tier_counts"]["high"] == 1
     initialism = next(row for row in failures if row["id"] == "en-US:initialism")
     assert initialism["ownership"] == "dependency-abbr2words"
     assert initialism["risk_tier"] == "high"
 
+
+def test_abbreviation_category_does_not_override_structured_primary_rule() -> None:
+    assert classify_failure_ownership(
+        category="Abbreviation",
+        primary_rule="de.date",
+        failure_phase="structured_rendering",
+        protected=False,
+        quarantined=False,
+    ) == "spokenform"
+
+
+def test_true_lexical_abbreviation_failure_stays_dependency_owned() -> None:
+    assert classify_failure_ownership(
+        category="Abbreviation",
+        primary_rule="abbr:CEO",
+        failure_phase="locale_rendering",
+        protected=False,
+        quarantined=False,
+    ) == "dependency-abbr2words"
+
+
+def test_quarantine_wins_over_dependency_category() -> None:
+    assert classify_failure_ownership(
+        category="Initialism or Acronym",
+        primary_rule=None,
+        failure_phase="unrecognized",
+        protected=False,
+        quarantined=True,
+    ) == "benchmark-questionable"
+
+
+def test_structured_section_failure_is_spokenform_owned() -> None:
+    case = PolyNormCase(
+        "de-DE",
+        "285",
+        "Abbreviation",
+        "Siehe Abschn. 3.2.",
+        "Siehe Abschnitt dritter zweiter.",
+    )
+    _summary, failures = evaluate_cases((case,))
+    row = failures[0]
+    assert row["primary_rule"] == "de.section-reference"
+    assert row["ownership"] == "spokenform"
 
 def test_version_provenance_names_separator_role() -> None:
     case = PolyNormCase("en-US", "version", "Version Numbers", "Python 3.9.7", "spoken")

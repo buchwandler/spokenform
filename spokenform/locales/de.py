@@ -184,6 +184,11 @@ _DAY_MONTH = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<day>0?[1-9]|[12]\d|3[01])\."
     rf"(?P<month>0?[1-9]|1[0-2])\.{_DE_RIGHT_BOUNDARY}",
 )
+_SECTION_REFERENCE = re.compile(
+    rf"{_DE_LEFT_BOUNDARY}(?P<label>Abschnitt|Abschn\.|Kapitel|Kap\.|§)\s+"
+    rf"(?P<value>\d+(?:\.\d+)+)(?P<terminal>\.)?{_DE_RIGHT_BOUNDARY}",
+    re.IGNORECASE,
+)
 _APOSTROPHE_YEAR = re.compile(r"(?<!\w)[’'](?P<year>\d{2})(?!\w)")
 _TIME = re.compile(
     rf"{_DE_LEFT_BOUNDARY}(?P<hour>[01]?\d|2[0-3]):(?P<minute>[0-5]\d)"
@@ -512,6 +517,17 @@ def _add_candidate(
         )
 
 
+def _dotted_date_is_admissible(text: str, match: re.Match[str]) -> bool:
+    """Reject ambiguous day.month forms in reference and money contexts."""
+    prefix = text[max(0, match.start() - 80) : match.start()].casefold()
+    if re.search(
+        r"(?:abschn(?:itt)?\.?|kapitel|kap\.?|§|section|version|referenz|"
+        r"wechselkurs|exchange\s+rate|kurs|[€$£]\s*$|=\s*[€$£]?\s*$)",
+        prefix,
+    ):
+        return False
+    return True
+
 def _iter_de_dates(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
@@ -547,6 +563,8 @@ def _iter_de_dates(
             value = f"{_ordinal(day, _ending(text, match.start()) if match.start() else 'e', language)} {month_text} {_year(date_year, language, year_digits=year_digits if separator == '.' else None)}"
             _add_candidate(candidates, match, value, "de.date", protected)
     for match in _DAY_MONTH.finditer(text):
+        if not _dotted_date_is_admissible(text, match):
+            continue
         day, month = int(match["day"]), int(match["month"])
         if parsed_date(match["day"], match["month"]).valid():
             month_name = _ordinal(month, _ending(text, match.start()), language)
@@ -716,6 +734,20 @@ def _iter_de_unit_matches(
 def _iter_de_labels(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
+    for match in _SECTION_REFERENCE.finditer(text):
+        label = match["label"].casefold().rstrip(".")
+        rendered_label = {
+            "abschn": "Abschnitt",
+            "abschnitt": "Abschnitt",
+            "kap": "Kapitel",
+            "kapitel": "Kapitel",
+            "§": "Paragraph",
+        }.get(label, match["label"])
+        numbers = " Punkt ".join(_spell(int(part)) for part in match["value"].split("."))
+        replacement = f"{rendered_label} {numbers}"
+        if match["terminal"]:
+            replacement += "."
+        _add_candidate(candidates, match, replacement, "de.section-reference", protected)
     for match in _LABEL.finditer(text):
         label = match["label"]
         normalized = label.casefold().replace(" ", "")

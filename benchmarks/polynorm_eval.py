@@ -216,6 +216,33 @@ def ownership_state(category: str) -> str:
     """Classify a category for diagnostic reporting, not release gating."""
     return _OWNERSHIP.get(canonical_category(category), "unsupported")
 
+def classify_failure_ownership(
+    *,
+    category: str,
+    primary_rule: str | None,
+    failure_phase: str,
+    protected: bool,
+    quarantined: bool,
+    numeric_span_failure: bool = False
+) -> str:
+    """Classify one failure by evidence before falling back to its category."""
+    if quarantined:
+        return "benchmark-questionable"
+    if protected:
+        return "protected"
+    rule = (primary_rule or "").casefold()
+    if rule.startswith("abbr:") and not numeric_span_failure:
+        return "dependency-abbr2words"
+    if (
+        (rule.startswith(("de.", "en.", "es.", "fr.", "it."))
+         or (rule.startswith("sequence.") and not rule.startswith("sequence.fraction")))
+        or numeric_span_failure
+    ):
+        return "spokenform"
+    if failure_phase == "structured_rendering" and primary_rule:
+        return "spokenform"
+    return ownership_state(category)
+
 
 def ownership_states() -> tuple[str, ...]:
     """Return the complete stable ownership vocabulary used by reports."""
@@ -487,6 +514,8 @@ def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     return {
         "safety": safety,
         "owned": _metric_counts(grouped_ownership.get("owned", [])),
+        "spokenform": _metric_counts(grouped_ownership.get("spokenform", [])),
+        "benchmark-questionable": _metric_counts(grouped_ownership.get("benchmark-questionable", [])),
         "dependency-abbr2words": _metric_counts(grouped_ownership.get("dependency-abbr2words", [])),
         "extended": _metric_counts(grouped_ownership.get("extended-candidate", [])),
         "protected": _metric_counts(protected),
@@ -633,7 +662,7 @@ def evaluate_cases(
         language = POLYNORM_TO_SPOKENFORM[case.polynorm_locale]
         quarantine = POLYNORM_QUARANTINE.get(case.case_id)
         canonical = canonical_category(case.category)
-        ownership = ownership_state(case.category)
+        category_ownership = ownership_state(case.category)
         error: str | None = None
         actual = ""
         warnings: list[str] = []
@@ -674,11 +703,18 @@ def evaluate_cases(
         )
         provenance = _provenance_diagnostics(
             result,
-            ownership=ownership,
+            ownership=category_ownership,
             language=language,
             semantic_failure=semantic_failure,
             presentation_only=presentation_only,
             error=bool(error),
+        )
+        ownership = classify_failure_ownership(
+            category=case.category,
+            primary_rule=provenance["primary_rule"],
+            failure_phase=provenance["failure_phase"],
+            protected=bool(provenance["protected_reason"]) or category_ownership == "protected",
+            quarantined=quarantine is not None,
         )
         if error:
             provenance["failure_phase"] = "parse_error"
