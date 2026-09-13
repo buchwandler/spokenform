@@ -131,7 +131,7 @@ def test_numeric_facade_rejects_non_finite_decimal() -> None:
         cardinal(Decimal("NaN"), "en")
 
 
-def test_upstream_num2words_is_not_used_in_spokenform_runtime() -> None:
+def test_spokenform_runtime_uses_numeralform_canonical_api_only() -> None:
     root = Path(__file__).parents[1] / "spokenform"
     violations: list[str] = []
     for path in root.rglob("*.py"):

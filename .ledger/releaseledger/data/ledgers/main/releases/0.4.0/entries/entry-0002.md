@@ -13,12 +13,12 @@ audience: null
 scopes: []
 source_refs: []
 paths:
-- spokenform/language.py
-- docs/api.md
+  - spokenform/language.py
+  - docs/api.md
 issues: []
 prs: []
 sources:
-- tl:task-0071
+  - tl:task-0071
 contributors: []
 breaking: true
 internal: false
