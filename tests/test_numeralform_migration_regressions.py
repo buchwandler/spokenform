@@ -25,47 +25,48 @@ def test_currency_candidate_is_claimed_atomically(language: str, source: str) ->
 
 
 def test_italian_ordinary_cardinal_uses_corrected_numeralform_surface() -> None:
-    assert prepare(
-        "Il numero è 118.", language="it_IT", use_spacy=False
-    ).spoken_text == "Il numero è centodiciotto."
+    assert (
+        prepare("Il numero è 118.", language="it_IT", use_spacy=False).spoken_text
+        == "Il numero è centodiciotto."
+    )
 
 
 def test_italian_social_identifier_suffix_is_digitwise() -> None:
-    assert prepare(
-        "Menziona @user123.", language="it_IT", use_spacy=False
-    ).spoken_text == "Menziona chiocciola user uno due tre."
+    assert (
+        prepare("Menziona @user123.", language="it_IT", use_spacy=False).spoken_text
+        == "Menziona chiocciola user uno due tre."
+    )
 
 
 def test_italian_emergency_number_is_digitwise_in_call_context() -> None:
-    assert prepare(
-        "Chiama il 118 per l'ambulanza.", language="it_IT", use_spacy=False
-    ).spoken_text == "Chiama il uno uno otto per l'ambulanza."
+    assert (
+        prepare("Chiama il 118 per l'ambulanza.", language="it_IT", use_spacy=False).spoken_text
+        == "Chiama il uno uno otto per l'ambulanza."
+    )
 
 
 def test_same_digits_remain_cardinal_without_identifier_context() -> None:
-    assert prepare(
-        "Il numero è 118.", language="it_IT", use_spacy=False
-    ).spoken_text == "Il numero è centodiciotto."
+    assert (
+        prepare("Il numero è 118.", language="it_IT", use_spacy=False).spoken_text
+        == "Il numero è centodiciotto."
+    )
 
 
 def test_german_section_reference_is_not_a_date() -> None:
-    assert prepare(
-        "Siehe Abschn. 3.2.", language="de_DE", use_spacy=False
-    ).spoken_text == "Siehe Abschnitt drei Punkt zwei."
+    assert (
+        prepare("Siehe Abschn. 3.2.", language="de_DE", use_spacy=False).spoken_text
+        == "Siehe Abschnitt drei Punkt zwei."
+    )
 
 
 def test_german_currency_decimal_after_exchange_operator_is_not_a_date() -> None:
-    result = prepare(
-        "Der Wechselkurs ist 1€ = $1.10.", language="de_DE", use_spacy=False
-    )
+    result = prepare("Der Wechselkurs ist 1€ = $1.10.", language="de_DE", use_spacy=False)
     assert "erster zehnter" not in result.spoken_text
     assert not any(item.rule == "de.date" for item in result.source_replacements)
 
 
 def test_german_positive_dotted_date_context_is_preserved() -> None:
-    result = prepare(
-        "Der Termin ist am 3.2.", language="de_DE", use_spacy=False
-    )
+    result = prepare("Der Termin ist am 3.2.", language="de_DE", use_spacy=False)
     assert "dritten zweiten" in result.spoken_text
     assert any(item.rule == "de.date" for item in result.source_replacements)
 
@@ -90,13 +91,15 @@ def test_explicit_isbn_label_allows_identifier_shaped_non_checksum_value() -> No
     assert result.spoken_text == "I S B N one two three four five six"
     assert any(item.rule == "sequence.isbn" for item in result.source_replacements)
 
+
 def test_short_emergency_number_requires_context() -> None:
     assert prepare(
         "Chiama il 118 per l'ambulanza.", language="it_IT", use_spacy=False
     ).spoken_text.endswith("uno uno otto per l'ambulanza.")
-    assert prepare(
-        "Ho contato 118 elementi.", language="it_IT", use_spacy=False
-    ).spoken_text != "Ho contato uno uno otto elementi."
+    assert (
+        prepare("Ho contato 118 elementi.", language="it_IT", use_spacy=False).spoken_text
+        != "Ho contato uno uno otto elementi."
+    )
 
 
 def test_grouped_currency_does_not_leave_a_partial_suffix() -> None:

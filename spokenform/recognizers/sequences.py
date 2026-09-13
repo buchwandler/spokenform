@@ -2808,7 +2808,6 @@ def _iter_identifier_candidates(
                     )
                 )
 
-
     for match in _SHORT_EMERGENCY_CONTEXT_RE.finditer(text):
         _add(
             candidates,

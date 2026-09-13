@@ -528,6 +528,7 @@ def _dotted_date_is_admissible(text: str, match: re.Match[str]) -> bool:
         return False
     return True
 
+
 def _iter_de_dates(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:

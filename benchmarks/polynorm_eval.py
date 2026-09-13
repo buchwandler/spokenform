@@ -216,6 +216,7 @@ def ownership_state(category: str) -> str:
     """Classify a category for diagnostic reporting, not release gating."""
     return _OWNERSHIP.get(canonical_category(category), "unsupported")
 
+
 def classify_failure_ownership(
     *,
     category: str,
@@ -223,7 +224,7 @@ def classify_failure_ownership(
     failure_phase: str,
     protected: bool,
     quarantined: bool,
-    numeric_span_failure: bool = False
+    numeric_span_failure: bool = False,
 ) -> str:
     """Classify one failure by evidence before falling back to its category."""
     if quarantined:
@@ -234,10 +235,9 @@ def classify_failure_ownership(
     if rule.startswith("abbr:") and not numeric_span_failure:
         return "dependency-abbr2words"
     if (
-        (rule.startswith(("de.", "en.", "es.", "fr.", "it."))
-         or (rule.startswith("sequence.") and not rule.startswith("sequence.fraction")))
-        or numeric_span_failure
-    ):
+        rule.startswith(("de.", "en.", "es.", "fr.", "it."))
+        or (rule.startswith("sequence.") and not rule.startswith("sequence.fraction"))
+    ) or numeric_span_failure:
         return "spokenform"
     if failure_phase == "structured_rendering" and primary_rule:
         return "spokenform"
@@ -515,7 +515,9 @@ def _gate_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "safety": safety,
         "owned": _metric_counts(grouped_ownership.get("owned", [])),
         "spokenform": _metric_counts(grouped_ownership.get("spokenform", [])),
-        "benchmark-questionable": _metric_counts(grouped_ownership.get("benchmark-questionable", [])),
+        "benchmark-questionable": _metric_counts(
+            grouped_ownership.get("benchmark-questionable", [])
+        ),
         "dependency-abbr2words": _metric_counts(grouped_ownership.get("dependency-abbr2words", [])),
         "extended": _metric_counts(grouped_ownership.get("extended-candidate", [])),
         "protected": _metric_counts(protected),

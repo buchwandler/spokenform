@@ -150,33 +150,42 @@ def test_category_ownership_separates_dependency_and_extended_families() -> None
 
 
 def test_abbreviation_category_does_not_override_structured_primary_rule() -> None:
-    assert classify_failure_ownership(
-        category="Abbreviation",
-        primary_rule="de.date",
-        failure_phase="structured_rendering",
-        protected=False,
-        quarantined=False,
-    ) == "spokenform"
+    assert (
+        classify_failure_ownership(
+            category="Abbreviation",
+            primary_rule="de.date",
+            failure_phase="structured_rendering",
+            protected=False,
+            quarantined=False,
+        )
+        == "spokenform"
+    )
 
 
 def test_true_lexical_abbreviation_failure_stays_dependency_owned() -> None:
-    assert classify_failure_ownership(
-        category="Abbreviation",
-        primary_rule="abbr:CEO",
-        failure_phase="locale_rendering",
-        protected=False,
-        quarantined=False,
-    ) == "dependency-abbr2words"
+    assert (
+        classify_failure_ownership(
+            category="Abbreviation",
+            primary_rule="abbr:CEO",
+            failure_phase="locale_rendering",
+            protected=False,
+            quarantined=False,
+        )
+        == "dependency-abbr2words"
+    )
 
 
 def test_quarantine_wins_over_dependency_category() -> None:
-    assert classify_failure_ownership(
-        category="Initialism or Acronym",
-        primary_rule=None,
-        failure_phase="unrecognized",
-        protected=False,
-        quarantined=True,
-    ) == "benchmark-questionable"
+    assert (
+        classify_failure_ownership(
+            category="Initialism or Acronym",
+            primary_rule=None,
+            failure_phase="unrecognized",
+            protected=False,
+            quarantined=True,
+        )
+        == "benchmark-questionable"
+    )
 
 
 def test_structured_section_failure_is_spokenform_owned() -> None:
@@ -191,6 +200,7 @@ def test_structured_section_failure_is_spokenform_owned() -> None:
     row = failures[0]
     assert row["primary_rule"] == "de.section-reference"
     assert row["ownership"] == "spokenform"
+
 
 def test_version_provenance_names_separator_role() -> None:
     case = PolyNormCase("en-US", "version", "Version Numbers", "Python 3.9.7", "spoken")
