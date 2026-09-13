@@ -820,11 +820,25 @@ def prepare_for_kokorog2p(
     return prepare(text, config=selected, profile=profile, **kwargs)  # type: ignore[arg-type]
 
 
+def prepare_for_piperg2p(
+    text: str,
+    language: str = "en",
+    *,
+    config: PreparationConfig | None = None,
+    profile: SpeechProfile | None = None,
+    **kwargs: object,
+) -> PreparedText:
+    """Prepare one language with the PiperG2P-safe profile."""
+    selected = config or PreparationConfig.for_piperg2p(language)
+    return prepare(text, config=selected, profile=profile, **kwargs)  # type: ignore[arg-type]
+
+
 __all__ = [
     "prepare",
     "prepare_language",
     "prepare_text",
     "prepare_for_kokorog2p",
+    "prepare_for_piperg2p",
     "normalize_spacing",
 ]
 

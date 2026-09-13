@@ -14,7 +14,14 @@ from .abbreviations import (
     reset_abbreviations,
 )
 from .annotations import annotations_from_spacy, spacy_annotations, validate_annotations
-from .api import normalize_spacing, prepare, prepare_for_kokorog2p, prepare_language, prepare_text
+from .api import (
+    normalize_spacing,
+    prepare,
+    prepare_for_kokorog2p,
+    prepare_for_piperg2p,
+    prepare_language,
+    prepare_text,
+)
 from .config import (
     GenericAcronymCase,
     GenericAcronymMode,
@@ -29,6 +36,7 @@ from .config import (
     default_number_policy_for_language,
     kokorog2p_number_policy_for_language,
     number_policy_for_language,
+    piperg2p_number_policy_for_language,
 )
 from .evidence import LexicalEvidenceProvider
 from .language import (
@@ -110,6 +118,7 @@ __all__ = [
     "number_policy_for_language",
     "default_number_policy_for_language",
     "kokorog2p_number_policy_for_language",
+    "piperg2p_number_policy_for_language",
     "number_backend_for_language",
     "NumberBackend",
     "require_number_backend",
@@ -166,6 +175,7 @@ __all__ = [
     "prepare",
     "prepare_language",
     "prepare_for_kokorog2p",
+    "prepare_for_piperg2p",
     "prepare_text",
     "spacy_annotations",
 ]

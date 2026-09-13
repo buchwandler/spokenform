@@ -136,12 +136,14 @@ def supports_language(language: str) -> bool:
 
 def supports_profile(language: str, profile: str = "kokorog2p") -> bool:
     """Return whether a language has an explicit integration preparation profile."""
-    if profile != "kokorog2p":
-        return False
-    try:
-        return base_language(language) in KOKOROG2P_PROFILE_LANGUAGES
-    except (TypeError, ValueError):
-        return False
+    if profile == "kokorog2p":
+        try:
+            return base_language(language) in KOKOROG2P_PROFILE_LANGUAGES
+        except (TypeError, ValueError):
+            return False
+    if profile == "piperg2p":
+        return supports_language(language)
+    return False
 
 
 def resolve_numeralform_locale(language: str) -> str:

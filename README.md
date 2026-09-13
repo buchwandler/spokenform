@@ -30,7 +30,7 @@ music-context tokens, and controlled biological names use semantic precedence
 and source-aligned mappings.
 
 It intentionally does **not** detect languages, parse or render SSMD, segment mixed
-languages, generate phonemes, or depend on `kokorog2p`.
+languages, generate phonemes, or depend on `kokorog2p` or `piperg2p`.
 
 ## Installation
 
@@ -123,8 +123,8 @@ prepared = prepare_language("2 kg", language="de")
 `prepare()` keeps its `language="en"` default for compatibility. Both APIs process
 one language run only. Language detection, mixed-language segmentation, and markup
 parsing remain caller responsibilities. `PreparationConfig.for_speech(language)`
-is the generic TTS-neutral preset; `for_kokorog2p()` is only a compatibility
-convenience for that downstream adapter.
+is the generic TTS-neutral preset; `for_kokorog2p()` and `for_piperg2p()` are
+downstream integration conveniences for their respective adapters.
 
 ## Thai runtime support
 
@@ -171,6 +171,29 @@ quantities, temperatures, currencies, and canonical extended units; Czech colon
 times remain caller-managed. No locale copies raw symbol inventories or
 downstream tokenizer/phoneme rules.
 Swedish realizes comma-decimal numbers, reviewed quantities, temperatures, and Swedish krona amounts from canonical `abbr2words` identities. Swedish dates, digital times, arbitrary initialisms, and unreviewed specialist domains remain caller-managed or fail closed. No locale may borrow English fallback vocabulary for a supported language.
+
+## piperg2p adapter
+
+Use `prepare_for_piperg2p(text, language=...)` before passing prepared text to PiperG2P:
+
+```python
+from piperg2p import phonemize_prepared
+from spokenform import prepare_for_piperg2p
+
+prepared = prepare_for_piperg2p(
+    "Pay $12.50 for 2 kg.",
+    language="en",
+)
+result = phonemize_prepared(
+    prepared.spoken_text,
+    language="en-us",
+    config="voice.onnx.json",
+)
+```
+
+Spokenform owns written-to-spoken semantic normalization, source replacements, and offset mapping. PiperG2P owns voice configuration, tokenization, phonemization, phoneme IDs, lexicon overlays, raw Piper and eSpeak phoneme blocks, and backend compatibility. Spokenform does not load Piper models, interpret voice configs, generate phonemes, or require PiperG2P as a dependency.
+
+The semantic language and selected Piper voice identifier are separate explicit choices. Caller-owned `[[...]]` blocks must be discovered by PiperG2P and passed to Spokenform as protected spans before preparation. Map source spans with `PreparedText.map_source_span()` before creating downstream overrides. Do not transfer source POS, tag, or lemma metadata across semantic replacements without reanalyzing the prepared text.
 
 ## Language boundary
 
@@ -424,9 +447,11 @@ On Windows, activate the environment with `.venv\Scripts\activate`.
 ## Dependency direction
 
 ```text
-abbr2words ─┐
-            ├─ spokenform ── kokorog2p
-Numeralform ──┘
+abbr2words ──────┐
+cn2an ───────────┼──> spokenform ──────┐
+numeralform ─────┘                    ├──> application / TTS orchestration
+                                       │
+piperg2p ────────────────────────────┘
 ```
 
 `abbr2words` owns abbreviation, unit, and currency identities. Spokenform owns source recognition and semantic classification. Numeralform owns non-Chinese number realization through `spokenform.number_words`; `cn2an` remains the Chinese renderer for this migration.

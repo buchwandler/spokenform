@@ -22,6 +22,9 @@
     the spokenform release and verify the real `de`, `es`, and `fr` integration
     gates against released packages.
 
+- Before publishing Spokenform 0.4.0, verify the candidate checkout against the released PiperG2P package with `tests/test_real_piperg2p_integration.py`.
+- After 0.4.0 is published, enable or verify the released Spokenform and released PiperG2P stack gate. Do not require a released Spokenform install for this API before 0.4.0 publication.
+
 The publish workflow deliberately remains operator-triggered by a published
 GitHub release. PyPI Trusted Publishing/OIDC is the preferred future mechanism
 because it avoids long-lived API tokens, but migrating credentials is a separate

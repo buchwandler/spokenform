@@ -204,7 +204,7 @@ class PreparedText:
         return payload
 
     def to_adapter_dict(self) -> dict[str, Any]:
-        """Return the stable kokorog2p-facing result projection."""
+        """Return the stable downstream-adapter result projection."""
         return {
             "spoken_text": self.spoken_text,
             "language": self.language,

@@ -16,6 +16,7 @@ architecture
 api
 profiles
 migration-kokorog2p
+migration-piperg2p
 cli
 spacy
 protection

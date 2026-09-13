@@ -9,6 +9,7 @@ import numeralform
 
 from .language import (
     KOKOROG2P_PROFILE_LANGUAGES,
+    SUPPORTED_BASE_LANGUAGES,
     base_language,
     normalize_language,
     resolve_numeralform_locale,
@@ -117,9 +118,13 @@ def language_has_reviewed_structured_numbers(language: str) -> bool:
     return language_support(language).structured
 
 
-def supported_profile_languages() -> frozenset[str]:
-    """Return the independent KokoroG2P profile language set."""
-    return KOKOROG2P_PROFILE_LANGUAGES
+def supported_profile_languages(profile: str = "kokorog2p") -> frozenset[str]:
+    """Return the language set for an integration preparation profile."""
+    if profile == "kokorog2p":
+        return KOKOROG2P_PROFILE_LANGUAGES
+    if profile == "piperg2p":
+        return frozenset(SUPPORTED_BASE_LANGUAGES)
+    return frozenset()
 
 
 __all__ = [

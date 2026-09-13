@@ -14,6 +14,10 @@
 
 ```
 
+```{autofunction} spokenform.prepare_for_piperg2p
+
+```
+
 ```{autofunction} spokenform.normalize_spacing
 
 ```
@@ -156,7 +160,7 @@ digits, while `"contextual"` and `"cardinal"` produce
 All public source offsets refer to the original string passed to `prepare()`;
 final offsets refer to `PreparedText.spoken_text`; stage-local offsets remain
 available only under each `PreparationStage`. `PreparedText.to_adapter_dict()`
-is the stable JSON-ready projection for a kokorog2p adapter.
+is the stable JSON-ready projection for downstream adapters.
 
 `prepare_for_kokorog2p()` requires an explicit language and performs no language
 detection, tokenization, G2P, or model-punctuation rewriting. Its default profile
@@ -166,9 +170,9 @@ complete recognized quantity expression. Use `source_replacements` and the offse
 helpers to rebase downstream token and override coordinates.
 
 `PreparationConfig.for_speech(language)` provides the generic one-language speech
-preset. It contains no TTS-engine policy. `prepare_for_kokorog2p()` and
-`PreparationConfig.for_kokorog2p()` remain compatibility conveniences for that
-adapter and are not the architectural center of Spokenform.
+preset. It contains no TTS-engine policy. `PreparationConfig.for_kokorog2p()` and
+`PreparationConfig.for_piperg2p()` produce compatibility configurations for their
+downstream adapters and are not the architectural center of Spokenform.
 
 `PreparedText` mappings describe source and output coordinates, not a linguistic
 analysis of generated tokens. When normalization changes a token, source POS, tag,
@@ -181,9 +185,14 @@ uses `PreparationConfig.for_kokorog2p()`, `prepare_for_kokorog2p()`, and
 `NumberPolicy`. Lower-level mapping and stage helpers are advanced exports rather
 than requirements for a normal adapter.
 
+`prepare_for_piperg2p()` uses the same prepared-text boundary with Spokenform's reviewed generic number ownership. It performs no language detection, Piper configuration loading, G2P, phonemization, or model-ID encoding. The caller passes `PreparedText.spoken_text` and keeps the semantic Spokenform language separate from the Piper voice identifier such as `en-us`. PiperG2P remains a separately installed downstream package.
+
+KokoroG2P retains its legacy handoff numeric policy. PiperG2P consumes already-prepared text and therefore uses the current generic Spokenform numeric ownership policy. Both profiles preserve source replacements, offset mapping, protected spans, and run boundaries.
+
 The stable application-facing surface is `prepare_language()`, `prepare()`,
-`prepare_for_kokorog2p()`, `prepare_text`, `PreparationConfig`, `NumberPolicy`,
-`PreparedText`, `ProtectedSpan`, `ProtectionError`, `TokenAnnotation`, and
+`prepare_for_kokorog2p()`, `prepare_for_piperg2p()`, `prepare_text`,
+`PreparationConfig`, `NumberPolicy`, `PreparedText`, `ProtectedSpan`,
+`ProtectionError`, `TokenAnnotation`, and
 `__version__`. `number_policy_for_language()` and `normalize_numbers()` are
 stable locale-policy helpers. The annotation adapters, spaCy model helpers,
 structured-stage helpers, `StageResult`, and mapping/replacement classes and

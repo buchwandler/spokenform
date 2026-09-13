@@ -106,6 +106,11 @@ def default_number_policy_for_language(language: str) -> NumberPolicy:
     return NumberPolicy.NONE
 
 
+def piperg2p_number_policy_for_language(language: str) -> NumberPolicy:
+    """Return Spokenform numeric ownership for PiperG2P prepared text."""
+    return default_number_policy_for_language(language)
+
+
 def number_policy_for_language(language: str) -> NumberPolicy:
     """Backward-compatible alias for the KokoroG2P policy."""
     return kokorog2p_number_policy_for_language(language)
@@ -289,8 +294,12 @@ class PreparationConfig:
         return cls(language=language)
 
     @classmethod
-    def for_kokorog2p(cls, language: str) -> PreparationConfig:
-        """Return a one-language profile safe for kokorog2p adapters."""
+    def _for_g2p(
+        cls,
+        language: str,
+        *,
+        number_policy: NumberPolicy,
+    ) -> PreparationConfig:
         return cls(
             language=language,
             use_spacy=False,
@@ -302,7 +311,23 @@ class PreparationConfig:
             collapse_blank_lines=True,
             preserve_run_boundaries=True,
             model_punctuation=False,
-            number_policy=number_policy_for_language(language),
+            number_policy=number_policy,
+        )
+
+    @classmethod
+    def for_kokorog2p(cls, language: str) -> PreparationConfig:
+        """Return a one-language profile safe for kokorog2p adapters."""
+        return cls._for_g2p(
+            language,
+            number_policy=kokorog2p_number_policy_for_language(language),
+        )
+
+    @classmethod
+    def for_piperg2p(cls, language: str) -> PreparationConfig:
+        """Return a one-language profile safe for piperg2p adapters."""
+        return cls._for_g2p(
+            language,
+            number_policy=piperg2p_number_policy_for_language(language),
         )
 
 
@@ -321,4 +346,5 @@ __all__ = [
     "number_policy_for_language",
     "default_number_policy_for_language",
     "kokorog2p_number_policy_for_language",
+    "piperg2p_number_policy_for_language",
 ]

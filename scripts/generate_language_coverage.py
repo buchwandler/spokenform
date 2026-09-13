@@ -64,7 +64,7 @@ def _render_table() -> list[str]:
     rendered.extend(
         "| "
         + " | ".join(
-            f"{cell:>{width}}" if index == 2 else f"{cell:<{width}}"
+            f"{cell:>{width}}" if index == 3 else f"{cell:<{width}}"
             for index, (cell, width) in enumerate(zip(row, widths, strict=True))
         )
         + " |"
@@ -93,7 +93,7 @@ def render() -> str:
             "Renderer availability and automatic plain-cardinal ownership are reported separately.",
         ]
     )
-    return "\n".join(lines)
+    return "\n".join(lines) + "\n"
 
 
 def main() -> None:

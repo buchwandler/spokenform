@@ -72,6 +72,17 @@ def test_runtime_dependency_metadata_does_not_require_upstream_num2words() -> No
     assert all("num2words" not in requirement.lower() for requirement in project["dependencies"])
 
 
+def test_downstream_g2p_packages_are_not_runtime_dependencies() -> None:
+    project = tomllib.loads(
+        (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]
+    dependencies = [requirement.lower() for requirement in project["dependencies"]]
+
+    assert not any(
+        requirement.startswith(("piperg2p", "kokorog2p")) for requirement in dependencies
+    )
+
+
 def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
     project = tomllib.loads(
         (Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8")
