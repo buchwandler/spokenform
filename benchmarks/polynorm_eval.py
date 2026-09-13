@@ -8,7 +8,7 @@ import re
 import subprocess
 import sys
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict
 from datetime import datetime, timezone
 from importlib.metadata import PackageNotFoundError, version
@@ -174,6 +174,24 @@ POLYNORM_QUARANTINE: dict[str, dict[str, str]] = {
         "classification": "questionable-target",
         "reason_code": "malformed-ground-truth",
     },
+    "de-DE:161": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "de-DE:161",
+        "reason": "Expected German output contains English comma wording and conflicts with the reviewed Euro/Cent contract.",
+        "evidence": "raw: 25,99€ => expected uses English comma and decimal-before-currency wording.",
+        "classification": "questionable-target",
+        "reason_code": "questionable-target",
+    },
+    "de-DE:166": {
+        "dataset": "PolyNorm-Bench",
+        "dataset_commit": POLYNORM_DATASET_COMMIT,
+        "case_id": "de-DE:166",
+        "reason": "Expected German output contains English comma, drops Schweizer, and conflicts with the reviewed CHF contract.",
+        "evidence": "raw: 87,50 CHF => expected uses English comma and Franken wording.",
+        "classification": "questionable-target",
+        "reason_code": "questionable-target",
+    },
 }
 
 _OWNERSHIP: dict[str, str] = {
@@ -269,6 +287,46 @@ def numeric_category_failures(
             or row.get("semantic_failure")
             or row.get("residual_symbols", {}).get("digits", 0)
         ):
+            failures.append(row)
+    return tuple(failures)
+
+
+_CURRENCY_SYMBOLS = frozenset({"€", "$", "£", "¥", "₹", "₩", "₫", "₮"})
+_CURRENCY_CODES = frozenset({"EUR", "USD", "GBP", "CHF", "JPY", "INR", "KRW", "VND", "MNT", "MXN"})
+
+
+def is_currency_related_case(row: Mapping[str, object]) -> bool:
+    """Return whether a benchmark row is currency-related by category or source."""
+    category = canonical_category(str(row.get("canonical_category", row.get("category", ""))))
+    if category.casefold() == "currency":
+        return True
+    source = str(row.get("original_text", row.get("source", row.get("text", ""))))
+    if any(symbol in source for symbol in _CURRENCY_SYMBOLS):
+        return True
+    return any(
+        re.search(rf"(?<![A-Za-z]){re.escape(code)}(?![A-Za-z])", source)
+        for code in _CURRENCY_CODES
+    )
+
+
+def currency_related_failures(
+    rows: Iterable[Mapping[str, object]],
+    *,
+    include_quarantined: bool = False,
+    include_protected: bool = False,
+) -> tuple[Mapping[str, object], ...]:
+    """Return actionable failures from the currency-related benchmark subset."""
+    failures = []
+    for row in rows:
+        if not is_currency_related_case(row):
+            continue
+        if not include_quarantined and row.get("quarantine") is not None:
+            continue
+        if not include_protected and row.get("ownership") == "protected":
+            continue
+        residual = row.get("residual_symbols")
+        digits = residual.get("digits", 0) if isinstance(residual, Mapping) else 0
+        if row.get("error") or row.get("semantic_failure") or digits:
             failures.append(row)
     return tuple(failures)
 
@@ -789,6 +847,7 @@ def evaluate_cases(
     diagnostics = diagnostic_aggregates(rows)
     reported_failures = tuple(failures)
     numeric_failures = numeric_category_failures(rows)
+    currency_failures = currency_related_failures(rows)
     summary = {
         **_metric_counts(rows),
         "by_locale": {key: _metric_counts(value) for key, value in sorted(grouped_locale.items())},
@@ -842,6 +901,10 @@ def evaluate_cases(
             ),
             "failure_count": len(numeric_failures),
             "failure_case_ids": [row["id"] for row in numeric_failures],
+        },
+        "currency_gate": {
+            "failure_count": len(currency_failures),
+            "failure_case_ids": [row["id"] for row in currency_failures],
         },
         "profile": profile,
         "normalize_literals": profile == "extended",

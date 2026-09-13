@@ -15,6 +15,7 @@ from decimal import Decimal, InvalidOperation
 from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
+from ..currency import render_currency_text
 from ..dates import _valid_date, expand_year
 from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
@@ -158,6 +159,12 @@ _EXTENDED_CURRENCY_SYMBOL = re.compile(
     r"(?:\((?P<label>[^)]+)\))?",
     re.IGNORECASE,
 )
+
+_REDUNDANT_CURRENCY_GLOSSES = {
+    "currency-south-korean-won": frozenset({"won"}),
+    "currency-vietnamese-dong": frozenset({"dong"}),
+    "currency-mongolian-tugrik": frozenset({"tugrik"}),
+}
 _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
 _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
 _DATE_DMY_SHORT = re.compile(
@@ -379,45 +386,8 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "es") -> str | N
     return f"{result} {noun}"
 
 
-def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
-    negative, integer, fraction = _parts(raw, language, context="currency")
-    names = {
-        "currency-euro": ("euro", "euros", "céntimo", "céntimos"),
-        "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
-        "currency-pound-sterling": ("libra esterlina", "libras esterlinas", "penique", "peniques"),
-        "currency-mexican-peso": ("peso", "pesos", "centavo", "centavos"),
-        "currency-swiss-franc": ("franco suizo", "francos suizos", "céntimo", "céntimos"),
-        "currency-japanese-yen": ("yen", "yenes", None, None),
-        "currency-indian-rupee": ("rupia", "rupias", "paisa", "paise"),
-        "currency-south-korean-won": ("won", "wones", None, None),
-    }
-    if canonical_id == "currency-us-dollar" and language.casefold().replace("-", "_") == "es_mx":
-        names[canonical_id] = (
-            "dólar estadounidense",
-            "dólares estadounidenses",
-            "centavo",
-            "centavos",
-        )
-    singular, plural, minor_singular, minor_plural = names.get(
-        canonical_id, (canonical_id, canonical_id, "centavo", "centavos")
-    )
-    major = singular if integer == 1 else plural
-    gender = "f" if canonical_id == "currency-pound-sterling" else "m"
-    major_raw = f"{'-' if negative else ''}{integer}"
-    number = _number_text(major_raw, gender=gender, apocopate=True, language=language)
-    if fraction is not None:
-        minor_value = int(fraction)
-        if minor_value and minor_singular is not None and minor_plural is not None:
-            minor = minor_singular if minor_value == 1 else minor_plural
-            minor_number = _number_text(
-                str(minor_value), gender="m", apocopate=True, language=language
-            )
-            result = f"{number} {major} con {minor_number} {minor}"
-        else:
-            result = f"{number} {major}"
-    else:
-        result = f"{number} {major}"
-    return result
+def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str | None:
+    return render_currency_text(raw, canonical_id, language, omit_zero_minor=True)
 
 
 def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
@@ -555,15 +525,6 @@ def _iter_es_ordinals(
 def _iter_es_currencies(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
-    for match in _EXTENDED_CURRENCY_SYMBOL.finditer(text):
-        if match["label"]:
-            number_text = _number_text(match["number"], language=language)
-            if match["label"].casefold().endswith("as") or match["label"].casefold().endswith("a"):
-                number_text = re.sub(r"ientos\b", "ientas", number_text)
-            value = f"{number_text} {match['label']}"
-            if match.start() == 0:
-                value = value[:1].upper() + value[1:]
-            _add_candidate(candidates, match.start(), match.end(), value, "es.currency", protected)
     currency_ids = {
         "$": "currency-mexican-peso"
         if language.casefold().replace("-", "_") == "es_mx"
@@ -582,18 +543,34 @@ def _iter_es_currencies(
         )
 
 
+def _currency_gloss_end(text: str, unit_match: UnitMatch) -> int:
+    tail = re.match(r"\s*\((?P<label>[^)]+)\)", text[unit_match.end :])
+    if tail is None:
+        return unit_match.end
+    allowed = _REDUNDANT_CURRENCY_GLOSSES.get(unit_match.canonical_id or "", frozenset())
+    label = tail["label"].strip().casefold()
+    return unit_match.end + tail.end() if label in allowed else unit_match.end
+
+
 def _iter_es_quantities(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
+        if unit_match.category == "currency" and re.match(r"\s*[.,]\d", text[unit_match.end :]):
+            continue
         try:
             replacement = _quantity_text(unit_match, text, language)
         except (TypeError, ValueError):
             replacement = None
         rule = "es.currency" if unit_match.category == "currency" else "es.quantity"
-        _add_candidate(candidates, unit_match.start, unit_match.end, replacement, rule, protected)
+        end = (
+            _currency_gloss_end(text, unit_match)
+            if unit_match.category == "currency"
+            else unit_match.end
+        )
+        _add_candidate(candidates, unit_match.start, end, replacement, rule, protected)
 
 
 def iter_replacements(

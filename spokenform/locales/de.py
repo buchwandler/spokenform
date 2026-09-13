@@ -11,6 +11,7 @@ from decimal import Decimal
 from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
+from ..currency import currency_code, render_currency_text
 from ..dates import expand_year, parsed_date, render_year
 from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
@@ -370,15 +371,8 @@ def _quantity(match: UnitMatch, text: str, language: str = "de") -> str | None:
 
 
 def _currency_id(symbol: str, language: str = "de") -> str | None:
-    symbol_ids = {
-        "€": "currency-euro",
-        "$": "currency-us-dollar",
-        "£": "currency-pound",
-    }
-    if symbol in symbol_ids:
-        return symbol_ids[symbol]
     for match in iter_unit_matches(f"1 {symbol}", resolve_abbr2words_language(language)):
-        if match.category == "currency":
+        if match.category == "currency" and currency_code(match.canonical_id or ""):
             return match.canonical_id
     return None
 
@@ -415,8 +409,8 @@ CURRENCY_GRAMMAR: dict[str, CurrencyGrammar] = {
     "currency-dollar": CurrencyGrammar(
         "currency-dollar", "Dollar", "Dollar", "m", major_invariant=True
     ),
-    "currency-pound": CurrencyGrammar(
-        "currency-pound", "Pfund", "Pfund", "n", major_invariant=True
+    "currency-pound-sterling": CurrencyGrammar(
+        "currency-pound-sterling", "Pfund", "Pfund", "n", major_invariant=True
     ),
     "currency-swiss-franc": CurrencyGrammar(
         "currency-swiss-franc", "Schweizer Franken", "Schweizer Franken", "m", major_invariant=True
@@ -475,7 +469,36 @@ def _currency_safe_fallback(raw: str, grammar: CurrencyGrammar, integer: int, la
     return f"{_number(unsigned_raw, language=language)} {noun}"
 
 
+def _german_symbol_money(raw: str, symbol: str, language: str = "de") -> str | None:
+    if symbol not in {"$", "£"}:
+        return None
+    parsed = parse_numeric_lexeme(raw, language, context="currency")
+    if parsed is None or (parsed.fraction_digits is not None and len(parsed.fraction_digits) > 2):
+        return None
+    major = (
+        "ein" if int(parsed.integer_digits) == 1 else _spell(int(parsed.integer_digits), language)
+    )
+    if parsed.negative:
+        major = f"minus {major}"
+    noun = "Dollar" if symbol == "$" else "Pfund"
+    result = f"{major} {noun}"
+    if parsed.fraction_digits:
+        minor_digits = parsed.fraction_digits.ljust(2, "0")
+        minor = int(minor_digits)
+        if minor:
+            result += f" {_spell(minor, language)}"
+    return result
+
+
 def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
+    # CHF keeps Spokenform's reviewed digitwise decimal policy; the other
+    # ordinary monetary forms use the shared Numeralform adapter.
+    if canonical_id != "currency-swiss-franc":
+        rendered = render_currency_text(
+            raw, canonical_id, language, separator=" ", omit_zero_minor=True
+        )
+        if rendered is not None:
+            return rendered
     negative, integer, fraction = _parts(raw, language)
     grammar = _currency_grammar(canonical_id)
     if grammar is None:
@@ -669,17 +692,6 @@ def _iter_de_times(
 def _iter_de_currency_temperature(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
-    for pattern in (_CURRENCY_PREFIX, _CURRENCY_SUFFIX):
-        for match in pattern.finditer(text):
-            canonical_id = _currency_id(match["symbol"], language)
-            if canonical_id:
-                _add_candidate(
-                    candidates,
-                    match,
-                    _currency(match["number"], canonical_id, language),
-                    "de.currency",
-                    protected,
-                )
     for match in _TEMPERATURE.finditer(text):
         unit = match["unit"].lower().replace("°", "")
         value = f"{_number(match['number'], language=language)} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}"
@@ -692,9 +704,30 @@ def _iter_de_unit_matches(
     for unit_match in iter_unit_matches(
         text, resolve_abbr2words_language(language), protected_spans=protected
     ):
-        if unit_match.category == "currency" or (
-            unit_match.start and text[unit_match.start - 1] in ".,"
-        ):
+        if unit_match.category == "currency":
+            if re.match(r"\s*[.,]\d", text[unit_match.end :]):
+                continue
+            try:
+                replacement = (
+                    _german_symbol_money(unit_match.value, unit_match.symbol, language)
+                    if unit_match.symbol in {"$", "£"}
+                    else _currency(unit_match.value, unit_match.canonical_id or "", language)
+                )
+            except (TypeError, ValueError):
+                replacement = None
+            if replacement and not _overlaps(unit_match.start, unit_match.end, protected):
+                candidates.append(
+                    Replacement(
+                        unit_match.start,
+                        unit_match.end,
+                        replacement,
+                        "structured",
+                        "de",
+                        "de.currency",
+                    )
+                )
+            continue
+        if unit_match.start and text[unit_match.start - 1] in ".,":
             continue
         if unit_match.category == "magnitude":
             tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[unit_match.end :])

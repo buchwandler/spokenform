@@ -16,6 +16,7 @@ from typing import Literal
 from abbr2words import UnitMatch, iter_unit_matches
 
 from ..config import NumberPolicy
+from ..currency import render_currency_text
 from ..dates import DateCandidate, _valid_date, expand_year, render_english_year
 from ..language import resolve_abbr2words_language
 from ..mapping import Replacement
@@ -447,7 +448,11 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "en") -> str | N
     canonical_id = match.canonical_id or ""
     grammar = QUANTITY_GRAMMAR.get(canonical_id)
     if grammar is None:
-        return _currency_text(match.value, canonical_id) if match.category == "currency" else None
+        return (
+            _currency_text(match.value, canonical_id, language)
+            if match.category == "currency"
+            else None
+        )
     try:
         value = _decimal(match.value)
     except ValueError:
@@ -492,41 +497,8 @@ def _quantity_is_plausible(match: UnitMatch, text: str) -> bool:
     return False
 
 
-def _currency_text(raw: str, canonical_id: str) -> str | None:
-    names = {
-        "currency-us-dollar": ("dollar", "dollars", "cent", "cents"),
-        "currency-pound-sterling": ("pound", "pounds", "penny", "pence"),
-        "currency-euro": ("euro", "euros", "cent", "cents"),
-        "currency-japanese-yen": ("yen", "yen", None, None),
-        "currency-swiss-franc": ("Swiss franc", "Swiss francs", "centime", "centimes"),
-        "currency-indian-rupee": ("rupee", "rupees", "paise", "paise"),
-        "currency-south-korean-won": ("won", "won", None, None),
-        "currency-mexican-peso": ("Mexican peso", "Mexican pesos", "centavo", "centavos"),
-    }
-    labels = names.get(canonical_id)
-    if labels is None:
-        return None
-    try:
-        negative, positive, integer, fraction = _parts(raw, context="currency")
-    except ValueError:
-        return None
-    if fraction is not None and len(fraction) > 2:
-        return None
-    # English currency input accepts comma-separated thousands only.  An
-    # ambiguous comma decimal is intentionally left unchanged.
-    if "," in raw and not re.fullmatch(r"[+\-−]?\d{1,3}(?:,\d{3})+(?:\.\d+)?", raw.strip()):
-        return None
-    minor = int((fraction or "").ljust(2, "0")) if fraction is not None else 0
-    major_singular, major_plural, minor_singular, minor_plural = labels
-    major_label = major_singular if integer == 1 else major_plural
-    major = _number_text(
-        ("-" if negative else "+" if positive else "") + str(integer), language="en"
-    )
-    result = f"{major} {major_label}"
-    if minor and minor_singular is not None and minor_plural is not None:
-        minor_label = minor_singular if minor == 1 else minor_plural
-        result += f" and {_spell(minor)} {minor_label}"
-    return result
+def _currency_text(raw: str, canonical_id: str, language: str = "en") -> str | None:
+    return render_currency_text(raw, canonical_id, language, omit_zero_minor=True)
 
 
 def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:

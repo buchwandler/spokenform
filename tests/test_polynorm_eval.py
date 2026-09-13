@@ -394,6 +394,8 @@ def test_failure_family_and_quarantine_reason_codes_are_reported() -> None:
 
 def test_quarantine_entries_are_evidence_backed_and_do_not_hide_normal_failures() -> None:
     assert set(POLYNORM_QUARANTINE) == {
+        "de-DE:161",
+        "de-DE:166",
         "es-MX:86",
         "es-MX:249",
         "es-MX:274",

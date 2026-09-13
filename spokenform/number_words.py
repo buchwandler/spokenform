@@ -176,7 +176,15 @@ def decimal(value: Decimal, language: str) -> str:
     return _render_numeralform(value, language, form="decimal")
 
 
-def currency(value: Number, language: str, currency_code: str) -> str:
+def currency(
+    value: Number,
+    language: str,
+    currency_code: str,
+    *,
+    separator: str | None = None,
+    omit_zero_minor: bool = False,
+    cents: bool = True,
+) -> str:
     """Render a currency amount through Numeralform's currency API."""
     backend = require_number_backend(language)
     if backend.name == "cn2an":
@@ -188,6 +196,9 @@ def currency(value: Number, language: str, currency_code: str) -> str:
             _coerce_numeralform_value(value),
             locale=backend.language,
             currency=currency_code,
+            separator=separator,
+            omit_zero_minor=omit_zero_minor,
+            cents=cents,
         )
     except numeralform.NumeralFormError as exc:
         raise ValueError(

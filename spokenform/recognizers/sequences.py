@@ -10,6 +10,7 @@ from typing import Literal
 from urllib.parse import urlsplit
 
 from ..config import InterpretationMode
+from ..currency import canonical_currency_id, currency_major_name, render_exchange_amount
 from ..dates import render_english_year, render_year
 from ..diagnostics import TraceCollector
 from ..evidence import EvidenceSession
@@ -985,10 +986,38 @@ _CURRENCY_CODE_NAMES = {
 _CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY"}
 
 
-def _currency_code_text(number: str, code: str, language: str) -> str:
-    canonical = _CURRENCY_SYMBOL_CODES.get(code, code.upper())
-    name = _CURRENCY_CODE_NAMES.get(canonical, {}).get(base_language(language), canonical)
-    return f"{_decimal_text(number, language, context='quantity')} {name}"
+@dataclass(frozen=True, slots=True)
+class ExchangeRateGrammar:
+    equals: str
+    to: str
+    per: str
+
+
+_EXCHANGE_RATE_GRAMMARS = {
+    "en": ExchangeRateGrammar("equals", "to", "per"),
+    "de": ExchangeRateGrammar("gleich", "zu", "pro"),
+    "es": ExchangeRateGrammar("igual a", "a", "por"),
+}
+
+
+def _currency_code_text(
+    number: str,
+    code: str,
+    language: str,
+    *,
+    symbol: str | None = None,
+) -> str:
+    rendered = render_exchange_amount(number, code, language, symbol=symbol)
+    if rendered is not None:
+        return rendered
+    return f"{_decimal_text(number, language, context='quantity')} {code}"
+
+
+def _exchange_target_name(code: str, language: str) -> str:
+    canonical_id = canonical_currency_id(code)
+    if canonical_id is None:
+        return code
+    return currency_major_name(canonical_id, language, singular=True)
 
 
 def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
@@ -2507,30 +2536,35 @@ def _iter_finance_quantity_candidates(
     protected: tuple[tuple[int, int], ...],
     candidates: list[Replacement],
 ) -> None:
+    grammar = _EXCHANGE_RATE_GRAMMARS.get(base_language(language), _EXCHANGE_RATE_GRAMMARS["en"])
     for match in _EXCHANGE_EQUAL_RE.finditer(text):
-        left_code = _CURRENCY_SYMBOL_CODES.get(
-            match["left_currency"], match["left_currency"].upper()
-        )
+        left_raw = match["left_currency"]
+        left_code = _CURRENCY_SYMBOL_CODES.get(left_raw, left_raw.upper())
         right_raw = match["right_currency"] or ""
         right_code = _CURRENCY_SYMBOL_CODES.get(right_raw, right_raw.upper())
         _add(
             candidates,
             match,
-            f"{_currency_code_text(match['left_number'], left_code, language)} equals "
-            f"{_currency_code_text(match['right_number'], right_code, language)}",
+            f"{_currency_code_text(match['left_number'], left_code, language, symbol=left_raw)} "
+            f"{grammar.equals} "
+            f"{_currency_code_text(match['right_number'], right_code, language, symbol=right_raw)}",
             language,
             "sequence.exchange-rate",
             protected,
         )
 
     for match in _EXCHANGE_TO_RE.finditer(text):
-        source_code = _CURRENCY_SYMBOL_CODES.get(match["currency"], match["currency"].upper())
+        source_raw = match["currency"]
+        source_code = _CURRENCY_SYMBOL_CODES.get(source_raw, source_raw.upper())
         target_code = _CURRENCY_SYMBOL_CODES.get(match["target"], match["target"].upper())
+        target_name = _exchange_target_name(target_code, language)
+        if base_language(language) == "en":
+            target_name = _exchange_target_name(target_code, language).replace("euro", "euros")
         _add(
             candidates,
             match,
-            f"{_currency_code_text(match['number'], source_code, language)} to "
-            f"{_CURRENCY_CODE_NAMES.get(target_code, {}).get(base_language(language), target_code)}",
+            f"{_currency_code_text(match['number'], source_code, language, symbol=source_raw)} "
+            f"{grammar.to} {target_name}",
             language,
             "sequence.exchange-rate",
             protected,
@@ -2542,8 +2576,8 @@ def _iter_finance_quantity_candidates(
         _add(
             candidates,
             match,
-            f"{_currency_code_text(match['number'], source_code, language)} per "
-            f"{_CURRENCY_CODE_NAMES.get(target_code, {}).get(base_language(language), target_code)}",
+            f"{_currency_code_text(match['number'], source_code, language)} "
+            f"{grammar.per} {_exchange_target_name(target_code, language)}",
             language,
             "sequence.exchange-rate",
             protected,

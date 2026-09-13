@@ -24,6 +24,7 @@ class SequencePriority(IntEnum):
     VERSION = 85
     CONTEXTUAL_YEAR = 85
     TYPED_CODE = 80
+    EXCHANGE_RATE = 82
     QUANTITY = 70
     YEAR = 65
     NUMERIC_RANGE = 50
@@ -49,6 +50,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.quarter": SequencePriority.EXPLICIT_DATE,
     "sequence.duration": SequencePriority.DURATION,
     "es.time": SequencePriority.EXPLICIT_TIME,
+    "sequence.exchange-rate": SequencePriority.EXCHANGE_RATE,
     "sequence.quantity": SequencePriority.QUANTITY,
     "en.quantity": SequencePriority.QUANTITY,
     "sequence.year": SequencePriority.YEAR,

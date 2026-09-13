@@ -32,9 +32,9 @@ _SPANISH_NUMERIC_RULE_MARKERS: Final[tuple[str, ...]] = (
     "sequence.year",
 )
 _SPANISH_GENERATED_START_RE: Final = re.compile(
-    r"""^\s*(?:(?:"|'|\(|\[|\{|¡|¿|«)\s*)*(?:[$€£]|[+\-−]?\d|√)""",
+    r"""^\s*(?:(?:"|'|\(|\[|\{|¡|¿|«)\s*)*(?:[$€£₩₫₮]|[+\-−]?\d|√)""",
 )
-_SPANISH_NUMERIC_SEGMENT_RE: Final = re.compile(r"""^\s*(?:[$€£]|[+\-−]?\d|√|[.,]\d)""")
+_SPANISH_NUMERIC_SEGMENT_RE: Final = re.compile(r"""^\s*(?:[$€£₩₫₮]|[+\-−]?\d|√|[.,]\d)""")
 
 
 def capitalize_generated_sentence_start(
