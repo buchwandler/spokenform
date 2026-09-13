@@ -12,17 +12,17 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+  - git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
 paths:
-- benchmarks/polynorm_eval.py
-- spokenform/locales/de.py
-- spokenform/recognizers/sequences.py
-- tests/test_numeralform_migration_regressions.py
-- tests/test_polynorm_eval.py
+  - benchmarks/polynorm_eval.py
+  - spokenform/locales/de.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_numeralform_migration_regressions.py
+  - tests/test_polynorm_eval.py
 issues: []
 prs: []
 sources:
-- git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+  - git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
 contributors: []
 breaking: false
 internal: true

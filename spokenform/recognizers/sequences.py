@@ -1490,7 +1490,7 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
         "#": {"_": "space", "-": "space"},
         "@": {"_": "space", "-": "space"},
     }
-    for index, (kind, token) in enumerate(tokens):
+    for kind, token in tokens:
         if kind == "digit":
             if len(token) == 4 and 1900 <= int(token) <= 2100:
                 if base_language(language) == "en":

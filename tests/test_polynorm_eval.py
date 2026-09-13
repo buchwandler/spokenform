@@ -9,10 +9,10 @@ from benchmarks.polynorm_compare import compare_runs
 from benchmarks.polynorm_data import PolyNormCase
 from benchmarks.polynorm_eval import (
     NUMBER_RELATED_CATEGORIES,
-    classify_failure_ownership,
     POLYNORM_DATASET_COMMIT,
     POLYNORM_QUARANTINE,
     _filter_failures_by_speech_wer,
+    classify_failure_ownership,
     environment_fingerprint,
     evaluate_and_write,
     evaluate_cases,
