@@ -11,6 +11,7 @@ maps.
 
 installation
 languages
+language-coverage
 quickstart
 architecture
 api

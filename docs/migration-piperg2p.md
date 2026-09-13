@@ -70,9 +70,9 @@ Source POS, tag, and lemma data must not be copied across a semantic replacement
 
 ## CI contract
 
-`tests/test_real_piperg2p_integration.py` exercises the released PiperG2P package with a synthetic minimal `text` voice configuration. It checks prepared text, source replacements, offset provenance, Piper token offsets, phoneme IDs, and raw-block protection through PiperG2P's parser. The mandatory candidate gate does not install system eSpeak or download voice assets.
+`tests/test_real_piperg2p_integration.py` exercises the PiperG2P source pinned by the candidate CI workflow with a synthetic minimal `text` voice configuration. It checks prepared text, source replacements, offset provenance, Piper token offsets, phoneme IDs, and raw-block protection through PiperG2P's parser. The candidate gate does not install system eSpeak or download voice assets.
 
-Before Spokenform 0.4.0 is published, CI must test the candidate Spokenform checkout with released PiperG2P. After publication, a released Spokenform plus released PiperG2P gate can become the persistent released-stack check.
+Until PiperG2P is published as an installable release, CI uses the pinned GitHub source for the candidate compatibility gate. After publication, the workflow can switch to the released distribution and a released Spokenform plus released PiperG2P gate can become the persistent released-stack check.
 
 ## Dependency direction
 

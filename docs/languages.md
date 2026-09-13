@@ -1,3 +1,5 @@
+# Languages
+
 ## Complete runtime registry
 
 The generated capability matrix is maintained in [`language-coverage.md`](language-coverage.md). The public registry accepts these base families:
