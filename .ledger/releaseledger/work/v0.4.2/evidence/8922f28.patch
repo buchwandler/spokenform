@@ -25,12 +25,12 @@ index 6da62d3..5498c6a 100644
 @@ -467,7 +467,7 @@ release, for example `vX.Y.Z`.
  The source-tree fallback when SCM metadata has not been generated is the neutral
  version `0+unknown`; release builds derive their version from the annotated tag.
- 
+
 -Before publishing, ensure the released `abbr2words>=0.2.13,<0.3.0` prerequisite containing
 +Before publishing, ensure the released `abbr2words>=0.2.14,<0.3.0` prerequisite containing
  the source-aligned replacement contract exists on the target package index and run the checklist in
  [`docs/release-checklist.md`](docs/release-checklist.md).
- 
+
 diff --git a/benchmarks/polynorm_eval.py b/benchmarks/polynorm_eval.py
 index 953c47f..71536c3 100644
 --- a/benchmarks/polynorm_eval.py
@@ -67,12 +67,12 @@ index 953c47f..71536c3 100644
 +        "reason_code": "questionable-target",
 +    },
  }
- 
+
  _OWNERSHIP: dict[str, str] = {
 @@ -273,6 +291,46 @@ def numeric_category_failures(
      return tuple(failures)
- 
- 
+
+
 +_CURRENCY_SYMBOLS = frozenset({"€", "$", "£", "¥", "₹", "₩", "₫", "₮"})
 +_CURRENCY_CODES = frozenset({"EUR", "USD", "GBP", "CHF", "JPY", "INR", "KRW", "VND", "MNT", "MXN"})
 +
@@ -155,7 +155,7 @@ index 4bdc06d..ca297d0 100644
 @@ -90,6 +90,6 @@ The v1 profile API intentionally has no JSON or YAML format, CLI profile loader,
  inheritance or merging, automatic ambiguity resolution, military time policy, SSML, or
  phoneme override support. These can be added after runtime profile semantics are stable.
- 
+
 -Spokenform requires `abbr2words>=0.2.13,<0.3.0` for the isolated expander, bulk
 +Spokenform requires `abbr2words>=0.2.14,<0.3.0` for the isolated expander, bulk
  registration, speech strategies, custom spoken forms, and exact replacement APIs used by
@@ -166,10 +166,10 @@ index eb3b211..8cb47eb 100644
 +++ b/docs/release-checklist.md
 @@ -1,6 +1,6 @@
  # Release checklist
- 
+
 -1. Ensure the released `abbr2words>=0.2.13,<0.3.0` prerequisite containing the source-aligned replacement contract, reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
 +1. Ensure the released `abbr2words>=0.2.14,<0.3.0` prerequisite containing the source-aligned replacement contract, reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
- 
+
  - Confirm the released Lexhint versions allowed by the `spokenform[lexhint]` extra pass the real provider contract test.
  - For Lexhint 0.2.x, confirm a compatible schema-8 `runtime` dataset is published and installable.
 diff --git a/pyproject.toml b/pyproject.toml
@@ -188,7 +188,7 @@ index 18e3da0..671a2bb 100644
 -  "numeralform>=0.1.4,<0.2.0",
 +  "numeralform>=0.1.6,<0.2.0",
  ]
- 
+
  [project.optional-dependencies]
 diff --git a/spokenform/casing.py b/spokenform/casing.py
 index 3e901b9..c13efe9 100644
@@ -203,8 +203,8 @@ index 3e901b9..c13efe9 100644
  )
 -_SPANISH_NUMERIC_SEGMENT_RE: Final = re.compile(r"""^\s*(?:[$€£]|[+\-−]?\d|√|[.,]\d)""")
 +_SPANISH_NUMERIC_SEGMENT_RE: Final = re.compile(r"""^\s*(?:[$€£₩₫₮]|[+\-−]?\d|√|[.,]\d)""")
- 
- 
+
+
  def capitalize_generated_sentence_start(
 diff --git a/spokenform/currency.py b/spokenform/currency.py
 new file mode 100644
@@ -401,15 +401,15 @@ index bf5c06c..75024cf 100644
 +++ b/spokenform/locales/de.py
 @@ -11,6 +11,7 @@ from decimal import Decimal
  from abbr2words import UnitMatch, iter_unit_matches
- 
+
  from ..config import NumberPolicy
 +from ..currency import currency_code, render_currency_text
  from ..dates import expand_year, parsed_date, render_year
  from ..language import resolve_abbr2words_language
  from ..mapping import Replacement
 @@ -370,15 +371,8 @@ def _quantity(match: UnitMatch, text: str, language: str = "de") -> str | None:
- 
- 
+
+
  def _currency_id(symbol: str, language: str = "de") -> str | None:
 -    symbol_ids = {
 -        "€": "currency-euro",
@@ -423,7 +423,7 @@ index bf5c06c..75024cf 100644
 +        if match.category == "currency" and currency_code(match.canonical_id or ""):
              return match.canonical_id
      return None
- 
+
 @@ -415,8 +409,8 @@ CURRENCY_GRAMMAR: dict[str, CurrencyGrammar] = {
      "currency-dollar": CurrencyGrammar(
          "currency-dollar", "Dollar", "Dollar", "m", major_invariant=True
@@ -437,8 +437,8 @@ index bf5c06c..75024cf 100644
          "currency-swiss-franc", "Schweizer Franken", "Schweizer Franken", "m", major_invariant=True
 @@ -475,7 +469,36 @@ def _currency_safe_fallback(raw: str, grammar: CurrencyGrammar, integer: int, la
      return f"{_number(unsigned_raw, language=language)} {noun}"
- 
- 
+
+
 +def _german_symbol_money(raw: str, symbol: str, language: str = "de") -> str | None:
 +    if symbol not in {"$", "£"}:
 +        return None
@@ -530,7 +530,7 @@ index 20bd7dc..7411c4f 100644
 +++ b/spokenform/locales/en.py
 @@ -16,6 +16,7 @@ from typing import Literal
  from abbr2words import UnitMatch, iter_unit_matches
- 
+
  from ..config import NumberPolicy
 +from ..currency import render_currency_text
  from ..dates import DateCandidate, _valid_date, expand_year, render_english_year
@@ -551,8 +551,8 @@ index 20bd7dc..7411c4f 100644
      except ValueError:
 @@ -492,41 +497,8 @@ def _quantity_is_plausible(match: UnitMatch, text: str) -> bool:
      return False
- 
- 
+
+
 -def _currency_text(raw: str, canonical_id: str) -> str | None:
 -    names = {
 -        "currency-us-dollar": ("dollar", "dollars", "cent", "cents"),
@@ -590,8 +590,8 @@ index 20bd7dc..7411c4f 100644
 -    return result
 +def _currency_text(raw: str, canonical_id: str, language: str = "en") -> str | None:
 +    return render_currency_text(raw, canonical_id, language, omit_zero_minor=True)
- 
- 
+
+
  def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
 diff --git a/spokenform/locales/es.py b/spokenform/locales/es.py
 index 7511121..b159aef 100644
@@ -599,7 +599,7 @@ index 7511121..b159aef 100644
 +++ b/spokenform/locales/es.py
 @@ -15,6 +15,7 @@ from decimal import Decimal, InvalidOperation
  from abbr2words import UnitMatch, iter_unit_matches
- 
+
  from ..config import NumberPolicy
 +from ..currency import render_currency_text
  from ..dates import _valid_date, expand_year
@@ -620,8 +620,8 @@ index 7511121..b159aef 100644
  _DATE_DMY_SHORT = re.compile(
 @@ -379,45 +386,8 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "es") -> str | N
      return f"{result} {noun}"
- 
- 
+
+
 -def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
 -    negative, integer, fraction = _parts(raw, language, context="currency")
 -    names = {
@@ -663,8 +663,8 @@ index 7511121..b159aef 100644
 -    return result
 +def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str | None:
 +    return render_currency_text(raw, canonical_id, language, omit_zero_minor=True)
- 
- 
+
+
  def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
 @@ -555,15 +525,6 @@ def _iter_es_ordinals(
  def _iter_es_currencies(
@@ -684,8 +684,8 @@ index 7511121..b159aef 100644
          if language.casefold().replace("-", "_") == "es_mx"
 @@ -582,18 +543,34 @@ def _iter_es_currencies(
          )
- 
- 
+
+
 +def _currency_gloss_end(text: str, unit_match: UnitMatch) -> int:
 +    tail = re.match(r"\s*\((?P<label>[^)]+)\)", text[unit_match.end :])
 +    if tail is None:
@@ -715,8 +715,8 @@ index 7511121..b159aef 100644
 +            else unit_match.end
 +        )
 +        _add_candidate(candidates, unit_match.start, end, replacement, rule, protected)
- 
- 
+
+
  def iter_replacements(
 diff --git a/spokenform/number_words.py b/spokenform/number_words.py
 index bc429a3..8b7888e 100644
@@ -724,8 +724,8 @@ index bc429a3..8b7888e 100644
 +++ b/spokenform/number_words.py
 @@ -176,7 +176,15 @@ def decimal(value: Decimal, language: str) -> str:
      return _render_numeralform(value, language, form="decimal")
- 
- 
+
+
 -def currency(value: Number, language: str, currency_code: str) -> str:
 +def currency(
 +    value: Number,
@@ -775,7 +775,7 @@ index 24d8b3a..4ef76cb 100644
 +++ b/spokenform/recognizers/sequences.py
 @@ -10,6 +10,7 @@ from typing import Literal
  from urllib.parse import urlsplit
- 
+
  from ..config import InterpretationMode
 +from ..currency import canonical_currency_id, currency_major_name, render_exchange_amount
  from ..dates import render_english_year, render_year
@@ -783,8 +783,8 @@ index 24d8b3a..4ef76cb 100644
  from ..evidence import EvidenceSession
 @@ -985,10 +986,38 @@ _CURRENCY_CODE_NAMES = {
  _CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY"}
- 
- 
+
+
 -def _currency_code_text(number: str, code: str, language: str) -> str:
 -    canonical = _CURRENCY_SYMBOL_CODES.get(code, code.upper())
 -    name = _CURRENCY_CODE_NAMES.get(canonical, {}).get(base_language(language), canonical)
@@ -821,8 +821,8 @@ index 24d8b3a..4ef76cb 100644
 +    if canonical_id is None:
 +        return code
 +    return currency_major_name(canonical_id, language, singular=True)
- 
- 
+
+
  def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
 @@ -2507,30 +2536,35 @@ def _iter_finance_quantity_candidates(
      protected: tuple[tuple[int, int], ...],
@@ -849,7 +849,7 @@ index 24d8b3a..4ef76cb 100644
              "sequence.exchange-rate",
              protected,
          )
- 
+
      for match in _EXCHANGE_TO_RE.finditer(text):
 -        source_code = _CURRENCY_SYMBOL_CODES.get(match["currency"], match["currency"].upper())
 +        source_raw = match["currency"]
@@ -1014,21 +1014,21 @@ index 4010b8f..187c63c 100644
 @@ -60,7 +60,7 @@ def test_numeralform_dependency_contract() -> None:
      )["project"]
      dependencies = project["dependencies"]
- 
+
 -    assert "numeralform>=0.1.4,<0.2.0" in dependencies
 +    assert "numeralform>=0.1.6,<0.2.0" in dependencies
      assert not any(requirement.lower().startswith("num2words") for requirement in dependencies)
- 
- 
+
+
 @@ -89,7 +89,7 @@ def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
      )["project"]
      dependencies = project["dependencies"]
- 
+
 -    assert "abbr2words>=0.2.13,<0.3.0" in dependencies
 +    assert "abbr2words>=0.2.14,<0.3.0" in dependencies
      assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)
- 
- 
+
+
 diff --git a/tests/test_polynorm_currency_regressions.py b/tests/test_polynorm_currency_regressions.py
 new file mode 100644
 index 0000000..61537ac
@@ -1091,7 +1091,7 @@ index 0941217..74bde23 100644
 --- a/tests/test_polynorm_eval.py
 +++ b/tests/test_polynorm_eval.py
 @@ -394,6 +394,8 @@ def test_failure_family_and_quarantine_reason_codes_are_reported() -> None:
- 
+
  def test_quarantine_entries_are_evidence_backed_and_do_not_hide_normal_failures() -> None:
      assert set(POLYNORM_QUARANTINE) == {
 +        "de-DE:161",

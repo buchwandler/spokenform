@@ -12,14 +12,14 @@ status: accepted
 audience: null
 scopes: []
 source_refs:
-- git:92175ec0529cc5f05a213637e79ccae23720b029
+  - git:92175ec0529cc5f05a213637e79ccae23720b029
 paths:
-- spokenform/recognizers/sequences.py
-- tests/test_polynorm_eval.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_polynorm_eval.py
 issues: []
 prs: []
 sources:
-- git:92175ec0529cc5f05a213637e79ccae23720b029
+  - git:92175ec0529cc5f05a213637e79ccae23720b029
 contributors: []
 breaking: false
 internal: true
