@@ -1,0 +1,79 @@
+{
+  "candidate_count": 3,
+  "candidates": [
+    {
+      "additions": 181,
+      "deletions": 7,
+      "patch_file": "0cd297b.patch",
+      "patch_sha256": "246aa06a6702e4cd7df219f13d9b7efe7f183633e7b1926c6500f0eb811416f6",
+      "paths": [
+        ".ledger/releaseledger/data/ledgers/main/events/events.jsonl",
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md",
+        "docs/changelog.md"
+      ],
+      "sha": "0cd297bd32b5746a44e764132593cbc01402c72a",
+      "short_sha": "0cd297b",
+      "source_ref": "git:0cd297bd32b5746a44e764132593cbc01402c72a"
+    },
+    {
+      "additions": 92,
+      "deletions": 83,
+      "patch_file": "92175ec.patch",
+      "patch_sha256": "168179131e6c9165197d6c42edcf01d507b47d2a7c1d99df64981daa22601f55",
+      "paths": [
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md",
+        "docs/changelog.md",
+        "spokenform/recognizers/sequences.py",
+        "tests/test_polynorm_eval.py"
+      ],
+      "sha": "92175ec0529cc5f05a213637e79ccae23720b029",
+      "short_sha": "92175ec",
+      "source_ref": "git:92175ec0529cc5f05a213637e79ccae23720b029"
+    },
+    {
+      "additions": 586,
+      "deletions": 136,
+      "patch_file": "8922f28.patch",
+      "patch_sha256": "97dc3066e79038dd7701fd1fea41297734021d7ef3fa41ea64ceab4cf41fb6c3",
+      "paths": [
+        "README.md",
+        "benchmarks/polynorm_eval.py",
+        "docs/migration-kokorog2p.md",
+        "docs/profiles.md",
+        "docs/release-checklist.md",
+        "pyproject.toml",
+        "spokenform/casing.py",
+        "spokenform/currency.py",
+        "spokenform/locales/de.py",
+        "spokenform/locales/en.py",
+        "spokenform/locales/es.py",
+        "spokenform/number_words.py",
+        "spokenform/precedence.py",
+        "spokenform/recognizers/sequences.py",
+        "tests/test_currency_regressions.py",
+        "tests/test_packaging.py",
+        "tests/test_polynorm_currency_regressions.py",
+        "tests/test_polynorm_eval.py"
+      ],
+      "sha": "8922f28f22cd0d9093b97e51ee2a16d256aac796",
+      "short_sha": "8922f28",
+      "source_ref": "git:8922f28f22cd0d9093b97e51ee2a16d256aac796"
+    }
+  ],
+  "git_base_ref": "09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31",
+  "git_base_sha": "09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31",
+  "git_head_ref": "8922f28f22cd0d9093b97e51ee2a16d256aac796",
+  "git_head_sha": "8922f28f22cd0d9093b97e51ee2a16d256aac796",
+  "include_merges": "nontrivial",
+  "object_type": "git_evidence_manifest",
+  "release_version": "v0.4.2",
+  "schema_version": 1
+}

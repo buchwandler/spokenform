@@ -1,0 +1,300 @@
+ .../data/ledgers/main/releases/0.4.0/release.md    |   2 +-
+ .../main/releases/v0.4.1/audit/commit-audit.yaml   | 126 +++++++++++----------
+ .../main/releases/v0.4.1/entries/entry-0001.md     |  21 ++--
+ .../main/releases/v0.4.1/entries/entry-0002.md     |  14 +--
+ .../data/ledgers/main/releases/v0.4.1/release.md   |   2 +-
+ docs/changelog.md                                  |   6 +
+ spokenform/recognizers/sequences.py                |   2 +-
+ tests/test_polynorm_eval.py                        |   2 +-
+ 8 files changed, 92 insertions(+), 83 deletions(-)
+
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md b/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
+index 7780f06..ba7b4b0 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
++++ b/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
+@@ -8,7 +8,7 @@ version: 0.4.0
+ status: released
+ history_state: curated
+ title: Release 0.4.0
+-released_at: '2026-09-13'
++released_at: "2026-09-13"
+ previous_version: 0.3.7
+ cancel_reason: null
+ superseded_by: null
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
+index 791986c..0f1d682 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
+@@ -11,65 +11,67 @@ git_head_sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+ git_range: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6..09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+ commit_count: 2
+ rows:
+-- sha: 75510e391bdc768c99e75242c70f625a82f8d14b
+-  source_ref: git:75510e391bdc768c99e75242c70f625a82f8d14b
+-  short_sha: 75510e3
+-  changed_paths:
+-  - benchmarks/failure_reporting.py
+-  - benchmarks/polynorm_eval.py
+-  - spokenform/locales/de.py
+-  - spokenform/locales/it.py
+-  - spokenform/recognizers/sequences.py
+-  - tests/test_numeralform_migration_regressions.py
+-  - tests/test_polynorm_eval.py
+-  stats:
+-    files_changed: 0
+-    insertions: 255
+-    deletions: 17
+-  inspected: true
+-  inspected_paths:
+-  - benchmarks/failure_reporting.py
+-  - benchmarks/polynorm_eval.py
+-  - spokenform/locales/de.py
+-  - spokenform/locales/it.py
+-  - spokenform/recognizers/sequences.py
+-  - tests/test_numeralform_migration_regressions.py
+-  - tests/test_polynorm_eval.py
+-  observed_behavior: Added German section-reference recognition and date-context guards,
+-    expanded currency and emergency-number recognition, corrected identifier rendering,
+-    and classified benchmark failures by observed ownership; added regression coverage.
+-  public_impact: public
+-  decision: accepted
+-  stale: false
+-  evidence_subject: 'feat: improve spokenform'
+-  target_entry_key: numeric-and-context-normalization
+-  target_entry_id: entry-0001
+-  notes: Reviewed the complete feature diff and its regression tests.
+-- sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+-  source_ref: git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+-  short_sha: 09a4ecd
+-  changed_paths:
+-  - benchmarks/polynorm_eval.py
+-  - spokenform/locales/de.py
+-  - spokenform/recognizers/sequences.py
+-  - tests/test_numeralform_migration_regressions.py
+-  - tests/test_polynorm_eval.py
+-  stats:
+-    files_changed: 0
+-    insertions: 67
+-    deletions: 52
+-  inspected: true
+-  inspected_paths:
+-  - benchmarks/polynorm_eval.py
+-  - spokenform/locales/de.py
+-  - spokenform/recognizers/sequences.py
+-  - tests/test_numeralform_migration_regressions.py
+-  - tests/test_polynorm_eval.py
+-  observed_behavior: Applied formatting-only pre-commit changes; no runtime or documented
+-    behavior changed.
+-  public_impact: internal
+-  decision: internal
+-  stale: false
+-  evidence_subject: 'chore: pre-commit'
+-  target_entry_id: entry-0002
+-  notes: Formatting-only commit intentionally excluded from public release notes.
++  - sha: 75510e391bdc768c99e75242c70f625a82f8d14b
++    source_ref: git:75510e391bdc768c99e75242c70f625a82f8d14b
++    short_sha: 75510e3
++    changed_paths:
++      - benchmarks/failure_reporting.py
++      - benchmarks/polynorm_eval.py
++      - spokenform/locales/de.py
++      - spokenform/locales/it.py
++      - spokenform/recognizers/sequences.py
++      - tests/test_numeralform_migration_regressions.py
++      - tests/test_polynorm_eval.py
++    stats:
++      files_changed: 0
++      insertions: 255
++      deletions: 17
++    inspected: true
++    inspected_paths:
++      - benchmarks/failure_reporting.py
++      - benchmarks/polynorm_eval.py
++      - spokenform/locales/de.py
++      - spokenform/locales/it.py
++      - spokenform/recognizers/sequences.py
++      - tests/test_numeralform_migration_regressions.py
++      - tests/test_polynorm_eval.py
++    observed_behavior:
++      Added German section-reference recognition and date-context guards,
++      expanded currency and emergency-number recognition, corrected identifier rendering,
++      and classified benchmark failures by observed ownership; added regression coverage.
++    public_impact: public
++    decision: accepted
++    stale: false
++    evidence_subject: "feat: improve spokenform"
++    target_entry_key: numeric-and-context-normalization
++    target_entry_id: entry-0001
++    notes: Reviewed the complete feature diff and its regression tests.
++  - sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++    source_ref: git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++    short_sha: 09a4ecd
++    changed_paths:
++      - benchmarks/polynorm_eval.py
++      - spokenform/locales/de.py
++      - spokenform/recognizers/sequences.py
++      - tests/test_numeralform_migration_regressions.py
++      - tests/test_polynorm_eval.py
++    stats:
++      files_changed: 0
++      insertions: 67
++      deletions: 52
++    inspected: true
++    inspected_paths:
++      - benchmarks/polynorm_eval.py
++      - spokenform/locales/de.py
++      - spokenform/recognizers/sequences.py
++      - tests/test_numeralform_migration_regressions.py
++      - tests/test_polynorm_eval.py
++    observed_behavior:
++      Applied formatting-only pre-commit changes; no runtime or documented
++      behavior changed.
++    public_impact: internal
++    decision: internal
++    stale: false
++    evidence_subject: "chore: pre-commit"
++    target_entry_id: entry-0002
++    notes: Formatting-only commit intentionally excluded from public release notes.
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
+index a6d7385..1461283 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
+@@ -7,25 +7,26 @@ versioning:
+ entry_id: entry-0001
+ release_version: v0.4.1
+ kind: changed
+-summary: Improved locale-aware numeric, currency, identifier, emergency-number, and
++summary:
++  Improved locale-aware numeric, currency, identifier, emergency-number, and
+   German reference normalization
+ status: accepted
+ audience: null
+ scopes: []
+ source_refs:
+-- git:75510e391bdc768c99e75242c70f625a82f8d14b
++  - git:75510e391bdc768c99e75242c70f625a82f8d14b
+ paths:
+-- benchmarks/failure_reporting.py
+-- benchmarks/polynorm_eval.py
+-- spokenform/locales/de.py
+-- spokenform/locales/it.py
+-- spokenform/recognizers/sequences.py
+-- tests/test_numeralform_migration_regressions.py
+-- tests/test_polynorm_eval.py
++  - benchmarks/failure_reporting.py
++  - benchmarks/polynorm_eval.py
++  - spokenform/locales/de.py
++  - spokenform/locales/it.py
++  - spokenform/recognizers/sequences.py
++  - tests/test_numeralform_migration_regressions.py
++  - tests/test_polynorm_eval.py
+ issues: []
+ prs: []
+ sources:
+-- git:75510e391bdc768c99e75242c70f625a82f8d14b
++  - git:75510e391bdc768c99e75242c70f625a82f8d14b
+ contributors: []
+ breaking: false
+ internal: false
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
+index 7db069e..f06c09d 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
+@@ -12,17 +12,17 @@ status: accepted
+ audience: null
+ scopes: []
+ source_refs:
+-- git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++  - git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+ paths:
+-- benchmarks/polynorm_eval.py
+-- spokenform/locales/de.py
+-- spokenform/recognizers/sequences.py
+-- tests/test_numeralform_migration_regressions.py
+-- tests/test_polynorm_eval.py
++  - benchmarks/polynorm_eval.py
++  - spokenform/locales/de.py
++  - spokenform/recognizers/sequences.py
++  - tests/test_numeralform_migration_regressions.py
++  - tests/test_polynorm_eval.py
+ issues: []
+ prs: []
+ sources:
+-- git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++  - git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
+ contributors: []
+ breaking: false
+ internal: true
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
+index 77fd0bb..62419f1 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
+@@ -8,7 +8,7 @@ version: v0.4.1
+ status: released
+ history_state: curated
+ title: Release v0.4.1
+-released_at: '2026-09-13'
++released_at: "2026-09-13"
+ previous_version: 0.4.0
+ cancel_reason: null
+ superseded_by: null
+diff --git a/docs/changelog.md b/docs/changelog.md
+index 676cc93..0160468 100644
+--- a/docs/changelog.md
++++ b/docs/changelog.md
+@@ -3,20 +3,26 @@
+ > **Generated by releaseledger.** Manual edits may be overwritten. Update releaseledger entries and rebuild this file instead.
+ 
+ ## [v0.4.1] - 2026-09-13
++
+ ### Changed
++
+ - Improved locale-aware numeric, currency, identifier, emergency-number, and German reference normalization
+ 
+ <!-- generated by releaseledger -->
+ 
+ ## [0.4.0] - 2026-09-13
++
+ ### Changed
++
+ - **BREAKING:** Changed numeric runtime dependency from upstream num2words to Numeralform 0.1.4
+ - **BREAKING:** Changed the public numeric locale resolver and documented independent routing
+ 
+ ### Quality
++
+ - Improved release hardening for the Numeralform 0.1.4 dependency boundary
+ 
+ <!-- generated by releaseledger -->
++
+ ## [0.3.7] - 2026-09-12
+ 
+ ### Added
+diff --git a/spokenform/recognizers/sequences.py b/spokenform/recognizers/sequences.py
+index 43ade62..24d8b3a 100644
+--- a/spokenform/recognizers/sequences.py
++++ b/spokenform/recognizers/sequences.py
+@@ -1490,7 +1490,7 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None)
+         "#": {"_": "space", "-": "space"},
+         "@": {"_": "space", "-": "space"},
+     }
+-    for index, (kind, token) in enumerate(tokens):
++    for kind, token in tokens:
+         if kind == "digit":
+             if len(token) == 4 and 1900 <= int(token) <= 2100:
+                 if base_language(language) == "en":
+diff --git a/tests/test_polynorm_eval.py b/tests/test_polynorm_eval.py
+index e0558b1..0941217 100644
+--- a/tests/test_polynorm_eval.py
++++ b/tests/test_polynorm_eval.py
+@@ -9,10 +9,10 @@ from benchmarks.polynorm_compare import compare_runs
+ from benchmarks.polynorm_data import PolyNormCase
+ from benchmarks.polynorm_eval import (
+     NUMBER_RELATED_CATEGORIES,
+-    classify_failure_ownership,
+     POLYNORM_DATASET_COMMIT,
+     POLYNORM_QUARANTINE,
+     _filter_failures_by_speech_wer,
++    classify_failure_ownership,
+     environment_fingerprint,
+     evaluate_and_write,
+     evaluate_cases,

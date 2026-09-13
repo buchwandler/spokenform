@@ -1,0 +1,64 @@
+rows:
+- sha: 0cd297bd32b5746a44e764132593cbc01402c72a
+  inspected: true
+  inspected_paths:
+  - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+  - .ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
+  - docs/changelog.md
+  observed_behavior: "Recorded the v0.4.1 release metadata and generated changelog section; it changes release documentation and ledger records only."
+  public_impact: none
+  decision: internal
+  target_entry_key: null
+  target_entry_id: null
+  notes: "Prior-release bookkeeping landed after the stored v0.4.1 snapshot and is not a v0.4.2 product change."
+  stale: false
+- sha: 92175ec0529cc5f05a213637e79ccae23720b029
+  inspected: true
+  inspected_paths:
+  - .ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
+  - .ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
+  - docs/changelog.md
+  - spokenform/recognizers/sequences.py
+  - tests/test_polynorm_eval.py
+  observed_behavior: "Normalized release records and existing source/test formatting; no runtime behavior or public API changed."
+  public_impact: none
+  decision: internal
+  target_entry_key: null
+  target_entry_id: null
+  notes: "Formatting and releaseledger maintenance only; exclude from public v0.4.2 notes."
+  stale: false
+- sha: 8922f28f22cd0d9093b97e51ee2a16d256aac796
+  inspected: true
+  inspected_paths:
+  - README.md
+  - benchmarks/polynorm_eval.py
+  - docs/migration-kokorog2p.md
+  - docs/profiles.md
+  - docs/release-checklist.md
+  - pyproject.toml
+  - spokenform/casing.py
+  - spokenform/currency.py
+  - spokenform/locales/de.py
+  - spokenform/locales/en.py
+  - spokenform/locales/es.py
+  - spokenform/number_words.py
+  - spokenform/precedence.py
+  - spokenform/recognizers/sequences.py
+  - tests/test_currency_regressions.py
+  - tests/test_packaging.py
+  - tests/test_polynorm_currency_regressions.py
+  - tests/test_polynorm_eval.py
+  observed_behavior: "Added shared exact-decimal currency adaptation, localized currency output, exchange-rate recognition, and regression and benchmark coverage; updated dependency requirements and related documentation."
+  public_impact: public
+  decision: accepted
+  target_entry_key: currency-and-exchange-rate-speech
+  target_entry_id: null
+  notes: "Public runtime behavior and documented dependency contracts are covered by the release entry."
+  stale: false

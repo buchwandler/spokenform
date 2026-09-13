@@ -1,0 +1,263 @@
+ .../data/ledgers/main/events/events.jsonl          |  7 ++
+ .../data/ledgers/main/releases/0.4.0/release.md    |  6 +-
+ .../main/releases/v0.4.1/audit/commit-audit.yaml   | 75 ++++++++++++++++++++++
+ .../main/releases/v0.4.1/entries/entry-0001.md     | 33 ++++++++++
+ .../main/releases/v0.4.1/entries/entry-0002.md     | 30 +++++++++
+ .../data/ledgers/main/releases/v0.4.1/release.md   | 27 ++++++++
+ docs/changelog.md                                  | 10 +--
+ 7 files changed, 181 insertions(+), 7 deletions(-)
+
+diff --git a/.ledger/releaseledger/data/ledgers/main/events/events.jsonl b/.ledger/releaseledger/data/ledgers/main/events/events.jsonl
+index 7fee2b1..b51d421 100644
+--- a/.ledger/releaseledger/data/ledgers/main/events/events.jsonl
++++ b/.ledger/releaseledger/data/ledgers/main/events/events.jsonl
+@@ -209,3 +209,10 @@
+ {"data":{"added_source_refs":[],"fields":["summary"],"reason":"Align the new quality entry action with its releaseledger kind.","removed_source_refs":[],"source_refs_mode":"unchanged"},"entry_id":"entry-0003","event":"entry.updated","event_id":"event-0209","record_revisions":{"entry:0.4.0/entry-0003":2},"release_version":"0.4.0","schema_version":2}
+ {"data":{"added_source_refs":[],"fields":["summary"],"reason":"Align the release entry with the published migration baseline.","removed_source_refs":[],"source_refs_mode":"unchanged"},"entry_id":"entry-0001","event":"entry.updated","event_id":"event-0210","record_revisions":{"entry:0.4.0/entry-0001":3},"release_version":"0.4.0","schema_version":2}
+ {"data":{"added_source_refs":[],"fields":["summary"],"reason":"Align the release entry with the published migration baseline.","removed_source_refs":[],"source_refs_mode":"unchanged"},"entry_id":"entry-0003","event":"entry.updated","event_id":"event-0211","record_revisions":{"entry:0.4.0/entry-0003":3},"release_version":"0.4.0","schema_version":2}
++{"data":{"status":"planned"},"event":"release.created","event_id":"event-0212","record_revisions":{"release:v0.4.1":1},"release_version":"v0.4.1","schema_version":2}
++{"data":{"fields":["git_base_ref","git_base_sha","git_commit_count","git_head_ref","git_head_sha","git_range"]},"event":"release.updated","event_id":"event-0213","record_revisions":{"release:v0.4.1":2},"release_version":"v0.4.1","schema_version":2}
++{"data":{"row_count":2},"event":"audit.created","event_id":"event-0214","record_revisions":{"commit_audit_sheet":1},"release_version":"v0.4.1","schema_version":2}
++{"data":{"updated_rows":2},"event":"audit.updated","event_id":"event-0215","record_revisions":{"commit_audit_sheet":2},"release_version":"v0.4.1","schema_version":2}
++{"data":{"entry_ids":["entry-0001","entry-0002"],"synced_audit_rows":2},"event":"entry.batch_added","event_id":"event-0216","record_revisions":{"commit_audit_sheet":3,"entry:v0.4.1/entry-0001":1,"entry:v0.4.1/entry-0002":1,"release:v0.4.1":3},"release_version":"v0.4.1","schema_version":2}
++{"data":{"released_at":"2026-09-13"},"event":"release.finalized","event_id":"event-0217","record_revisions":{"release:v0.4.1":4},"release_version":"v0.4.1","schema_version":2}
++{"data":{"released_at":"2026-09-13"},"event":"release.finalized","event_id":"event-0218","record_revisions":{"release:0.4.0":5},"release_version":"0.4.0","schema_version":2}
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md b/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
+index 8b6304e..7780f06 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
++++ b/.ledger/releaseledger/data/ledgers/main/releases/0.4.0/release.md
+@@ -3,12 +3,12 @@ schema_version: 2
+ object_type: release
+ versioning:
+   schema_version: 1
+-  revision: 4
++  revision: 5
+ version: 0.4.0
+-status: planned
++status: released
+ history_state: curated
+ title: Release 0.4.0
+-released_at: null
++released_at: '2026-09-13'
+ previous_version: 0.3.7
+ cancel_reason: null
+ superseded_by: null
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
+new file mode 100644
+index 0000000..791986c
+--- /dev/null
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/audit/commit-audit.yaml
+@@ -0,0 +1,75 @@
++schema_version: 1
++object_type: commit_audit_sheet
++versioning:
++  schema_version: 1
++  revision: 3
++release_version: v0.4.1
++git_base_ref: v0.4.0
++git_base_sha: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6
++git_head_ref: HEAD
++git_head_sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++git_range: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6..09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++commit_count: 2
++rows:
++- sha: 75510e391bdc768c99e75242c70f625a82f8d14b
++  source_ref: git:75510e391bdc768c99e75242c70f625a82f8d14b
++  short_sha: 75510e3
++  changed_paths:
++  - benchmarks/failure_reporting.py
++  - benchmarks/polynorm_eval.py
++  - spokenform/locales/de.py
++  - spokenform/locales/it.py
++  - spokenform/recognizers/sequences.py
++  - tests/test_numeralform_migration_regressions.py
++  - tests/test_polynorm_eval.py
++  stats:
++    files_changed: 0
++    insertions: 255
++    deletions: 17
++  inspected: true
++  inspected_paths:
++  - benchmarks/failure_reporting.py
++  - benchmarks/polynorm_eval.py
++  - spokenform/locales/de.py
++  - spokenform/locales/it.py
++  - spokenform/recognizers/sequences.py
++  - tests/test_numeralform_migration_regressions.py
++  - tests/test_polynorm_eval.py
++  observed_behavior: Added German section-reference recognition and date-context guards,
++    expanded currency and emergency-number recognition, corrected identifier rendering,
++    and classified benchmark failures by observed ownership; added regression coverage.
++  public_impact: public
++  decision: accepted
++  stale: false
++  evidence_subject: 'feat: improve spokenform'
++  target_entry_key: numeric-and-context-normalization
++  target_entry_id: entry-0001
++  notes: Reviewed the complete feature diff and its regression tests.
++- sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++  source_ref: git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++  short_sha: 09a4ecd
++  changed_paths:
++  - benchmarks/polynorm_eval.py
++  - spokenform/locales/de.py
++  - spokenform/recognizers/sequences.py
++  - tests/test_numeralform_migration_regressions.py
++  - tests/test_polynorm_eval.py
++  stats:
++    files_changed: 0
++    insertions: 67
++    deletions: 52
++  inspected: true
++  inspected_paths:
++  - benchmarks/polynorm_eval.py
++  - spokenform/locales/de.py
++  - spokenform/recognizers/sequences.py
++  - tests/test_numeralform_migration_regressions.py
++  - tests/test_polynorm_eval.py
++  observed_behavior: Applied formatting-only pre-commit changes; no runtime or documented
++    behavior changed.
++  public_impact: internal
++  decision: internal
++  stale: false
++  evidence_subject: 'chore: pre-commit'
++  target_entry_id: entry-0002
++  notes: Formatting-only commit intentionally excluded from public release notes.
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
+new file mode 100644
+index 0000000..a6d7385
+--- /dev/null
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0001.md
+@@ -0,0 +1,33 @@
++---
++schema_version: 2
++object_type: release_entry
++versioning:
++  schema_version: 1
++  revision: 1
++entry_id: entry-0001
++release_version: v0.4.1
++kind: changed
++summary: Improved locale-aware numeric, currency, identifier, emergency-number, and
++  German reference normalization
++status: accepted
++audience: null
++scopes: []
++source_refs:
++- git:75510e391bdc768c99e75242c70f625a82f8d14b
++paths:
++- benchmarks/failure_reporting.py
++- benchmarks/polynorm_eval.py
++- spokenform/locales/de.py
++- spokenform/locales/it.py
++- spokenform/recognizers/sequences.py
++- tests/test_numeralform_migration_regressions.py
++- tests/test_polynorm_eval.py
++issues: []
++prs: []
++sources:
++- git:75510e391bdc768c99e75242c70f625a82f8d14b
++contributors: []
++breaking: false
++internal: false
++order: 1
++---
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
+new file mode 100644
+index 0000000..7db069e
+--- /dev/null
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/entries/entry-0002.md
+@@ -0,0 +1,30 @@
++---
++schema_version: 2
++object_type: release_entry
++versioning:
++  schema_version: 1
++  revision: 1
++entry_id: entry-0002
++release_version: v0.4.1
++kind: internal
++summary: Changed formatting-only pre-commit cleanup
++status: accepted
++audience: null
++scopes: []
++source_refs:
++- git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++paths:
++- benchmarks/polynorm_eval.py
++- spokenform/locales/de.py
++- spokenform/recognizers/sequences.py
++- tests/test_numeralform_migration_regressions.py
++- tests/test_polynorm_eval.py
++issues: []
++prs: []
++sources:
++- git:09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++contributors: []
++breaking: false
++internal: true
++order: 2
++---
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
+new file mode 100644
+index 0000000..77fd0bb
+--- /dev/null
++++ b/.ledger/releaseledger/data/ledgers/main/releases/v0.4.1/release.md
+@@ -0,0 +1,27 @@
++---
++schema_version: 2
++object_type: release
++versioning:
++  schema_version: 1
++  revision: 4
++version: v0.4.1
++status: released
++history_state: curated
++title: Release v0.4.1
++released_at: '2026-09-13'
++previous_version: 0.4.0
++cancel_reason: null
++superseded_by: null
++changelog_file: null
++boundary_ref: null
++source_refs: []
++source_count: null
++entry_count: 2
++artifact_count: 0
++git_base_ref: v0.4.0
++git_base_sha: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6
++git_head_ref: HEAD
++git_head_sha: 09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++git_range: 4005a620ac03dcf3eb8fbef179bcc11f5b825cf6..09a4ecdc25c6c9f1e9121ff3bffcfcab85d7ed31
++git_commit_count: 2
++---
+diff --git a/docs/changelog.md b/docs/changelog.md
+index 1297b0f..676cc93 100644
+--- a/docs/changelog.md
++++ b/docs/changelog.md
+@@ -2,19 +2,21 @@
+ 
+ > **Generated by releaseledger.** Manual edits may be overwritten. Update releaseledger entries and rebuild this file instead.
+ 
+-## [0.4.0] - Unreleased
+-
++## [v0.4.1] - 2026-09-13
+ ### Changed
++- Improved locale-aware numeric, currency, identifier, emergency-number, and German reference normalization
++
++<!-- generated by releaseledger -->
+ 
++## [0.4.0] - 2026-09-13
++### Changed
+ - **BREAKING:** Changed numeric runtime dependency from upstream num2words to Numeralform 0.1.4
+ - **BREAKING:** Changed the public numeric locale resolver and documented independent routing
+ 
+ ### Quality
+-
+ - Improved release hardening for the Numeralform 0.1.4 dependency boundary
+ 
+ <!-- generated by releaseledger -->
+-
+ ## [0.3.7] - 2026-09-12
+ 
+ ### Added

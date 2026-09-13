@@ -1,0 +1,1101 @@
+ README.md                                   |   2 +-
+ benchmarks/polynorm_eval.py                 |  65 +++++++++-
+ docs/migration-kokorog2p.md                 |   2 +-
+ docs/profiles.md                            |   2 +-
+ docs/release-checklist.md                   |   2 +-
+ pyproject.toml                              |   6 +-
+ spokenform/casing.py                        |   4 +-
+ spokenform/currency.py                      | 183 ++++++++++++++++++++++++++++
+ spokenform/locales/de.py                    |  81 ++++++++----
+ spokenform/locales/en.py                    |  44 ++-----
+ spokenform/locales/es.py                    |  75 ++++--------
+ spokenform/number_words.py                  |  13 +-
+ spokenform/precedence.py                    |   2 +
+ spokenform/recognizers/sequences.py         |  62 +++++++---
+ tests/test_currency_regressions.py          | 122 +++++++++++++++++++
+ tests/test_packaging.py                     |   4 +-
+ tests/test_polynorm_currency_regressions.py |  51 ++++++++
+ tests/test_polynorm_eval.py                 |   2 +
+ 18 files changed, 586 insertions(+), 136 deletions(-)
+
+diff --git a/README.md b/README.md
+index 6da62d3..5498c6a 100644
+--- a/README.md
++++ b/README.md
+@@ -467,7 +467,7 @@ release, for example `vX.Y.Z`.
+ The source-tree fallback when SCM metadata has not been generated is the neutral
+ version `0+unknown`; release builds derive their version from the annotated tag.
+ 
+-Before publishing, ensure the released `abbr2words>=0.2.13,<0.3.0` prerequisite containing
++Before publishing, ensure the released `abbr2words>=0.2.14,<0.3.0` prerequisite containing
+ the source-aligned replacement contract exists on the target package index and run the checklist in
+ [`docs/release-checklist.md`](docs/release-checklist.md).
+ 
+diff --git a/benchmarks/polynorm_eval.py b/benchmarks/polynorm_eval.py
+index 953c47f..71536c3 100644
+--- a/benchmarks/polynorm_eval.py
++++ b/benchmarks/polynorm_eval.py
+@@ -8,7 +8,7 @@ import re
+ import subprocess
+ import sys
+ from collections import defaultdict
+-from collections.abc import Callable, Iterable
++from collections.abc import Callable, Iterable, Mapping
+ from dataclasses import asdict
+ from datetime import datetime, timezone
+ from importlib.metadata import PackageNotFoundError, version
+@@ -174,6 +174,24 @@ POLYNORM_QUARANTINE: dict[str, dict[str, str]] = {
+         "classification": "questionable-target",
+         "reason_code": "malformed-ground-truth",
+     },
++    "de-DE:161": {
++        "dataset": "PolyNorm-Bench",
++        "dataset_commit": POLYNORM_DATASET_COMMIT,
++        "case_id": "de-DE:161",
++        "reason": "Expected German output contains English comma wording and conflicts with the reviewed Euro/Cent contract.",
++        "evidence": "raw: 25,99€ => expected uses English comma and decimal-before-currency wording.",
++        "classification": "questionable-target",
++        "reason_code": "questionable-target",
++    },
++    "de-DE:166": {
++        "dataset": "PolyNorm-Bench",
++        "dataset_commit": POLYNORM_DATASET_COMMIT,
++        "case_id": "de-DE:166",
++        "reason": "Expected German output contains English comma, drops Schweizer, and conflicts with the reviewed CHF contract.",
++        "evidence": "raw: 87,50 CHF => expected uses English comma and Franken wording.",
++        "classification": "questionable-target",
++        "reason_code": "questionable-target",
++    },
+ }
+ 
+ _OWNERSHIP: dict[str, str] = {
+@@ -273,6 +291,46 @@ def numeric_category_failures(
+     return tuple(failures)
+ 
+ 
++_CURRENCY_SYMBOLS = frozenset({"€", "$", "£", "¥", "₹", "₩", "₫", "₮"})
++_CURRENCY_CODES = frozenset({"EUR", "USD", "GBP", "CHF", "JPY", "INR", "KRW", "VND", "MNT", "MXN"})
++
++
++def is_currency_related_case(row: Mapping[str, object]) -> bool:
++    """Return whether a benchmark row is currency-related by category or source."""
++    category = canonical_category(str(row.get("canonical_category", row.get("category", ""))))
++    if category.casefold() == "currency":
++        return True
++    source = str(row.get("original_text", row.get("source", row.get("text", ""))))
++    if any(symbol in source for symbol in _CURRENCY_SYMBOLS):
++        return True
++    return any(
++        re.search(rf"(?<![A-Za-z]){re.escape(code)}(?![A-Za-z])", source)
++        for code in _CURRENCY_CODES
++    )
++
++
++def currency_related_failures(
++    rows: Iterable[Mapping[str, object]],
++    *,
++    include_quarantined: bool = False,
++    include_protected: bool = False,
++) -> tuple[Mapping[str, object], ...]:
++    """Return actionable failures from the currency-related benchmark subset."""
++    failures = []
++    for row in rows:
++        if not is_currency_related_case(row):
++            continue
++        if not include_quarantined and row.get("quarantine") is not None:
++            continue
++        if not include_protected and row.get("ownership") == "protected":
++            continue
++        residual = row.get("residual_symbols")
++        digits = residual.get("digits", 0) if isinstance(residual, Mapping) else 0
++        if row.get("error") or row.get("semantic_failure") or digits:
++            failures.append(row)
++    return tuple(failures)
++
++
+ def residual_symbols(text: str) -> dict[str, int]:
+     """Count source-like symbols left in generated speech for diagnosis."""
+     return {
+@@ -789,6 +847,7 @@ def evaluate_cases(
+     diagnostics = diagnostic_aggregates(rows)
+     reported_failures = tuple(failures)
+     numeric_failures = numeric_category_failures(rows)
++    currency_failures = currency_related_failures(rows)
+     summary = {
+         **_metric_counts(rows),
+         "by_locale": {key: _metric_counts(value) for key, value in sorted(grouped_locale.items())},
+@@ -843,6 +902,10 @@ def evaluate_cases(
+             "failure_count": len(numeric_failures),
+             "failure_case_ids": [row["id"] for row in numeric_failures],
+         },
++        "currency_gate": {
++            "failure_count": len(currency_failures),
++            "failure_case_ids": [row["id"] for row in currency_failures],
++        },
+         "profile": profile,
+         "normalize_literals": profile == "extended",
+     }
+diff --git a/docs/migration-kokorog2p.md b/docs/migration-kokorog2p.md
+index 461444a..1def298 100644
+--- a/docs/migration-kokorog2p.md
++++ b/docs/migration-kokorog2p.md
+@@ -53,7 +53,7 @@ This audit intentionally does not port language detection, markup parsing, mixed
+ language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model
+ specific quote/dash behavior into spokenform. French, Spanish, Italian, and
+ Portuguese are
+-ready for downstream handoff only with the released `abbr2words>=0.2.13,<0.3.0`
++ready for downstream handoff only with the released `abbr2words>=0.2.14,<0.3.0`
+ prerequisite and their real parity gates; package publication remains the release
+ workflow boundary. Spanish, Italian, Portuguese, and Czech time ownership is
+ intentionally deferred until reviewed time corpora exist. English semantic
+diff --git a/docs/profiles.md b/docs/profiles.md
+index 4bdc06d..ca297d0 100644
+--- a/docs/profiles.md
++++ b/docs/profiles.md
+@@ -90,6 +90,6 @@ The v1 profile API intentionally has no JSON or YAML format, CLI profile loader,
+ inheritance or merging, automatic ambiguity resolution, military time policy, SSML, or
+ phoneme override support. These can be added after runtime profile semantics are stable.
+ 
+-Spokenform requires `abbr2words>=0.2.13,<0.3.0` for the isolated expander, bulk
++Spokenform requires `abbr2words>=0.2.14,<0.3.0` for the isolated expander, bulk
+ registration, speech strategies, custom spoken forms, and exact replacement APIs used by
+ profiles.
+diff --git a/docs/release-checklist.md b/docs/release-checklist.md
+index eb3b211..8cb47eb 100644
+--- a/docs/release-checklist.md
++++ b/docs/release-checklist.md
+@@ -1,6 +1,6 @@
+ # Release checklist
+ 
+-1. Ensure the released `abbr2words>=0.2.13,<0.3.0` prerequisite containing the source-aligned replacement contract, reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
++1. Ensure the released `abbr2words>=0.2.14,<0.3.0` prerequisite containing the source-aligned replacement contract, reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
+ 
+ - Confirm the released Lexhint versions allowed by the `spokenform[lexhint]` extra pass the real provider contract test.
+ - For Lexhint 0.2.x, confirm a compatible schema-8 `runtime` dataset is published and installable.
+diff --git a/pyproject.toml b/pyproject.toml
+index 18e3da0..671a2bb 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -34,10 +34,10 @@ classifiers = [
+   "Topic :: Text Processing :: Linguistic",
+ ]
+ dependencies = [
+-  # 0.2.13 owns isolated expanders and the reviewed German vgl./i.d.R./o.ä./u.U. lexical registry.
+-  "abbr2words>=0.2.13,<0.3.0",
++  # 0.2.14 owns isolated expanders, currency spans, and the reviewed German vgl./i.d.R./o.ä./u.U. lexical registry.
++  "abbr2words>=0.2.14,<0.3.0",
+   "cn2an>=0.5.24,<0.6",
+-  "numeralform>=0.1.4,<0.2.0",
++  "numeralform>=0.1.6,<0.2.0",
+ ]
+ 
+ [project.optional-dependencies]
+diff --git a/spokenform/casing.py b/spokenform/casing.py
+index 3e901b9..c13efe9 100644
+--- a/spokenform/casing.py
++++ b/spokenform/casing.py
+@@ -32,9 +32,9 @@ _SPANISH_NUMERIC_RULE_MARKERS: Final[tuple[str, ...]] = (
+     "sequence.year",
+ )
+ _SPANISH_GENERATED_START_RE: Final = re.compile(
+-    r"""^\s*(?:(?:"|'|\(|\[|\{|¡|¿|«)\s*)*(?:[$€£]|[+\-−]?\d|√)""",
++    r"""^\s*(?:(?:"|'|\(|\[|\{|¡|¿|«)\s*)*(?:[$€£₩₫₮]|[+\-−]?\d|√)""",
+ )
+-_SPANISH_NUMERIC_SEGMENT_RE: Final = re.compile(r"""^\s*(?:[$€£]|[+\-−]?\d|√|[.,]\d)""")
++_SPANISH_NUMERIC_SEGMENT_RE: Final = re.compile(r"""^\s*(?:[$€£₩₫₮]|[+\-−]?\d|√|[.,]\d)""")
+ 
+ 
+ def capitalize_generated_sentence_start(
+diff --git a/spokenform/currency.py b/spokenform/currency.py
+new file mode 100644
+index 0000000..53c84ae
+--- /dev/null
++++ b/spokenform/currency.py
+@@ -0,0 +1,183 @@
++"""Shared currency adaptation between abbr2words and Numeralform."""
++
++from __future__ import annotations
++
++import re
++from decimal import Decimal
++
++from .language import base_language
++from .number_words import currency as render_currency
++from .number_words import number_words
++from .numeric_lexeme import NumericLexeme, parse_numeric_lexeme
++
++CANONICAL_TO_ISO: dict[str, str] = {
++    "currency-euro": "EUR",
++    "currency-us-dollar": "USD",
++    "currency-pound-sterling": "GBP",
++    "currency-swiss-franc": "CHF",
++    "currency-japanese-yen": "JPY",
++    "currency-indian-rupee": "INR",
++    "currency-south-korean-won": "KRW",
++    "currency-mexican-peso": "MXN",
++    "currency-vietnamese-dong": "VND",
++    "currency-mongolian-tugrik": "MNT",
++}
++
++ISO_TO_CANONICAL = {code: canonical for canonical, code in CANONICAL_TO_ISO.items()}
++
++
++def canonical_currency_id(code: str) -> str | None:
++    """Return the abbr2words canonical ID for an ISO code."""
++    return ISO_TO_CANONICAL.get(code.upper())
++
++
++def currency_code(canonical_id: str) -> str | None:
++    """Return the ISO code owned by abbr2words for a canonical currency ID."""
++    return CANONICAL_TO_ISO.get(canonical_id)
++
++
++def currency_decimal(lexeme: NumericLexeme) -> Decimal:
++    """Build an exact Decimal from normalized lexeme digits."""
++    sign = "-" if lexeme.negative else ""
++    if lexeme.fraction_digits is None:
++        normalized = f"{sign}{lexeme.integer_digits}"
++    else:
++        normalized = f"{sign}{lexeme.integer_digits}.{lexeme.fraction_digits}"
++    return Decimal(normalized)
++
++
++def parse_currency_decimal(raw: str, language: str) -> tuple[NumericLexeme, Decimal] | None:
++    """Parse one currency value without a binary-float round trip."""
++    lexeme = parse_numeric_lexeme(raw, language, context="currency")
++    if lexeme is None:
++        return None
++    return lexeme, currency_decimal(lexeme)
++
++
++def render_currency_text(
++    raw: str,
++    canonical_id: str,
++    language: str,
++    *,
++    separator: str | None = None,
++    omit_zero_minor: bool = True,
++) -> str | None:
++    if (
++        base_language(language) == "en"
++        and "," in raw
++        and not re.fullmatch(r"[+\-−]?\d{1,3}(?:,\d{3})+(?:\.\d+)?", raw.strip())
++    ):
++        return None
++    """Render an abbr2words currency match through Numeralform."""
++    code = currency_code(canonical_id)
++    if code is None:
++        return None
++    parsed = parse_currency_decimal(raw, language)
++    if parsed is None:
++        return None
++    _, value = parsed
++    try:
++        rendered = render_currency(
++            value,
++            language,
++            code,
++            separator=separator,
++            omit_zero_minor=omit_zero_minor,
++        )
++    except (TypeError, ValueError):
++        return None
++    if base_language(language) == "en":
++        rendered = rendered.replace("-", " ")
++    if base_language(language) == "es" and code == "GBP":
++        rendered = re.sub(r"\blibras\b", "libras esterlinas", rendered)
++        rendered = re.sub(r"\blibra\b", "libra esterlina", rendered)
++    return " ".join(rendered.split())
++
++
++def currency_major_name(canonical_id: str, language: str, *, singular: bool = False) -> str:
++    """Return a locale-owned major-unit name for finance-rate speech."""
++    code = currency_code(canonical_id) or canonical_id
++    names = {
++        "en": {
++            "EUR": ("euro", "euros"),
++            "USD": ("U S dollar", "U S dollars"),
++            "GBP": ("pound", "pounds"),
++            "CHF": ("Swiss franc", "Swiss francs"),
++            "JPY": ("yen", "yen"),
++            "MXN": ("peso", "pesos"),
++            "KRW": ("won", "won"),
++            "VND": ("dong", "dongs"),
++            "MNT": ("tugrik", "tugriks"),
++        },
++        "de": {
++            "EUR": ("Euro", "Euro"),
++            "USD": ("Dollar", "Dollar"),
++            "GBP": ("Pfund", "Pfund"),
++            "CHF": ("Schweizer Franken", "Schweizer Franken"),
++        },
++        "es": {
++            "EUR": ("euro", "euros"),
++            "USD": ("dólar", "dólares"),
++            "GBP": ("libra", "libras"),
++            "CHF": ("franco suizo", "francos suizos"),
++            "JPY": ("yen", "yenes"),
++            "MXN": ("peso", "pesos"),
++            "KRW": ("won", "wones"),
++            "VND": ("dong", "dongs"),
++            "MNT": ("tugrik", "tugriks"),
++        },
++    }
++    pair = names.get(base_language(language), {}).get(code)
++    if pair is None:
++        return code
++    return pair[0] if singular else pair[1]
++
++
++def render_exchange_amount(
++    raw: str,
++    code: str,
++    language: str,
++    *,
++    symbol: str | None = None,
++) -> str | None:
++    """Render a decimal exchange-rate amount with major-unit naming."""
++    parsed = parse_currency_decimal(raw, language)
++    canonical_id = ISO_TO_CANONICAL.get(code.upper())
++    if parsed is None or canonical_id is None:
++        return None
++    lexeme, value = parsed
++    if base_language(language) == "de" and symbol in {"$", "£"}:
++        major = (
++            "ein"
++            if int(lexeme.integer_digits) == 1
++            else number_words(int(lexeme.integer_digits), lang=language)
++        )
++        if lexeme.negative:
++            major = f"minus {major}"
++        minor = ""
++        if lexeme.fraction_digits:
++            minor_value = int(lexeme.fraction_digits[:2].ljust(2, "0"))
++            if minor_value:
++                minor = f" {number_words(minor_value, lang=language)}"
++        numeric = f"{major}{minor}"
++    else:
++        numeric = number_words(value, lang=language, to="decimal")
++        if base_language(language) == "en":
++            numeric = numeric.replace("-", " ")
++        if base_language(language) == "de" and value == 1:
++            numeric = "ein"
++    if base_language(language) == "de" and symbol in {"$", "£"}:
++        return f"{major} {currency_major_name(canonical_id, language, singular=value == 1)}{minor}"
++    return f"{numeric} {currency_major_name(canonical_id, language, singular=value == 1)}"
++
++
++__all__ = [
++    "CANONICAL_TO_ISO",
++    "canonical_currency_id",
++    "currency_code",
++    "currency_decimal",
++    "currency_major_name",
++    "parse_currency_decimal",
++    "render_currency_text",
++    "render_exchange_amount",
++]
+diff --git a/spokenform/locales/de.py b/spokenform/locales/de.py
+index bf5c06c..75024cf 100644
+--- a/spokenform/locales/de.py
++++ b/spokenform/locales/de.py
+@@ -11,6 +11,7 @@ from decimal import Decimal
+ from abbr2words import UnitMatch, iter_unit_matches
+ 
+ from ..config import NumberPolicy
++from ..currency import currency_code, render_currency_text
+ from ..dates import expand_year, parsed_date, render_year
+ from ..language import resolve_abbr2words_language
+ from ..mapping import Replacement
+@@ -370,15 +371,8 @@ def _quantity(match: UnitMatch, text: str, language: str = "de") -> str | None:
+ 
+ 
+ def _currency_id(symbol: str, language: str = "de") -> str | None:
+-    symbol_ids = {
+-        "€": "currency-euro",
+-        "$": "currency-us-dollar",
+-        "£": "currency-pound",
+-    }
+-    if symbol in symbol_ids:
+-        return symbol_ids[symbol]
+     for match in iter_unit_matches(f"1 {symbol}", resolve_abbr2words_language(language)):
+-        if match.category == "currency":
++        if match.category == "currency" and currency_code(match.canonical_id or ""):
+             return match.canonical_id
+     return None
+ 
+@@ -415,8 +409,8 @@ CURRENCY_GRAMMAR: dict[str, CurrencyGrammar] = {
+     "currency-dollar": CurrencyGrammar(
+         "currency-dollar", "Dollar", "Dollar", "m", major_invariant=True
+     ),
+-    "currency-pound": CurrencyGrammar(
+-        "currency-pound", "Pfund", "Pfund", "n", major_invariant=True
++    "currency-pound-sterling": CurrencyGrammar(
++        "currency-pound-sterling", "Pfund", "Pfund", "n", major_invariant=True
+     ),
+     "currency-swiss-franc": CurrencyGrammar(
+         "currency-swiss-franc", "Schweizer Franken", "Schweizer Franken", "m", major_invariant=True
+@@ -475,7 +469,36 @@ def _currency_safe_fallback(raw: str, grammar: CurrencyGrammar, integer: int, la
+     return f"{_number(unsigned_raw, language=language)} {noun}"
+ 
+ 
++def _german_symbol_money(raw: str, symbol: str, language: str = "de") -> str | None:
++    if symbol not in {"$", "£"}:
++        return None
++    parsed = parse_numeric_lexeme(raw, language, context="currency")
++    if parsed is None or (parsed.fraction_digits is not None and len(parsed.fraction_digits) > 2):
++        return None
++    major = (
++        "ein" if int(parsed.integer_digits) == 1 else _spell(int(parsed.integer_digits), language)
++    )
++    if parsed.negative:
++        major = f"minus {major}"
++    noun = "Dollar" if symbol == "$" else "Pfund"
++    result = f"{major} {noun}"
++    if parsed.fraction_digits:
++        minor_digits = parsed.fraction_digits.ljust(2, "0")
++        minor = int(minor_digits)
++        if minor:
++            result += f" {_spell(minor, language)}"
++    return result
++
++
+ def _currency(raw: str, canonical_id: str, language: str = "de") -> str:
++    # CHF keeps Spokenform's reviewed digitwise decimal policy; the other
++    # ordinary monetary forms use the shared Numeralform adapter.
++    if canonical_id != "currency-swiss-franc":
++        rendered = render_currency_text(
++            raw, canonical_id, language, separator=" ", omit_zero_minor=True
++        )
++        if rendered is not None:
++            return rendered
+     negative, integer, fraction = _parts(raw, language)
+     grammar = _currency_grammar(canonical_id)
+     if grammar is None:
+@@ -669,17 +692,6 @@ def _iter_de_times(
+ def _iter_de_currency_temperature(
+     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+ ) -> None:
+-    for pattern in (_CURRENCY_PREFIX, _CURRENCY_SUFFIX):
+-        for match in pattern.finditer(text):
+-            canonical_id = _currency_id(match["symbol"], language)
+-            if canonical_id:
+-                _add_candidate(
+-                    candidates,
+-                    match,
+-                    _currency(match["number"], canonical_id, language),
+-                    "de.currency",
+-                    protected,
+-                )
+     for match in _TEMPERATURE.finditer(text):
+         unit = match["unit"].lower().replace("°", "")
+         value = f"{_number(match['number'], language=language)} Grad {'Celsius' if unit == 'c' else 'Fahrenheit'}"
+@@ -692,9 +704,30 @@ def _iter_de_unit_matches(
+     for unit_match in iter_unit_matches(
+         text, resolve_abbr2words_language(language), protected_spans=protected
+     ):
+-        if unit_match.category == "currency" or (
+-            unit_match.start and text[unit_match.start - 1] in ".,"
+-        ):
++        if unit_match.category == "currency":
++            if re.match(r"\s*[.,]\d", text[unit_match.end :]):
++                continue
++            try:
++                replacement = (
++                    _german_symbol_money(unit_match.value, unit_match.symbol, language)
++                    if unit_match.symbol in {"$", "£"}
++                    else _currency(unit_match.value, unit_match.canonical_id or "", language)
++                )
++            except (TypeError, ValueError):
++                replacement = None
++            if replacement and not _overlaps(unit_match.start, unit_match.end, protected):
++                candidates.append(
++                    Replacement(
++                        unit_match.start,
++                        unit_match.end,
++                        replacement,
++                        "structured",
++                        "de",
++                        "de.currency",
++                    )
++                )
++            continue
++        if unit_match.start and text[unit_match.start - 1] in ".,":
+             continue
+         if unit_match.category == "magnitude":
+             tail = re.match(r"\s+(?P<symbol>[^\W\d_€$£]+|[€$£])", text[unit_match.end :])
+diff --git a/spokenform/locales/en.py b/spokenform/locales/en.py
+index 20bd7dc..7411c4f 100644
+--- a/spokenform/locales/en.py
++++ b/spokenform/locales/en.py
+@@ -16,6 +16,7 @@ from typing import Literal
+ from abbr2words import UnitMatch, iter_unit_matches
+ 
+ from ..config import NumberPolicy
++from ..currency import render_currency_text
+ from ..dates import DateCandidate, _valid_date, expand_year, render_english_year
+ from ..language import resolve_abbr2words_language
+ from ..mapping import Replacement
+@@ -447,7 +448,11 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "en") -> str | N
+     canonical_id = match.canonical_id or ""
+     grammar = QUANTITY_GRAMMAR.get(canonical_id)
+     if grammar is None:
+-        return _currency_text(match.value, canonical_id) if match.category == "currency" else None
++        return (
++            _currency_text(match.value, canonical_id, language)
++            if match.category == "currency"
++            else None
++        )
+     try:
+         value = _decimal(match.value)
+     except ValueError:
+@@ -492,41 +497,8 @@ def _quantity_is_plausible(match: UnitMatch, text: str) -> bool:
+     return False
+ 
+ 
+-def _currency_text(raw: str, canonical_id: str) -> str | None:
+-    names = {
+-        "currency-us-dollar": ("dollar", "dollars", "cent", "cents"),
+-        "currency-pound-sterling": ("pound", "pounds", "penny", "pence"),
+-        "currency-euro": ("euro", "euros", "cent", "cents"),
+-        "currency-japanese-yen": ("yen", "yen", None, None),
+-        "currency-swiss-franc": ("Swiss franc", "Swiss francs", "centime", "centimes"),
+-        "currency-indian-rupee": ("rupee", "rupees", "paise", "paise"),
+-        "currency-south-korean-won": ("won", "won", None, None),
+-        "currency-mexican-peso": ("Mexican peso", "Mexican pesos", "centavo", "centavos"),
+-    }
+-    labels = names.get(canonical_id)
+-    if labels is None:
+-        return None
+-    try:
+-        negative, positive, integer, fraction = _parts(raw, context="currency")
+-    except ValueError:
+-        return None
+-    if fraction is not None and len(fraction) > 2:
+-        return None
+-    # English currency input accepts comma-separated thousands only.  An
+-    # ambiguous comma decimal is intentionally left unchanged.
+-    if "," in raw and not re.fullmatch(r"[+\-−]?\d{1,3}(?:,\d{3})+(?:\.\d+)?", raw.strip()):
+-        return None
+-    minor = int((fraction or "").ljust(2, "0")) if fraction is not None else 0
+-    major_singular, major_plural, minor_singular, minor_plural = labels
+-    major_label = major_singular if integer == 1 else major_plural
+-    major = _number_text(
+-        ("-" if negative else "+" if positive else "") + str(integer), language="en"
+-    )
+-    result = f"{major} {major_label}"
+-    if minor and minor_singular is not None and minor_plural is not None:
+-        minor_label = minor_singular if minor == 1 else minor_plural
+-        result += f" and {_spell(minor)} {minor_label}"
+-    return result
++def _currency_text(raw: str, canonical_id: str, language: str = "en") -> str | None:
++    return render_currency_text(raw, canonical_id, language, omit_zero_minor=True)
+ 
+ 
+ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
+diff --git a/spokenform/locales/es.py b/spokenform/locales/es.py
+index 7511121..b159aef 100644
+--- a/spokenform/locales/es.py
++++ b/spokenform/locales/es.py
+@@ -15,6 +15,7 @@ from decimal import Decimal, InvalidOperation
+ from abbr2words import UnitMatch, iter_unit_matches
+ 
+ from ..config import NumberPolicy
++from ..currency import render_currency_text
+ from ..dates import _valid_date, expand_year
+ from ..language import resolve_abbr2words_language
+ from ..mapping import Replacement
+@@ -158,6 +159,12 @@ _EXTENDED_CURRENCY_SYMBOL = re.compile(
+     r"(?:\((?P<label>[^)]+)\))?",
+     re.IGNORECASE,
+ )
++
++_REDUNDANT_CURRENCY_GLOSSES = {
++    "currency-south-korean-won": frozenset({"won"}),
++    "currency-vietnamese-dong": frozenset({"dong"}),
++    "currency-mongolian-tugrik": frozenset({"tugrik"}),
++}
+ _DATE_DMY = re.compile(r"(?<![\w.])(?P<day>\d{1,2})[./](?P<month>\d{1,2})[./](?P<year>\d{4})(?!\d)")
+ _DATE_ISO = re.compile(r"(?<![\w.])(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<day>\d{1,2})(?!\d)")
+ _DATE_DMY_SHORT = re.compile(
+@@ -379,45 +386,8 @@ def _quantity_text(match: UnitMatch, text: str, language: str = "es") -> str | N
+     return f"{result} {noun}"
+ 
+ 
+-def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str:
+-    negative, integer, fraction = _parts(raw, language, context="currency")
+-    names = {
+-        "currency-euro": ("euro", "euros", "céntimo", "céntimos"),
+-        "currency-us-dollar": ("dólar", "dólares", "centavo", "centavos"),
+-        "currency-pound-sterling": ("libra esterlina", "libras esterlinas", "penique", "peniques"),
+-        "currency-mexican-peso": ("peso", "pesos", "centavo", "centavos"),
+-        "currency-swiss-franc": ("franco suizo", "francos suizos", "céntimo", "céntimos"),
+-        "currency-japanese-yen": ("yen", "yenes", None, None),
+-        "currency-indian-rupee": ("rupia", "rupias", "paisa", "paise"),
+-        "currency-south-korean-won": ("won", "wones", None, None),
+-    }
+-    if canonical_id == "currency-us-dollar" and language.casefold().replace("-", "_") == "es_mx":
+-        names[canonical_id] = (
+-            "dólar estadounidense",
+-            "dólares estadounidenses",
+-            "centavo",
+-            "centavos",
+-        )
+-    singular, plural, minor_singular, minor_plural = names.get(
+-        canonical_id, (canonical_id, canonical_id, "centavo", "centavos")
+-    )
+-    major = singular if integer == 1 else plural
+-    gender = "f" if canonical_id == "currency-pound-sterling" else "m"
+-    major_raw = f"{'-' if negative else ''}{integer}"
+-    number = _number_text(major_raw, gender=gender, apocopate=True, language=language)
+-    if fraction is not None:
+-        minor_value = int(fraction)
+-        if minor_value and minor_singular is not None and minor_plural is not None:
+-            minor = minor_singular if minor_value == 1 else minor_plural
+-            minor_number = _number_text(
+-                str(minor_value), gender="m", apocopate=True, language=language
+-            )
+-            result = f"{number} {major} con {minor_number} {minor}"
+-        else:
+-            result = f"{number} {major}"
+-    else:
+-        result = f"{number} {major}"
+-    return result
++def _currency_text(raw: str, canonical_id: str, language: str = "es") -> str | None:
++    return render_currency_text(raw, canonical_id, language, omit_zero_minor=True)
+ 
+ 
+ def _overlaps(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
+@@ -555,15 +525,6 @@ def _iter_es_ordinals(
+ def _iter_es_currencies(
+     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+ ) -> None:
+-    for match in _EXTENDED_CURRENCY_SYMBOL.finditer(text):
+-        if match["label"]:
+-            number_text = _number_text(match["number"], language=language)
+-            if match["label"].casefold().endswith("as") or match["label"].casefold().endswith("a"):
+-                number_text = re.sub(r"ientos\b", "ientas", number_text)
+-            value = f"{number_text} {match['label']}"
+-            if match.start() == 0:
+-                value = value[:1].upper() + value[1:]
+-            _add_candidate(candidates, match.start(), match.end(), value, "es.currency", protected)
+     currency_ids = {
+         "$": "currency-mexican-peso"
+         if language.casefold().replace("-", "_") == "es_mx"
+@@ -582,18 +543,34 @@ def _iter_es_currencies(
+         )
+ 
+ 
++def _currency_gloss_end(text: str, unit_match: UnitMatch) -> int:
++    tail = re.match(r"\s*\((?P<label>[^)]+)\)", text[unit_match.end :])
++    if tail is None:
++        return unit_match.end
++    allowed = _REDUNDANT_CURRENCY_GLOSSES.get(unit_match.canonical_id or "", frozenset())
++    label = tail["label"].strip().casefold()
++    return unit_match.end + tail.end() if label in allowed else unit_match.end
++
++
+ def _iter_es_quantities(
+     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+ ) -> None:
+     for unit_match in iter_unit_matches(
+         text, resolve_abbr2words_language(language), protected_spans=protected
+     ):
++        if unit_match.category == "currency" and re.match(r"\s*[.,]\d", text[unit_match.end :]):
++            continue
+         try:
+             replacement = _quantity_text(unit_match, text, language)
+         except (TypeError, ValueError):
+             replacement = None
+         rule = "es.currency" if unit_match.category == "currency" else "es.quantity"
+-        _add_candidate(candidates, unit_match.start, unit_match.end, replacement, rule, protected)
++        end = (
++            _currency_gloss_end(text, unit_match)
++            if unit_match.category == "currency"
++            else unit_match.end
++        )
++        _add_candidate(candidates, unit_match.start, end, replacement, rule, protected)
+ 
+ 
+ def iter_replacements(
+diff --git a/spokenform/number_words.py b/spokenform/number_words.py
+index bc429a3..8b7888e 100644
+--- a/spokenform/number_words.py
++++ b/spokenform/number_words.py
+@@ -176,7 +176,15 @@ def decimal(value: Decimal, language: str) -> str:
+     return _render_numeralform(value, language, form="decimal")
+ 
+ 
+-def currency(value: Number, language: str, currency_code: str) -> str:
++def currency(
++    value: Number,
++    language: str,
++    currency_code: str,
++    *,
++    separator: str | None = None,
++    omit_zero_minor: bool = False,
++    cents: bool = True,
++) -> str:
+     """Render a currency amount through Numeralform's currency API."""
+     backend = require_number_backend(language)
+     if backend.name == "cn2an":
+@@ -188,6 +196,9 @@ def currency(value: Number, language: str, currency_code: str) -> str:
+             _coerce_numeralform_value(value),
+             locale=backend.language,
+             currency=currency_code,
++            separator=separator,
++            omit_zero_minor=omit_zero_minor,
++            cents=cents,
+         )
+     except numeralform.NumeralFormError as exc:
+         raise ValueError(
+diff --git a/spokenform/precedence.py b/spokenform/precedence.py
+index bef1d84..2500e1c 100644
+--- a/spokenform/precedence.py
++++ b/spokenform/precedence.py
+@@ -24,6 +24,7 @@ class SequencePriority(IntEnum):
+     VERSION = 85
+     CONTEXTUAL_YEAR = 85
+     TYPED_CODE = 80
++    EXCHANGE_RATE = 82
+     QUANTITY = 70
+     YEAR = 65
+     NUMERIC_RANGE = 50
+@@ -49,6 +50,7 @@ _RULE_PRIORITIES: dict[str, int] = {
+     "sequence.quarter": SequencePriority.EXPLICIT_DATE,
+     "sequence.duration": SequencePriority.DURATION,
+     "es.time": SequencePriority.EXPLICIT_TIME,
++    "sequence.exchange-rate": SequencePriority.EXCHANGE_RATE,
+     "sequence.quantity": SequencePriority.QUANTITY,
+     "en.quantity": SequencePriority.QUANTITY,
+     "sequence.year": SequencePriority.YEAR,
+diff --git a/spokenform/recognizers/sequences.py b/spokenform/recognizers/sequences.py
+index 24d8b3a..4ef76cb 100644
+--- a/spokenform/recognizers/sequences.py
++++ b/spokenform/recognizers/sequences.py
+@@ -10,6 +10,7 @@ from typing import Literal
+ from urllib.parse import urlsplit
+ 
+ from ..config import InterpretationMode
++from ..currency import canonical_currency_id, currency_major_name, render_exchange_amount
+ from ..dates import render_english_year, render_year
+ from ..diagnostics import TraceCollector
+ from ..evidence import EvidenceSession
+@@ -985,10 +986,38 @@ _CURRENCY_CODE_NAMES = {
+ _CURRENCY_SYMBOL_CODES = {"€": "EUR", "$": "USD", "£": "GBP", "¥": "JPY"}
+ 
+ 
+-def _currency_code_text(number: str, code: str, language: str) -> str:
+-    canonical = _CURRENCY_SYMBOL_CODES.get(code, code.upper())
+-    name = _CURRENCY_CODE_NAMES.get(canonical, {}).get(base_language(language), canonical)
+-    return f"{_decimal_text(number, language, context='quantity')} {name}"
++@dataclass(frozen=True, slots=True)
++class ExchangeRateGrammar:
++    equals: str
++    to: str
++    per: str
++
++
++_EXCHANGE_RATE_GRAMMARS = {
++    "en": ExchangeRateGrammar("equals", "to", "per"),
++    "de": ExchangeRateGrammar("gleich", "zu", "pro"),
++    "es": ExchangeRateGrammar("igual a", "a", "por"),
++}
++
++
++def _currency_code_text(
++    number: str,
++    code: str,
++    language: str,
++    *,
++    symbol: str | None = None,
++) -> str:
++    rendered = render_exchange_amount(number, code, language, symbol=symbol)
++    if rendered is not None:
++        return rendered
++    return f"{_decimal_text(number, language, context='quantity')} {code}"
++
++
++def _exchange_target_name(code: str, language: str) -> str:
++    canonical_id = canonical_currency_id(code)
++    if canonical_id is None:
++        return code
++    return currency_major_name(canonical_id, language, singular=True)
+ 
+ 
+ def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
+@@ -2507,30 +2536,35 @@ def _iter_finance_quantity_candidates(
+     protected: tuple[tuple[int, int], ...],
+     candidates: list[Replacement],
+ ) -> None:
++    grammar = _EXCHANGE_RATE_GRAMMARS.get(base_language(language), _EXCHANGE_RATE_GRAMMARS["en"])
+     for match in _EXCHANGE_EQUAL_RE.finditer(text):
+-        left_code = _CURRENCY_SYMBOL_CODES.get(
+-            match["left_currency"], match["left_currency"].upper()
+-        )
++        left_raw = match["left_currency"]
++        left_code = _CURRENCY_SYMBOL_CODES.get(left_raw, left_raw.upper())
+         right_raw = match["right_currency"] or ""
+         right_code = _CURRENCY_SYMBOL_CODES.get(right_raw, right_raw.upper())
+         _add(
+             candidates,
+             match,
+-            f"{_currency_code_text(match['left_number'], left_code, language)} equals "
+-            f"{_currency_code_text(match['right_number'], right_code, language)}",
++            f"{_currency_code_text(match['left_number'], left_code, language, symbol=left_raw)} "
++            f"{grammar.equals} "
++            f"{_currency_code_text(match['right_number'], right_code, language, symbol=right_raw)}",
+             language,
+             "sequence.exchange-rate",
+             protected,
+         )
+ 
+     for match in _EXCHANGE_TO_RE.finditer(text):
+-        source_code = _CURRENCY_SYMBOL_CODES.get(match["currency"], match["currency"].upper())
++        source_raw = match["currency"]
++        source_code = _CURRENCY_SYMBOL_CODES.get(source_raw, source_raw.upper())
+         target_code = _CURRENCY_SYMBOL_CODES.get(match["target"], match["target"].upper())
++        target_name = _exchange_target_name(target_code, language)
++        if base_language(language) == "en":
++            target_name = _exchange_target_name(target_code, language).replace("euro", "euros")
+         _add(
+             candidates,
+             match,
+-            f"{_currency_code_text(match['number'], source_code, language)} to "
+-            f"{_CURRENCY_CODE_NAMES.get(target_code, {}).get(base_language(language), target_code)}",
++            f"{_currency_code_text(match['number'], source_code, language, symbol=source_raw)} "
++            f"{grammar.to} {target_name}",
+             language,
+             "sequence.exchange-rate",
+             protected,
+@@ -2542,8 +2576,8 @@ def _iter_finance_quantity_candidates(
+         _add(
+             candidates,
+             match,
+-            f"{_currency_code_text(match['number'], source_code, language)} per "
+-            f"{_CURRENCY_CODE_NAMES.get(target_code, {}).get(base_language(language), target_code)}",
++            f"{_currency_code_text(match['number'], source_code, language)} "
++            f"{grammar.per} {_exchange_target_name(target_code, language)}",
+             language,
+             "sequence.exchange-rate",
+             protected,
+diff --git a/tests/test_currency_regressions.py b/tests/test_currency_regressions.py
+new file mode 100644
+index 0000000..b467be9
+--- /dev/null
++++ b/tests/test_currency_regressions.py
+@@ -0,0 +1,122 @@
++from __future__ import annotations
++
++import pytest
++
++from spokenform import iter_structured_replacements, prepare
++
++
++@pytest.mark.parametrize(
++    ("source", "expected", "fragment"),
++    [
++        ("Es kostet € 1.500.", "Es kostet eintausendfünfhundert Euro.", "€ 1.500"),
++        (
++            "Der Preis beträgt $19,95.",
++            "Der Preis beträgt neunzehn Dollar fünfundneunzig.",
++            "$19,95",
++        ),
++        ("Die Gebühr beträgt £12.50.", "Die Gebühr beträgt zwölf Pfund fünfzig.", "£12.50"),
++    ],
++)
++def test_german_currency_before_sentence_period_is_claimed_atomically(
++    source: str, expected: str, fragment: str
++) -> None:
++    result = prepare(source, language="de_DE", use_spacy=False)
++    assert result.spoken_text == expected
++    edits = [edit for edit in result.source_replacements if edit.rule == "de.currency"]
++    assert any(edit.source == fragment for edit in edits)
++
++
++def test_german_currency_does_not_backtrack_to_partial_amount() -> None:
++    result = prepare("Der Preis beträgt $19,95.", language="de_DE", use_spacy=False)
++    assert not any(
++        edit.rule == "de.currency" and edit.source == "$19" for edit in result.source_replacements
++    )
++
++
++@pytest.mark.parametrize(
++    ("source", "expected"),
++    [
++        ("12,50 EUR", "zwölf Euro fünfzig Cent"),
++        ("EUR 12,50", "zwölf Euro fünfzig Cent"),
++        ("-1,25 EUR", "minus ein Euro fünfundzwanzig Cent"),
++        ("0,05 EUR", "null Euro fünf Cent"),
++    ],
++)
++def test_reviewed_german_euro_contract_remains_stable(source: str, expected: str) -> None:
++    assert prepare(source, language="de_DE", use_spacy=False).spoken_text == expected
++
++
++def test_reviewed_german_chf_contract_is_a_currency_match() -> None:
++    result = prepare("CHF 12,80", language="de_DE", use_spacy=False)
++    assert result.spoken_text == "zwölf Komma acht null Schweizer Franken"
++    assert any(edit.rule == "de.currency" for edit in result.source_replacements)
++
++
++def test_german_exchange_rate_owns_the_complete_span() -> None:
++    result = prepare("Der Wechselkurs ist 1€ = $1.10.", language="de_DE", use_spacy=False)
++    assert result.spoken_text == "Der Wechselkurs ist ein Euro gleich ein Dollar zehn."
++    assert any(
++        edit.rule == "sequence.exchange-rate" and edit.source == "1€ = $1.10"
++        for edit in result.source_replacements
++    )
++    assert not any(edit.rule == "de.currency" for edit in result.source_replacements)
++
++
++@pytest.mark.parametrize(
++    ("source", "language"),
++    [("1€ = $1.10", "de_DE"), ("1.2 USD to EUR", "en_US"), ("17.09 MXN/USD", "es_MX")],
++)
++def test_exchange_rate_outranks_ordinary_currency(source: str, language: str) -> None:
++    result = prepare(source, language=language, use_spacy=False)
++    assert any(
++        edit.rule == "sequence.exchange-rate" and edit.source == source
++        for edit in result.source_replacements
++    )
++
++
++def test_english_exchange_rate_uses_decimal_rate_not_cash_minor_units() -> None:
++    output = prepare(
++        "The exchange rate is 1.2 USD to EUR.", language="en_US", use_spacy=False
++    ).spoken_text
++    assert output == "The exchange rate is one point two U S dollars to euros."
++    assert "twenty cents" not in output
++    assert " EUR" not in output
++
++
++def test_mexican_spanish_exchange_rate_is_localized() -> None:
++    output = prepare(
++        "El cambio es de 17.09 MXN/USD.", language="es_MX", use_spacy=False
++    ).spoken_text
++    assert output == "El cambio es de diecisiete punto cero nueve pesos por dólar."
++    assert " per " not in output
++    assert "dólares estadounidenses" not in output
++
++
++@pytest.mark.parametrize(
++    ("source", "expected"),
++    [
++        ("₩50,000 (won).", "Cincuenta mil wones."),
++        ("₫1,000,000 (dong).", "Un millón de dongs."),
++        ("₮50,000 (tugrik).", "Cincuenta mil tugriks."),
++    ],
++)
++def test_mexican_spanish_extended_currency_morphology(source: str, expected: str) -> None:
++    result = prepare(source, language="es_MX", use_spacy=False)
++    assert result.spoken_text == expected
++    assert any(edit.rule == "es.currency" for edit in result.source_replacements)
++
++
++def test_currency_parenthetical_gloss_is_consumed_only_when_redundant() -> None:
++    assert prepare("₩50,000 (won).", language="es_MX", use_spacy=False).spoken_text == (
++        "Cincuenta mil wones."
++    )
++    budget = prepare("₩50,000 (budget).", language="es_MX", use_spacy=False).spoken_text
++    assert "(budget)" in budget
++
++
++@pytest.mark.parametrize("source", ["$1,23,45", "€1.2.3", "₫1,000,00"])
++def test_malformed_currency_has_no_partial_structured_currency_edit(source: str) -> None:
++    replacements = iter_structured_replacements(
++        source, language="de_DE" if source.startswith(("$", "€")) else "es_MX"
++    )
++    assert not any(edit.rule and edit.rule.endswith(".currency") for edit in replacements)
+diff --git a/tests/test_packaging.py b/tests/test_packaging.py
+index 4010b8f..187c63c 100644
+--- a/tests/test_packaging.py
++++ b/tests/test_packaging.py
+@@ -60,7 +60,7 @@ def test_numeralform_dependency_contract() -> None:
+     )["project"]
+     dependencies = project["dependencies"]
+ 
+-    assert "numeralform>=0.1.4,<0.2.0" in dependencies
++    assert "numeralform>=0.1.6,<0.2.0" in dependencies
+     assert not any(requirement.lower().startswith("num2words") for requirement in dependencies)
+ 
+ 
+@@ -89,7 +89,7 @@ def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
+     )["project"]
+     dependencies = project["dependencies"]
+ 
+-    assert "abbr2words>=0.2.13,<0.3.0" in dependencies
++    assert "abbr2words>=0.2.14,<0.3.0" in dependencies
+     assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)
+ 
+ 
+diff --git a/tests/test_polynorm_currency_regressions.py b/tests/test_polynorm_currency_regressions.py
+new file mode 100644
+index 0000000..61537ac
+--- /dev/null
++++ b/tests/test_polynorm_currency_regressions.py
+@@ -0,0 +1,51 @@
++from __future__ import annotations
++
++from benchmarks.polynorm_eval import currency_related_failures, is_currency_related_case
++
++
++def test_currency_related_selection_includes_currency_and_symbol_cardinal_rows() -> None:
++    assert is_currency_related_case({"canonical_category": "Currency", "original_text": "12 EUR"})
++    assert is_currency_related_case(
++        {"canonical_category": "Cardinal", "original_text": "Es kostet € 1.500."}
++    )
++    assert not is_currency_related_case({"canonical_category": "Cardinal", "original_text": "42"})
++
++
++def test_currency_gate_excludes_reviewed_quarantine_but_fails_unknown_currency_failure() -> None:
++    rows = (
++        {
++            "id": "de-DE:161",
++            "canonical_category": "Currency",
++            "original_text": "25,99€",
++            "quarantine": {"reason_code": "questionable-target"},
++            "semantic_failure": True,
++        },
++        {
++            "id": "de-DE:166",
++            "canonical_category": "Cardinal",
++            "original_text": "87,50 CHF",
++            "quarantine": {"reason_code": "questionable-target"},
++            "semantic_failure": True,
++        },
++        {
++            "id": "de-DE:48",
++            "canonical_category": "Cardinal",
++            "original_text": "Es kostet € 1.500.",
++            "quarantine": None,
++            "semantic_failure": True,
++        },
++    )
++    assert [row["id"] for row in currency_related_failures(rows)] == ["de-DE:48"]
++
++
++def test_currency_gate_detects_new_unknown_currency_failure() -> None:
++    rows = (
++        {
++            "id": "es-MX:new",
++            "canonical_category": "Currency",
++            "original_text": "50 MNT",
++            "quarantine": None,
++            "semantic_failure": True,
++        },
++    )
++    assert [row["id"] for row in currency_related_failures(rows)] == ["es-MX:new"]
+diff --git a/tests/test_polynorm_eval.py b/tests/test_polynorm_eval.py
+index 0941217..74bde23 100644
+--- a/tests/test_polynorm_eval.py
++++ b/tests/test_polynorm_eval.py
+@@ -394,6 +394,8 @@ def test_failure_family_and_quarantine_reason_codes_are_reported() -> None:
+ 
+ def test_quarantine_entries_are_evidence_backed_and_do_not_hide_normal_failures() -> None:
+     assert set(POLYNORM_QUARANTINE) == {
++        "de-DE:161",
++        "de-DE:166",
+         "es-MX:86",
+         "es-MX:249",
+         "es-MX:274",
