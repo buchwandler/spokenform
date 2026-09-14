@@ -23,7 +23,7 @@ from .numeric_lexeme import (
 )
 
 _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt", "ru", "sv"})
-_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de", "vi"})
+_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"vi"})
 _MONTHS: Final[dict[str, tuple[str, ...]]] = {
     "cs": (
         "ledna",
@@ -229,6 +229,7 @@ _ENGLISH_PLAIN_NUMBER_RE = re.compile(
 _UNIFIED_PLAIN_NUMBER_RE = re.compile(
     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)+|[.,]\d+)|\d+)(?!\w)"
 )
+_GERMAN_COMMA_LIST_RE = re.compile(r"\d+(?:,\d+){2,}")
 _LONG_NUMBER_POSITIVE_CONTEXT_RE = re.compile(
     r"\b(?:there\s+are|population|total|amount|number\s+of|count\s+of|items?|users?|people|"
     r"records?|entries|downloads?|views?|inhabitants?)\b",
@@ -866,6 +867,8 @@ def _normalize_unified_plain_numbers(
 
     def replace(match: re.Match[str]) -> str:
         raw = match.group(0)
+        if base_language(language) == "de" and _GERMAN_COMMA_LIST_RE.fullmatch(raw):
+            return ",".join(_spell(int(part), language) for part in raw.split(","))
         if (
             raw.startswith(("-", "−"))
             and match.start() > 0

@@ -15,7 +15,7 @@ CASES = [
     ),
     (
         "Die IBAN lautet DE89 3704 0044 0532 0130 00.",
-        "Die IBAN lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
+        "Die I B A N lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
     ),
     ("½ + ¼ = ¾", "einhalb plus ein Viertel ist drei Viertel"),
     ("2x + 3 = 15", "zwei x plus drei gleich fünfzehn"),
@@ -129,6 +129,47 @@ def test_default_profile_still_protects_literals() -> None:
     assert "ftp://files.wörter.net" in result.spoken_text
     assert "info@wort.com" in result.spoken_text
     assert "v3.2.1" in result.spoken_text
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("@eu_kommission", "at e u Unterstrich kommission"),
+        ("@EU_kommission", "at E U Unterstrich kommission"),
+        ("@ab-test", "at a b test"),
+        ("#EU_kommission", "Hashtag EU kommission"),
+    ],
+)
+def test_social_identifier_case_and_separator_policy(source: str, expected: str) -> None:
+    result = prepare(source, language="de", use_spacy=False, normalize_literals=True)
+    assert result.spoken_text == expected
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("192.168.1.1.", "eins neun zwei Punkt eins sechs acht Punkt eins Punkt eins."),
+        ("1:00 Stunden", "einer Stunde"),
+        ("1:01 Stunden", "einer Stunde und einer Minute"),
+        ("2:05 Stunden", "zwei Stunden und fünf Minuten"),
+        ("v1.02.003", "Version eins Punkt null zwei Punkt null null drei"),
+    ],
+)
+def test_german_literal_and_duration_edge_cases(source: str, expected: str) -> None:
+    result = prepare(source, language="de", use_spacy=False, normalize_literals=True)
+    assert result.spoken_text == expected
+
+
+def test_iban_precedence_beats_phone_candidate() -> None:
+    result = prepare(
+        "Die IBAN lautet DE89 3704 0044 0532 0130 00.",
+        language="de",
+        use_spacy=False,
+        normalize_literals=True,
+    )
+    rules = {replacement.rule for replacement in result.source_replacements}
+    assert "sequence.iban" in rules
+    assert "sequence.phone" not in rules
 
 
 @pytest.mark.parametrize(

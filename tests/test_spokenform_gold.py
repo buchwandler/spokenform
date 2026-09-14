@@ -34,6 +34,7 @@ def test_parser_defaults_and_options() -> None:
     assert cli._parser().parse_args([]).split == "corpus"
     assert cli._parser().parse_args([]).report == "html"
     assert args.offline and args.refresh and args.download_only
+    assert not args.accept_upstream_licenses
     assert args.split == "all"
     assert args.mode == "accepted"
     assert args.cases == ["one", "two"]
@@ -52,6 +53,16 @@ def test_prepare_gold_record_requires_profile() -> None:
 
     with pytest.raises(ValueError, match="gold-v1"):
         cli.prepare_gold_record("Alarm at 08:05.", "en", "en-US", None)
+
+
+def test_source_checkout_passed_as_gold_root_gets_targeted_error(tmp_path: Path) -> None:
+    from benchmarks import spokenform_gold as cli
+
+    checkout = tmp_path / "spokenform-gold"
+    (checkout / "spokenform_gold").mkdir(parents=True)
+    args = cli._parser().parse_args(["--gold-root", str(checkout)])
+    with pytest.raises(ValueError, match="source checkout, not a built release"):
+        cli._resolve_gold_source(args)
 
 
 def test_v2_release_rejects_legacy_split() -> None:

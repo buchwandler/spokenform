@@ -76,7 +76,7 @@ def test_social_identifier_matrix_preserves_reviewed_year_and_marker_policies() 
         ("en", "@abc007", "at abc zero zero seven"),
         ("en", "#Summer2024", "hashtag Summer twenty twenty four"),
         ("en", "#Formula1", "hashtag Formula one"),
-        ("en", "@EU_27", "at e u two seven"),
+        ("en", "@EU_27", "at E U two seven"),
         ("de", "@abc007", "at abc null null sieben"),
         ("es-MX", "@abc007", "arroba abc cero cero siete"),
         ("fr", "@abc007", "arobase abc zéro zéro sept"),

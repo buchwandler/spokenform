@@ -51,10 +51,19 @@ def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Evaluate Spokenform against the pinned Spokenform Gold benchmark."
     )
-    parser.add_argument("--gold-root", type=Path)
+    parser.add_argument(
+        "--gold-root",
+        type=Path,
+        help=(
+            "Path to an extracted Spokenform Gold RELEASE directory containing manifest.json. "
+            "This is not the spokenform-gold source repository."
+        ),
+    )
     parser.add_argument("--cache-dir", type=Path, default=Path(".cache/spokenform-gold"))
+    parser.add_argument("--source-cache-dir", type=Path)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--refresh", action="store_true")
+    parser.add_argument("--accept-upstream-licenses", action="store_true")
     parser.add_argument("--download-only", action="store_true")
     parser.add_argument(
         "--split",
@@ -180,6 +189,13 @@ def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
         root = args.gold_root.expanduser().resolve()
         if not root.is_dir():
             raise FileNotFoundError(f"explicit Spokenform Gold release does not exist: {root}")
+        if not (root / "manifest.json").is_file():
+            if (root / "spokenform_gold").is_dir() or (root / "data" / "corpus").exists():
+                raise ValueError(
+                    "The supplied --gold-root is a spokenform-gold source checkout, not a built release. "
+                    "Use an extracted GitHub Release asset or a dist/spokenform-gold-v*/ directory."
+                )
+            raise FileNotFoundError(f"missing release manifest: {root / 'manifest.json'}")
         return GoldSource(
             gold_root=root,
             source_root=None,
@@ -200,6 +216,22 @@ def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
         commit=SPOKENFORM_GOLD_COMMIT,
         mode="auto-cache",
         cache_dir=args.cache_dir,
+    )
+
+
+def _source_loader_for(source: GoldSource, args: argparse.Namespace) -> Any:
+    source_root = source.source_root
+    if source_root is not None:
+        loader_module = load_gold_module("spokenform_gold.release_sources", source_root=source_root)
+    else:
+        loader_module = importlib.import_module("spokenform_gold.release_sources")
+    cache_dir = args.source_cache_dir or (args.cache_dir / "sources")
+    return loader_module.build_release_source_loader(
+        source.gold_root,
+        cache_dir,
+        offline=args.offline,
+        refresh=args.refresh,
+        accept_upstream_licenses=args.accept_upstream_licenses,
     )
 
 
@@ -310,6 +342,9 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         _validate_split_for_manifest(args.split, verification.get("manifest", {}))
     if args.download_only:
         return source.gold_root, {"download_only": True, "source": source}
+    source_loader = None
+    if verification["manifest"].get("public_external_ref_records", 0):
+        source_loader = _source_loader_for(source, args)
     run_dir = args.results_dir / _run_id()
     summary = benchmark.run_benchmark(
         gold_root=source.gold_root,
@@ -324,6 +359,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         profile_name=args.profile,
         spokenform_version=SPOKENFORM_VERSION,
         spokenform_commit=_source_commit(),
+        source_loader=source_loader,
     )
     _, records = benchmark.load_release_records(
         source.gold_root,
@@ -332,6 +368,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         locale=args.locale,
         category=args.category,
         case_ids=set(args.cases or []),
+        source_loader=source_loader,
     )
     rows = _build_rows(summary, records, mode=args.mode)
     _write_jsonl(run_dir / "rows.jsonl", rows)

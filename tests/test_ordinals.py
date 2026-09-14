@@ -8,7 +8,7 @@ def test_locale_ordinal_symbols_are_expanded_without_sentence_final_cardinal_rew
     assert prepare("The 1st release", language="en", use_spacy=False).spoken_text == (
         "The first release"
     )
-    assert prepare("1.", language="de", use_spacy=False).spoken_text == "1."
+    assert prepare("1.", language="de", use_spacy=False).spoken_text == "eins."
 
 
 def test_ordinal_policies_validate_suffixes_and_degree_collisions() -> None:

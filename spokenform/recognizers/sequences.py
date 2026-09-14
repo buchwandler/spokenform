@@ -1650,7 +1650,7 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
                     or token
                 )
         elif kind == "alpha" and marker == "@" and len(token) <= 2:
-            rendered.append(_grapheme_text(token, language).lower())
+            rendered.append(_grapheme_text(token, language))
         elif (
             opaque
             and token.isascii()

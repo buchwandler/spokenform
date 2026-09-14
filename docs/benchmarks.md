@@ -37,15 +37,31 @@ selection project.
 
 ## Spokenform Gold
 
-Run the pinned Gold diagnostic benchmark with:
+Run the pinned Gold release diagnostic benchmark with:
 
 ```bash
-python -m benchmarks.spokenform_gold
+python -m benchmarks.spokenform_gold --split corpus
 ```
 
-The adapter caches the exact reviewed source commit `ba55d631a45a0fe8b3d87ad58beef2843c617151` and its verified experimental `0.1.0-exp` release under `.cache/spokenform-gold/<commit>/`. The default evaluates the `test` split and writes results under `benchmark-results/spokenform-gold/<run-id>/`, including `summary.json`, `rows.jsonl`, Gold JSONL/Markdown artifacts, and a self-contained `report.html`.
+The consumer reads the exact release asset pinned in
+`benchmarks/spokenform_gold_release.json`. It never rebuilds Gold data from a
+source checkout and never selects the latest GitHub release dynamically. The
+pin contains the release tag, asset SHA-256, manifest SHA-256, and matching
+runtime source tag. The first online run downloads and verifies the release
+zip and matching-tag runtime source under `.cache/spokenform-gold/`.
 
-Use `--offline` after the cache is populated, `--refresh` to rebuild it, `--download-only` to populate without evaluation, `--cache-dir` to relocate the cache, `--gold-root` for an explicit local release, `--split dev|test|all`, `--mode canonical|accepted`, and `--report none` to disable HTML. Gold remains diagnostic and does not automatically hydrate restricted PolyNorm or Proteno source references.
+Use `--offline` after the cache is populated, `--refresh` to replace it after
+an intentional pin update, `--download-only` to populate without evaluation,
+`--cache-dir` or `--source-cache-dir` to relocate release or external-source
+caches, `--gold-root` for an extracted release directory containing
+`manifest.json`, `--split corpus`, `--mode canonical|accepted`, and
+`--report none` to disable HTML. Passing a source checkout to `--gold-root`
+is rejected with a targeted diagnostic.
+
+Some releases reference public upstream source artifacts. Hydration is
+explicitly controlled with `--accept-upstream-licenses`; restricted sources
+remain unavailable unless that acknowledgement is supplied. Use `--offline`
+to guarantee that source hydration performs no network access.
 
 ## Lexhint A/B comparison
 

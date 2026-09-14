@@ -17,6 +17,13 @@
 10. Build docs with `sphinx-build -W -b html docs docs/_build/html`.
 11. Test wheel installation, one deterministic normalization example, and the `spokenform` console command in a fresh environment.
 12. Confirm the release workflow uses a PyPI trusted publisher when repository OIDC is configured; otherwise verify the configured API token without changing authentication on release day.
+
+### Spokenform Gold benchmark consumption
+
+The Gold release workflow is operator-triggered and serializes one candidate per release tag. It plans the next version, builds and verifies deterministic candidate bytes, runs the real Spokenform consumer gate, compares an existing tag by manifest and archive SHA-256 values, publishes only equivalent or absent releases, and re-downloads the public zip for verification.
+
+For a first dispatch, confirm that `../spokenform/benchmarks/spokenform_gold_release.json` points to a published immutable asset. Its archive and manifest hashes must be real values, not placeholders. The consumer must be able to run with `--offline` after one successful online cache fill. Do not replace the pin with a branch, a latest-release lookup, or a source checkout.
+
 13. Publish the GitHub release only after all required checks pass.
 14. Before a downstream kokorog2p release raises its spokenform minimum, publish
     the spokenform release and verify the real `de`, `es`, and `fr` integration
