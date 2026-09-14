@@ -114,7 +114,7 @@ _VEHICLE_MODEL_RE = re.compile(
 _UUID_RE = re.compile(
     r"(?<![\w-])(?P<value>[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})(?![\w-])"
 )
-_IPV4_RE = re.compile(r"(?<![\w.])(?P<value>\d{1,3}(?:\.\d{1,3}){3})(?![\w.])")
+_IPV4_RE = re.compile(r"(?<![\w.])(?P<value>\d{1,3}(?:\.\d{1,3}){3})(?!\w|\.\d)")
 _MAC_RE = re.compile(r"(?<![\w:])(?P<value>(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2})(?![\w:])")
 _IBAN_RE = re.compile(
     r"(?<!\w)(?P<value>[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,32})(?!\w)", re.IGNORECASE
@@ -144,8 +144,9 @@ _VERSION_CONTEXT_RE = re.compile(
     re.IGNORECASE,
 )
 _SOFTWARE_VERSION_RE = re.compile(
-    r"(?P<label>\b(?:Python|iOS|macOS|Ubuntu|GTK\+|Qt|Node(?:\.js)?|Android|Fedora|Debian|Firefox|WordPress)\s+)"
-    r"(?P<value>\d+(?:\.\d+){1,}(?:[A-Za-z]+\d*)?)",
+    r"(?P<label>\b(?:Python|iOS|macOS|Ubuntu|GTK\+|Qt|Node(?:\.js)?|Android|Fedora|Debian|Firefox|WordPress|"
+    r"Firmware|Plugin|Bibliothek|Treiber)\s+)"
+    r"(?P<value>v?\d+(?:\.\d+){1,}(?:[A-Za-z]+\d*)?)",
     re.IGNORECASE,
 )
 _VERSION_RE = re.compile(
@@ -153,7 +154,7 @@ _VERSION_RE = re.compile(
     re.IGNORECASE,
 )
 _GENERIC_DOTTED_VERSION_RE = re.compile(r"(?<![\w.])(?P<value>\d+(?:\.\d+){2,})(?![\w.])")
-_URL_RE = re.compile(r"(?<!\w)(?:https?://|www\.)[^\s<>]+", re.IGNORECASE)
+_URL_RE = re.compile(r"(?<!\w)(?:https?|ftp)://[^\s<>]+|www\.[^\s<>]+", re.IGNORECASE)
 _EMAIL_RE = re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+", re.IGNORECASE)
 _BARE_DOMAIN_RE = re.compile(
     r"(?<![\w./])(?:[a-z0-9-]+\.)+(?:com|org|net|edu|gov|io|ai|dev|ly|co|uk|de|fr|es|it|pt|ca|us|jp|cn|info|biz|app|tech)"
@@ -178,7 +179,7 @@ _ROMAN_SUFFIX_ORDINAL_RE = re.compile(
 )
 _ROMAN_YEAR_CONTEXT_RE = re.compile(
     r"(?P<context>\b(?i:year|from\s+the\s+year|dated|scheduled\s+for|constructed\s+in|built\s+in|"
-    r"signed\s+in|won\s+in|held\s+in|im\s+jahr|aus\s+dem\s+jahr|anno|año|année|ano|"
+    r"signed\s+in|won\s+in|held\s+in|im\s+jahr|aus\s+dem\s+jahr|jahrgang|anno|año|année|ano|"
     r"olympic\s+games|olympische\s+spiele|games|edition|event)\s+)"
     r"(?P<value>[IVXLCDM]{2,12})(?![A-Za-z])"
 )
@@ -199,7 +200,7 @@ _EN_MONARCH_RE = re.compile(
     r"(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
 )
 _DE_MONARCH_RE = re.compile(
-    r"(?P<context>\b(?:(?i:Kaiser|König|Königin|Papst)\s+)?(?i:Heinrich|Wilhelm|Ludwig|Karl|Friedrich|Benedikt|Elisabeth)\s+)"
+    r"(?P<context>\b(?:(?i:Kaiser|König|Königin|Papst)\s+)?(?i:Heinrich|Wilhelm|Ludwig|Karl|Friedrich|Benedikt|Elisabeth|George|Georg)\s+)"
     r"(?P<value>[IVX]{1,12})\.?(?![A-Za-z])"
 )
 _FR_MONARCH_RE = re.compile(
@@ -218,7 +219,11 @@ _MENTION_RE = re.compile(r"(?<!\w)@(?P<value>[\wÀ-ž](?:[\wÀ-ž_-]*[\wÀ-ž])?
 _FORMULA_RE = re.compile(
     r"(?<!\w)(?P<value>(?:(?:[A-Z][a-z]?)+|\((?:[A-Z][a-z]?)+\)[0-9₀-₉]+|[A-Z][a-z]?[0-9₀-₉]+)+)(?!\w)"
 )
-_MATH_ATOM = r"(?:√\s*)?(?:[A-Za-zπΔα-ωΑ-Ω]+|\d+(?:[.,]\d+)?|[|()]|[⁰¹²³⁴⁵⁶⁷⁸⁹]+)(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?"
+_MATH_SIMPLE_ATOM = rf"(?:√\s*)?(?:\d+[A-Za-z]+|[A-Za-zπΔα-ωΑ-Ω]+|\d+(?:[.,]\d+)?|[{_FRACTION_CHARS}]|[|]|[⁰¹²³⁴⁵⁶⁷⁸⁹]+)(?:[⁰¹²³⁴⁵⁶⁷⁸⁹]+)?"
+_MATH_PAREN_ATOM = (
+    rf"\(\s*{_MATH_SIMPLE_ATOM}(?:\s*(?:[+−*=×÷<>^\-/≈≠≤≥])\s*{_MATH_SIMPLE_ATOM})+\s*\)"
+)
+_MATH_ATOM = rf"(?:{_MATH_PAREN_ATOM}|{_MATH_SIMPLE_ATOM})"
 _MATH_RE = re.compile(
     rf"(?<![\w/+-])(?P<value>{_MATH_ATOM}(?:\s*(?:[+−*=×÷<>^\-/≈≠≤≥])\s*{_MATH_ATOM})+)(?![\w/+-])"
 )
@@ -334,6 +339,11 @@ _SPORTS_CONTEXT_RE = re.compile(
 _SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}\s*(?::|[-–])\s*\d{1,2})(?![\w:-])")
 _CHAINED_SCORE_RE = re.compile(r"(?<!\w)(?P<value>\d{1,2}(?:\s*[-–]\s*\d{1,2}){2,})(?![\w:-])")
 _DURATION_RE = re.compile(r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d):(?P<second>[0-5]\d)(?!\w)")
+_DE_HM_DURATION_RE = re.compile(
+    r"(?<!\w)(?P<hour>\d{1,2}):(?P<minute>[0-5]\d)"
+    r"\s*(?:Stunden?|Std\.)(?!\w)",
+    re.IGNORECASE,
+)
 _ADDRESS_SUFFIX_RE = re.compile(
     r"(?<!\w)(?P<number>\d{1,4})(?P<suffix>[A-Za-z])\s+(?P<street>[A-ZÄÖÜ][\wÄÖÜäöüß.-]*(?:\s+(?:St\.?|Street|Ave\.?|Avenue|Rd\.?|Road|Blvd\.?))?)(?!\w)",
 )
@@ -1208,6 +1218,83 @@ def _literal_symbol_words(language: str) -> dict[str, str]:
     }
 
 
+_GERMAN_LITERAL_LABEL_OVERRIDES = {
+    "findemich": "finde mich",
+}
+_GERMAN_TLD_POLICIES = {
+    "de": "letters",
+    "org": "letters",
+    "net": "letters",
+    "com": "lexical",
+}
+
+
+def _german_url_label_text(
+    label: str,
+    *,
+    evidence: EvidenceSession | None = None,
+    is_tld: bool = False,
+) -> str:
+    folded = label.casefold()
+    if folded in _GERMAN_LITERAL_LABEL_OVERRIDES:
+        return _GERMAN_LITERAL_LABEL_OVERRIDES[folded]
+    if folded == "www":
+        return _grapheme_text(label, "de")
+    if is_tld:
+        policy = _GERMAN_TLD_POLICIES.get(folded)
+        if policy == "letters":
+            return _grapheme_text(label, "de")
+        if policy == "lexical":
+            return label
+    if "-" in label:
+        return " Bindestrich ".join(
+            _german_url_label_text(part, evidence=evidence) for part in label.split("-")
+        )
+    if evidence is not None and evidence.available:
+        segments = evidence.segment(label)
+        return " ".join(segment.text for segment in segments if segment.text)
+    return label
+
+
+def _german_url_text(value: str, *, evidence: EvidenceSession | None = None) -> str:
+    body, tail = _literal_tail(value)
+    symbols = _literal_symbol_words("de")
+    scheme, separator, remainder = body.partition("://")
+    parsed = urlsplit(f"//{remainder if separator else body}")
+    host = parsed.hostname
+    if not host or parsed.netloc.casefold() != host.casefold():
+        return _legacy_url_text(value, "de")
+    parts: list[str] = []
+    if separator:
+        parts.extend([_grapheme_text(scheme, "de"), symbols[":"], symbols["/"], symbols["/"]])
+    labels = host.split(".")
+    parts.append(
+        f" {symbols['.']} ".join(
+            _german_url_label_text(label, evidence=evidence, is_tld=index == len(labels) - 1)
+            for index, label in enumerate(labels)
+        )
+    )
+    suffix = parsed.path
+    if parsed.query:
+        suffix += f"?{parsed.query}"
+    if parsed.fragment:
+        suffix += f"#{parsed.fragment}"
+    for chunk in re.split(r"([./?:&=])", suffix):
+        if not chunk:
+            continue
+        if chunk in symbols:
+            parts.append(symbols[chunk])
+        elif chunk.isalnum():
+            parts.append(
+                render_sequence(chunk, language="de")
+                if any(character.isdigit() for character in chunk)
+                else chunk
+            )
+        else:
+            parts.append(chunk)
+    return " ".join(part for part in parts if part) + tail
+
+
 def _url_text(
     value: str,
     language: str,
@@ -1215,6 +1302,8 @@ def _url_text(
     evidence: EvidenceSession | None = None,
 ) -> str:
     """Render a URL while optionally using lexical evidence for host labels."""
+    if base_language(language) == "de":
+        return _german_url_text(value, evidence=evidence)
     if evidence is None or not evidence.available:
         return _legacy_url_text(value, language)
     body, tail = _literal_tail(value)
@@ -1293,7 +1382,8 @@ def _url_hostname_text(
     evidence: EvidenceSession,
 ) -> str:
     labels = host.split(".")
-    return " dot ".join(
+    separator = " Punkt " if base_language(language) == "de" else " dot "
+    return separator.join(
         _url_host_label_text(
             label,
             language,
@@ -1361,17 +1451,30 @@ def _email_text(value: str, language: str) -> str:
     """Render an e-mail address with lexical local/domain parts."""
     body, tail = _literal_tail(value)
     symbols = _literal_symbol_words(language)
-    parts: list[str] = []
-    for _index, chunk in enumerate(re.split(r"([.@+_-])", body)):
+    local, domain = body.split("@", 1)
+    local_parts: list[str] = []
+    for chunk in re.split(r"([.@+_-])", local):
         if not chunk:
             continue
         if chunk in symbols:
-            parts.append(symbols[chunk])
+            local_parts.append(symbols[chunk])
         elif chunk in {"+", "_", "-"}:
-            parts.append({"+": "plus", "_": "underscore", "-": "hyphen"}[chunk])
+            local_parts.append({"+": "plus", "_": "underscore", "-": "hyphen"}[chunk])
         else:
-            parts.append(chunk)
-    return " ".join(parts) + tail
+            local_parts.append(chunk)
+    if base_language(language) == "de":
+        labels = domain.split(".")
+        domain_text = f" {symbols['.']} ".join(
+            _german_url_label_text(label, is_tld=index == len(labels) - 1)
+            for index, label in enumerate(labels)
+        )
+        return " ".join(local_parts + [symbols["@"], domain_text]) + tail
+    domain_parts: list[str] = []
+    for chunk in re.split(r"([.])", domain):
+        if not chunk:
+            continue
+        domain_parts.append(symbols[chunk] if chunk in symbols else chunk)
+    return " ".join(local_parts + [symbols["@"], *domain_parts]) + tail
 
 
 def _version_text(
@@ -1405,7 +1508,10 @@ def _version_text(
             if suffix.group(2):
                 parts.append(_cardinal(int(suffix.group(2)), language))
         elif component.isdigit():
-            parts.append(_cardinal(int(component), language))
+            if len(component) > 1 and component.startswith("0"):
+                parts.append(_digitwise(component, language))
+            else:
+                parts.append(_cardinal(int(component), language))
         else:
             parts.append(render_sequence(component, language=language))
     point = _literal_symbol_words(language)["."]
@@ -1517,7 +1623,7 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
     rendered: list[str] = []
     separator_modes = {
         "#": {"_": "space", "-": "space"},
-        "@": {"_": "space", "-": "space"},
+        "@": {"_": "speak" if base_language(language) == "de" else "space", "-": "space"},
     }
     for kind, token in tokens:
         if kind == "digit":
@@ -1543,6 +1649,8 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None) 
                     )
                     or token
                 )
+        elif kind == "alpha" and marker == "@" and len(token) <= 2:
+            rendered.append(_grapheme_text(token, language).lower())
         elif (
             opaque
             and token.isascii()
@@ -1628,6 +1736,17 @@ def _formula_text(value: str, language: str) -> str:
         else:
             parts.extend(token)
     return " ".join(parts)
+
+
+def _german_equality_word(value: str) -> str:
+    if re.fullmatch(
+        rf"\s*[{_FRACTION_CHARS}]\s*\+\s*[{_FRACTION_CHARS}]\s*=\s*[{_FRACTION_CHARS}]\s*",
+        value,
+    ):
+        return "ist"
+    if re.search(r"[×*][^=]*\([^()]*[+−*/×÷][^()]*\).*?=", value):
+        return "ergibt"
+    return "gleich"
 
 
 def _math_text(value: str, language: str) -> str:
@@ -1718,6 +1837,8 @@ def _math_text(value: str, language: str) -> str:
             "≥": "maggiore o uguale a",
         },
     }.get(base_language(language), {})
+    if base_language(language) == "de":
+        operators["="] = _german_equality_word(value)
     parts: list[str] = []
     roots = {
         "en": "square root of",
@@ -1728,7 +1849,7 @@ def _math_text(value: str, language: str) -> str:
     }
     absolute_open = True
     tokens = re.findall(
-        r"\d+(?:[.,]\d+)?|[A-Za-z]+|[α-ωΑ-Ω]|√|[|()]|[⁰¹²³⁴⁵⁶⁷⁸⁹]+|[+−*=×÷<>^\-/≈≠≤≥]",
+        r"\d+(?:[.,]\d+)?|[A-Za-z]+|[α-ωΑ-Ω]|√|[|()]|[⁰¹²³⁴⁵⁶⁷⁸⁹]+|[½⅓⅔¼¾⅛⅜⅝⅞⅕⅖⅗⅘⅙⅚]|[+−*=×÷<>^\-/≈≠≤≥]",
         value,
     )
     for _index, token in enumerate(tokens):
@@ -1736,6 +1857,8 @@ def _math_text(value: str, language: str) -> str:
             parts.append(_cardinal(int(token), language))
         elif re.fullmatch(r"\d+[.,]\d+", token):
             parts.append(_decimal_text(token, language, context="math"))
+        elif token in _FRACTION_CHARS:
+            parts.append(_fraction_text(None, token, language))
         elif token == "√":
             parts.append(roots.get(base_language(language), roots["en"]))
         elif token == "π":
@@ -1766,6 +1889,10 @@ def _math_text(value: str, language: str) -> str:
                 else ""
             )
             absolute_open = not absolute_open
+        elif token == "(" and base_language(language) == "de":
+            continue
+        elif token == ")" and base_language(language) == "de":
+            parts.append("in Klammern")
         elif token in "()":
             parts.append(
                 (
@@ -1797,7 +1924,13 @@ def _math_text(value: str, language: str) -> str:
                     f"{operators.get('^', 'to the power of')} {_cardinal(exponent, language)}"
                 )
         elif token.isalpha():
-            parts.append(render_letters(token, language=language) if len(token) <= 2 else token)
+            parts.append(
+                token
+                if base_language(language) == "de" and len(token) == 1
+                else render_letters(token, language=language)
+                if len(token) <= 2
+                else token
+            )
         else:
             parts.append(operators[token])
     return " ".join(part for part in parts if part)
@@ -1854,6 +1987,19 @@ def _music_text(value: str, language: str) -> str:
     accidental = accidental_words.get(base_language(language), accidental_words["en"]).get(
         match.group(2), ""
     )
+    if base_language(language) == "de" and match.group(2) in {"#", "♯"}:
+        note, accidental = f"{note}is", ""
+    elif base_language(language) == "de" and match.group(2) in {"b", "♭"}:
+        note = {
+            "A": "As",
+            "B": "Bes",
+            "C": "Ces",
+            "D": "Des",
+            "E": "Es",
+            "F": "Fes",
+            "G": "Ges",
+        }[note]
+        accidental = ""
     suffix = match.group(3).lstrip("-")
     if suffix.casefold() == "dur":
         suffix = "Dur"
@@ -2043,6 +2189,22 @@ def _score_is_plausible(
         and int(match[1]) <= 9
         and int(match[3]) <= 9
     )
+
+
+def _de_hm_duration_text(hour: str, minute: str) -> str:
+    hour_value, minute_value = int(hour), int(minute)
+    parts: list[str] = []
+    if hour_value:
+        parts.append(
+            f"{'einer' if hour_value == 1 else _cardinal(hour_value, 'de')} "
+            f"{'Stunde' if hour_value == 1 else 'Stunden'}"
+        )
+    if minute_value:
+        parts.append(
+            f"{'einer' if minute_value == 1 else _cardinal(minute_value, 'de')} "
+            f"{'Minute' if minute_value == 1 else 'Minuten'}"
+        )
+    return " und ".join(parts) if parts else "null Stunden"
 
 
 def _duration_text(hour: str, minute: str, second: str, language: str) -> str:
@@ -2932,7 +3094,8 @@ def _iter_version_candidates(
                 _version_text(
                     match["value"],
                     language,
-                    include_version_word=promote_literals and base_language(language) == "en",
+                    include_version_word=promote_literals
+                    and base_language(language) in {"en", "de"},
                 ),
                 language,
                 "sequence.version",
@@ -3403,6 +3566,16 @@ def _iter_duration_sports_candidates(
     candidates: list[Replacement],
     evidence: EvidenceSession | None = None,
 ) -> None:
+    if base_language(language) == "de":
+        for match in _DE_HM_DURATION_RE.finditer(text):
+            _add(
+                candidates,
+                match,
+                _de_hm_duration_text(match["hour"], match["minute"]),
+                language,
+                "sequence.duration",
+                protected,
+            )
     for match in _DURATION_RE.finditer(text):
         _add(
             candidates,

@@ -28,7 +28,7 @@ class ProtectedSpan:
 
 
 _LITERAL_PATTERNS = (
-    ("url", re.compile(r"https?://\S+|www\.\S+")),
+    ("url", re.compile(r"(?:https?|ftp)://\S+|www\.\S+")),
     ("email", re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}")),
     ("version", re.compile(r"(?<!\w)v\d+(?:\.\d+){2,}(?!\w)", re.IGNORECASE)),
     (

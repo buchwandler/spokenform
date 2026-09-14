@@ -36,6 +36,7 @@ class SequencePriority(IntEnum):
 _RULE_PRIORITIES: dict[str, int] = {
     "sequence.url": SequencePriority.PROTECTED_LITERAL,
     "sequence.email": SequencePriority.PROTECTED_LITERAL,
+    "sequence.iban": SequencePriority.LABELED_IDENTIFIER,
     "sequence.isbn": SequencePriority.LABELED_IDENTIFIER,
     "sequence.vin": SequencePriority.LABELED_IDENTIFIER,
     "sequence.uuid": SequencePriority.LABELED_IDENTIFIER,

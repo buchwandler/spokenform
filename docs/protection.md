@@ -1,6 +1,6 @@
 # Protected text
 
-Automatic protection covers URLs, email addresses, and semantic-version-like
+Automatic protection covers HTTP(S), FTP, `www` URLs, email addresses, and semantic-version-like
 strings. Caller-defined spans can protect additional source ranges. High-
 confidence literal promotion is opt-in:
 
@@ -8,6 +8,7 @@ confidence literal promotion is opt-in:
 result = prepare("See https://example.org/a2 and v1.2.3", language="en", normalize_literals=True)
 ```
 
+The default profile keeps these literals unchanged. Literal promotion is opt-in, and the German promoted renderer uses localized URL and e-mail punctuation and the reviewed FTP scheme policy.
 With `normalize_literals=True`, structured URL, e-mail, version, and contextual
 Roman candidates are rendered before generic stages. Caller-defined spans are
 still absolute and always win over promotion.

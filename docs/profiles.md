@@ -90,6 +90,6 @@ The v1 profile API intentionally has no JSON or YAML format, CLI profile loader,
 inheritance or merging, automatic ambiguity resolution, military time policy, SSML, or
 phoneme override support. These can be added after runtime profile semantics are stable.
 
-Spokenform requires `abbr2words>=0.2.14,<0.3.0` for the isolated expander, bulk
+Spokenform requires `abbr2words>=0.2.15,<0.3.0` for the isolated expander, bulk
 registration, speech strategies, custom spoken forms, and exact replacement APIs used by
 profiles.

@@ -100,6 +100,8 @@ including the reviewed `vgl.`, `i.d.R.`, `o.ä.`, and `u.U.` forms, remain owned
 `abbr2words`; they are not duplicated in this locale. Currencies without reviewed
 minor-unit grammar use a safe exact decimal fallback or fail closed.
 
+German also recognizes reviewed source-letter technical labels such as `IP`, `IBAN`, and `LTS` through `abbr2words`. With `normalize_literals=True`, German URL, e-mail, and FTP promotion uses localized `Doppelpunkt`, `Schrägstrich`, and `Punkt` words, lexical hostname and path labels, and the reviewed `de`, `org`, `net`, and `com` TLD policy. Contextual Roman year and monarch forms, redundant century notation, explicit hour-minute durations, and semantic versions with preserved leading-zero components are handled by Spokenform's structured recognizers.
+
 ## Swedish scope
 
 Swedish uses comma decimal punctuation and space, NBSP, or NNBSP grouping.

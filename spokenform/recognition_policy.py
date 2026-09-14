@@ -107,6 +107,7 @@ _CONTEXTUAL_RULES = frozenset(
 _LOCALE_DOMAIN_BY_PREFIX: dict[str, RecognitionDomain] = {
     "date": RecognitionDomain.TEMPORAL,
     "time": RecognitionDomain.TEMPORAL,
+    "century": RecognitionDomain.REFERENCES,
     "decade": RecognitionDomain.TEMPORAL,
     "currency": RecognitionDomain.FINANCE,
     "magnitude-currency": RecognitionDomain.FINANCE,

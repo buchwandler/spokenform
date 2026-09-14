@@ -215,6 +215,26 @@ _LABEL = re.compile(
     re.IGNORECASE,
 )
 _ORDINAL = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÄÖÜäöüß])")
+_DE_REDUNDANT_CENTURY_RE = re.compile(
+    r"(?<![\w.])(?P<number>\d+)\.\s+Jh\.\s*\(\s*"
+    r"(?P<roman>[IVXLCDM]+)\.\s+Jahrhundert\s*\)(?!\w)",
+    re.IGNORECASE,
+)
+_ROMAN_DIGITS = (
+    ("M", 1000),
+    ("CM", 900),
+    ("D", 500),
+    ("CD", 400),
+    ("C", 100),
+    ("XC", 90),
+    ("L", 50),
+    ("XL", 40),
+    ("X", 10),
+    ("IX", 9),
+    ("V", 5),
+    ("IV", 4),
+    ("I", 1),
+)
 _DE_ORDINAL_ENDING_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (
         re.compile(r"(?:^|\s)(?:am|im|vom|zum|zur|bis|auf der|an der|in dem|in den|auf den)$"),
@@ -765,9 +785,40 @@ def _iter_de_unit_matches(
                 )
 
 
+def _roman_value(value: str) -> int:
+    remaining = value.upper()
+    total = 0
+    for token, number in _ROMAN_DIGITS:
+        while remaining.startswith(token):
+            total += number
+            remaining = remaining[len(token) :]
+    return total if not remaining else 0
+
+
+def _roman_canonical(value: int) -> str:
+    remaining = value
+    result: list[str] = []
+    for token, number in _ROMAN_DIGITS:
+        count, remaining = divmod(remaining, number)
+        result.append(token * count)
+    return "".join(result)
+
+
 def _iter_de_labels(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
+    for match in _DE_REDUNDANT_CENTURY_RE.finditer(text):
+        number = int(match["number"])
+        roman_value = _roman_value(match["roman"])
+        if roman_value != number or _roman_canonical(roman_value) != match["roman"].upper():
+            continue
+        _add_candidate(
+            candidates,
+            match,
+            f"{_ordinal(number, 'en', language)} Jahrhundert",
+            "de.century",
+            protected,
+        )
     for match in _SECTION_REFERENCE.finditer(text):
         label = match["label"].casefold().rstrip(".")
         rendered_label = {
