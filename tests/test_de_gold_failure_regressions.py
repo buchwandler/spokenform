@@ -15,7 +15,7 @@ CASES = [
     ),
     (
         "Die IBAN lautet DE89 3704 0044 0532 0130 00.",
-        "Die I B A N lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
+        "Die IBAN lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
     ),
     ("½ + ¼ = ¾", "einhalb plus ein Viertel ist drei Viertel"),
     ("2x + 3 = 15", "zwei x plus drei gleich fünfzehn"),
