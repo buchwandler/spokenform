@@ -173,6 +173,9 @@ _DATE_DMY_SHORT = re.compile(
 _DATE_DMY_NO_YEAR = re.compile(
     r"(?<![\w./])(?P<day>0?[1-9]|[12]\d|3[01])/(?P<month>0?[1-9]|1[0-2])(?![\w/])"
 )
+_DATE_MDY_NO_YEAR_FALLBACK = re.compile(
+    r"(?<![\w./])(?P<month>0?[1-9]|1[0-2])/(?P<day>2[1-9]|3[01])(?![\w/])"
+)
 _DATE_DMY_HYPHEN = re.compile(
     r"(?<![\w.])(?P<day>\d{1,2})-(?P<month>\d{1,2})-(?P<year>\d{2,4})(?!\d)"
 )
@@ -410,6 +413,20 @@ def _iter_es_dates(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
     for match in _DATE_DMY_NO_YEAR.finditer(text):
+        day, month = int(match["day"]), int(match["month"])
+        if _valid_date(day, month, 2000) and _date_like_context(
+            text, match.start(), match.end(), day=day
+        ):
+            day_text = "primero" if day == 1 else _spell(day, language)
+            _add_candidate(
+                candidates,
+                match.start(),
+                match.end(),
+                f"{day_text} de {_MONTHS[month - 1]}",
+                "es.date",
+                protected,
+            )
+    for match in _DATE_MDY_NO_YEAR_FALLBACK.finditer(text):
         day, month = int(match["day"]), int(match["month"])
         if _valid_date(day, month, 2000) and _date_like_context(
             text, match.start(), match.end(), day=day

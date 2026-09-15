@@ -2,6 +2,7 @@ import pytest
 
 from spokenform import prepare
 from spokenform.language_support import SEQUENCE_POLICY_LANGUAGES
+from spokenform.number_words import ordinal
 from spokenform.sequences import (
     SequenceRenderPolicy,
     render_digits,
@@ -337,6 +338,24 @@ def test_slash_and_mixed_fractions_are_semantic(language: str, source: str, expe
     result = prepare(source, language=language, use_spacy=False)
     assert result.spoken_text == expected
     assert any(item.rule == "sequence.fraction" for item in result.source_replacements)
+
+
+def test_spanish_fraction_domain_boundary_remains_fraction() -> None:
+    result = prepare("12/20", language="es", use_spacy=False)
+
+    assert result.spoken_text == "Doce vigésimos"
+    assert [item.rule for item in result.source_replacements] == ["sequence.fraction"]
+
+
+def test_spanish_unrenderable_fraction_denominator_fails_closed() -> None:
+    result = prepare("22/25", language="es", use_spacy=False)
+
+    assert not any(item.rule == "sequence.fraction" for item in result.source_replacements)
+
+
+def test_spanish_direct_ordinal_rendering_remains_strict() -> None:
+    with pytest.raises(ValueError, match="Cannot render ordinal"):
+        ordinal(25, "es")
 
 
 def test_fraction_does_not_claim_url_or_full_date_shape() -> None:

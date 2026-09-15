@@ -773,7 +773,10 @@ def _slash_fraction_text(
         and denominator_value == 2
     ):
         return "metà"
-    fraction = _fraction_word(numerator_value, denominator_value, language)
+    try:
+        fraction = _fraction_word(numerator_value, denominator_value, language)
+    except ValueError:
+        return None
     if (
         whole is not None
         and base_language(language) == "en"

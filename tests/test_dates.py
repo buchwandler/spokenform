@@ -100,3 +100,28 @@ def test_benchmark_date_shapes_and_no_year_dates_use_date_rules() -> None:
         result = prepare(source, language=language, use_spacy=False)
         assert result.spoken_text == expected, (source, language)
         assert any("date" in item.rule for item in result.source_replacements)
+
+
+def test_spanish_mdy_short_date_above_fraction_ordinal_domain() -> None:
+    result = prepare(
+        "12/25 (Navidad).",
+        language="es",
+        use_spacy=False,
+    )
+
+    assert result.spoken_text == "Veinticinco de diciembre (Navidad)."
+    assert [item.rule for item in result.source_replacements] == ["es.date"]
+
+
+def test_spanish_mdy_short_date_january_22() -> None:
+    result = prepare("1/22", language="es", use_spacy=False)
+
+    assert result.spoken_text == "Veintidós de enero"
+    assert [item.rule for item in result.source_replacements] == ["es.date"]
+
+
+def test_spanish_mdy_short_date_fallback_supports_es_mx() -> None:
+    result = prepare("12/25", language="es-MX", use_spacy=False)
+
+    assert result.spoken_text == "Veinticinco de diciembre"
+    assert [item.rule for item in result.source_replacements] == ["es.date"]
