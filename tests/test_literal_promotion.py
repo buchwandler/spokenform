@@ -1,3 +1,5 @@
+import pytest
+
 from spokenform import ProtectedSpan, prepare
 
 
@@ -64,3 +66,16 @@ def test_contextual_roman_numerals_do_not_claim_standalone_codes() -> None:
     standalone = prepare("IV CD DVD", language="en", use_spacy=False)
     assert chapter.spoken_text == "Chapter four"
     assert standalone.spoken_text == "IV C D D V D"
+
+
+@pytest.mark.parametrize("language", ["en", "de", "es", "fr", "it", "pt", "cs"])
+def test_bare_domain_path_is_not_math_when_literals_are_disabled(language: str) -> None:
+    source = "github.com/user/repo"
+    result = prepare(
+        source,
+        language=language,
+        use_spacy=False,
+        normalize_literals=False,
+    )
+    assert result.spoken_text == source
+    assert not any(item.rule == "sequence.math" for item in result.source_replacements)

@@ -1200,14 +1200,38 @@ def _literal_tail(value: str) -> tuple[str, str]:
 def _literal_symbol_words(language: str) -> dict[str, str]:
     base = base_language(language)
     return {
-        ".": {"de": "Punkt", "es": "punto", "fr": "point", "it": "punto"}.get(base, "dot"),
-        "/": {"de": "Schrägstrich", "es": "barra", "fr": "barre oblique", "it": "barra"}.get(
-            base, "slash"
-        ),
-        ":": {"de": "Doppelpunkt", "es": "dos puntos", "fr": "deux-points", "it": "due punti"}.get(
-            base, "colon"
-        ),
-        "@": {"de": "at", "es": "arroba", "fr": "arobase", "it": "chiocciola"}.get(base, "at"),
+        ".": {
+            "de": "Punkt",
+            "es": "punto",
+            "fr": "point",
+            "it": "punto",
+            "pt": "ponto",
+            "cs": "tečka",
+        }.get(base, "dot"),
+        "/": {
+            "de": "Schrägstrich",
+            "es": "barra",
+            "fr": "barre oblique",
+            "it": "barra",
+            "pt": "barra",
+            "cs": "lomítko",
+        }.get(base, "slash"),
+        ":": {
+            "de": "Doppelpunkt",
+            "es": "dos puntos",
+            "fr": "deux-points",
+            "it": "due punti",
+            "pt": "dois-pontos",
+            "cs": "dvojtečka",
+        }.get(base, "colon"),
+        "@": {
+            "de": "at",
+            "es": "arroba",
+            "fr": "arobase",
+            "it": "chiocciola",
+            "pt": "arroba",
+            "cs": "zavináč",
+        }.get(base, "at"),
         "?": {
             "de": "Fragezeichen",
             "es": "interrogación",
@@ -1749,7 +1773,7 @@ def _german_equality_word(value: str) -> str:
     return "gleich"
 
 
-def _math_text(value: str, language: str) -> str:
+def _math_text(value: str, language: str) -> str | None:
     operators = {
         "en": {
             "+": "plus",
@@ -1836,8 +1860,9 @@ def _math_text(value: str, language: str) -> str:
             "≤": "minore o uguale a",
             "≥": "maggiore o uguale a",
         },
-    }.get(base_language(language), {})
-    if base_language(language) == "de":
+    }.get(base_language(language))
+    if operators is None:
+        return None
         operators["="] = _german_equality_word(value)
     parts: list[str] = []
     roots = {
@@ -1932,7 +1957,10 @@ def _math_text(value: str, language: str) -> str:
                 else token
             )
         else:
-            parts.append(operators[token])
+            operator = operators.get(token)
+            if operator is None:
+                return None
+            parts.append(operator)
     return " ".join(part for part in parts if part)
 
 
@@ -3177,10 +3205,13 @@ def _iter_roman_symbol_candidates(
 
     for match in _SUPERSCRIPT_RE.finditer(text):
         if _claimed(match.start(), match.end(), protected):
+            replacement = _math_text(match.group(0), language)
+            if replacement is None:
+                continue
             _add(
                 candidates,
                 match,
-                _math_text(match.group(0), language),
+                replacement,
                 language,
                 "sequence.math",
                 protected,
@@ -3259,14 +3290,22 @@ def _iter_math_science_candidates(
     protected: tuple[tuple[int, int], ...],
     candidates: list[Replacement],
 ) -> None:
+    url_like_ranges = tuple(
+        match.span() for pattern in (_URL_RE, _BARE_DOMAIN_RE) for match in pattern.finditer(text)
+    )
     for pattern in (_MATH_ABSOLUTE_RE, _MATH_RE):
         for match in pattern.finditer(text):
+            if any(match.start() < right and left < match.end() for left, right in url_like_ranges):
+                continue
             if not _math_is_plausible(match["value"], text, match.start()):
+                continue
+            replacement = _math_text(match["value"], language)
+            if replacement is None:
                 continue
             _add(
                 candidates,
                 match,
-                _math_text(match["value"], language),
+                replacement,
                 language,
                 "sequence.math",
                 protected,

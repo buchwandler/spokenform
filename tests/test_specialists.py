@@ -1,3 +1,5 @@
+import pytest
+
 from spokenform import prepare
 
 
@@ -110,3 +112,17 @@ def test_math_and_music_words_follow_locale_without_promoting_literals() -> None
         "zwei plus zwei gleich vier"
     )
     assert prepare("chord C#", language="fr", use_spacy=False).spoken_text == ("chord cé dièse")
+
+
+@pytest.mark.parametrize("language", ["pt", "cs"])
+def test_unreviewed_math_locale_fails_closed(language: str) -> None:
+    source = "x/y=z"
+    result = prepare(source, language=language, use_spacy=False)
+    assert result.spoken_text == source
+    assert not any(item.rule == "sequence.math" for item in result.source_replacements)
+
+
+def test_reviewed_english_math_still_renders() -> None:
+    result = prepare("2+2=4", language="en", use_spacy=False)
+    assert result.spoken_text == "two plus two equals four"
+    assert any(item.rule == "sequence.math" for item in result.source_replacements)

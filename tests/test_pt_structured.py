@@ -188,3 +188,49 @@ def test_portuguese_plain_pass_protects_literals_and_structured_candidates() -> 
     assert prepare(source, language="pt-br", use_spacy=False).spoken_text == (
         "https://example.org/2 email dev2@example.org v1.2.3 31.02.2026 2026-02-31 25:70 18:20 doze"
     )
+
+
+def test_portuguese_bare_domain_path_does_not_crash() -> None:
+    source = "O repositório está em github.com/user/repo."
+    result = prepare(
+        source,
+        language="pt",
+        use_spacy=False,
+    )
+    assert result.spoken_text == source
+    assert not any(item.rule == "sequence.math" for item in result.source_replacements)
+
+
+def test_portuguese_bare_domain_path_promotes_as_url() -> None:
+    result = prepare(
+        "O repositório está em github.com/user/repo.",
+        language="pt",
+        use_spacy=False,
+        normalize_literals=True,
+    )
+    assert result.spoken_text == (
+        "O repositório está em g i t h u b ponto com barra u s e r barra r e p o."
+    )
+    assert [item.rule for item in result.source_replacements] == ["sequence.url"]
+
+
+def test_portuguese_full_url_path_is_not_seen_as_math() -> None:
+    source = "https://github.com/user/repo"
+    safe = prepare(
+        source,
+        language="pt",
+        use_spacy=False,
+        normalize_literals=False,
+    )
+    promoted = prepare(
+        source,
+        language="pt",
+        use_spacy=False,
+        normalize_literals=True,
+    )
+    assert safe.spoken_text == source
+    assert not any(item.rule == "sequence.math" for item in safe.source_replacements)
+    assert promoted.spoken_text == (
+        "h t t p s dois-pontos barra barra g i t h u b ponto com barra u s e r barra r e p o"
+    )
+    assert [item.rule for item in promoted.source_replacements] == ["sequence.url"]
