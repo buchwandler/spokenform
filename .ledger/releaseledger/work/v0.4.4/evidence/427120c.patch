@@ -1,0 +1,1030 @@
+ .../data/ledgers/main/events/events.jsonl          |   2 +
+ .../main/releases/0.4.3/entries/entry-0003.md      |  27 +++
+ .../main/releases/0.4.3/entries/entry-0004.md      |  25 +++
+ .../data/ledgers/main/releases/0.4.3/release.md    |   4 +-
+ benchmarks/spokenform_gold.py                      |  39 +++-
+ benchmarks/spokenform_gold_data.py                 | 198 +++++++++++----------
+ benchmarks/spokenform_gold_release.json            |  10 ++
+ docs/benchmarks.md                                 |  24 ++-
+ docs/changelog.md                                  |   7 +-
+ docs/release-checklist.md                          |   7 +
+ spokenform/numbers.py                              |   5 +-
+ spokenform/recognizers/sequences.py                |   2 +-
+ tests/test_de_gold_failure_regressions.py          |  43 ++++-
+ tests/test_numbers.py                              |   7 +
+ tests/test_numeralform_migration_regressions.py    |   2 +-
+ tests/test_ordinals.py                             |   2 +-
+ tests/test_spokenform_gold.py                      |  11 ++
+ tests/test_spokenform_gold_data.py                 | 136 +++++++-------
+ 18 files changed, 374 insertions(+), 177 deletions(-)
+
+diff --git a/.ledger/releaseledger/data/ledgers/main/events/events.jsonl b/.ledger/releaseledger/data/ledgers/main/events/events.jsonl
+index 0294396..ed1b637 100644
+--- a/.ledger/releaseledger/data/ledgers/main/events/events.jsonl
++++ b/.ledger/releaseledger/data/ledgers/main/events/events.jsonl
+@@ -229,3 +229,5 @@
+ {"data":{"status":"planned"},"event":"release.created","event_id":"event-0229","record_revisions":{"release:0.4.3":1},"release_version":"0.4.3","schema_version":2}
+ {"data":{"kind":"changed","status":"accepted"},"entry_id":"entry-0001","event":"entry.added","event_id":"event-0230","record_revisions":{"entry:0.4.3/entry-0001":1,"release:0.4.3":2},"release_version":"0.4.3","schema_version":2}
+ {"data":{"kind":"changed","status":"accepted"},"entry_id":"entry-0002","event":"entry.added","event_id":"event-0231","record_revisions":{"entry:0.4.3/entry-0002":1,"release:0.4.3":3},"release_version":"0.4.3","schema_version":2}
++{"data":{"kind":"fixed","status":"accepted"},"entry_id":"entry-0003","event":"entry.added","event_id":"event-0232","record_revisions":{"entry:0.4.3/entry-0003":1,"release:0.4.3":4},"release_version":"0.4.3","schema_version":2}
++{"data":{"kind":"changed","status":"accepted"},"entry_id":"entry-0004","event":"entry.added","event_id":"event-0233","record_revisions":{"entry:0.4.3/entry-0004":1,"release:0.4.3":5},"release_version":"0.4.3","schema_version":2}
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md b/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md
+new file mode 100644
+index 0000000..4a66334
+--- /dev/null
++++ b/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md
+@@ -0,0 +1,27 @@
++---
++schema_version: 2
++object_type: release_entry
++versioning:
++  schema_version: 1
++  revision: 1
++entry_id: entry-0003
++release_version: 0.4.3
++kind: fixed
++summary: Fixed German IBAN precedence and sentence-final IPv4 recognition without
++  weakening literal protection
++status: accepted
++audience: null
++scopes: []
++source_refs:
++- tl:task-0080
++paths:
++- spokenform/precedence.py
++- spokenform/recognizers/sequences.py
++issues: []
++prs: []
++sources: []
++contributors: []
++breaking: false
++internal: false
++order: 3
++---
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md b/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md
+new file mode 100644
+index 0000000..df4a1d0
+--- /dev/null
++++ b/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md
+@@ -0,0 +1,25 @@
++---
++schema_version: 2
++object_type: release_entry
++versioning:
++  schema_version: 1
++  revision: 1
++entry_id: entry-0004
++release_version: 0.4.3
++kind: changed
++summary: Added reviewed German source-letter expansion for IBAN through the dependency
++  registry
++status: accepted
++audience: null
++scopes: []
++source_refs: []
++paths: []
++issues: []
++prs: []
++sources:
++- tl:task-0080
++contributors: []
++breaking: false
++internal: false
++order: 4
++---
+diff --git a/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/release.md b/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/release.md
+index 50c5e69..659d1c4 100644
+--- a/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/release.md
++++ b/.ledger/releaseledger/data/ledgers/main/releases/0.4.3/release.md
+@@ -3,7 +3,7 @@ schema_version: 2
+ object_type: release
+ versioning:
+   schema_version: 1
+-  revision: 3
++  revision: 5
+ version: 0.4.3
+ status: planned
+ history_state: curated
+@@ -16,7 +16,7 @@ changelog_file: null
+ boundary_ref: null
+ source_refs: []
+ source_count: null
+-entry_count: 2
++entry_count: 4
+ artifact_count: 0
+ git_base_ref: null
+ git_base_sha: null
+diff --git a/benchmarks/spokenform_gold.py b/benchmarks/spokenform_gold.py
+index 02479a3..1d45fa2 100644
+--- a/benchmarks/spokenform_gold.py
++++ b/benchmarks/spokenform_gold.py
+@@ -51,10 +51,19 @@ def _parser() -> argparse.ArgumentParser:
+     parser = argparse.ArgumentParser(
+         description="Evaluate Spokenform against the pinned Spokenform Gold benchmark."
+     )
+-    parser.add_argument("--gold-root", type=Path)
++    parser.add_argument(
++        "--gold-root",
++        type=Path,
++        help=(
++            "Path to an extracted Spokenform Gold RELEASE directory containing manifest.json. "
++            "This is not the spokenform-gold source repository."
++        ),
++    )
+     parser.add_argument("--cache-dir", type=Path, default=Path(".cache/spokenform-gold"))
++    parser.add_argument("--source-cache-dir", type=Path)
+     parser.add_argument("--offline", action="store_true")
+     parser.add_argument("--refresh", action="store_true")
++    parser.add_argument("--accept-upstream-licenses", action="store_true")
+     parser.add_argument("--download-only", action="store_true")
+     parser.add_argument(
+         "--split",
+@@ -180,6 +189,13 @@ def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
+         root = args.gold_root.expanduser().resolve()
+         if not root.is_dir():
+             raise FileNotFoundError(f"explicit Spokenform Gold release does not exist: {root}")
++        if not (root / "manifest.json").is_file():
++            if (root / "spokenform_gold").is_dir() or (root / "data" / "corpus").exists():
++                raise ValueError(
++                    "The supplied --gold-root is a spokenform-gold source checkout, not a built release. "
++                    "Use an extracted GitHub Release asset or a dist/spokenform-gold-v*/ directory."
++                )
++            raise FileNotFoundError(f"missing release manifest: {root / 'manifest.json'}")
+         return GoldSource(
+             gold_root=root,
+             source_root=None,
+@@ -203,6 +219,22 @@ def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
+     )
+
+
++def _source_loader_for(source: GoldSource, args: argparse.Namespace) -> Any:
++    source_root = source.source_root
++    if source_root is not None:
++        loader_module = load_gold_module("spokenform_gold.release_sources", source_root=source_root)
++    else:
++        loader_module = importlib.import_module("spokenform_gold.release_sources")
++    cache_dir = args.source_cache_dir or (args.cache_dir / "sources")
++    return loader_module.build_release_source_loader(
++        source.gold_root,
++        cache_dir,
++        offline=args.offline,
++        refresh=args.refresh,
++        accept_upstream_licenses=args.accept_upstream_licenses,
++    )
++
++
+ def _metadata_for_source(source: GoldSource) -> dict[str, Any]:
+     if source.mode == "auto-cache" and source.cache_dir is not None:
+         return json.loads(metadata_path(source.cache_dir).read_text(encoding="utf-8"))
+@@ -310,6 +342,9 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
+         _validate_split_for_manifest(args.split, verification.get("manifest", {}))
+     if args.download_only:
+         return source.gold_root, {"download_only": True, "source": source}
++    source_loader = None
++    if verification["manifest"].get("public_external_ref_records", 0):
++        source_loader = _source_loader_for(source, args)
+     run_dir = args.results_dir / _run_id()
+     summary = benchmark.run_benchmark(
+         gold_root=source.gold_root,
+@@ -324,6 +359,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
+         profile_name=args.profile,
+         spokenform_version=SPOKENFORM_VERSION,
+         spokenform_commit=_source_commit(),
++        source_loader=source_loader,
+     )
+     _, records = benchmark.load_release_records(
+         source.gold_root,
+@@ -332,6 +368,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
+         locale=args.locale,
+         category=args.category,
+         case_ids=set(args.cases or []),
++        source_loader=source_loader,
+     )
+     rows = _build_rows(summary, records, mode=args.mode)
+     _write_jsonl(run_dir / "rows.jsonl", rows)
+diff --git a/benchmarks/spokenform_gold_data.py b/benchmarks/spokenform_gold_data.py
+index b0f5885..e506d11 100644
+--- a/benchmarks/spokenform_gold_data.py
++++ b/benchmarks/spokenform_gold_data.py
+@@ -1,7 +1,8 @@
+-"""Pinned source acquisition and release caching for Spokenform Gold."""
++"""Pinned Spokenform Gold release acquisition and verification."""
+
+ from __future__ import annotations
+
++import hashlib
+ import importlib
+ import json
+ import shutil
+@@ -12,20 +13,29 @@ from pathlib import Path, PurePosixPath
+ from types import ModuleType
+ from urllib.request import urlopen
+
+-SPOKENFORM_GOLD_REPOSITORY = "https://github.com/buchwandler/spokenform-gold"
+-SPOKENFORM_GOLD_COMMIT = "7b9107a4193475a05f8d2c1eb41e833c9d2c08c5"
+-SPOKENFORM_GOLD_RELEASE_VERSION = "0.2.0-exp"
+-SPOKENFORM_GOLD_POLICY_CONTRACT = "v0.3.0"
++_PIN_PATH = Path(__file__).with_name("spokenform_gold_release.json")
++RELEASE_PIN = json.loads(_PIN_PATH.read_text(encoding="utf-8"))
++SPOKENFORM_GOLD_REPOSITORY = f"https://github.com/{RELEASE_PIN['repository']}"
++SPOKENFORM_GOLD_TAG = str(RELEASE_PIN["tag"])
++SPOKENFORM_GOLD_RELEASE_VERSION = str(RELEASE_PIN["version"])
++SPOKENFORM_GOLD_ASSET = str(RELEASE_PIN["asset"])
++SPOKENFORM_GOLD_ARCHIVE_SHA256 = str(RELEASE_PIN["archive_sha256"])
++SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256 = str(RELEASE_PIN["release_manifest_sha256"])
++SPOKENFORM_GOLD_RUNTIME_SOURCE_REF = str(RELEASE_PIN["runtime_source_ref"])
++SPOKENFORM_GOLD_POLICY_CONTRACT = str(RELEASE_PIN["policy_contract"])
++SPOKENFORM_GOLD_COMMIT = SPOKENFORM_GOLD_RUNTIME_SOURCE_REF
+ SPOKENFORM_GOLD_ARCHIVE_URL = (
+-    f"https://codeload.github.com/buchwandler/spokenform-gold/zip/{SPOKENFORM_GOLD_COMMIT}"
++    f"{SPOKENFORM_GOLD_REPOSITORY}/releases/download/{SPOKENFORM_GOLD_TAG}/{SPOKENFORM_GOLD_ASSET}"
+ )
++SPOKENFORM_GOLD_RUNTIME_URL = (
++    f"{SPOKENFORM_GOLD_REPOSITORY}/archive/refs/tags/{SPOKENFORM_GOLD_RUNTIME_SOURCE_REF}.zip"
++)
++
+
+ _REQUIRED_FILES = (
+     "spokenform_gold/benchmark.py",
+     "spokenform_gold/release.py",
+     "spokenform_gold/scoring.py",
+-    "data/corpus.jsonl",
+-    "schemas",
+     "sources/manifest.json",
+     "taxonomy",
+     "pyproject.toml",
+@@ -35,11 +45,11 @@ _REQUIRED_FILES = (
+
+
+ def cache_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+-    return Path(cache_dir) / SPOKENFORM_GOLD_COMMIT
++    return Path(cache_dir) / "releases" / SPOKENFORM_GOLD_TAG / SPOKENFORM_GOLD_ARCHIVE_SHA256[:16]
+
+
+ def source_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+-    return cache_path(cache_dir) / "source"
++    return Path(cache_dir) / "runtime" / SPOKENFORM_GOLD_RUNTIME_SOURCE_REF
+
+
+ def release_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+@@ -52,7 +62,7 @@ def metadata_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+
+ def _download(url: str, destination: Path) -> None:
+     if not url.startswith("https://"):
+-        raise ValueError("Spokenform Gold source URL must use HTTPS")
++        raise ValueError("Spokenform Gold URL must use HTTPS")
+     with urlopen(url, timeout=60) as response:  # noqa: S310 - exact pinned HTTPS URL
+         payload = response.read()
+     destination.parent.mkdir(parents=True, exist_ok=True)
+@@ -61,41 +71,51 @@ def _download(url: str, destination: Path) -> None:
+     temporary.replace(destination)
+
+
++def _sha256(path: Path) -> str:
++    digest = hashlib.sha256()
++    with path.open("rb") as handle:
++        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
++            digest.update(chunk)
++    return digest.hexdigest()
++
++
+ def _safe_extract(archive: Path, destination: Path) -> Path:
+-    """Extract a GitHub ZIP after validating every member path."""
+     destination.mkdir(parents=True, exist_ok=True)
+     top_levels: set[str] = set()
+     with zipfile.ZipFile(archive) as bundle:
+         for member in bundle.infolist():
+             name = member.filename.replace("\\", "/")
+             path = PurePosixPath(name)
+-            if path.is_absolute() or ".." in path.parts or not path.parts:
+-                raise ValueError(f"unsafe Spokenform Gold archive path: {member.filename!r}")
+             mode = member.external_attr >> 16
+-            if mode and (mode & 0o170000) == 0o120000:
+-                raise ValueError(f"symlink in Spokenform Gold archive: {member.filename!r}")
++            if (
++                path.is_absolute()
++                or ".." in path.parts
++                or not path.parts
++                or (mode and (mode & 0o170000) == 0o120000)
++            ):
++                raise ValueError(f"unsafe Spokenform Gold archive path: {member.filename!r}")
+             top_levels.add(path.parts[0])
+             target = destination.joinpath(*path.parts)
+-            resolved_destination = destination.resolve()
+             if (
+-                resolved_destination not in target.resolve().parents
+-                and target.resolve() != resolved_destination
++                destination.resolve() not in target.resolve().parents
++                and target.resolve() != destination.resolve()
+             ):
+                 raise ValueError(f"archive path escapes destination: {member.filename!r}")
+         if len(top_levels) != 1:
+             raise ValueError("Spokenform Gold archive must contain one repository root")
+-        bundle.extractall(destination)  # paths were validated above
++        bundle.extractall(destination)
+     return destination / next(iter(top_levels))
+
+
+ def _validate_source_tree(root: Path) -> None:
+     missing = [relative for relative in _REQUIRED_FILES if not (root / relative).exists()]
+     if missing:
+-        raise ValueError("Spokenform Gold source is incomplete; missing " + ", ".join(missing))
++        raise ValueError(
++            "Spokenform Gold runtime source is incomplete; missing " + ", ".join(missing)
++        )
+
+
+ def load_gold_module(module_name: str, *, source_root: Path) -> ModuleType:
+-    """Import a Gold module from one validated repository checkout."""
+     _validate_source_tree(source_root)
+     for name in tuple(sys.modules):
+         if name == "spokenform_gold" or name.startswith("spokenform_gold."):
+@@ -116,6 +136,8 @@ def _verify_release(release_root: Path, *, source_root: Path) -> dict[str, objec
+             "cached Spokenform Gold release has unexpected benchmark version: "
+             f"{manifest.get('benchmark_version')!r}"
+         )
++    if SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256 != _sha256(release_root / "manifest.json"):
++        raise ValueError("Spokenform Gold release manifest SHA256 does not match the pin")
+     if manifest.get("format") != "v2":
+         raise ValueError(
+             f"cached Spokenform Gold release is not a v2 corpus release: {manifest.get('format')!r}"
+@@ -126,87 +148,64 @@ def _verify_release(release_root: Path, *, source_root: Path) -> dict[str, objec
+             f"{manifest.get('schema_version')!r}"
+         )
+     if manifest.get("corpus_file") != "corpus.jsonl":
+-        raise ValueError(
+-            "cached Spokenform Gold release has unexpected corpus file: "
+-            f"{manifest.get('corpus_file')!r}"
+-        )
++        raise ValueError("cached Spokenform Gold release has unexpected corpus file")
+     if manifest.get("record_files") != ["corpus.jsonl"]:
+-        raise ValueError(
+-            "cached Spokenform Gold release has unexpected record files: "
+-            f"{manifest.get('record_files')!r}"
+-        )
++        raise ValueError("cached Spokenform Gold release has unexpected record files")
+     if manifest.get("split_registry") is not None:
+         raise ValueError("cached Spokenform Gold v2 release must not have a split registry")
+     return verification
+
+
+-def _metadata(*, verification: dict[str, object], gold_version: str) -> dict[str, object]:
+-    manifest = verification.get("manifest", {})
++def _metadata(verification: dict[str, object], source_root: Path) -> dict[str, object]:
++    manifest = verification["manifest"]
++    package = load_gold_module("spokenform_gold", source_root=source_root)
+     return {
+         "benchmark": "spokenform_gold",
+         "repository": SPOKENFORM_GOLD_REPOSITORY,
+-        "source_commit": SPOKENFORM_GOLD_COMMIT,
+-        "archive_url": SPOKENFORM_GOLD_ARCHIVE_URL,
++        "tag": SPOKENFORM_GOLD_TAG,
++        "runtime_source_ref": SPOKENFORM_GOLD_RUNTIME_SOURCE_REF,
+         "release_version": SPOKENFORM_GOLD_RELEASE_VERSION,
+-        "spokenform_policy_contract": SPOKENFORM_GOLD_POLICY_CONTRACT,
+-        "gold_package_version": gold_version,
++        "archive_sha256": SPOKENFORM_GOLD_ARCHIVE_SHA256,
+         "release_manifest_hash": verification["manifest_hash"],
+         "release_format": manifest.get("format"),
+         "gold_schema_version": manifest.get("schema_version"),
+         "corpus_file": manifest.get("corpus_file"),
++        "gold_package_version": str(getattr(package, "__version__", "unknown")),
+     }
+
+
+-def _read_metadata(path: Path) -> dict[str, object]:
+-    try:
+-        payload = json.loads(path.read_text(encoding="utf-8"))
+-    except (OSError, json.JSONDecodeError) as exc:
+-        raise ValueError(f"invalid Spokenform Gold cache metadata: {path}") from exc
+-    if not isinstance(payload, dict):
+-        raise ValueError(f"invalid Spokenform Gold cache metadata: {path}")
+-    return payload
+-
+-
+ def _cache_is_valid(root: Path) -> bool:
+-    if not root.is_dir() or not metadata_path(root.parent).is_file():
++    if not root.is_dir() or not (root / "metadata.json").is_file():
+         return False
+-    source = root / "source"
+     release = root / "release"
+-    _validate_source_tree(source)
+-    metadata = _read_metadata(root / "metadata.json")
+-    if metadata.get("source_commit") != SPOKENFORM_GOLD_COMMIT:
+-        return False
+-    if metadata.get("release_version") != SPOKENFORM_GOLD_RELEASE_VERSION:
++    runtime = root / "runtime"
++    metadata = json.loads((root / "metadata.json").read_text(encoding="utf-8"))
++    if (
++        metadata.get("tag") != SPOKENFORM_GOLD_TAG
++        or metadata.get("archive_sha256") != SPOKENFORM_GOLD_ARCHIVE_SHA256
++    ):
+         return False
+-    if not (release / "manifest.json").is_file():
++    if not release.is_dir() or not runtime.is_dir():
+         return False
+-    verification = _verify_release(release, source_root=source)
+-    return metadata.get("release_manifest_hash") == verification["manifest_hash"]
+-
+-
+-def _build_cache(target: Path, archive: Path) -> None:
+-    unpacked = target / "unpacked"
+-    source = _safe_extract(archive, unpacked)
+-    _validate_source_tree(source)
+-    materialized_source = target / "source"
+-    source.rename(materialized_source)
+-    release = target / "release"
+-    release_module = load_gold_module("spokenform_gold.release", source_root=materialized_source)
+-    release_module.build_release(
+-        version=SPOKENFORM_GOLD_RELEASE_VERSION,
+-        data_paths=[str(materialized_source / "data/corpus.jsonl")],
+-        out_root=release,
+-        maturity="experimental",
+-        source_manifest_path=materialized_source / "sources/manifest.json",
+-    )
+-    verification = _verify_release(release, source_root=materialized_source)
+-    package = load_gold_module("spokenform_gold", source_root=materialized_source)
+-    metadata = _metadata(
+-        verification=verification,
+-        gold_version=str(getattr(package, "__version__", "unknown")),
+-    )
++    _validate_source_tree(runtime)
++    _verify_release(release, source_root=runtime)
++    return True
++
++
++def _build_cache(target: Path, release_archive: Path, runtime_archive: Path) -> None:
++    release = _safe_extract(release_archive, target / "release-unpacked")
++    runtime = _safe_extract(runtime_archive, target / "runtime-unpacked")
++    _validate_source_tree(runtime)
++    release_target = target / "release"
++    runtime_target = target / "runtime"
++    release.rename(release_target)
++    runtime.rename(runtime_target)
++    verification = _verify_release(release_target, source_root=runtime_target)
+     (target / "metadata.json").write_text(
+-        json.dumps(metadata, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
++        json.dumps(
++            _metadata(verification, runtime_target), ensure_ascii=False, indent=2, sort_keys=True
++        )
++        + "\n",
+         encoding="utf-8",
+     )
+
+@@ -223,33 +222,34 @@ def ensure_data(
+         try:
+             if _cache_is_valid(root):
+                 return root / "release"
+-        except (FileNotFoundError, OSError, ValueError, ImportError):
++        except (FileNotFoundError, OSError, ValueError, ImportError, json.JSONDecodeError):
+             if offline:
+                 raise FileNotFoundError(
+-                    "Offline Spokenform Gold cache is missing or invalid for commit "
+-                    f"{SPOKENFORM_GOLD_COMMIT}; run online without --offline or use --refresh."
++                    "Offline Spokenform Gold cache is missing or invalid for "
++                    f"{SPOKENFORM_GOLD_TAG}; run online without --offline or use --refresh."
+                 ) from None
+     if offline:
+         raise FileNotFoundError(
+-            "Offline Spokenform Gold cache is missing for commit "
+-            f"{SPOKENFORM_GOLD_COMMIT}; run once online to populate it."
++            f"Offline Spokenform Gold cache is missing for {SPOKENFORM_GOLD_TAG}; "
++            "run once online to populate it."
+         )
+
+     root.parent.mkdir(parents=True, exist_ok=True)
+-    temporary_root = Path(tempfile.mkdtemp(prefix=f".{SPOKENFORM_GOLD_COMMIT}.", dir=root.parent))
+-    archive = temporary_root / "source.zip"
++    temporary_root = Path(tempfile.mkdtemp(prefix=f".{SPOKENFORM_GOLD_TAG}.", dir=root.parent))
++    release_archive = temporary_root / "release.zip"
++    runtime_archive = temporary_root / "runtime.zip"
+     try:
+-        _download(SPOKENFORM_GOLD_ARCHIVE_URL, archive)
+-        _build_cache(temporary_root, archive)
+-        completed_root = temporary_root
++        _download(SPOKENFORM_GOLD_ARCHIVE_URL, release_archive)
++        if _sha256(release_archive) != SPOKENFORM_GOLD_ARCHIVE_SHA256:
++            raise ValueError("Spokenform Gold release archive SHA256 does not match the pin")
++        _download(SPOKENFORM_GOLD_RUNTIME_URL, runtime_archive)
++        _build_cache(temporary_root, release_archive, runtime_archive)
+         backup = root.with_name(f".{root.name}.previous")
+-        if backup.exists():
+-            shutil.rmtree(backup)
++        shutil.rmtree(backup, ignore_errors=True)
+         if root.exists():
+             root.replace(backup)
+-        completed_root.replace(root)
+-        if backup.exists():
+-            shutil.rmtree(backup)
++        temporary_root.replace(root)
++        shutil.rmtree(backup, ignore_errors=True)
+     except Exception:
+         shutil.rmtree(temporary_root, ignore_errors=True)
+         raise
+@@ -257,10 +257,18 @@ def ensure_data(
+
+
+ __all__ = [
++    "RELEASE_PIN",
++    "SPOKENFORM_GOLD_ARCHIVE_SHA256",
+     "SPOKENFORM_GOLD_ARCHIVE_URL",
+     "SPOKENFORM_GOLD_COMMIT",
++    "SPOKENFORM_GOLD_ASSET",
++    "SPOKENFORM_GOLD_POLICY_CONTRACT",
++    "SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256",
+     "SPOKENFORM_GOLD_RELEASE_VERSION",
+     "SPOKENFORM_GOLD_REPOSITORY",
++    "SPOKENFORM_GOLD_RUNTIME_SOURCE_REF",
++    "SPOKENFORM_GOLD_RUNTIME_URL",
++    "SPOKENFORM_GOLD_TAG",
+     "cache_path",
+     "ensure_data",
+     "load_gold_module",
+diff --git a/benchmarks/spokenform_gold_release.json b/benchmarks/spokenform_gold_release.json
+new file mode 100644
+index 0000000..714032a
+--- /dev/null
++++ b/benchmarks/spokenform_gold_release.json
+@@ -0,0 +1,10 @@
++{
++  "repository": "buchwandler/spokenform-gold",
++  "tag": "v0.1.0-exp.1",
++  "version": "0.1.0-exp.1",
++  "asset": "spokenform-gold-v0.1.0-exp.1.zip",
++  "archive_sha256": "d58cb0cc3d7ff08b47cb3126a00e741e71dabf23e8879cc84d7e408631dd8f93",
++  "release_manifest_sha256": "7377923740aff6c2ebc0a5716480b7b0792a93cca18054758901b7fedac94ce3",
++  "runtime_source_ref": "v0.1.0-exp.1",
++  "policy_contract": "v0.3.0"
++}
+diff --git a/docs/benchmarks.md b/docs/benchmarks.md
+index 0cb3145..a4a53ff 100644
+--- a/docs/benchmarks.md
++++ b/docs/benchmarks.md
+@@ -37,15 +37,31 @@ selection project.
+
+ ## Spokenform Gold
+
+-Run the pinned Gold diagnostic benchmark with:
++Run the pinned Gold release diagnostic benchmark with:
+
+ ```bash
+-python -m benchmarks.spokenform_gold
++python -m benchmarks.spokenform_gold --split corpus
+ ```
+
+-The adapter caches the exact reviewed source commit `ba55d631a45a0fe8b3d87ad58beef2843c617151` and its verified experimental `0.1.0-exp` release under `.cache/spokenform-gold/<commit>/`. The default evaluates the `test` split and writes results under `benchmark-results/spokenform-gold/<run-id>/`, including `summary.json`, `rows.jsonl`, Gold JSONL/Markdown artifacts, and a self-contained `report.html`.
++The consumer reads the exact release asset pinned in
++`benchmarks/spokenform_gold_release.json`. It never rebuilds Gold data from a
++source checkout and never selects the latest GitHub release dynamically. The
++pin contains the release tag, asset SHA-256, manifest SHA-256, and matching
++runtime source tag. The first online run downloads and verifies the release
++zip and matching-tag runtime source under `.cache/spokenform-gold/`.
+
+-Use `--offline` after the cache is populated, `--refresh` to rebuild it, `--download-only` to populate without evaluation, `--cache-dir` to relocate the cache, `--gold-root` for an explicit local release, `--split dev|test|all`, `--mode canonical|accepted`, and `--report none` to disable HTML. Gold remains diagnostic and does not automatically hydrate restricted PolyNorm or Proteno source references.
++Use `--offline` after the cache is populated, `--refresh` to replace it after
++an intentional pin update, `--download-only` to populate without evaluation,
++`--cache-dir` or `--source-cache-dir` to relocate release or external-source
++caches, `--gold-root` for an extracted release directory containing
++`manifest.json`, `--split corpus`, `--mode canonical|accepted`, and
++`--report none` to disable HTML. Passing a source checkout to `--gold-root`
++is rejected with a targeted diagnostic.
++
++Some releases reference public upstream source artifacts. Hydration is
++explicitly controlled with `--accept-upstream-licenses`; restricted sources
++remain unavailable unless that acknowledgement is supplied. Use `--offline`
++to guarantee that source hydration performs no network access.
+
+ ## Lexhint A/B comparison
+
+diff --git a/docs/changelog.md b/docs/changelog.md
+index f0538b8..6fcb4c0 100644
+--- a/docs/changelog.md
++++ b/docs/changelog.md
+@@ -3,14 +3,15 @@
+ > **Generated by releaseledger.** Manual edits may be overwritten. Update releaseledger entries and rebuild this file instead.
+
+ ## [0.4.3] - Unreleased
+-
+ ### Changed
+-
+ - Improved German speech normalization for technical sequences, mathematical expressions, contextual Roman forms, durations, and semantic versions
+ - Added opt-in German URL, e-mail, and FTP literal promotion with localized punctuation while preserving default literal protection
++- Added reviewed German source-letter expansion for IBAN through the dependency registry
+
+-<!-- generated by releaseledger -->
++### Fixed
++- Fixed German IBAN precedence and sentence-final IPv4 recognition without weakening literal protection
+
++<!-- generated by releaseledger -->
+ ## [v0.4.2] - 2026-09-13
+
+ ### Added
+diff --git a/docs/release-checklist.md b/docs/release-checklist.md
+index 85aa751..7a428d4 100644
+--- a/docs/release-checklist.md
++++ b/docs/release-checklist.md
+@@ -17,6 +17,13 @@
+ 10. Build docs with `sphinx-build -W -b html docs docs/_build/html`.
+ 11. Test wheel installation, one deterministic normalization example, and the `spokenform` console command in a fresh environment.
+ 12. Confirm the release workflow uses a PyPI trusted publisher when repository OIDC is configured; otherwise verify the configured API token without changing authentication on release day.
++
++### Spokenform Gold benchmark consumption
++
++The Gold release workflow is operator-triggered and serializes one candidate per release tag. It plans the next version, builds and verifies deterministic candidate bytes, runs the real Spokenform consumer gate, compares an existing tag by manifest and archive SHA-256 values, publishes only equivalent or absent releases, and re-downloads the public zip for verification.
++
++For a first dispatch, confirm that `../spokenform/benchmarks/spokenform_gold_release.json` points to a published immutable asset. Its archive and manifest hashes must be real values, not placeholders. The consumer must be able to run with `--offline` after one successful online cache fill. Do not replace the pin with a branch, a latest-release lookup, or a source checkout.
++
+ 13. Publish the GitHub release only after all required checks pass.
+ 14. Before a downstream kokorog2p release raises its spokenform minimum, publish
+     the spokenform release and verify the real `de`, `es`, and `fr` integration
+diff --git a/spokenform/numbers.py b/spokenform/numbers.py
+index 5985108..8b6896a 100644
+--- a/spokenform/numbers.py
++++ b/spokenform/numbers.py
+@@ -23,7 +23,7 @@ from .numeric_lexeme import (
+ )
+
+ _COMMA_DECIMAL: Final[frozenset[str]] = frozenset({"cs", "de", "es", "fr", "it", "pt", "ru", "sv"})
+-_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"de", "vi"})
++_BARE_DOT_ORDINAL_COMPAT_LANGUAGES: Final[frozenset[str]] = frozenset({"vi"})
+ _MONTHS: Final[dict[str, tuple[str, ...]]] = {
+     "cs": (
+         "ledna",
+@@ -229,6 +229,7 @@ _ENGLISH_PLAIN_NUMBER_RE = re.compile(
+ _UNIFIED_PLAIN_NUMBER_RE = re.compile(
+     r"(?<![\w.])[+\-−]?(?:(?:\d{1,3}(?:[ \u00a0\u202f]\d{3})+(?:[.,]\d+)?|\d+(?:[.,]\d+)+|[.,]\d+)|\d+)(?!\w)"
+ )
++_GERMAN_COMMA_LIST_RE = re.compile(r"\d+(?:,\d+){2,}")
+ _LONG_NUMBER_POSITIVE_CONTEXT_RE = re.compile(
+     r"\b(?:there\s+are|population|total|amount|number\s+of|count\s+of|items?|users?|people|"
+     r"records?|entries|downloads?|views?|inhabitants?)\b",
+@@ -866,6 +867,8 @@ def _normalize_unified_plain_numbers(
+
+     def replace(match: re.Match[str]) -> str:
+         raw = match.group(0)
++        if base_language(language) == "de" and _GERMAN_COMMA_LIST_RE.fullmatch(raw):
++            return ",".join(_spell(int(part), language) for part in raw.split(","))
+         if (
+             raw.startswith(("-", "−"))
+             and match.start() > 0
+diff --git a/spokenform/recognizers/sequences.py b/spokenform/recognizers/sequences.py
+index de32b95..f71432d 100644
+--- a/spokenform/recognizers/sequences.py
++++ b/spokenform/recognizers/sequences.py
+@@ -1650,7 +1650,7 @@ def _render_identifier(value: str, language: str, *, marker: str | None = None)
+                     or token
+                 )
+         elif kind == "alpha" and marker == "@" and len(token) <= 2:
+-            rendered.append(_grapheme_text(token, language).lower())
++            rendered.append(_grapheme_text(token, language))
+         elif (
+             opaque
+             and token.isascii()
+diff --git a/tests/test_de_gold_failure_regressions.py b/tests/test_de_gold_failure_regressions.py
+index 25d919b..ee42d27 100644
+--- a/tests/test_de_gold_failure_regressions.py
++++ b/tests/test_de_gold_failure_regressions.py
+@@ -15,7 +15,7 @@ CASES = [
+     ),
+     (
+         "Die IBAN lautet DE89 3704 0044 0532 0130 00.",
+-        "Die IBAN lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
++        "Die I B A N lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
+     ),
+     ("½ + ¼ = ¾", "einhalb plus ein Viertel ist drei Viertel"),
+     ("2x + 3 = 15", "zwei x plus drei gleich fünfzehn"),
+@@ -131,6 +131,47 @@ def test_default_profile_still_protects_literals() -> None:
+     assert "v3.2.1" in result.spoken_text
+
+
++@pytest.mark.parametrize(
++    ("source", "expected"),
++    [
++        ("@eu_kommission", "at e u Unterstrich kommission"),
++        ("@EU_kommission", "at E U Unterstrich kommission"),
++        ("@ab-test", "at a b test"),
++        ("#EU_kommission", "Hashtag EU kommission"),
++    ],
++)
++def test_social_identifier_case_and_separator_policy(source: str, expected: str) -> None:
++    result = prepare(source, language="de", use_spacy=False, normalize_literals=True)
++    assert result.spoken_text == expected
++
++
++@pytest.mark.parametrize(
++    ("source", "expected"),
++    [
++        ("192.168.1.1.", "eins neun zwei Punkt eins sechs acht Punkt eins Punkt eins."),
++        ("1:00 Stunden", "einer Stunde"),
++        ("1:01 Stunden", "einer Stunde und einer Minute"),
++        ("2:05 Stunden", "zwei Stunden und fünf Minuten"),
++        ("v1.02.003", "Version eins Punkt null zwei Punkt null null drei"),
++    ],
++)
++def test_german_literal_and_duration_edge_cases(source: str, expected: str) -> None:
++    result = prepare(source, language="de", use_spacy=False, normalize_literals=True)
++    assert result.spoken_text == expected
++
++
++def test_iban_precedence_beats_phone_candidate() -> None:
++    result = prepare(
++        "Die IBAN lautet DE89 3704 0044 0532 0130 00.",
++        language="de",
++        use_spacy=False,
++        normalize_literals=True,
++    )
++    rules = {replacement.rule for replacement in result.source_replacements}
++    assert "sequence.iban" in rules
++    assert "sequence.phone" not in rules
++
++
+ @pytest.mark.parametrize(
+     ("source", "rule"),
+     [
+diff --git a/tests/test_numbers.py b/tests/test_numbers.py
+index b319ebb..cbb74ee 100644
+--- a/tests/test_numbers.py
++++ b/tests/test_numbers.py
+@@ -9,6 +9,13 @@ def test_german_decimal_and_unit_ready_text() -> None:
+     assert normalize_numbers("1,5 Kilogramm", language="de") == "eins Komma fünf Kilogramm"
+
+
++@pytest.mark.parametrize(
++    ("source", "expected"),
++    (("1,2,3", "eins,zwei,drei"), ("1,2,3.", "eins,zwei,drei.")),
++)
++def test_german_comma_separated_cardinals_are_spoken(source: str, expected: str) -> None:
++    assert prepare(source, language="de", use_spacy=False).spoken_text == expected
++
+ def test_english_direct_number_api_preserves_explicit_decimal_precision() -> None:
+     assert normalize_numbers("2.0", language="en") == "two point zero"
+     assert normalize_numbers(".02", language="en") == "point zero two"
+diff --git a/tests/test_numeralform_migration_regressions.py b/tests/test_numeralform_migration_regressions.py
+index 5efd7c0..78a6cb7 100644
+--- a/tests/test_numeralform_migration_regressions.py
++++ b/tests/test_numeralform_migration_regressions.py
+@@ -76,7 +76,7 @@ def test_social_identifier_matrix_preserves_reviewed_year_and_marker_policies()
+         ("en", "@abc007", "at abc zero zero seven"),
+         ("en", "#Summer2024", "hashtag Summer twenty twenty four"),
+         ("en", "#Formula1", "hashtag Formula one"),
+-        ("en", "@EU_27", "at e u two seven"),
++        ("en", "@EU_27", "at E U two seven"),
+         ("de", "@abc007", "at abc null null sieben"),
+         ("es-MX", "@abc007", "arroba abc cero cero siete"),
+         ("fr", "@abc007", "arobase abc zéro zéro sept"),
+diff --git a/tests/test_ordinals.py b/tests/test_ordinals.py
+index 54005d8..14b0e12 100644
+--- a/tests/test_ordinals.py
++++ b/tests/test_ordinals.py
+@@ -8,7 +8,7 @@ def test_locale_ordinal_symbols_are_expanded_without_sentence_final_cardinal_rew
+     assert prepare("The 1st release", language="en", use_spacy=False).spoken_text == (
+         "The first release"
+     )
+-    assert prepare("1.", language="de", use_spacy=False).spoken_text == "1."
++    assert prepare("1.", language="de", use_spacy=False).spoken_text == "eins."
+
+
+ def test_ordinal_policies_validate_suffixes_and_degree_collisions() -> None:
+diff --git a/tests/test_spokenform_gold.py b/tests/test_spokenform_gold.py
+index c3b14d1..113d2c5 100644
+--- a/tests/test_spokenform_gold.py
++++ b/tests/test_spokenform_gold.py
+@@ -34,6 +34,7 @@ def test_parser_defaults_and_options() -> None:
+     assert cli._parser().parse_args([]).split == "corpus"
+     assert cli._parser().parse_args([]).report == "html"
+     assert args.offline and args.refresh and args.download_only
++    assert not args.accept_upstream_licenses
+     assert args.split == "all"
+     assert args.mode == "accepted"
+     assert args.cases == ["one", "two"]
+@@ -54,6 +55,16 @@ def test_prepare_gold_record_requires_profile() -> None:
+         cli.prepare_gold_record("Alarm at 08:05.", "en", "en-US", None)
+
+
++def test_source_checkout_passed_as_gold_root_gets_targeted_error(tmp_path: Path) -> None:
++    from benchmarks import spokenform_gold as cli
++
++    checkout = tmp_path / "spokenform-gold"
++    (checkout / "spokenform_gold").mkdir(parents=True)
++    args = cli._parser().parse_args(["--gold-root", str(checkout)])
++    with pytest.raises(ValueError, match="source checkout, not a built release"):
++        cli._resolve_gold_source(args)
++
++
+ def test_v2_release_rejects_legacy_split() -> None:
+     from benchmarks import spokenform_gold as cli
+
+diff --git a/tests/test_spokenform_gold_data.py b/tests/test_spokenform_gold_data.py
+index 4e6169f..3b53c31 100644
+--- a/tests/test_spokenform_gold_data.py
++++ b/tests/test_spokenform_gold_data.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+
++import hashlib
+ import json
+ import zipfile
+ from pathlib import Path
+@@ -9,59 +10,47 @@ import pytest
+ from benchmarks import spokenform_gold_data as data
+
+
+-def _write_archive(
++def _sha256(payload: bytes) -> str:
++    return hashlib.sha256(payload).hexdigest()
++
++
++def _write_release_archive(
+     path: Path,
+     *,
+-    traversal: bool = False,
+     release_format: str = "v2",
+     schema_version: str = "2.0.0",
+     corpus_file: str = "corpus.jsonl",
+-) -> None:
+-    root = "spokenform-gold-fixture/"
+-    release_module = f"""from pathlib import Path
+-import hashlib
+-import json
++    traversal: bool = False,
++) -> bytes:
++    root = "spokenform-gold-v0.2.0-exp/"
++    payload = b"fixture-payload"
++    corpus = b'{"schema_version":"2.0.0","id":"fixture"}\n'
++    manifest = {
++        "benchmark_version": "0.2.0-exp",
++        "format": release_format,
++        "schema_version": schema_version,
++        "corpus_file": corpus_file,
++        "record_files": ["corpus.jsonl"],
++        "split_registry": None,
++        "file_hashes": {"payload.txt": _sha256(payload), "corpus.jsonl": _sha256(corpus)},
++    }
++    with zipfile.ZipFile(path, "w") as archive:
++        archive.writestr(root + "payload.txt", payload)
++        archive.writestr(root + "corpus.jsonl", corpus)
++        archive.writestr(root + "manifest.json", json.dumps(manifest))
++        if traversal:
++            archive.writestr("../../escape.txt", "escape")
++    return json.dumps(manifest).encode()
+
+-def build_release(**kwargs):
+-    root = Path(kwargs['out_root'])
+-    root.mkdir(parents=True)
+-    payload = b'fixture-release'
+-    (root / 'payload.txt').write_bytes(payload)
+-    captured = {{
+-        key: [str(value) for value in value] if key == 'data_paths' else str(value)
+-        for key, value in kwargs.items()
+-    }}
+-    (root / 'build-kwargs.json').write_text(json.dumps(captured), encoding='utf-8')
+-    digest = hashlib.sha256(payload).hexdigest()
+-    manifest = {{
+-        'benchmark_version': '0.2.0-exp',
+-        'format': {release_format!r},
+-        'schema_version': {schema_version!r},
+-        'corpus_file': {corpus_file!r},
+-        'record_files': ['corpus.jsonl'],
+-        'split_registry': None,
+-        'file_hashes': {{'payload.txt': digest}},
+-    }}
+-    (root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+-
+-def verify_release(*args, **kwargs):
+-    root = Path(args[0] if args else kwargs['gold_root'])
+-    manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
+-    actual = hashlib.sha256((root / 'payload.txt').read_bytes()).hexdigest()
+-    if actual != manifest['file_hashes']['payload.txt']:
+-        raise ValueError('bad fixture release')
+-    return {{
+-        'manifest': manifest,
+-        'manifest_hash': hashlib.sha256((root / 'manifest.json').read_bytes()).hexdigest(),
+-    }}
+-"""
++
++def _write_runtime_archive(path: Path) -> None:
++    root = "gold-runtime/"
++    release_module = """import hashlib\nimport json\nfrom pathlib import Path\n\ndef verify_release(root):\n    manifest = json.loads((Path(root) / 'manifest.json').read_text())\n    for name, expected in manifest['file_hashes'].items():\n        if hashlib.sha256((Path(root) / name).read_bytes()).hexdigest() != expected:\n            raise ValueError('bad fixture release')\n    return {'manifest': manifest, 'manifest_hash': hashlib.sha256((Path(root) / 'manifest.json').read_bytes()).hexdigest()}\n"""
+     files = {
+         "spokenform_gold/__init__.py": "__version__ = '0.2.0'\n",
+         "spokenform_gold/scoring.py": "\n",
+         "spokenform_gold/release.py": release_module,
+         "spokenform_gold/benchmark.py": "from .release import verify_release\n",
+-        "data/corpus.jsonl": '{"schema_version":"2.0.0","id":"fixture"}\n',
+-        "schemas/.keep": "",
+         "sources/manifest.json": "{}\n",
+         "taxonomy/.keep": "",
+         "pyproject.toml": "[project]\nname='fixture'\n",
+@@ -71,43 +60,53 @@ def verify_release(*args, **kwargs):
+     with zipfile.ZipFile(path, "w") as archive:
+         for relative, content in files.items():
+             archive.writestr(root + relative, content)
+-        if traversal:
+-            archive.writestr("../../escape.txt", "escape")
++
++
++def _patch_pin(
++    monkeypatch: pytest.MonkeyPatch, release_archive: Path, manifest: bytes, runtime_archive: Path
++) -> None:
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_TAG", "v0.2.0-exp")
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_RELEASE_VERSION", "0.2.0-exp")
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_ASSET", "spokenform-gold-v0.2.0-exp.zip")
++    monkeypatch.setattr(
++        data, "SPOKENFORM_GOLD_ARCHIVE_SHA256", _sha256(release_archive.read_bytes())
++    )
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256", _sha256(manifest))
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_RUNTIME_SOURCE_REF", "v0.2.0-exp")
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_ARCHIVE_URL", "https://example.invalid/release.zip")
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_RUNTIME_URL", "https://example.invalid/runtime.zip")
+
+
+ def test_first_download_cache_hit_refresh_and_metadata(
+     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+ ) -> None:
+-    archive = tmp_path / "fixture.zip"
+-    _write_archive(archive)
++    release_archive = tmp_path / "release.zip"
++    manifest = _write_release_archive(release_archive)
++    runtime_archive = tmp_path / "runtime.zip"
++    _write_runtime_archive(runtime_archive)
++    _patch_pin(monkeypatch, release_archive, manifest, runtime_archive)
+     calls: list[str] = []
+
+     def download(url: str, destination: Path) -> None:
+         calls.append(url)
+-        destination.write_bytes(archive.read_bytes())
++        destination.write_bytes(
++            runtime_archive.read_bytes() if "runtime" in url else release_archive.read_bytes()
++        )
+
+     monkeypatch.setattr(data, "_download", download)
+     release = data.ensure_data(cache_dir=tmp_path / "cache")
+     assert release == data.release_path(tmp_path / "cache")
+     metadata = json.loads(data.metadata_path(tmp_path / "cache").read_text(encoding="utf-8"))
+-    assert metadata["source_commit"] == data.SPOKENFORM_GOLD_COMMIT
++    assert metadata["tag"] == "v0.2.0-exp"
+     assert metadata["release_format"] == "v2"
+     assert metadata["gold_schema_version"] == "2.0.0"
+-    assert metadata["corpus_file"] == "corpus.jsonl"
+     assert (release / "manifest.json").is_file()
+-    build_kwargs = json.loads((release / "build-kwargs.json").read_text(encoding="utf-8"))
+-    assert Path(build_kwargs["data_paths"][0]).as_posix().endswith("/source/data/corpus.jsonl")
+-    assert "registry_path" not in build_kwargs
+-
+-    def unexpected_download(url: str, destination: Path) -> None:
+-        raise AssertionError("cache hit used the network")
+
+-    monkeypatch.setattr(data, "_download", unexpected_download)
++    monkeypatch.setattr(data, "_download", lambda *_args: pytest.fail("cache hit used the network"))
+     assert data.ensure_data(cache_dir=tmp_path / "cache") == release
+-
+     monkeypatch.setattr(data, "_download", download)
+     assert data.ensure_data(cache_dir=tmp_path / "cache", refresh=True) == release
+-    assert len(calls) == 2
++    assert len(calls) == 4
+
+
+ @pytest.mark.parametrize(
+@@ -119,30 +118,33 @@ def test_first_download_cache_hit_refresh_and_metadata(
+     ],
+ )
+ def test_cached_invalid_release_shape_is_rejected(
+-    tmp_path: Path,
+-    monkeypatch: pytest.MonkeyPatch,
+-    release_kwargs: dict[str, str],
+-    message: str,
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, release_kwargs: dict[str, str], message: str
+ ) -> None:
+     archive = tmp_path / "fixture.zip"
+-    _write_archive(archive, **release_kwargs)
++    manifest = _write_release_archive(archive, **release_kwargs)
++    runtime = tmp_path / "runtime.zip"
++    _write_runtime_archive(runtime)
++    _patch_pin(monkeypatch, archive, manifest, runtime)
+
+     def download(url: str, destination: Path) -> None:
+-        destination.write_bytes(archive.read_bytes())
++        destination.write_bytes(runtime.read_bytes() if "runtime" in url else archive.read_bytes())
+
+     monkeypatch.setattr(data, "_download", download)
+     with pytest.raises(ValueError, match=message):
+         data.ensure_data(cache_dir=tmp_path / "cache")
+
+
+-def test_offline_missing_cache_has_actionable_message(tmp_path: Path) -> None:
+-    with pytest.raises(FileNotFoundError, match="Offline.*Spokenform Gold.*commit"):
++def test_offline_missing_cache_has_actionable_message(
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    monkeypatch.setattr(data, "SPOKENFORM_GOLD_TAG", "v0.2.0-exp")
++    with pytest.raises(FileNotFoundError, match="Offline.*Spokenform Gold.*v0.2.0-exp"):
+         data.ensure_data(cache_dir=tmp_path / "cache", offline=True)
+
+
+ def test_safe_extract_rejects_traversal(tmp_path: Path) -> None:
+     archive = tmp_path / "unsafe.zip"
+-    _write_archive(archive, traversal=True)
++    _write_release_archive(archive, traversal=True)
+     with pytest.raises(ValueError, match="unsafe|escapes"):
+         data._safe_extract(archive, tmp_path / "out")
+     assert not (tmp_path / "escape.txt").exists()

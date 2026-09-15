@@ -1,0 +1,125 @@
+schema_version: 1
+object_type: commit_audit_sheet
+versioning:
+  schema_version: 1
+  revision: 1
+release_version: v0.4.4
+git_base_ref: v0.4.3
+git_base_sha: 71feb9cb46a43fef9a52a4a8709e49b0080cea44
+git_head_ref: HEAD
+git_head_sha: 02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+git_range: 71feb9cb46a43fef9a52a4a8709e49b0080cea44..02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+commit_count: 5
+rows:
+  - sha: 427120c03b19547a1108cdfeba83498b5b42d68c
+    source_ref: git:427120c03b19547a1108cdfeba83498b5b42d68c
+    short_sha: 427120c
+    changed_paths:
+      - .ledger/releaseledger/data/ledgers/main/events/events.jsonl
+      - .ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.4.3/release.md
+      - benchmarks/spokenform_gold.py
+      - benchmarks/spokenform_gold_data.py
+      - benchmarks/spokenform_gold_release.json
+      - docs/benchmarks.md
+      - docs/changelog.md
+      - docs/release-checklist.md
+      - spokenform/numbers.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_gold_failure_regressions.py
+      - tests/test_numbers.py
+      - tests/test_numeralform_migration_regressions.py
+      - tests/test_ordinals.py
+      - tests/test_spokenform_gold.py
+      - tests/test_spokenform_gold_data.py
+    stats:
+      files_changed: 0
+      insertions: 374
+      deletions: 177
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "feat: better benchmarks and some numbers fixing"
+  - sha: 24bcda3ff23b91558eb32bd5f7a648d79af0ba86
+    source_ref: git:24bcda3ff23b91558eb32bd5f7a648d79af0ba86
+    short_sha: 24bcda3
+    changed_paths:
+      - .ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md
+      - .ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md
+      - docs/changelog.md
+      - spokenform/locales/fr.py
+      - tests/test_fr_structured.py
+      - tests/test_numbers.py
+      - tests/test_numeric_lexeme.py
+      - tests/test_sequences.py
+    stats:
+      files_changed: 0
+      insertions: 63
+      deletions: 7
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "fix: number blocker on french"
+  - sha: 8626e5e47e9db43a3bdaf18a08e83d44b904fd98
+    source_ref: git:8626e5e47e9db43a3bdaf18a08e83d44b904fd98
+    short_sha: 8626e5e
+    changed_paths:
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_gold_failure_regressions.py
+      - tests/test_literal_promotion.py
+      - tests/test_pt_structured.py
+      - tests/test_specialists.py
+    stats:
+      files_changed: 0
+      insertions: 133
+      deletions: 17
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "fix: pt structure"
+  - sha: f7308020137f5041241b6edd0d5aa9fe32bfd02c
+    source_ref: git:f7308020137f5041241b6edd0d5aa9fe32bfd02c
+    short_sha: f730802
+    changed_paths:
+      - spokenform/recognizers/sequences.py
+      - tests/test_currency_regressions.py
+    stats:
+      files_changed: 0
+      insertions: 72
+      deletions: 8
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "feat: fix numeric sequences"
+  - sha: 02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+    source_ref: git:02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+    short_sha: 02fc4d0
+    changed_paths:
+      - spokenform/locales/es.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_dates.py
+      - tests/test_sequences.py
+    stats:
+      files_changed: 0
+      insertions: 65
+      deletions: 1
+    inspected: false
+    inspected_paths: []
+    observed_behavior: ""
+    public_impact: unknown
+    decision: needs_review
+    stale: false
+    evidence_subject: "fix: es locale"

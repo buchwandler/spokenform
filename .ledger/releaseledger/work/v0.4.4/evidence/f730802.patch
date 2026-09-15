@@ -1,0 +1,119 @@
+ spokenform/recognizers/sequences.py | 28 ++++++++++++++------
+ tests/test_currency_regressions.py  | 52 +++++++++++++++++++++++++++++++++++++
+ 2 files changed, 72 insertions(+), 8 deletions(-)
+
+diff --git a/spokenform/recognizers/sequences.py b/spokenform/recognizers/sequences.py
+index a9b593e..4b1130a 100644
+--- a/spokenform/recognizers/sequences.py
++++ b/spokenform/recognizers/sequences.py
+@@ -884,7 +884,11 @@ def _percent_text(raw: str, language: str) -> str:
+     return f"{_decimal_text(raw, language, context='percent')} {names.get(base_language(language), 'percent')}"
+
+
+-def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
++def _currency_symbol_text(raw: str, symbol: str, language: str) -> str | None:
++    lexeme = parse_numeric_lexeme(raw, language, context="quantity")
++    if lexeme is None:
++        return None
++
+     base = base_language(language)
+     names = {
+         "€": {
+@@ -933,7 +937,9 @@ def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
+         "pt": "centavos",
+         "cs": "centů",
+     }
+-    negative, integer, fraction = _decimal_parts(raw, language, context="quantity")
++    negative = lexeme.negative
++    integer = int(lexeme.integer_digits or "0")
++    fraction = lexeme.fraction_digits
+     currency_name = names[symbol].get(base, names[symbol]["en"])
+     if base == "en" and (integer != 1 or fraction):
+         currency_name += "s"
+@@ -2789,14 +2795,20 @@ def _iter_finance_quantity_candidates(
+     for match in _CURRENCY_SYMBOL_RE.finditer(text):
+         symbol = match["prefix"] or match["suffix"]
+         if symbol and (base_language(language) == "it" or symbol == "¥"):
+-            _add(
+-                candidates,
+-                match,
+-                _currency_symbol_text(match["number"], symbol, language),
++            replacement = _currency_symbol_text(
++                match["number"],
++                symbol,
+                 language,
+-                "sequence.currency",
+-                protected,
+             )
++            if replacement is not None:
++                _add(
++                    candidates,
++                    match,
++                    replacement,
++                    language,
++                    "sequence.currency",
++                    protected,
++                )
+
+     for match in _PERCENT_RE.finditer(text):
+         _add(
+diff --git a/tests/test_currency_regressions.py b/tests/test_currency_regressions.py
+index b467be9..6a0b6b2 100644
+--- a/tests/test_currency_regressions.py
++++ b/tests/test_currency_regressions.py
+@@ -120,3 +120,55 @@ def test_malformed_currency_has_no_partial_structured_currency_edit(source: str)
+         source, language="de_DE" if source.startswith(("$", "€")) else "es_MX"
+     )
+     assert not any(edit.rule and edit.rule.endswith(".currency") for edit in replacements)
++
++
++def test_unparseable_english_yen_currency_fails_closed() -> None:
++    source = "¥1.000,50"
++    result = prepare(source, language="en", use_spacy=False)
++    assert result.spoken_text == source
++    assert not any(
++        replacement.rule == "sequence.currency" for replacement in result.source_replacements
++    )
++
++
++def test_gold_malformed_yen_sentence_does_not_crash() -> None:
++    source = (
++        "The final cost for the project was ¥1.000,50, "
++        "which I transferred immediately, "
++        "and now my balance is down to $0.00."
++    )
++    result = prepare(source, language="en", use_spacy=False)
++    assert "¥1.000,50" in result.spoken_text
++    assert not any(
++        replacement.rule == "sequence.currency" and replacement.source == "¥1.000,50"
++        for replacement in result.source_replacements
++    )
++
++
++@pytest.mark.parametrize(
++    "source",
++    ["¥1000", "¥1000.50", "¥1,000.50", "¥1,000,000"],
++)
++def test_valid_english_yen_values_still_normalize(source: str) -> None:
++    result = prepare(source, language="en", use_spacy=False)
++    assert result.spoken_text != source
++    assert any(
++        replacement.rule == "sequence.currency" and replacement.source == source
++        for replacement in result.source_replacements
++    )
++
++
++@pytest.mark.parametrize("language", ["de", "fr", "it", "pt", "es"])
++def test_european_style_yen_remains_valid_in_compatible_locales(language: str) -> None:
++    source = "¥1.000,50"
++    result = prepare(source, language=language, use_spacy=False)
++    assert result.spoken_text != source
++    assert any(
++        replacement.rule == "sequence.currency" and replacement.source == source
++        for replacement in result.source_replacements
++    )
++
++
++@pytest.mark.parametrize("source", ["€1.000,50", "$1.000,50", "£1.000,50"])
++def test_other_malformed_english_currency_symbols_still_fail_closed(source: str) -> None:
++    assert prepare(source, language="en", use_spacy=False).spoken_text == source

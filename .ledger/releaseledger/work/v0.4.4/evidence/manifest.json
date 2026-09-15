@@ -1,0 +1,105 @@
+{
+  "candidate_count": 5,
+  "candidates": [
+    {
+      "additions": 374,
+      "deletions": 177,
+      "patch_file": "427120c.patch",
+      "patch_sha256": "6815e2dee9a6c966cf5e33a8c5bd8f99f73155771abcec8f394be80a537bc282",
+      "paths": [
+        ".ledger/releaseledger/data/ledgers/main/events/events.jsonl",
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.3/release.md",
+        "benchmarks/spokenform_gold.py",
+        "benchmarks/spokenform_gold_data.py",
+        "benchmarks/spokenform_gold_release.json",
+        "docs/benchmarks.md",
+        "docs/changelog.md",
+        "docs/release-checklist.md",
+        "spokenform/numbers.py",
+        "spokenform/recognizers/sequences.py",
+        "tests/test_de_gold_failure_regressions.py",
+        "tests/test_numbers.py",
+        "tests/test_numeralform_migration_regressions.py",
+        "tests/test_ordinals.py",
+        "tests/test_spokenform_gold.py",
+        "tests/test_spokenform_gold_data.py"
+      ],
+      "sha": "427120c03b19547a1108cdfeba83498b5b42d68c",
+      "short_sha": "427120c",
+      "source_ref": "git:427120c03b19547a1108cdfeba83498b5b42d68c"
+    },
+    {
+      "additions": 63,
+      "deletions": 7,
+      "patch_file": "24bcda3.patch",
+      "patch_sha256": "95fbdb1c619a11bb51f9d0ff2ff58864bd1a673781df37c934e05fb35a53d629",
+      "paths": [
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0003.md",
+        ".ledger/releaseledger/data/ledgers/main/releases/0.4.3/entries/entry-0004.md",
+        "docs/changelog.md",
+        "spokenform/locales/fr.py",
+        "tests/test_fr_structured.py",
+        "tests/test_numbers.py",
+        "tests/test_numeric_lexeme.py",
+        "tests/test_sequences.py"
+      ],
+      "sha": "24bcda3ff23b91558eb32bd5f7a648d79af0ba86",
+      "short_sha": "24bcda3",
+      "source_ref": "git:24bcda3ff23b91558eb32bd5f7a648d79af0ba86"
+    },
+    {
+      "additions": 133,
+      "deletions": 17,
+      "patch_file": "8626e5e.patch",
+      "patch_sha256": "5f44f2c1f4c015dac432758ca2941dfb3d7fdcc28c0b73c3c63e1336e8a9d3ab",
+      "paths": [
+        "spokenform/recognizers/sequences.py",
+        "tests/test_de_gold_failure_regressions.py",
+        "tests/test_literal_promotion.py",
+        "tests/test_pt_structured.py",
+        "tests/test_specialists.py"
+      ],
+      "sha": "8626e5e47e9db43a3bdaf18a08e83d44b904fd98",
+      "short_sha": "8626e5e",
+      "source_ref": "git:8626e5e47e9db43a3bdaf18a08e83d44b904fd98"
+    },
+    {
+      "additions": 72,
+      "deletions": 8,
+      "patch_file": "f730802.patch",
+      "patch_sha256": "06efa7f8d367264546d6706d260f99ae53520ccbbf306111f8ae6a8c92aae811",
+      "paths": [
+        "spokenform/recognizers/sequences.py",
+        "tests/test_currency_regressions.py"
+      ],
+      "sha": "f7308020137f5041241b6edd0d5aa9fe32bfd02c",
+      "short_sha": "f730802",
+      "source_ref": "git:f7308020137f5041241b6edd0d5aa9fe32bfd02c"
+    },
+    {
+      "additions": 65,
+      "deletions": 1,
+      "patch_file": "02fc4d0.patch",
+      "patch_sha256": "676fa0476ff185db238c057fdb87c5769fdae153af8903e1467c644abb429fa2",
+      "paths": [
+        "spokenform/locales/es.py",
+        "spokenform/recognizers/sequences.py",
+        "tests/test_dates.py",
+        "tests/test_sequences.py"
+      ],
+      "sha": "02fc4d06043ffaea616e61ce6dff0bd5ab05b38d",
+      "short_sha": "02fc4d0",
+      "source_ref": "git:02fc4d06043ffaea616e61ce6dff0bd5ab05b38d"
+    }
+  ],
+  "git_base_ref": "71feb9cb46a43fef9a52a4a8709e49b0080cea44",
+  "git_base_sha": "71feb9cb46a43fef9a52a4a8709e49b0080cea44",
+  "git_head_ref": "02fc4d06043ffaea616e61ce6dff0bd5ab05b38d",
+  "git_head_sha": "02fc4d06043ffaea616e61ce6dff0bd5ab05b38d",
+  "include_merges": "nontrivial",
+  "object_type": "git_evidence_manifest",
+  "release_version": "v0.4.4",
+  "schema_version": 1
+}

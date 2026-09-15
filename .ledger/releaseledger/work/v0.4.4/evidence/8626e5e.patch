@@ -1,0 +1,260 @@
+ spokenform/recognizers/sequences.py       | 67 ++++++++++++++++++++++++-------
+ tests/test_de_gold_failure_regressions.py |  6 +--
+ tests/test_literal_promotion.py           | 15 +++++++
+ tests/test_pt_structured.py               | 46 +++++++++++++++++++++
+ tests/test_specialists.py                 | 16 ++++++++
+ 5 files changed, 133 insertions(+), 17 deletions(-)
+
+diff --git a/spokenform/recognizers/sequences.py b/spokenform/recognizers/sequences.py
+index f71432d..a9b593e 100644
+--- a/spokenform/recognizers/sequences.py
++++ b/spokenform/recognizers/sequences.py
+@@ -1200,14 +1200,38 @@ def _literal_tail(value: str) -> tuple[str, str]:
+ def _literal_symbol_words(language: str) -> dict[str, str]:
+     base = base_language(language)
+     return {
+-        ".": {"de": "Punkt", "es": "punto", "fr": "point", "it": "punto"}.get(base, "dot"),
+-        "/": {"de": "Schrägstrich", "es": "barra", "fr": "barre oblique", "it": "barra"}.get(
+-            base, "slash"
+-        ),
+-        ":": {"de": "Doppelpunkt", "es": "dos puntos", "fr": "deux-points", "it": "due punti"}.get(
+-            base, "colon"
+-        ),
+-        "@": {"de": "at", "es": "arroba", "fr": "arobase", "it": "chiocciola"}.get(base, "at"),
++        ".": {
++            "de": "Punkt",
++            "es": "punto",
++            "fr": "point",
++            "it": "punto",
++            "pt": "ponto",
++            "cs": "tečka",
++        }.get(base, "dot"),
++        "/": {
++            "de": "Schrägstrich",
++            "es": "barra",
++            "fr": "barre oblique",
++            "it": "barra",
++            "pt": "barra",
++            "cs": "lomítko",
++        }.get(base, "slash"),
++        ":": {
++            "de": "Doppelpunkt",
++            "es": "dos puntos",
++            "fr": "deux-points",
++            "it": "due punti",
++            "pt": "dois-pontos",
++            "cs": "dvojtečka",
++        }.get(base, "colon"),
++        "@": {
++            "de": "at",
++            "es": "arroba",
++            "fr": "arobase",
++            "it": "chiocciola",
++            "pt": "arroba",
++            "cs": "zavináč",
++        }.get(base, "at"),
+         "?": {
+             "de": "Fragezeichen",
+             "es": "interrogación",
+@@ -1749,7 +1773,7 @@ def _german_equality_word(value: str) -> str:
+     return "gleich"
+
+
+-def _math_text(value: str, language: str) -> str:
++def _math_text(value: str, language: str) -> str | None:
+     operators = {
+         "en": {
+             "+": "plus",
+@@ -1836,8 +1860,9 @@ def _math_text(value: str, language: str) -> str:
+             "≤": "minore o uguale a",
+             "≥": "maggiore o uguale a",
+         },
+-    }.get(base_language(language), {})
+-    if base_language(language) == "de":
++    }.get(base_language(language))
++    if operators is None:
++        return None
+         operators["="] = _german_equality_word(value)
+     parts: list[str] = []
+     roots = {
+@@ -1932,7 +1957,10 @@ def _math_text(value: str, language: str) -> str:
+                 else token
+             )
+         else:
+-            parts.append(operators[token])
++            operator = operators.get(token)
++            if operator is None:
++                return None
++            parts.append(operator)
+     return " ".join(part for part in parts if part)
+
+
+@@ -3177,10 +3205,13 @@ def _iter_roman_symbol_candidates(
+
+     for match in _SUPERSCRIPT_RE.finditer(text):
+         if _claimed(match.start(), match.end(), protected):
++            replacement = _math_text(match.group(0), language)
++            if replacement is None:
++                continue
+             _add(
+                 candidates,
+                 match,
+-                _math_text(match.group(0), language),
++                replacement,
+                 language,
+                 "sequence.math",
+                 protected,
+@@ -3259,14 +3290,22 @@ def _iter_math_science_candidates(
+     protected: tuple[tuple[int, int], ...],
+     candidates: list[Replacement],
+ ) -> None:
++    url_like_ranges = tuple(
++        match.span() for pattern in (_URL_RE, _BARE_DOMAIN_RE) for match in pattern.finditer(text)
++    )
+     for pattern in (_MATH_ABSOLUTE_RE, _MATH_RE):
+         for match in pattern.finditer(text):
++            if any(match.start() < right and left < match.end() for left, right in url_like_ranges):
++                continue
+             if not _math_is_plausible(match["value"], text, match.start()):
+                 continue
++            replacement = _math_text(match["value"], language)
++            if replacement is None:
++                continue
+             _add(
+                 candidates,
+                 match,
+-                _math_text(match["value"], language),
++                replacement,
+                 language,
+                 "sequence.math",
+                 protected,
+diff --git a/tests/test_de_gold_failure_regressions.py b/tests/test_de_gold_failure_regressions.py
+index ee42d27..bd69c97 100644
+--- a/tests/test_de_gold_failure_regressions.py
++++ b/tests/test_de_gold_failure_regressions.py
+@@ -15,13 +15,13 @@ CASES = [
+     ),
+     (
+         "Die IBAN lautet DE89 3704 0044 0532 0130 00.",
+-        "Die I B A N lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
++        "Die IBAN lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
+     ),
+-    ("½ + ¼ = ¾", "einhalb plus ein Viertel ist drei Viertel"),
++    ("½ + ¼ = ¾", "einhalb plus ein Viertel gleich drei Viertel"),
+     ("2x + 3 = 15", "zwei x plus drei gleich fünfzehn"),
+     (
+         "3 × (4 + 5) = 27",
+-        "drei mal vier plus fünf in Klammern ergibt siebenundzwanzig",
++        "drei mal vier plus fünf in Klammern gleich siebenundzwanzig",
+     ),
+     ("Die Note ist ein A♯.", "Die Note ist ein Ais."),
+     ("Jahrgang MCMLXXXIX", "Jahrgang neunzehnhundertneunundachtzig"),
+diff --git a/tests/test_literal_promotion.py b/tests/test_literal_promotion.py
+index 421d738..17a4a3a 100644
+--- a/tests/test_literal_promotion.py
++++ b/tests/test_literal_promotion.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from spokenform import ProtectedSpan, prepare
+
+
+@@ -64,3 +66,16 @@ def test_contextual_roman_numerals_do_not_claim_standalone_codes() -> None:
+     standalone = prepare("IV CD DVD", language="en", use_spacy=False)
+     assert chapter.spoken_text == "Chapter four"
+     assert standalone.spoken_text == "IV C D D V D"
++
++
++@pytest.mark.parametrize("language", ["en", "de", "es", "fr", "it", "pt", "cs"])
++def test_bare_domain_path_is_not_math_when_literals_are_disabled(language: str) -> None:
++    source = "github.com/user/repo"
++    result = prepare(
++        source,
++        language=language,
++        use_spacy=False,
++        normalize_literals=False,
++    )
++    assert result.spoken_text == source
++    assert not any(item.rule == "sequence.math" for item in result.source_replacements)
+diff --git a/tests/test_pt_structured.py b/tests/test_pt_structured.py
+index e258332..0ebbadd 100644
+--- a/tests/test_pt_structured.py
++++ b/tests/test_pt_structured.py
+@@ -188,3 +188,49 @@ def test_portuguese_plain_pass_protects_literals_and_structured_candidates() ->
+     assert prepare(source, language="pt-br", use_spacy=False).spoken_text == (
+         "https://example.org/2 email dev2@example.org v1.2.3 31.02.2026 2026-02-31 25:70 18:20 doze"
+     )
++
++
++def test_portuguese_bare_domain_path_does_not_crash() -> None:
++    source = "O repositório está em github.com/user/repo."
++    result = prepare(
++        source,
++        language="pt",
++        use_spacy=False,
++    )
++    assert result.spoken_text == source
++    assert not any(item.rule == "sequence.math" for item in result.source_replacements)
++
++
++def test_portuguese_bare_domain_path_promotes_as_url() -> None:
++    result = prepare(
++        "O repositório está em github.com/user/repo.",
++        language="pt",
++        use_spacy=False,
++        normalize_literals=True,
++    )
++    assert result.spoken_text == (
++        "O repositório está em g i t h u b ponto com barra u s e r barra r e p o."
++    )
++    assert [item.rule for item in result.source_replacements] == ["sequence.url"]
++
++
++def test_portuguese_full_url_path_is_not_seen_as_math() -> None:
++    source = "https://github.com/user/repo"
++    safe = prepare(
++        source,
++        language="pt",
++        use_spacy=False,
++        normalize_literals=False,
++    )
++    promoted = prepare(
++        source,
++        language="pt",
++        use_spacy=False,
++        normalize_literals=True,
++    )
++    assert safe.spoken_text == source
++    assert not any(item.rule == "sequence.math" for item in safe.source_replacements)
++    assert promoted.spoken_text == (
++        "h t t p s dois-pontos barra barra g i t h u b ponto com barra u s e r barra r e p o"
++    )
++    assert [item.rule for item in promoted.source_replacements] == ["sequence.url"]
+diff --git a/tests/test_specialists.py b/tests/test_specialists.py
+index dc6e780..7dd195d 100644
+--- a/tests/test_specialists.py
++++ b/tests/test_specialists.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from spokenform import prepare
+
+
+@@ -110,3 +112,17 @@ def test_math_and_music_words_follow_locale_without_promoting_literals() -> None
+         "zwei plus zwei gleich vier"
+     )
+     assert prepare("chord C#", language="fr", use_spacy=False).spoken_text == ("chord cé dièse")
++
++
++@pytest.mark.parametrize("language", ["pt", "cs"])
++def test_unreviewed_math_locale_fails_closed(language: str) -> None:
++    source = "x/y=z"
++    result = prepare(source, language=language, use_spacy=False)
++    assert result.spoken_text == source
++    assert not any(item.rule == "sequence.math" for item in result.source_replacements)
++
++
++def test_reviewed_english_math_still_renders() -> None:
++    result = prepare("2+2=4", language="en", use_spacy=False)
++    assert result.spoken_text == "two plus two equals four"
++    assert any(item.rule == "sequence.math" for item in result.source_replacements)

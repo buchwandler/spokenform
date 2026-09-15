@@ -1,0 +1,127 @@
+ spokenform/locales/es.py            | 17 +++++++++++++++++
+ spokenform/recognizers/sequences.py |  5 ++++-
+ tests/test_dates.py                 | 25 +++++++++++++++++++++++++
+ tests/test_sequences.py             | 19 +++++++++++++++++++
+ 4 files changed, 65 insertions(+), 1 deletion(-)
+
+diff --git a/spokenform/locales/es.py b/spokenform/locales/es.py
+index b159aef..14492de 100644
+--- a/spokenform/locales/es.py
++++ b/spokenform/locales/es.py
+@@ -173,6 +173,9 @@ _DATE_DMY_SHORT = re.compile(
+ _DATE_DMY_NO_YEAR = re.compile(
+     r"(?<![\w./])(?P<day>0?[1-9]|[12]\d|3[01])/(?P<month>0?[1-9]|1[0-2])(?![\w/])"
+ )
++_DATE_MDY_NO_YEAR_FALLBACK = re.compile(
++    r"(?<![\w./])(?P<month>0?[1-9]|1[0-2])/(?P<day>2[1-9]|3[01])(?![\w/])"
++)
+ _DATE_DMY_HYPHEN = re.compile(
+     r"(?<![\w.])(?P<day>\d{1,2})-(?P<month>\d{1,2})-(?P<year>\d{2,4})(?!\d)"
+ )
+@@ -423,6 +426,20 @@ def _iter_es_dates(
+                 "es.date",
+                 protected,
+             )
++    for match in _DATE_MDY_NO_YEAR_FALLBACK.finditer(text):
++        day, month = int(match["day"]), int(match["month"])
++        if _valid_date(day, month, 2000) and _date_like_context(
++            text, match.start(), match.end(), day=day
++        ):
++            day_text = "primero" if day == 1 else _spell(day, language)
++            _add_candidate(
++                candidates,
++                match.start(),
++                match.end(),
++                f"{day_text} de {_MONTHS[month - 1]}",
++                "es.date",
++                protected,
++            )
+     for pattern in (_DATE_DMY_SHORT, _DATE_DMY_HYPHEN):
+         for match in pattern.finditer(text):
+             year, _ = expand_year(match["year"])
+diff --git a/spokenform/recognizers/sequences.py b/spokenform/recognizers/sequences.py
+index 4b1130a..2f80721 100644
+--- a/spokenform/recognizers/sequences.py
++++ b/spokenform/recognizers/sequences.py
+@@ -773,7 +773,10 @@ def _slash_fraction_text(
+         and denominator_value == 2
+     ):
+         return "metà"
+-    fraction = _fraction_word(numerator_value, denominator_value, language)
++    try:
++        fraction = _fraction_word(numerator_value, denominator_value, language)
++    except ValueError:
++        return None
+     if (
+         whole is not None
+         and base_language(language) == "en"
+diff --git a/tests/test_dates.py b/tests/test_dates.py
+index 5cbf759..4e7d436 100644
+--- a/tests/test_dates.py
++++ b/tests/test_dates.py
+@@ -100,3 +100,28 @@ def test_benchmark_date_shapes_and_no_year_dates_use_date_rules() -> None:
+         result = prepare(source, language=language, use_spacy=False)
+         assert result.spoken_text == expected, (source, language)
+         assert any("date" in item.rule for item in result.source_replacements)
++
++
++def test_spanish_mdy_short_date_above_fraction_ordinal_domain() -> None:
++    result = prepare(
++        "12/25 (Navidad).",
++        language="es",
++        use_spacy=False,
++    )
++
++    assert result.spoken_text == "Veinticinco de diciembre (Navidad)."
++    assert [item.rule for item in result.source_replacements] == ["es.date"]
++
++
++def test_spanish_mdy_short_date_january_22() -> None:
++    result = prepare("1/22", language="es", use_spacy=False)
++
++    assert result.spoken_text == "Veintidós de enero"
++    assert [item.rule for item in result.source_replacements] == ["es.date"]
++
++
++def test_spanish_mdy_short_date_fallback_supports_es_mx() -> None:
++    result = prepare("12/25", language="es-MX", use_spacy=False)
++
++    assert result.spoken_text == "Veinticinco de diciembre"
++    assert [item.rule for item in result.source_replacements] == ["es.date"]
+diff --git a/tests/test_sequences.py b/tests/test_sequences.py
+index b4e6312..723cc83 100644
+--- a/tests/test_sequences.py
++++ b/tests/test_sequences.py
+@@ -2,6 +2,7 @@ import pytest
+
+ from spokenform import prepare
+ from spokenform.language_support import SEQUENCE_POLICY_LANGUAGES
++from spokenform.number_words import ordinal
+ from spokenform.sequences import (
+     SequenceRenderPolicy,
+     render_digits,
+@@ -339,6 +340,24 @@ def test_slash_and_mixed_fractions_are_semantic(language: str, source: str, expe
+     assert any(item.rule == "sequence.fraction" for item in result.source_replacements)
+
+
++def test_spanish_fraction_domain_boundary_remains_fraction() -> None:
++    result = prepare("12/20", language="es", use_spacy=False)
++
++    assert result.spoken_text == "Doce vigésimos"
++    assert [item.rule for item in result.source_replacements] == ["sequence.fraction"]
++
++
++def test_spanish_unrenderable_fraction_denominator_fails_closed() -> None:
++    result = prepare("22/25", language="es", use_spacy=False)
++
++    assert not any(item.rule == "sequence.fraction" for item in result.source_replacements)
++
++
++def test_spanish_direct_ordinal_rendering_remains_strict() -> None:
++    with pytest.raises(ValueError, match="Cannot render ordinal"):
++        ordinal(25, "es")
++
++
+ def test_fraction_does_not_claim_url_or_full_date_shape() -> None:
+     url = prepare("https://example.org/1/2", language="en", use_spacy=False)
+     assert url.spoken_text == "https://example.org/1/2"

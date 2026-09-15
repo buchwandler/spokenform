@@ -1,0 +1,79 @@
+rows:
+  - sha: 427120c03b19547a1108cdfeba83498b5b42d68c
+    inspected: true
+    inspected_paths:
+      - benchmarks/spokenform_gold.py
+      - benchmarks/spokenform_gold_data.py
+      - benchmarks/spokenform_gold_release.json
+      - docs/benchmarks.md
+      - docs/release-checklist.md
+      - spokenform/numbers.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_gold_failure_regressions.py
+      - tests/test_numbers.py
+      - tests/test_numeralform_migration_regressions.py
+      - tests/test_ordinals.py
+      - tests/test_spokenform_gold.py
+      - tests/test_spokenform_gold_data.py
+    observed_behavior: Added immutable release-asset and runtime-source verification for the Spokenform Gold benchmark, and improved German comma-separated number and short social-identifier rendering
+    public_impact: public
+    decision: accepted
+    target_entry_key: null
+    target_entry_id: null
+    notes: Releaseledger metadata and generated changelog edits are provenance only; benchmark and numeric behavior are covered by curated entries
+    stale: false
+  - sha: 24bcda3ff23b91558eb32bd5f7a648d79af0ba86
+    inspected: true
+    inspected_paths:
+      - spokenform/locales/fr.py
+      - tests/test_fr_structured.py
+      - tests/test_numeric_lexeme.py
+      - tests/test_sequences.py
+    observed_behavior: French coordinate recognition accepts dot and comma decimal separators while ordinary quantity parsing remains fail-closed for unsupported dot decimals
+    public_impact: public
+    decision: accepted
+    target_entry_key: null
+    target_entry_id: null
+    notes: Focused regression tests pass
+    stale: false
+  - sha: 8626e5e47e9db43a3bdaf18a08e83d44b904fd98
+    inspected: true
+    inspected_paths:
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_gold_failure_regressions.py
+      - tests/test_literal_promotion.py
+      - tests/test_pt_structured.py
+      - tests/test_specialists.py
+    observed_behavior: URL-like literals no longer become math candidates, unsupported math locales fail closed, and Portuguese and Czech literal symbols use localized words
+    public_impact: public
+    decision: accepted
+    target_entry_key: null
+    target_entry_id: null
+    notes: Focused regression tests pass
+    stale: false
+  - sha: f7308020137f5041241b6edd0d5aa9fe32bfd02c
+    inspected: true
+    inspected_paths:
+      - spokenform/recognizers/sequences.py
+      - tests/test_currency_regressions.py
+    observed_behavior: Currency candidates now validate numeric lexemes before rendering, leaving malformed locale-mismatched amounts unchanged while preserving valid currency normalization
+    public_impact: public
+    decision: accepted
+    target_entry_key: null
+    target_entry_id: null
+    notes: Focused regression tests pass
+    stale: false
+  - sha: 02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+    inspected: true
+    inspected_paths:
+      - spokenform/locales/es.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_dates.py
+      - tests/test_sequences.py
+    observed_behavior: Spanish recognition supports contextual month/day dates without a year and leaves unrenderable fractions unchanged
+    public_impact: public
+    decision: accepted
+    target_entry_id: null
+    target_entry_key: null
+    notes: Focused regression tests pass
+    stale: false

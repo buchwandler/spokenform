@@ -1,0 +1,110 @@
+schema: releaseledger.entry-batch.v1
+operation: create
+schema_version: 1
+object_type: release_entry_batch
+release_version: v0.4.4
+git_base_ref: 71feb9cb46a43fef9a52a4a8709e49b0080cea44
+git_base_sha: 71feb9cb46a43fef9a52a4a8709e49b0080cea44
+git_head_ref: 02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+git_head_sha: 02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+include_merges: nontrivial
+entries:
+  - kind: added
+    summary: Added deterministic Spokenform Gold benchmark consumption with immutable release-asset and runtime-source verification
+    status: accepted
+    source_refs:
+      - git:427120c03b19547a1108cdfeba83498b5b42d68c
+    paths:
+      - benchmarks/spokenform_gold.py
+      - benchmarks/spokenform_gold_data.py
+      - benchmarks/spokenform_gold_release.json
+      - docs/benchmarks.md
+      - docs/release-checklist.md
+      - tests/test_spokenform_gold.py
+      - tests/test_spokenform_gold_data.py
+    sources:
+      - git:427120c03b19547a1108cdfeba83498b5b42d68c
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: changed
+    summary: Improved German comma-separated number and short social-identifier rendering
+    status: accepted
+    source_refs: []
+    paths:
+      - spokenform/numbers.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_gold_failure_regressions.py
+      - tests/test_numbers.py
+      - tests/test_numeralform_migration_regressions.py
+      - tests/test_ordinals.py
+    sources:
+      - git:427120c03b19547a1108cdfeba83498b5b42d68c
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: fixed
+    summary: Fixed French coordinate recognition for dot and comma decimal separators while preserving fail-closed quantity parsing
+    status: accepted
+    source_refs:
+      - git:24bcda3ff23b91558eb32bd5f7a648d79af0ba86
+    paths:
+      - spokenform/locales/fr.py
+      - tests/test_fr_structured.py
+      - tests/test_numeric_lexeme.py
+      - tests/test_sequences.py
+    sources:
+      - git:24bcda3ff23b91558eb32bd5f7a648d79af0ba86
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: fixed
+    summary: Fixed URL-like literals being treated as math and made unsupported math locales fail closed
+    status: accepted
+    source_refs:
+      - git:8626e5e47e9db43a3bdaf18a08e83d44b904fd98
+    paths:
+      - spokenform/recognizers/sequences.py
+      - tests/test_de_gold_failure_regressions.py
+      - tests/test_literal_promotion.py
+      - tests/test_pt_structured.py
+      - tests/test_specialists.py
+    sources:
+      - git:8626e5e47e9db43a3bdaf18a08e83d44b904fd98
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: fixed
+    summary: Fixed malformed locale-mismatched currency amounts being rewritten while preserving valid currency normalization
+    status: accepted
+    source_refs:
+      - git:f7308020137f5041241b6edd0d5aa9fe32bfd02c
+    paths:
+      - spokenform/recognizers/sequences.py
+      - tests/test_currency_regressions.py
+    sources:
+      - git:f7308020137f5041241b6edd0d5aa9fe32bfd02c
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: added
+    summary: Added contextual Spanish month/day date recognition without a year
+    status: accepted
+    source_refs:
+      - git:02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+    paths:
+      - spokenform/locales/es.py
+      - spokenform/recognizers/sequences.py
+      - tests/test_dates.py
+      - tests/test_sequences.py
+    sources:
+      - git:02fc4d06043ffaea616e61ce6dff0bd5ab05b38d
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
