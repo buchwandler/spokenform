@@ -23,6 +23,17 @@ def test_numeric_lexeme_preserves_cross_locale_decimal_precision() -> None:
         assert lexeme.fraction_digits == fraction
 
 
+def test_french_coordinate_accepts_long_dot_decimal_without_broadening_quantity_policy() -> None:
+    coordinate = parse_numeric_lexeme("48.8566", "fr", context="coordinate")
+
+    assert coordinate is not None
+    assert coordinate.integer_digits == "48"
+    assert coordinate.fraction_digits == "8566"
+    assert coordinate.decimal_separator == "."
+
+    assert parse_numeric_lexeme("48.8566", "fr", context="quantity") is None
+
+
 def test_numeric_lexeme_distinguishes_grouping_and_mixed_decimal_forms() -> None:
     grouped = parse_numeric_lexeme("3,000", "es-MX", context="quantity")
     german_grouped = parse_numeric_lexeme("1.000.000", "de-DE", context="currency")

@@ -14,6 +14,28 @@ def test_french_parity_corpus() -> None:
         assert result.spoken_text == case["expected"], case["name"]
 
 
+def test_french_dot_decimal_coordinates_do_not_break_locale_candidate_collection() -> None:
+    result = prepare(
+        "La carte indique 48.8566° N, 2.3522° E.",
+        language="fr",
+        use_spacy=False,
+    )
+
+    assert result.spoken_text == (
+        "La carte indique quarante-huit virgule huit cinq six six degrés nord, "
+        "deux virgule trois cinq deux deux degrés est."
+    )
+
+    coordinate_replacements = [
+        item for item in result.source_replacements if item.rule == "sequence.coordinate"
+    ]
+    assert len(coordinate_replacements) == 2
+
+    assert prepare("12,80 EUR", language="fr", use_spacy=False).spoken_text == (
+        "douze euros quatre-vingts centimes"
+    )
+
+
 def test_french_replacements_have_exact_source_and_output_coordinates() -> None:
     source = "Le 14.05.2026: 2 kg, 12,80 EUR et 2 kg."
     result = prepare(source, language="fr", use_spacy=False)

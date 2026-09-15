@@ -460,11 +460,15 @@ def _iter_fr_plain_numbers(
             continue
         if re.fullmatch(r"v?\d+(?:\.\d+){2,}", match["number"], re.IGNORECASE):
             continue
+        try:
+            replacement = _number_text(match["number"], language)
+        except ValueError:
+            replacement = None
         _add_candidate(
             candidates,
             match.start(),
             match.end(),
-            _number_text(match["number"], language),
+            replacement,
             "fr.number",
             protected,
         )

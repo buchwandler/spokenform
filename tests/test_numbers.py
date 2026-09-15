@@ -16,6 +16,7 @@ def test_german_decimal_and_unit_ready_text() -> None:
 def test_german_comma_separated_cardinals_are_spoken(source: str, expected: str) -> None:
     assert prepare(source, language="de", use_spacy=False).spoken_text == expected
 
+
 def test_english_direct_number_api_preserves_explicit_decimal_precision() -> None:
     assert normalize_numbers("2.0", language="en") == "two point zero"
     assert normalize_numbers(".02", language="en") == "point zero two"

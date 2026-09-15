@@ -87,6 +87,18 @@ def test_coordinates_support_integer_precision_and_direction_words() -> None:
     )
 
 
+def test_french_coordinates_accept_dot_and_comma_decimal_separators() -> None:
+    assert prepare("48.8566° N", language="fr", use_spacy=False).spoken_text == (
+        "quarante-huit virgule huit cinq six six degrés nord"
+    )
+    assert prepare("48,8566° N", language="fr", use_spacy=False).spoken_text == (
+        "quarante-huit virgule huit cinq six six degrés nord"
+    )
+    assert prepare("2.3522° E", language="fr", use_spacy=False).spoken_text == (
+        "deux virgule trois cinq deux deux degrés est"
+    )
+
+
 def test_coordinates_fail_closed_when_directional_ranges_are_invalid() -> None:
     assert prepare("91° N", language="en", use_spacy=False).spoken_text == "ninety one° N"
     assert (
