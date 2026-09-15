@@ -120,3 +120,55 @@ def test_malformed_currency_has_no_partial_structured_currency_edit(source: str)
         source, language="de_DE" if source.startswith(("$", "€")) else "es_MX"
     )
     assert not any(edit.rule and edit.rule.endswith(".currency") for edit in replacements)
+
+
+def test_unparseable_english_yen_currency_fails_closed() -> None:
+    source = "¥1.000,50"
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text == source
+    assert not any(
+        replacement.rule == "sequence.currency" for replacement in result.source_replacements
+    )
+
+
+def test_gold_malformed_yen_sentence_does_not_crash() -> None:
+    source = (
+        "The final cost for the project was ¥1.000,50, "
+        "which I transferred immediately, "
+        "and now my balance is down to $0.00."
+    )
+    result = prepare(source, language="en", use_spacy=False)
+    assert "¥1.000,50" in result.spoken_text
+    assert not any(
+        replacement.rule == "sequence.currency" and replacement.source == "¥1.000,50"
+        for replacement in result.source_replacements
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    ["¥1000", "¥1000.50", "¥1,000.50", "¥1,000,000"],
+)
+def test_valid_english_yen_values_still_normalize(source: str) -> None:
+    result = prepare(source, language="en", use_spacy=False)
+    assert result.spoken_text != source
+    assert any(
+        replacement.rule == "sequence.currency" and replacement.source == source
+        for replacement in result.source_replacements
+    )
+
+
+@pytest.mark.parametrize("language", ["de", "fr", "it", "pt", "es"])
+def test_european_style_yen_remains_valid_in_compatible_locales(language: str) -> None:
+    source = "¥1.000,50"
+    result = prepare(source, language=language, use_spacy=False)
+    assert result.spoken_text != source
+    assert any(
+        replacement.rule == "sequence.currency" and replacement.source == source
+        for replacement in result.source_replacements
+    )
+
+
+@pytest.mark.parametrize("source", ["€1.000,50", "$1.000,50", "£1.000,50"])
+def test_other_malformed_english_currency_symbols_still_fail_closed(source: str) -> None:
+    assert prepare(source, language="en", use_spacy=False).spoken_text == source

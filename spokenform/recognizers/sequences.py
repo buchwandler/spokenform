@@ -884,7 +884,11 @@ def _percent_text(raw: str, language: str) -> str:
     return f"{_decimal_text(raw, language, context='percent')} {names.get(base_language(language), 'percent')}"
 
 
-def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
+def _currency_symbol_text(raw: str, symbol: str, language: str) -> str | None:
+    lexeme = parse_numeric_lexeme(raw, language, context="quantity")
+    if lexeme is None:
+        return None
+
     base = base_language(language)
     names = {
         "€": {
@@ -933,7 +937,9 @@ def _currency_symbol_text(raw: str, symbol: str, language: str) -> str:
         "pt": "centavos",
         "cs": "centů",
     }
-    negative, integer, fraction = _decimal_parts(raw, language, context="quantity")
+    negative = lexeme.negative
+    integer = int(lexeme.integer_digits or "0")
+    fraction = lexeme.fraction_digits
     currency_name = names[symbol].get(base, names[symbol]["en"])
     if base == "en" and (integer != 1 or fraction):
         currency_name += "s"
@@ -2789,14 +2795,20 @@ def _iter_finance_quantity_candidates(
     for match in _CURRENCY_SYMBOL_RE.finditer(text):
         symbol = match["prefix"] or match["suffix"]
         if symbol and (base_language(language) == "it" or symbol == "¥"):
-            _add(
-                candidates,
-                match,
-                _currency_symbol_text(match["number"], symbol, language),
+            replacement = _currency_symbol_text(
+                match["number"],
+                symbol,
                 language,
-                "sequence.currency",
-                protected,
             )
+            if replacement is not None:
+                _add(
+                    candidates,
+                    match,
+                    replacement,
+                    language,
+                    "sequence.currency",
+                    protected,
+                )
 
     for match in _PERCENT_RE.finditer(text):
         _add(
