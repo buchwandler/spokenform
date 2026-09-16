@@ -72,6 +72,94 @@ def test_v2_release_rejects_legacy_split() -> None:
         cli._validate_split_for_manifest("test", {"format": "v2"})
 
 
+def test_full_corpus_requires_license_acknowledgement_before_scoring(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from benchmarks import spokenform_gold as cli
+
+    class FakeBenchmark:
+        @staticmethod
+        def verify_release(root: Path) -> dict[str, object]:
+            return {
+                "manifest": {
+                    "format": "v2",
+                    "public_external_ref_records": 1978,
+                    "public_release_records": 20037,
+                },
+                "manifest_hash": "manifest-hash",
+            }
+
+        @staticmethod
+        def run_benchmark(**kwargs: object) -> dict:
+            pytest.fail("scoring must not start before license acknowledgement")
+
+    source = cli.GoldSource(tmp_path / "release", None, "explicit", None, "explicit-root", None)
+    monkeypatch.setattr(cli, "_resolve_gold_source", lambda args: source)
+    monkeypatch.setattr(cli, "_load_gold_benchmark", lambda source_root=None: FakeBenchmark)
+    args = cli._parser().parse_args(["--gold-root", str(source.gold_root)])
+
+    with pytest.raises(PermissionError, match="1,978 external-reference records"):
+        cli.evaluate_and_write(args)
+
+
+def test_source_loader_receives_license_acknowledgement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from benchmarks import spokenform_gold as cli
+
+    calls: dict[str, object] = {}
+
+    class LoaderModule:
+        @staticmethod
+        def build_release_source_loader(*args: object, **kwargs: object) -> object:
+            calls["args"] = args
+            calls.update(kwargs)
+            return object()
+
+    monkeypatch.setattr(cli, "load_gold_module", lambda *args, **kwargs: LoaderModule)
+    source = cli.GoldSource(
+        tmp_path / "release",
+        tmp_path / "runtime",
+        "explicit",
+        None,
+        "explicit-root",
+        None,
+    )
+    args = cli._parser().parse_args(
+        ["--gold-root", str(source.gold_root), "--accept-upstream-licenses"]
+    )
+
+    cli._source_loader_for(source, args)
+
+    assert calls["accept_upstream_licenses"] is True
+
+
+def test_full_corpus_count_mismatch_fails_before_writing_rows(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from benchmarks import spokenform_gold as cli
+
+    class FakeBenchmark:
+        @staticmethod
+        def verify_release(root: Path) -> dict[str, object]:
+            return {
+                "manifest": {"format": "v2", "public_release_records": 20037},
+                "manifest_hash": "manifest-hash",
+            }
+
+        @staticmethod
+        def run_benchmark(**kwargs: object) -> dict:
+            return {"record_count": 20036}
+
+    source = cli.GoldSource(tmp_path / "release", None, "explicit", None, "explicit-root", None)
+    monkeypatch.setattr(cli, "_resolve_gold_source", lambda args: source)
+    monkeypatch.setattr(cli, "_load_gold_benchmark", lambda source_root=None: FakeBenchmark)
+    args = cli._parser().parse_args(["--gold-root", str(source.gold_root)])
+
+    with pytest.raises(RuntimeError, match="evaluated 20036 of 20037"):
+        cli.evaluate_and_write(args)
+
+
 def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -111,7 +199,10 @@ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
     class FakeBenchmark:
         @staticmethod
         def verify_release(root: Path) -> dict[str, object]:
-            return {"manifest": {"format": "v2"}, "manifest_hash": "manifest-hash"}
+            return {
+                "manifest": {"format": "v2", "public_release_records": 2},
+                "manifest_hash": "manifest-hash",
+            }
 
         @staticmethod
         def run_benchmark(**kwargs: object) -> dict:

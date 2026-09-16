@@ -28,11 +28,18 @@ def _gold_summary(summary: dict[str, Any]) -> dict[str, Any]:
 
 def _kpis(summary: dict[str, Any]) -> tuple[KPI, ...]:
     gold = _gold_summary(summary)
+    adapter = summary.get("adapter", {})
     mode = summary.get("mode", "canonical")
     primary_label = f"Primary accuracy ({mode})"
     excluded = int(gold.get("excluded_count", 0) or 0)
     ambiguous = int(gold.get("ambiguous_count", 0) or 0)
     quarantine = int(gold.get("quarantine_count", 0) or 0)
+    release_records = int(adapter.get("release_records", 0) or 0)
+    evaluated_records = int(adapter.get("evaluated_records", summary.get("record_count", 0)) or 0)
+    coverage = (
+        f"{number(evaluated_records)} / {number(release_records)}" if release_records else "N/A"
+    )
+    completeness = "full" if adapter.get("full_corpus") else "filtered selection"
     return (
         KPI("Scorable records", number(gold.get("records_scorable", 0))),
         KPI(primary_label, percent(gold.get("primary_accuracy", 0)), mode),
@@ -40,6 +47,7 @@ def _kpis(summary: dict[str, Any]) -> tuple[KPI, ...]:
         KPI("Accepted accuracy", percent(gold.get("accepted_variant_accuracy", 0))),
         KPI("No-change accuracy", percent(gold.get("no_change_accuracy", 0))),
         KPI("False-positive rate", percent(gold.get("false_positive_normalization_rate", 0))),
+        KPI("Release coverage", coverage, completeness),
         KPI("Excluded", number(excluded), f"{ambiguous} ambiguous · {quarantine} quarantine"),
     )
 
@@ -71,13 +79,23 @@ def _aggregate_table(mapping: dict[str, Any], label: str) -> str:
 
 def _overview(summary: dict[str, Any]) -> str:
     gold = _gold_summary(summary)
+    adapter = summary.get("adapter", {})
+    release_records = int(adapter.get("release_records", 0) or 0)
+    evaluated_records = int(adapter.get("evaluated_records", summary.get("record_count", 0)) or 0)
+    completeness = "full" if adapter.get("full_corpus") else "filtered selection"
     lines = [
+        f"<p><strong>Release:</strong> {escape(adapter.get('release_tag') or 'explicit local release')}</p>",
+        f"<p><strong>Gold version:</strong> {escape(adapter.get('release_version') or summary.get('spokenform_gold_version', 'unknown'))}</p>",
         f"<p><strong>Selection:</strong> {escape(summary.get('selection', summary.get('split') or 'corpus'))}</p>",
         f"<p><strong>Scoring mode:</strong> {escape(summary.get('mode', 'canonical'))}</p>",
         f"<p><strong>Profile:</strong> {escape(summary.get('profile_name', 'unknown'))}</p>",
-        f"<p><strong>Total records:</strong> {number(gold.get('records_total', summary.get('record_count', 0)))}; "
-        f"<strong>Scorable:</strong> {number(gold.get('records_scorable', 0))}</p>",
-        f"<p><strong>Ambiguous:</strong> {number(gold.get('ambiguous_count', 0))}; "
+        f"<p><strong>Release records:</strong> {number(release_records)}; "
+        f"<strong>Evaluated records:</strong> {number(evaluated_records)}</p>",
+        f"<p><strong>Embedded:</strong> {number(adapter.get('embedded_records', 0))}; "
+        f"<strong>External reference:</strong> {number(adapter.get('external_reference_records', 0))}</p>",
+        f"<p><strong>Corpus completeness:</strong> {escape(completeness)}</p>",
+        f"<p><strong>Scorable:</strong> {number(gold.get('records_scorable', 0))}; "
+        f"<strong>Ambiguous:</strong> {number(gold.get('ambiguous_count', 0))}; "
         f"<strong>Quarantine:</strong> {number(gold.get('quarantine_count', 0))}</p>",
         "<p>Canonical mode requires the Gold canonical output. Accepted mode permits Gold-declared accepted variants. "
         "Ambiguous and quarantine records are excluded from scoring. No-change records measure false-positive normalization.</p>",
@@ -201,9 +219,23 @@ def _metadata(summary: dict[str, Any]) -> str:
         "spokenform_version": summary.get("spokenform_version"),
         "spokenform_commit": summary.get("spokenform_commit"),
         "gold_repository": summary.get("adapter", {}).get("repository"),
+        "release_tag": summary.get("adapter", {}).get("release_tag"),
+        "release_version": summary.get("adapter", {}).get("release_version"),
+        "release_target_commit": summary.get("adapter", {}).get("release_target_commit"),
+        "release_asset": summary.get("adapter", {}).get("release_asset"),
+        "release_archive_sha256": summary.get("adapter", {}).get("release_archive_sha256"),
         "gold_source_commit": summary.get("adapter", {}).get("dataset_commit"),
         "gold_benchmark_version": summary.get("spokenform_gold_version"),
         "gold_manifest_hash": summary.get("gold_manifest_hash"),
+        "gold_manifest_format": summary.get("adapter", {}).get("gold_manifest_format"),
+        "gold_schema_version": summary.get("adapter", {}).get("gold_schema_version"),
+        "release_maturity": summary.get("adapter", {}).get("release_maturity"),
+        "coverage_profile": summary.get("adapter", {}).get("coverage_profile"),
+        "release_records": summary.get("adapter", {}).get("release_records"),
+        "evaluated_records": summary.get("adapter", {}).get("evaluated_records"),
+        "external_reference_records": summary.get("adapter", {}).get("external_reference_records"),
+        "full_corpus": summary.get("adapter", {}).get("full_corpus"),
+        "upstream_licenses_accepted": summary.get("adapter", {}).get("upstream_licenses_accepted"),
         "profile": summary.get("profile_name"),
         "profile_config": summary.get("profile_config"),
         "mode": summary.get("mode"),
@@ -242,7 +274,11 @@ def render_report(
         Section("failures", "Failures", "Failure explorer", _failure_table(failures)),
         Section("metadata", "Metadata", "Run provenance", _metadata(summary)),
     ]
-    source = summary.get("adapter", {}).get("dataset_commit") or "explicit local release"
+    source = (
+        summary.get("adapter", {}).get("release_tag")
+        or summary.get("adapter", {}).get("dataset_commit")
+        or "explicit local release"
+    )
     subtitle = f"{source} | {number(summary.get('record_count', 0))} selected records | {summary.get('mode', 'canonical')} mode"
     return render_page(
         title="Spokenform Gold benchmark",

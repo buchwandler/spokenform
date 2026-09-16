@@ -23,7 +23,8 @@ SPOKENFORM_GOLD_ARCHIVE_SHA256 = str(RELEASE_PIN["archive_sha256"])
 SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256 = str(RELEASE_PIN["release_manifest_sha256"])
 SPOKENFORM_GOLD_RUNTIME_SOURCE_REF = str(RELEASE_PIN["runtime_source_ref"])
 SPOKENFORM_GOLD_POLICY_CONTRACT = str(RELEASE_PIN["policy_contract"])
-SPOKENFORM_GOLD_COMMIT = SPOKENFORM_GOLD_RUNTIME_SOURCE_REF
+SPOKENFORM_GOLD_TARGET_COMMIT = str(RELEASE_PIN["target_commit"])
+SPOKENFORM_GOLD_COMMIT = SPOKENFORM_GOLD_TARGET_COMMIT
 SPOKENFORM_GOLD_ARCHIVE_URL = (
     f"{SPOKENFORM_GOLD_REPOSITORY}/releases/download/{SPOKENFORM_GOLD_TAG}/{SPOKENFORM_GOLD_ASSET}"
 )
@@ -49,7 +50,7 @@ def cache_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
 
 
 def source_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
-    return Path(cache_dir) / "runtime" / SPOKENFORM_GOLD_RUNTIME_SOURCE_REF
+    return cache_path(cache_dir) / "runtime"
 
 
 def release_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
@@ -163,7 +164,9 @@ def _metadata(verification: dict[str, object], source_root: Path) -> dict[str, o
         "benchmark": "spokenform_gold",
         "repository": SPOKENFORM_GOLD_REPOSITORY,
         "tag": SPOKENFORM_GOLD_TAG,
+        "asset": SPOKENFORM_GOLD_ASSET,
         "runtime_source_ref": SPOKENFORM_GOLD_RUNTIME_SOURCE_REF,
+        "release_target_commit": SPOKENFORM_GOLD_TARGET_COMMIT,
         "release_version": SPOKENFORM_GOLD_RELEASE_VERSION,
         "archive_sha256": SPOKENFORM_GOLD_ARCHIVE_SHA256,
         "release_manifest_hash": verification["manifest_hash"],
@@ -261,6 +264,7 @@ __all__ = [
     "SPOKENFORM_GOLD_ARCHIVE_SHA256",
     "SPOKENFORM_GOLD_ARCHIVE_URL",
     "SPOKENFORM_GOLD_COMMIT",
+    "SPOKENFORM_GOLD_TARGET_COMMIT",
     "SPOKENFORM_GOLD_ASSET",
     "SPOKENFORM_GOLD_POLICY_CONTRACT",
     "SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256",

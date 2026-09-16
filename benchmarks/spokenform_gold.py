@@ -124,6 +124,16 @@ def _gold_split(split: str) -> str | None:
     return None if split in {"corpus", "all"} else split
 
 
+def _is_full_corpus_request(args: argparse.Namespace) -> bool:
+    return (
+        args.split in {"corpus", "all"}
+        and args.language is None
+        and args.locale is None
+        and args.category is None
+        and not args.cases
+    )
+
+
 def _validate_split_for_manifest(split: str, manifest: dict[str, Any]) -> None:
     release_format = manifest.get("format")
     if release_format == "v2" and split not in {"corpus", "all"}:
@@ -209,6 +219,9 @@ def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
         offline=args.offline,
         refresh=args.refresh,
     )
+    runtime = source_path(args.cache_dir)
+    if not runtime.is_dir():
+        raise FileNotFoundError(f"verified Spokenform Gold runtime is missing: {runtime}")
     return GoldSource(
         gold_root=release,
         source_root=source_path(args.cache_dir),
@@ -249,14 +262,29 @@ def _build_rows(
     summary: dict[str, Any], records: Iterable[dict[str, Any]], *, mode: str
 ) -> tuple[dict[str, Any], ...]:
     record_by_id = {record["id"]: record for record in records if isinstance(record.get("id"), str)}
+    result_by_id = {
+        result["id"]: result
+        for result in summary["summary"].get("record_results", [])
+        if isinstance(result.get("id"), str)
+    }
     result_rows: list[dict[str, Any]] = []
-    for result in summary["summary"].get("record_results", []):
-        record = record_by_id.get(result["id"], {})
+    for record_id in sorted(set(record_by_id) | set(result_by_id)):
+        record = record_by_id.get(record_id, {})
+        result = result_by_id.get(
+            record_id,
+            {
+                "id": record_id,
+                "prediction": "",
+                "canonical_match": False,
+                "accepted_match": False,
+                "accepted_variants": [],
+            },
+        )
         units = record.get("units", [])
         source_benchmarks = _source_benchmarks(record)
         result_rows.append(
             {
-                "id": result["id"],
+                "id": record_id,
                 "family_id": record.get("family_id"),
                 "language": record.get("language", result.get("language")),
                 "locale": record.get("locale", result.get("locale")),
@@ -284,11 +312,14 @@ def _build_rows(
                 "units": units,
             }
         )
-    return tuple(sorted(result_rows, key=lambda row: row["id"]))
+    return tuple(result_rows)
 
 
 def _enrich_summary(
-    summary: dict[str, Any], args: argparse.Namespace, source: GoldSource
+    summary: dict[str, Any],
+    args: argparse.Namespace,
+    source: GoldSource,
+    manifest: dict[str, Any],
 ) -> dict[str, Any]:
     source_metadata = _metadata_for_source(source)
     filters = {
@@ -298,6 +329,17 @@ def _enrich_summary(
         "category": args.category,
         "case_ids": sorted(args.cases or []),
     }
+    counts = manifest.get("counts", {})
+    if not isinstance(counts, dict):
+        counts = {}
+    release_records = int(manifest.get("public_release_records") or counts.get("records") or 0)
+    embedded_records = int(manifest.get("public_embedded_records") or 0)
+    external_records = int(manifest.get("public_external_ref_records") or 0)
+    evaluated_records = int(summary.get("record_count", 0) or 0)
+    full_corpus = _is_full_corpus_request(args) and evaluated_records == release_records
+    release_tag = source_metadata.get("tag")
+    release_version = source_metadata.get("release_version") or manifest.get("benchmark_version")
+    release_target_commit = source_metadata.get("release_target_commit") or source.commit
     configuration = {
         "split": args.split,
         "language": args.language,
@@ -307,13 +349,31 @@ def _enrich_summary(
         "profile": args.profile,
         "mode": args.mode,
         "source_mode": source.mode,
+        "gold_release_tag": release_tag,
+        "gold_manifest_hash": summary["gold_manifest_hash"],
     }
-    dataset_identity = source.commit or summary["gold_manifest_hash"]
+    dataset_identity = release_target_commit or summary["gold_manifest_hash"]
     summary["selection"] = args.split
     summary["adapter"] = {
         "benchmark": "Spokenform Gold",
         "repository": source_metadata.get("repository", source.repository),
-        "dataset_commit": source.commit,
+        "release_tag": release_tag,
+        "release_version": release_version,
+        "release_asset": source_metadata.get("asset"),
+        "release_target_commit": release_target_commit,
+        "release_archive_sha256": source_metadata.get("archive_sha256"),
+        "gold_manifest_hash": summary["gold_manifest_hash"],
+        "gold_manifest_format": manifest.get("format"),
+        "gold_schema_version": manifest.get("schema_version"),
+        "release_maturity": manifest.get("maturity"),
+        "coverage_profile": manifest.get("coverage_profile"),
+        "release_records": release_records,
+        "embedded_records": embedded_records,
+        "external_reference_records": external_records,
+        "evaluated_records": evaluated_records,
+        "full_corpus": full_corpus,
+        "upstream_licenses_accepted": bool(args.accept_upstream_licenses),
+        "dataset_commit": dataset_identity,
         "source_mode": source.mode,
         "cache_dir": str(source.cache_dir) if source.cache_dir else None,
         "gold_root": str(source.gold_root),
@@ -323,6 +383,7 @@ def _enrich_summary(
     summary["identity"] = {
         "benchmark": "Spokenform Gold",
         "dataset_commit": dataset_identity,
+        "gold_release_tag": release_tag,
         "gold_manifest_hash": summary["gold_manifest_hash"],
         "spokenform_source_commit": summary["spokenform_commit"],
         "spokenform_version": summary["spokenform_version"],
@@ -338,12 +399,22 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     source = _resolve_gold_source(args)
     benchmark = _load_gold_benchmark(source.source_root)
     verification = benchmark.verify_release(source.gold_root)
+    manifest = verification.get("manifest", {})
     if not args.download_only:
-        _validate_split_for_manifest(args.split, verification.get("manifest", {}))
+        _validate_split_for_manifest(args.split, manifest)
+        if _is_full_corpus_request(args):
+            external_refs = int(manifest.get("public_external_ref_records", 0) or 0)
+            if external_refs and not args.accept_upstream_licenses:
+                raise PermissionError(
+                    f"Spokenform Gold {manifest.get('benchmark_version', 'release')} contains "
+                    f"{external_refs:,} external-reference records.\n"
+                    "A full corpus benchmark requires upstream source hydration.\n"
+                    "Re-run with --accept-upstream-licenses after reviewing the release source licenses."
+                )
     if args.download_only:
         return source.gold_root, {"download_only": True, "source": source}
     source_loader = None
-    if verification["manifest"].get("public_external_ref_records", 0):
+    if manifest.get("public_external_ref_records", 0):
         source_loader = _source_loader_for(source, args)
     run_dir = args.results_dir / _run_id()
     summary = benchmark.run_benchmark(
@@ -361,6 +432,18 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
         spokenform_commit=_source_commit(),
         source_loader=source_loader,
     )
+    if _is_full_corpus_request(args):
+        expected = int(
+            manifest.get("public_release_records")
+            or (manifest.get("counts", {}) or {}).get("records", 0)
+            or 0
+        )
+        actual = int(summary.get("record_count", 0) or 0)
+        if expected and actual != expected:
+            raise RuntimeError(
+                "Spokenform Gold full benchmark is incomplete: "
+                f"evaluated {actual} of {expected} release records"
+            )
     _, records = benchmark.load_release_records(
         source.gold_root,
         split=_gold_split(args.split),
@@ -372,7 +455,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
     )
     rows = _build_rows(summary, records, mode=args.mode)
     _write_jsonl(run_dir / "rows.jsonl", rows)
-    summary = _enrich_summary(summary, args, source)
+    summary = _enrich_summary(summary, args, source, manifest)
     _write_json(run_dir / "summary.json", summary)
     if args.report == "html":
         from .spokenform_gold_report import render_report

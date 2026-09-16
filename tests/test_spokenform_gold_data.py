@@ -97,6 +97,8 @@ def test_first_download_cache_hit_refresh_and_metadata(
     release = data.ensure_data(cache_dir=tmp_path / "cache")
     assert release == data.release_path(tmp_path / "cache")
     metadata = json.loads(data.metadata_path(tmp_path / "cache").read_text(encoding="utf-8"))
+    assert data.source_path(tmp_path / "cache").is_dir()
+    assert data.source_path(tmp_path / "cache") == (data.cache_path(tmp_path / "cache") / "runtime")
     assert metadata["tag"] == "v0.2.0-exp"
     assert metadata["release_format"] == "v2"
     assert metadata["gold_schema_version"] == "2.0.0"
@@ -107,6 +109,23 @@ def test_first_download_cache_hit_refresh_and_metadata(
     monkeypatch.setattr(data, "_download", download)
     assert data.ensure_data(cache_dir=tmp_path / "cache", refresh=True) == release
     assert len(calls) == 4
+
+
+def test_checked_in_gold_pin_is_exp2() -> None:
+    assert data.SPOKENFORM_GOLD_TAG == "v0.1.0-exp.2"
+    assert data.SPOKENFORM_GOLD_RELEASE_VERSION == "0.1.0-exp.2"
+    assert data.SPOKENFORM_GOLD_ASSET == "spokenform-gold-v0.1.0-exp.2.zip"
+    assert data.SPOKENFORM_GOLD_ARCHIVE_SHA256 == (
+        "ec840f4c8ecab6576d53966e07b504edc6f8fb575b2c4add19f0bdb11db78cac"
+    )
+    assert data.SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256 == (
+        "dd6b4b617a0cdde2ecab8dd8dd4f670d79ce5bba4de8ba1e741b3c8389328cd7"
+    )
+    assert data.SPOKENFORM_GOLD_TARGET_COMMIT == ("4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8")
+    assert data.SPOKENFORM_GOLD_TAG == f"v{data.SPOKENFORM_GOLD_RELEASE_VERSION}"
+    assert data.SPOKENFORM_GOLD_ASSET == (
+        f"spokenform-gold-v{data.SPOKENFORM_GOLD_RELEASE_VERSION}.zip"
+    )
 
 
 @pytest.mark.parametrize(

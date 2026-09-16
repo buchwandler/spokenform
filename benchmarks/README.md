@@ -102,12 +102,23 @@ The dashboard clearly separates deterministic Spokenform text metrics from publi
 
 ## Spokenform Gold benchmark
 
-`python -m benchmarks.spokenform_gold` downloads the reviewed Spokenform Gold repository at pinned commit `7b9107a4193475a05f8d2c1eb41e833c9d2c08c5`, builds and verifies the experimental `0.2.0-exp` v2 release from its canonical unsplit `data/corpus.jsonl`, evaluates the corpus, and writes a self-contained HTML report. The source and materialized release are cached under `.cache/spokenform-gold/<commit>/`; cached data is not packaged with Spokenform.
+`python -m benchmarks.spokenform_gold` consumes the published Spokenform Gold `v0.1.0-exp.2` release ZIP pinned in `benchmarks/spokenform_gold_release.json`. Automatic mode downloads and verifies the exact archive and manifest hashes, safely extracts the unsplit v2 corpus, and uses the matching Gold runtime source only for release verification, scoring, and source hydration. It never rebuilds Gold or floats to a dynamically selected GitHub release. Cached data is not packaged with Spokenform.
 
-The automatic benchmark uses `--split corpus`. `test` and `dev` remain available only for compatible explicit legacy release roots and are rejected for a v2 corpus release rather than silently evaluating the full corpus. Use `--offline` to reuse a populated cache, `--refresh` to repopulate it, `--download-only` to populate and verify without scoring, `--cache-dir` to choose another cache, `--gold-root /path/to/release` to use an explicit local release, `--split corpus|test|dev|all`, `--mode canonical|accepted`, and `--report html|none`. Results are written under `benchmark-results/spokenform-gold/<run-id>/` with `summary.json`, `predictions.jsonl`, `rows.jsonl`, `failures.jsonl`, `failures.md`, and, by default, `report.html`.
-The cache metadata and reports preserve the pinned commit, Gold manifest hash, release format and schema, corpus file, and source observation provenance. Gold owns canonical and accepted scoring, corpus validation, release integrity, ambiguity and quarantine exclusions, and no-change metrics.
+Run the complete 20,037-record corpus with explicit upstream-license acknowledgement:
 
-The Gold corpus remains a diagnostic benchmark rather than a stable release gate. The adapter records source provenance and uses Gold's own scoring, release verification, and materialization policy. It does not automatically hydrate restricted PolyNorm or Proteno sources.
+```bash
+python -m benchmarks.spokenform_gold \
+  --split corpus \
+  --accept-upstream-licenses \
+  --report html
+```
+
+The release contains 18,059 embedded records and 1,978 external-reference records. A full run requires `--accept-upstream-licenses` before source hydration and writes `summary.json`, `predictions.jsonl`, `rows.jsonl`, `failures.jsonl`, `failures.md`, and `report.html` under `benchmark-results/spokenform-gold/<run-id>/`. The report records release identity and shows evaluated coverage as `20,037 / 20,037`.
+
+Use `--offline` for a reproducible rerun after the cache is populated, `--refresh` only after an intentional pin update, `--download-only` to populate without scoring, `--cache-dir` to choose another cache, and `--gold-root` for an extracted local release. Filtered runs remain supported and are labeled as filtered rather than full corpus runs.
+
+The Gold corpus remains a diagnostic benchmark rather than a stable release gate. Gold owns canonical and accepted scoring, corpus validation, release integrity, ambiguity and quarantine exclusions, and no-change metrics.
+The adapter records release provenance and uses Gold's own scoring, verification, and materialization policy. It does not automatically hydrate restricted PolyNorm or Proteno sources.
 
 ## v0.3 policy oracle coverage
 

@@ -34,7 +34,21 @@ def test_report_contains_sections_and_exact_failure_values(tmp_path: Path) -> No
             "quarantine_count": 0,
             "excluded_count": 0,
         },
-        "adapter": {"repository": "repo", "dataset_commit": "commit", "source_mode": "auto-cache"},
+        "adapter": {
+            "repository": "repo",
+            "dataset_commit": "4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8",
+            "release_tag": "v0.1.0-exp.2",
+            "release_version": "0.1.0-exp.2",
+            "release_target_commit": "4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8",
+            "release_asset": "spokenform-gold-v0.1.0-exp.2.zip",
+            "release_archive_sha256": "archive-hash",
+            "release_records": 20037,
+            "evaluated_records": 20037,
+            "embedded_records": 18059,
+            "external_reference_records": 1978,
+            "full_corpus": True,
+            "source_mode": "auto-cache",
+        },
         "identity": {"configuration_hash": "config"},
     }
     rows = [
@@ -81,6 +95,11 @@ def test_report_contains_sections_and_exact_failure_values(tmp_path: Path) -> No
     assert "Second original" in html
     assert "Second expected" in html
     assert "Second actual" in html
+    assert "v0.1.0-exp.2" in html
+    assert "20,037" in html
+    assert "18,059" in html
+    assert "1,978" in html
+    assert "full" in html
     assert "First actual" not in html
 
 

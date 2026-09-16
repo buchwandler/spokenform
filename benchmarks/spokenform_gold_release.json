@@ -1,10 +1,11 @@
 {
   "repository": "buchwandler/spokenform-gold",
-  "tag": "v0.1.0-exp.1",
-  "version": "0.1.0-exp.1",
-  "asset": "spokenform-gold-v0.1.0-exp.1.zip",
-  "archive_sha256": "d58cb0cc3d7ff08b47cb3126a00e741e71dabf23e8879cc84d7e408631dd8f93",
-  "release_manifest_sha256": "7377923740aff6c2ebc0a5716480b7b0792a93cca18054758901b7fedac94ce3",
-  "runtime_source_ref": "v0.1.0-exp.1",
+  "tag": "v0.1.0-exp.2",
+  "version": "0.1.0-exp.2",
+  "asset": "spokenform-gold-v0.1.0-exp.2.zip",
+  "archive_sha256": "ec840f4c8ecab6576d53966e07b504edc6f8fb575b2c4add19f0bdb11db78cac",
+  "release_manifest_sha256": "dd6b4b617a0cdde2ecab8dd8dd4f670d79ce5bba4de8ba1e741b3c8389328cd7",
+  "runtime_source_ref": "v0.1.0-exp.2",
+  "target_commit": "4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8",
   "policy_contract": "v0.3.0"
 }

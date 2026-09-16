@@ -40,28 +40,33 @@ selection project.
 Run the pinned Gold release diagnostic benchmark with:
 
 ```bash
-python -m benchmarks.spokenform_gold --split corpus
+python -m benchmarks.spokenform_gold \
+  --split corpus \
+  --accept-upstream-licenses \
+  --report html
 ```
 
-The consumer reads the exact release asset pinned in
+The consumer reads the exact `v0.1.0-exp.2` release asset pinned in
 `benchmarks/spokenform_gold_release.json`. It never rebuilds Gold data from a
 source checkout and never selects the latest GitHub release dynamically. The
-pin contains the release tag, asset SHA-256, manifest SHA-256, and matching
-runtime source tag. The first online run downloads and verifies the release
-zip and matching-tag runtime source under `.cache/spokenform-gold/`.
+pin contains the release tag, asset SHA-256, manifest SHA-256, target commit,
+and matching runtime source ref. The first online run downloads and verifies the
+release zip and matching runtime source under `.cache/spokenform-gold/`. The
+v2 corpus is unsplit and contains 20,037 public release records, including 1,978
+external-reference records and 18,059 embedded records.
 
-Use `--offline` after the cache is populated, `--refresh` to replace it after
-an intentional pin update, `--download-only` to populate without evaluation,
-`--cache-dir` or `--source-cache-dir` to relocate release or external-source
-caches, `--gold-root` for an extracted release directory containing
-`manifest.json`, `--split corpus`, `--mode canonical|accepted`, and
-`--report none` to disable HTML. Passing a source checkout to `--gold-root`
-is rejected with a targeted diagnostic.
+Use `--offline` after the cache is populated, `--refresh` only after an intentional
+pin update, `--download-only` to populate without evaluation, `--cache-dir` or
+`--source-cache-dir` to relocate release or external-source caches, `--gold-root`
+for an extracted release directory containing `manifest.json`, `--split corpus`,
+`--mode canonical|accepted`, and `--report none` to disable HTML. Passing a source
+checkout to `--gold-root` is rejected with a targeted diagnostic.
 
-Some releases reference public upstream source artifacts. Hydration is
-explicitly controlled with `--accept-upstream-licenses`; restricted sources
-remain unavailable unless that acknowledgement is supplied. Use `--offline`
-to guarantee that source hydration performs no network access.
+Full corpus runs require `--accept-upstream-licenses` before source hydration. The
+benchmark fails before scoring if the flag is absent, evaluates all 20,037 release
+records, and records release identity and coverage in `summary.json` and the
+self-contained `report.html`. Use `--offline` to guarantee that source hydration
+performs no network access.
 
 ## Lexhint A/B comparison
 

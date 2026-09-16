@@ -24,6 +24,24 @@ The Gold release workflow is operator-triggered and serializes one candidate per
 
 For a first dispatch, confirm that `../spokenform/benchmarks/spokenform_gold_release.json` points to a published immutable asset. Its archive and manifest hashes must be real values, not placeholders. The consumer must be able to run with `--offline` after one successful online cache fill. Do not replace the pin with a branch, a latest-release lookup, or a source checkout.
 
+For the current pin, verify `v0.1.0-exp.2`, public release count `20,037`, embedded count `18,059`, and external-reference count `1,978`. A full consumer run must use:
+```bash
+python -m benchmarks.spokenform_gold \
+  --split corpus \
+  --accept-upstream-licenses \
+  --report html
+```
+
+When updating the pin:
+1. Inspect the intended release by tag, including prereleases.
+2. Copy the release ZIP SHA-256 and manifest SHA-256.
+3. Copy the release target commit.
+4. Update `benchmarks/spokenform_gold_release.json`.
+5. Run focused pin, cache, and release-consumer tests.
+6. Populate the cache with the online full benchmark.
+7. Verify all 20,037 records and the generated report metadata.
+8. Rerun the same command with `--offline` and compare release identity, manifest hash, source revisions, counts, and results.
+
 13. Publish the GitHub release only after all required checks pass.
 14. Before a downstream kokorog2p release raises its spokenform minimum, publish
     the spokenform release and verify the real `de`, `es`, and `fr` integration
