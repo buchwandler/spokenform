@@ -63,7 +63,7 @@ print(prepared.render_changes())
 
 ## Language support
 
-The exhaustive runtime language matrix is maintained in [`docs/language-coverage.md`](docs/language-coverage.md), with architecture notes in [`docs/languages.md`](docs/languages.md). Spokenform accepts 49 base families and 17 exact locale overlays. Abbreviation routing follows `abbr2words`; released number backends, reviewed punctuation, structured semantics, sequence policies, and KokoroG2P support are independent capabilities.
+The exhaustive runtime language matrix is maintained in [`docs/language-coverage.md`](docs/language-coverage.md), with architecture notes in [`docs/languages.md`](docs/languages.md). Spokenform accepts 62 base families and 18 exact locale overlays. Abbreviation routing follows `abbr2words`; released number backends, reviewed punctuation, structured semantics, sequence policies, and KokoroG2P support are independent capabilities.
 
 Swedish is available as `sv`, `sv-SE`, or `sv_SE`; `swe` and `swe-SE` are compatibility aliases.
 
@@ -83,7 +83,7 @@ result = prepare(
     "Путь составляет 22 км.",
     language="ru",
     use_spacy=False,
- )
+)
 print(result.spoken_text)
 ```
 

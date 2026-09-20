@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from abbr2words import get_shared_expander
+
 from spokenform import language_support, resolve_abbr2words_language, supported_languages
 
 ROOT = Path(__file__).parents[1]
@@ -16,7 +18,8 @@ def _render_table() -> list[str]:
         "Abbr2words locale",
         "Numeralform locale",
         "Exact locale",
-        "Abbreviations",
+        "Abbr2words registered",
+        "Bundled abbreviation lexicon",
         "Number renderer",
         "Renderer available",
         "Plain cardinals",
@@ -36,6 +39,9 @@ def _render_table() -> list[str]:
                 f"`{support.number_language or 'none'}`",
                 "yes" if support.exact_locale else "no",
                 "yes",
+                "yes"
+                if get_shared_expander(resolve_abbr2words_language(language)).entries
+                else "no",
                 support.number_backend or "none",
                 "yes" if support.number_backend_available else "no",
                 "yes" if support.plain_cardinals else "no",

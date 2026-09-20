@@ -29,9 +29,7 @@ result = prepare_language(
     language="en",
     profile=profile,
 )
-assert result.spoken_text == (
-    "Triple A enters the A O after the after-action review."
-)
+assert result.spoken_text == ("Triple A enters the A O after the after-action review.")
 ```
 
 The supported `read_as` values are:

@@ -44,9 +44,7 @@ Swedish uses comma decimals and reviewed quantities, temperatures, and Swedish k
 assert prepare(
     "TP. Hà Nội có 2 kg hàng với giá 1000 VND.",
     language="vi",
-).spoken_text == (
-    "thành phố Hà Nội có hai kilôgam hàng với giá một nghìn đồng Việt Nam."
-)
+).spoken_text == ("thành phố Hà Nội có hai kilôgam hàng với giá một nghìn đồng Việt Nam.")
 ```
 
 Vietnamese uses comma decimals with exact fractional precision, dot or space-family grouping, reviewed quantities and VND/₫ amounts, and guarded dependency abbreviations. Dates, digital times, ordinals, arbitrary initialisms, and unreviewed specialist domains remain caller-managed or fail closed.

@@ -22,6 +22,19 @@ EXPECTED_BASES = {
     "az",
     "be",
     "bn",
+    "bg",
+    "el",
+    "et",
+    "eu",
+    "ka",
+    "ku",
+    "lb",
+    "ml",
+    "mr",
+    "ne",
+    "sq",
+    "sw",
+    "ur",
     "ca",
     "ce",
     "cs",
@@ -119,7 +132,7 @@ def test_base_language_and_supported_languages() -> None:
     assert set(supported_languages()) == EXPECTED_BASES
     assert set(SUPPORTED_LOCALES) == EXPECTED_LOCALES
     assert set(supported_languages(include_locales=True)) == EXPECTED_BASES | EXPECTED_LOCALES
-    assert len(supported_languages(include_locales=True)) == 67
+    assert len(supported_languages(include_locales=True)) == 80
 
 
 def test_language_validation() -> None:
@@ -127,10 +140,8 @@ def test_language_validation() -> None:
         normalize_language(None)  # type: ignore[arg-type]
     with pytest.raises(ValueError, match="language must not be empty"):
         normalize_language("  ")
-    with pytest.raises(ValueError, match="Unsupported language"):
-        normalize_language("EU")
-    assert supports_language("nl")
-    assert not supports_language("EU")
+    assert normalize_language("EU") == "eu"
+    assert supports_language("EU")
 
 
 @pytest.mark.parametrize(
@@ -139,6 +150,30 @@ def test_language_validation() -> None:
 )
 def test_abbr2words_preserves_exact_registered_overlays(requested: str, expected: str) -> None:
     assert resolve_abbr2words_language(requested) == expected
+
+
+@pytest.mark.parametrize(
+    ("requested", "expected"),
+    [
+        ("bg_BG", "bg"),
+        ("el_GR", "el"),
+        ("et_EE", "et"),
+        ("eu_ES", "eu"),
+        ("ka_GE", "ka"),
+        ("ku_TR", "ku"),
+        ("lb_LU", "lb"),
+        ("ml_IN", "ml"),
+        ("mr_IN", "mr"),
+        ("ne_NP", "ne"),
+        ("sq_AL", "sq"),
+        ("sw_CD", "sw"),
+        ("ur_PK", "ur"),
+    ],
+)
+def test_new_stimulus_locales_fall_back_to_reviewed_base(requested: str, expected: str) -> None:
+    assert normalize_language(requested) == expected
+    assert resolve_abbr2words_language(requested) == expected
+    assert resolve_numeralform_locale(requested) == expected
 
 
 @pytest.mark.parametrize("requested", ["fr-FR", "de-DE", "vi-VN", "sv-SE"])

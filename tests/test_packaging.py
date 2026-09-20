@@ -60,7 +60,7 @@ def test_numeralform_dependency_contract() -> None:
     )["project"]
     dependencies = project["dependencies"]
 
-    assert "numeralform>=0.1.6,<0.2.0" in dependencies
+    assert "numeralform>=0.1.8,<0.2.0" in dependencies
     assert not any(requirement.lower().startswith("num2words") for requirement in dependencies)
 
 

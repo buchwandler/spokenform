@@ -7,7 +7,7 @@ import pytest
 from abbr2words import supported_languages as abbr2words_supported_languages
 
 from spokenform import SpeechProfile, prepare
-from spokenform.language import SUPPORTED_BASE_LANGUAGES, supported_languages, supports_language
+from spokenform.language import SUPPORTED_BASE_LANGUAGES, supported_languages
 
 CONTRACT = json.loads(
     (Path(__file__).parent / "data" / "language_registry_contract.json").read_text()
@@ -24,9 +24,8 @@ def test_spokenform_registry_matches_dependency_contract() -> None:
     expected_keys = expected_bases | set(CONTRACT["locale_keys"]) | {"pt_PT"}
     assert set(SUPPORTED_BASE_LANGUAGES) == expected_bases
     assert set(supported_languages(include_locales=True)) == expected_keys
-    assert len(SUPPORTED_BASE_LANGUAGES) == 49
-    assert len(supported_languages(include_locales=True)) == 67
-    assert not supports_language("eu")
+    assert len(SUPPORTED_BASE_LANGUAGES) == 62
+    assert len(supported_languages(include_locales=True)) == 80
 
 
 @pytest.mark.parametrize(

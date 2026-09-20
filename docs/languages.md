@@ -10,6 +10,7 @@ The generated capability matrix is maintained in [`language-coverage.md`](langua
 | `ar`           |
 | `az`           |
 | `be`           |
+| `bg`           |
 | `bn`           |
 | `ca`           |
 | `ce`           |
@@ -17,9 +18,12 @@ The generated capability matrix is maintained in [`language-coverage.md`](langua
 | `cy`           |
 | `da`           |
 | `de`           |
+| `el`           |
 | `en`           |
 | `eo`           |
 | `es`           |
+| `et`           |
+| `eu`           |
 | `fa`           |
 | `fi`           |
 | `fr`           |
@@ -34,10 +38,16 @@ The generated capability matrix is maintained in [`language-coverage.md`](langua
 | `kk`           |
 | `kn`           |
 | `ko`           |
+| `ka`           |
 | `lt`           |
+| `ku`           |
 | `lv`           |
+| `lb`           |
 | `mn`           |
+| `ml`           |
+| `mr`           |
 | `nl`           |
+| `ne`           |
 | `no`           |
 | `pl`           |
 | `pt`           |
@@ -45,18 +55,23 @@ The generated capability matrix is maintained in [`language-coverage.md`](langua
 | `ru`           |
 | `sk`           |
 | `sl`           |
+| `sq`           |
 | `sr`           |
 | `sv`           |
+| `sw`           |
 | `te`           |
 | `tet`          |
 | `tg`           |
 | `th`           |
 | `tr`           |
 | `uk`           |
+| `ur`           |
 | `vi`           |
 | `zh`           |
 
 The 18 exact overlays are `en_GB`, `en_IN`, `en_NG`, `en_US`, `es_CO`, `es_CR`, `es_GT`, `es_MX`, `es_NI`, `es_VE`, `fr_BE`, `fr_CH`, `fr_DZ`, `pt_BR`, `pt_PT`, `zh_CN`, `zh_HK`, and `zh_TW`.
+
+The 13 foundation families `bg`, `el`, `et`, `eu`, `ka`, `ku`, `lb`, `ml`, `mr`, `ne`, `sq`, `sw`, and `ur` provide reviewed plain-number rendering and safe Abbr2words registration. Foundation registration does not imply a bundled abbreviation lexicon or structured-number support.
 
 # Language support matrix
 
