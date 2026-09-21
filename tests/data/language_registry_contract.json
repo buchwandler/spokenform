@@ -1,6 +1,6 @@
 {
-  "abbr2words_minimum": "0.2.15",
-  "numeralform_minimum": "0.1.8",
+  "abbr2words_minimum": "0.2.16",
+  "numeralform_minimum": "0.1.9",
   "base_keys": [
     "am",
     "ar",

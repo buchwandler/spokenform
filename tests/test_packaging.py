@@ -60,7 +60,7 @@ def test_numeralform_dependency_contract() -> None:
     )["project"]
     dependencies = project["dependencies"]
 
-    assert "numeralform>=0.1.8,<0.2.0" in dependencies
+    assert "numeralform>=0.1.9,<0.2.0" in dependencies
     assert not any(requirement.lower().startswith("num2words") for requirement in dependencies)
 
 
@@ -89,7 +89,7 @@ def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
     )["project"]
     dependencies = project["dependencies"]
 
-    assert "abbr2words>=0.2.15,<0.3.0" in dependencies
+    assert "abbr2words>=0.2.16,<0.3.0" in dependencies
     assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)
 
 
