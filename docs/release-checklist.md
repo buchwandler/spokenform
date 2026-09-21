@@ -18,7 +18,7 @@
 11. Test wheel installation, one deterministic normalization example, and the `spokenform` console command in a fresh environment.
 12. Confirm the release workflow uses a PyPI trusted publisher when repository OIDC is configured; otherwise verify the configured API token without changing authentication on release day.
 
-### Spokenform Gold benchmark consumption
+## Spokenform Gold benchmark consumption
 
 The Gold release workflow is operator-triggered and serializes one candidate per release tag. It plans the next version, builds and verifies deterministic candidate bytes, runs the real Spokenform consumer gate, compares an existing tag by manifest and archive SHA-256 values, publishes only equivalent or absent releases, and re-downloads the public zip for verification.
 
