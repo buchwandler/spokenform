@@ -529,11 +529,15 @@ def _iter_es_ordinals(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
     for match in _ORDINAL_SYMBOL.finditer(text):
+        try:
+            replacement = _ordinal_text(int(match["number"]), match["suffix"], language)
+        except ValueError:
+            continue
         _add_candidate(
             candidates,
             match.start(),
             match.end(),
-            _ordinal_text(int(match["number"]), match["suffix"], language),
+            replacement,
             "es.ordinal",
             protected,
         )

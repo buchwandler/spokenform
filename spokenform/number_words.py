@@ -153,6 +153,8 @@ def ordinal(value: int, language: str) -> str:
     """Render an ordinal, rejecting languages without an ordinal contract."""
     if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError("ordinal values must be integers")
+    if base_language(language) == "es" and value > 20:
+        raise ValueError(f"Cannot render ordinal for {normalize_language(language)!r}: value is outside the reviewed range")
     backend = require_number_backend(language)
     if backend.name == "cn2an":
         raise ValueError(f"Ordinal rendering is not supported for {normalize_language(language)!r}")
