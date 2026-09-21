@@ -1,0 +1,124 @@
+ .github/workflows/tests.yml                | 2 +-
+ README.md                                  | 2 +-
+ docs/migration-kokorog2p.md                | 2 +-
+ docs/profiles.md                           | 2 +-
+ docs/release-checklist.md                  | 2 +-
+ pyproject.toml                             | 6 +++---
+ tests/data/language_registry_contract.json | 4 ++--
+ tests/test_packaging.py                    | 4 ++--
+ 8 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index 6835033..b071d4f 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -80,7 +80,7 @@ jobs:
+     - name: Install exact abbr2words floor
+       run: |
+         python -m pip install --upgrade pip
+-        python -m pip install "abbr2words==0.2.15" "cn2an>=0.5.24,<0.6" "numeralform==0.1.8" "pytest>=8"
++        python -m pip install "abbr2words==0.2.16" "cn2an>=0.5.24,<0.6" "numeralform==0.1.9" "pytest>=8"
+         python -m pip install -e . --no-deps
+     - name: Run minimum dependency contract
+       run: >
+diff --git a/README.md b/README.md
+index 00c45b0..c914a4d 100644
+--- a/README.md
++++ b/README.md
+@@ -467,7 +467,7 @@ release, for example `vX.Y.Z`.
+ The source-tree fallback when SCM metadata has not been generated is the neutral
+ version `0+unknown`; release builds derive their version from the annotated tag.
+
+-Before publishing, ensure the released `abbr2words>=0.2.15,<0.3.0` prerequisite containing
++Before publishing, ensure the released `abbr2words>=0.2.16,<0.3.0` prerequisite containing
+ the source-aligned replacement contract exists on the target package index and run the checklist in
+ [`docs/release-checklist.md`](docs/release-checklist.md).
+
+diff --git a/docs/migration-kokorog2p.md b/docs/migration-kokorog2p.md
+index f05f09f..1dd2ba4 100644
+--- a/docs/migration-kokorog2p.md
++++ b/docs/migration-kokorog2p.md
+@@ -53,7 +53,7 @@ This audit intentionally does not port language detection, markup parsing, mixed
+ language orchestration, lexicon lookup, phoneme suffix rules, token IDs, or model
+ specific quote/dash behavior into spokenform. French, Spanish, Italian, and
+ Portuguese are
+-ready for downstream handoff only with the released `abbr2words>=0.2.15,<0.3.0`
++ready for downstream handoff only with the released `abbr2words>=0.2.16,<0.3.0`
+ prerequisite and their real parity gates; package publication remains the release
+ workflow boundary. Spanish, Italian, Portuguese, and Czech time ownership is
+ intentionally deferred until reviewed time corpora exist. English semantic
+diff --git a/docs/profiles.md b/docs/profiles.md
+index fe15ea3..63ce119 100644
+--- a/docs/profiles.md
++++ b/docs/profiles.md
+@@ -88,6 +88,6 @@ The v1 profile API intentionally has no JSON or YAML format, CLI profile loader,
+ inheritance or merging, automatic ambiguity resolution, military time policy, SSML, or
+ phoneme override support. These can be added after runtime profile semantics are stable.
+
+-Spokenform requires `abbr2words>=0.2.15,<0.3.0` for the isolated expander, bulk
++Spokenform requires `abbr2words>=0.2.16,<0.3.0` for the language registry, isolated expander, bulk
+ registration, speech strategies, custom spoken forms, and exact replacement APIs used by
+ profiles.
+diff --git a/docs/release-checklist.md b/docs/release-checklist.md
+index 4392be5..399cb3d 100644
+--- a/docs/release-checklist.md
++++ b/docs/release-checklist.md
+@@ -1,6 +1,6 @@
+ # Release checklist
+
+-1. Ensure the released `abbr2words>=0.2.15,<0.3.0` prerequisite containing the source-aligned replacement contract, reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
++1. Ensure the released `abbr2words>=0.2.16,<0.3.0` prerequisite containing the language registry, source-aligned replacement contract, reviewed structured identities, CJK inventories, and initialism policy is available from the target package index.
+
+ - Confirm the released Lexhint versions allowed by the `spokenform[lexhint]` extra pass the real provider contract test.
+ - For Lexhint 0.2.x, confirm a compatible schema-8 `runtime` dataset is published and installable.
+diff --git a/pyproject.toml b/pyproject.toml
+index 77cd990..c31e63c 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -34,10 +34,10 @@ classifiers = [
+   "Topic :: Text Processing :: Linguistic",
+ ]
+ dependencies = [
+-  # 0.2.15 owns isolated expanders, currency spans, and the reviewed German vgl./i.d.R./o.ä./u.U. lexical registry.
+-  "abbr2words>=0.2.15,<0.3.0",
++  # 0.2.16 owns the language registry, isolated expanders, currency spans, and the reviewed German vgl./i.d.R./o.ä./u.U. lexical registry.
++  "abbr2words>=0.2.16,<0.3.0",
+   "cn2an>=0.5.24,<0.6",
+-  "numeralform>=0.1.8,<0.2.0",
++  "numeralform>=0.1.9,<0.2.0",
+ ]
+
+ [project.optional-dependencies]
+diff --git a/tests/data/language_registry_contract.json b/tests/data/language_registry_contract.json
+index a99340f..c12c5cf 100644
+--- a/tests/data/language_registry_contract.json
++++ b/tests/data/language_registry_contract.json
+@@ -1,6 +1,6 @@
+ {
+-  "abbr2words_minimum": "0.2.15",
+-  "numeralform_minimum": "0.1.8",
++  "abbr2words_minimum": "0.2.16",
++  "numeralform_minimum": "0.1.9",
+   "base_keys": [
+     "am",
+     "ar",
+diff --git a/tests/test_packaging.py b/tests/test_packaging.py
+index 39f9115..551297d 100644
+--- a/tests/test_packaging.py
++++ b/tests/test_packaging.py
+@@ -60,7 +60,7 @@ def test_numeralform_dependency_contract() -> None:
+     )["project"]
+     dependencies = project["dependencies"]
+
+-    assert "numeralform>=0.1.8,<0.2.0" in dependencies
++    assert "numeralform>=0.1.9,<0.2.0" in dependencies
+     assert not any(requirement.lower().startswith("num2words") for requirement in dependencies)
+
+
+@@ -89,7 +89,7 @@ def test_abbr2words_minimum_matches_structured_identity_contract() -> None:
+     )["project"]
+     dependencies = project["dependencies"]
+
+-    assert "abbr2words>=0.2.15,<0.3.0" in dependencies
++    assert "abbr2words>=0.2.16,<0.3.0" in dependencies
+     assert not any("abbr2words>=0.2.2" in requirement for requirement in dependencies)

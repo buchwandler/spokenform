@@ -1,0 +1,666 @@
+ benchmarks/README.md                    |  19 ++++--
+ benchmarks/spokenform_gold.py           | 103 ++++++++++++++++++++++++++++----
+ benchmarks/spokenform_gold_data.py      |   8 ++-
+ benchmarks/spokenform_gold_release.json |  13 ++--
+ benchmarks/spokenform_gold_report.py    |  44 ++++++++++++--
+ docs/benchmarks.md                      |  41 +++++++------
+ docs/release-checklist.md               |  18 ++++++
+ tests/test_spokenform_gold.py           |  93 +++++++++++++++++++++++++++-
+ tests/test_spokenform_gold_data.py      |  19 ++++++
+ tests/test_spokenform_gold_report.py    |  21 ++++++-
+ 10 files changed, 333 insertions(+), 46 deletions(-)
+
+diff --git a/benchmarks/README.md b/benchmarks/README.md
+index 7e845be..769ba5c 100644
+--- a/benchmarks/README.md
++++ b/benchmarks/README.md
+@@ -102,12 +102,23 @@ The dashboard clearly separates deterministic Spokenform text metrics from publi
+
+ ## Spokenform Gold benchmark
+
+-`python -m benchmarks.spokenform_gold` downloads the reviewed Spokenform Gold repository at pinned commit `7b9107a4193475a05f8d2c1eb41e833c9d2c08c5`, builds and verifies the experimental `0.2.0-exp` v2 release from its canonical unsplit `data/corpus.jsonl`, evaluates the corpus, and writes a self-contained HTML report. The source and materialized release are cached under `.cache/spokenform-gold/<commit>/`; cached data is not packaged with Spokenform.
++`python -m benchmarks.spokenform_gold` consumes the published Spokenform Gold `v0.1.0-exp.2` release ZIP pinned in `benchmarks/spokenform_gold_release.json`. Automatic mode downloads and verifies the exact archive and manifest hashes, safely extracts the unsplit v2 corpus, and uses the matching Gold runtime source only for release verification, scoring, and source hydration. It never rebuilds Gold or floats to a dynamically selected GitHub release. Cached data is not packaged with Spokenform.
+
+-The automatic benchmark uses `--split corpus`. `test` and `dev` remain available only for compatible explicit legacy release roots and are rejected for a v2 corpus release rather than silently evaluating the full corpus. Use `--offline` to reuse a populated cache, `--refresh` to repopulate it, `--download-only` to populate and verify without scoring, `--cache-dir` to choose another cache, `--gold-root /path/to/release` to use an explicit local release, `--split corpus|test|dev|all`, `--mode canonical|accepted`, and `--report html|none`. Results are written under `benchmark-results/spokenform-gold/<run-id>/` with `summary.json`, `predictions.jsonl`, `rows.jsonl`, `failures.jsonl`, `failures.md`, and, by default, `report.html`.
+-The cache metadata and reports preserve the pinned commit, Gold manifest hash, release format and schema, corpus file, and source observation provenance. Gold owns canonical and accepted scoring, corpus validation, release integrity, ambiguity and quarantine exclusions, and no-change metrics.
++Run the complete 20,037-record corpus with explicit upstream-license acknowledgement:
+
+-The Gold corpus remains a diagnostic benchmark rather than a stable release gate. The adapter records source provenance and uses Gold's own scoring, release verification, and materialization policy. It does not automatically hydrate restricted PolyNorm or Proteno sources.
++```bash
++python -m benchmarks.spokenform_gold \
++  --split corpus \
++  --accept-upstream-licenses \
++  --report html
++```
++
++The release contains 18,059 embedded records and 1,978 external-reference records. A full run requires `--accept-upstream-licenses` before source hydration and writes `summary.json`, `predictions.jsonl`, `rows.jsonl`, `failures.jsonl`, `failures.md`, and `report.html` under `benchmark-results/spokenform-gold/<run-id>/`. The report records release identity and shows evaluated coverage as `20,037 / 20,037`.
++
++Use `--offline` for a reproducible rerun after the cache is populated, `--refresh` only after an intentional pin update, `--download-only` to populate without scoring, `--cache-dir` to choose another cache, and `--gold-root` for an extracted local release. Filtered runs remain supported and are labeled as filtered rather than full corpus runs.
++
++The Gold corpus remains a diagnostic benchmark rather than a stable release gate. Gold owns canonical and accepted scoring, corpus validation, release integrity, ambiguity and quarantine exclusions, and no-change metrics.
++The adapter records release provenance and uses Gold's own scoring, verification, and materialization policy. It does not automatically hydrate restricted PolyNorm or Proteno sources.
+
+ ## v0.3 policy oracle coverage
+
+diff --git a/benchmarks/spokenform_gold.py b/benchmarks/spokenform_gold.py
+index 1d45fa2..01c8367 100644
+--- a/benchmarks/spokenform_gold.py
++++ b/benchmarks/spokenform_gold.py
+@@ -124,6 +124,16 @@ def _gold_split(split: str) -> str | None:
+     return None if split in {"corpus", "all"} else split
+
+
++def _is_full_corpus_request(args: argparse.Namespace) -> bool:
++    return (
++        args.split in {"corpus", "all"}
++        and args.language is None
++        and args.locale is None
++        and args.category is None
++        and not args.cases
++    )
++
++
+ def _validate_split_for_manifest(split: str, manifest: dict[str, Any]) -> None:
+     release_format = manifest.get("format")
+     if release_format == "v2" and split not in {"corpus", "all"}:
+@@ -209,6 +219,9 @@ def _resolve_gold_source(args: argparse.Namespace) -> GoldSource:
+         offline=args.offline,
+         refresh=args.refresh,
+     )
++    runtime = source_path(args.cache_dir)
++    if not runtime.is_dir():
++        raise FileNotFoundError(f"verified Spokenform Gold runtime is missing: {runtime}")
+     return GoldSource(
+         gold_root=release,
+         source_root=source_path(args.cache_dir),
+@@ -249,14 +262,29 @@ def _build_rows(
+     summary: dict[str, Any], records: Iterable[dict[str, Any]], *, mode: str
+ ) -> tuple[dict[str, Any], ...]:
+     record_by_id = {record["id"]: record for record in records if isinstance(record.get("id"), str)}
++    result_by_id = {
++        result["id"]: result
++        for result in summary["summary"].get("record_results", [])
++        if isinstance(result.get("id"), str)
++    }
+     result_rows: list[dict[str, Any]] = []
+-    for result in summary["summary"].get("record_results", []):
+-        record = record_by_id.get(result["id"], {})
++    for record_id in sorted(set(record_by_id) | set(result_by_id)):
++        record = record_by_id.get(record_id, {})
++        result = result_by_id.get(
++            record_id,
++            {
++                "id": record_id,
++                "prediction": "",
++                "canonical_match": False,
++                "accepted_match": False,
++                "accepted_variants": [],
++            },
++        )
+         units = record.get("units", [])
+         source_benchmarks = _source_benchmarks(record)
+         result_rows.append(
+             {
+-                "id": result["id"],
++                "id": record_id,
+                 "family_id": record.get("family_id"),
+                 "language": record.get("language", result.get("language")),
+                 "locale": record.get("locale", result.get("locale")),
+@@ -284,11 +312,14 @@ def _build_rows(
+                 "units": units,
+             }
+         )
+-    return tuple(sorted(result_rows, key=lambda row: row["id"]))
++    return tuple(result_rows)
+
+
+ def _enrich_summary(
+-    summary: dict[str, Any], args: argparse.Namespace, source: GoldSource
++    summary: dict[str, Any],
++    args: argparse.Namespace,
++    source: GoldSource,
++    manifest: dict[str, Any],
+ ) -> dict[str, Any]:
+     source_metadata = _metadata_for_source(source)
+     filters = {
+@@ -298,6 +329,17 @@ def _enrich_summary(
+         "category": args.category,
+         "case_ids": sorted(args.cases or []),
+     }
++    counts = manifest.get("counts", {})
++    if not isinstance(counts, dict):
++        counts = {}
++    release_records = int(manifest.get("public_release_records") or counts.get("records") or 0)
++    embedded_records = int(manifest.get("public_embedded_records") or 0)
++    external_records = int(manifest.get("public_external_ref_records") or 0)
++    evaluated_records = int(summary.get("record_count", 0) or 0)
++    full_corpus = _is_full_corpus_request(args) and evaluated_records == release_records
++    release_tag = source_metadata.get("tag")
++    release_version = source_metadata.get("release_version") or manifest.get("benchmark_version")
++    release_target_commit = source_metadata.get("release_target_commit") or source.commit
+     configuration = {
+         "split": args.split,
+         "language": args.language,
+@@ -307,13 +349,31 @@ def _enrich_summary(
+         "profile": args.profile,
+         "mode": args.mode,
+         "source_mode": source.mode,
++        "gold_release_tag": release_tag,
++        "gold_manifest_hash": summary["gold_manifest_hash"],
+     }
+-    dataset_identity = source.commit or summary["gold_manifest_hash"]
++    dataset_identity = release_target_commit or summary["gold_manifest_hash"]
+     summary["selection"] = args.split
+     summary["adapter"] = {
+         "benchmark": "Spokenform Gold",
+         "repository": source_metadata.get("repository", source.repository),
+-        "dataset_commit": source.commit,
++        "release_tag": release_tag,
++        "release_version": release_version,
++        "release_asset": source_metadata.get("asset"),
++        "release_target_commit": release_target_commit,
++        "release_archive_sha256": source_metadata.get("archive_sha256"),
++        "gold_manifest_hash": summary["gold_manifest_hash"],
++        "gold_manifest_format": manifest.get("format"),
++        "gold_schema_version": manifest.get("schema_version"),
++        "release_maturity": manifest.get("maturity"),
++        "coverage_profile": manifest.get("coverage_profile"),
++        "release_records": release_records,
++        "embedded_records": embedded_records,
++        "external_reference_records": external_records,
++        "evaluated_records": evaluated_records,
++        "full_corpus": full_corpus,
++        "upstream_licenses_accepted": bool(args.accept_upstream_licenses),
++        "dataset_commit": dataset_identity,
+         "source_mode": source.mode,
+         "cache_dir": str(source.cache_dir) if source.cache_dir else None,
+         "gold_root": str(source.gold_root),
+@@ -323,6 +383,7 @@ def _enrich_summary(
+     summary["identity"] = {
+         "benchmark": "Spokenform Gold",
+         "dataset_commit": dataset_identity,
++        "gold_release_tag": release_tag,
+         "gold_manifest_hash": summary["gold_manifest_hash"],
+         "spokenform_source_commit": summary["spokenform_commit"],
+         "spokenform_version": summary["spokenform_version"],
+@@ -338,12 +399,22 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
+     source = _resolve_gold_source(args)
+     benchmark = _load_gold_benchmark(source.source_root)
+     verification = benchmark.verify_release(source.gold_root)
++    manifest = verification.get("manifest", {})
+     if not args.download_only:
+-        _validate_split_for_manifest(args.split, verification.get("manifest", {}))
++        _validate_split_for_manifest(args.split, manifest)
++        if _is_full_corpus_request(args):
++            external_refs = int(manifest.get("public_external_ref_records", 0) or 0)
++            if external_refs and not args.accept_upstream_licenses:
++                raise PermissionError(
++                    f"Spokenform Gold {manifest.get('benchmark_version', 'release')} contains "
++                    f"{external_refs:,} external-reference records.\n"
++                    "A full corpus benchmark requires upstream source hydration.\n"
++                    "Re-run with --accept-upstream-licenses after reviewing the release source licenses."
++                )
+     if args.download_only:
+         return source.gold_root, {"download_only": True, "source": source}
+     source_loader = None
+-    if verification["manifest"].get("public_external_ref_records", 0):
++    if manifest.get("public_external_ref_records", 0):
+         source_loader = _source_loader_for(source, args)
+     run_dir = args.results_dir / _run_id()
+     summary = benchmark.run_benchmark(
+@@ -361,6 +432,18 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
+         spokenform_commit=_source_commit(),
+         source_loader=source_loader,
+     )
++    if _is_full_corpus_request(args):
++        expected = int(
++            manifest.get("public_release_records")
++            or (manifest.get("counts", {}) or {}).get("records", 0)
++            or 0
++        )
++        actual = int(summary.get("record_count", 0) or 0)
++        if expected and actual != expected:
++            raise RuntimeError(
++                "Spokenform Gold full benchmark is incomplete: "
++                f"evaluated {actual} of {expected} release records"
++            )
+     _, records = benchmark.load_release_records(
+         source.gold_root,
+         split=_gold_split(args.split),
+@@ -372,7 +455,7 @@ def evaluate_and_write(args: argparse.Namespace) -> tuple[Path, dict[str, Any]]:
+     )
+     rows = _build_rows(summary, records, mode=args.mode)
+     _write_jsonl(run_dir / "rows.jsonl", rows)
+-    summary = _enrich_summary(summary, args, source)
++    summary = _enrich_summary(summary, args, source, manifest)
+     _write_json(run_dir / "summary.json", summary)
+     if args.report == "html":
+         from .spokenform_gold_report import render_report
+diff --git a/benchmarks/spokenform_gold_data.py b/benchmarks/spokenform_gold_data.py
+index e506d11..267d0d3 100644
+--- a/benchmarks/spokenform_gold_data.py
++++ b/benchmarks/spokenform_gold_data.py
+@@ -23,7 +23,8 @@ SPOKENFORM_GOLD_ARCHIVE_SHA256 = str(RELEASE_PIN["archive_sha256"])
+ SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256 = str(RELEASE_PIN["release_manifest_sha256"])
+ SPOKENFORM_GOLD_RUNTIME_SOURCE_REF = str(RELEASE_PIN["runtime_source_ref"])
+ SPOKENFORM_GOLD_POLICY_CONTRACT = str(RELEASE_PIN["policy_contract"])
+-SPOKENFORM_GOLD_COMMIT = SPOKENFORM_GOLD_RUNTIME_SOURCE_REF
++SPOKENFORM_GOLD_TARGET_COMMIT = str(RELEASE_PIN["target_commit"])
++SPOKENFORM_GOLD_COMMIT = SPOKENFORM_GOLD_TARGET_COMMIT
+ SPOKENFORM_GOLD_ARCHIVE_URL = (
+     f"{SPOKENFORM_GOLD_REPOSITORY}/releases/download/{SPOKENFORM_GOLD_TAG}/{SPOKENFORM_GOLD_ASSET}"
+ )
+@@ -49,7 +50,7 @@ def cache_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+
+
+ def source_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+-    return Path(cache_dir) / "runtime" / SPOKENFORM_GOLD_RUNTIME_SOURCE_REF
++    return cache_path(cache_dir) / "runtime"
+
+
+ def release_path(cache_dir: Path | str = ".cache/spokenform-gold") -> Path:
+@@ -163,7 +164,9 @@ def _metadata(verification: dict[str, object], source_root: Path) -> dict[str, o
+         "benchmark": "spokenform_gold",
+         "repository": SPOKENFORM_GOLD_REPOSITORY,
+         "tag": SPOKENFORM_GOLD_TAG,
++        "asset": SPOKENFORM_GOLD_ASSET,
+         "runtime_source_ref": SPOKENFORM_GOLD_RUNTIME_SOURCE_REF,
++        "release_target_commit": SPOKENFORM_GOLD_TARGET_COMMIT,
+         "release_version": SPOKENFORM_GOLD_RELEASE_VERSION,
+         "archive_sha256": SPOKENFORM_GOLD_ARCHIVE_SHA256,
+         "release_manifest_hash": verification["manifest_hash"],
+@@ -261,6 +264,7 @@ __all__ = [
+     "SPOKENFORM_GOLD_ARCHIVE_SHA256",
+     "SPOKENFORM_GOLD_ARCHIVE_URL",
+     "SPOKENFORM_GOLD_COMMIT",
++    "SPOKENFORM_GOLD_TARGET_COMMIT",
+     "SPOKENFORM_GOLD_ASSET",
+     "SPOKENFORM_GOLD_POLICY_CONTRACT",
+     "SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256",
+diff --git a/benchmarks/spokenform_gold_release.json b/benchmarks/spokenform_gold_release.json
+index 714032a..f075f70 100644
+--- a/benchmarks/spokenform_gold_release.json
++++ b/benchmarks/spokenform_gold_release.json
+@@ -1,10 +1,11 @@
+ {
+   "repository": "buchwandler/spokenform-gold",
+-  "tag": "v0.1.0-exp.1",
+-  "version": "0.1.0-exp.1",
+-  "asset": "spokenform-gold-v0.1.0-exp.1.zip",
+-  "archive_sha256": "d58cb0cc3d7ff08b47cb3126a00e741e71dabf23e8879cc84d7e408631dd8f93",
+-  "release_manifest_sha256": "7377923740aff6c2ebc0a5716480b7b0792a93cca18054758901b7fedac94ce3",
+-  "runtime_source_ref": "v0.1.0-exp.1",
++  "tag": "v0.1.0-exp.2",
++  "version": "0.1.0-exp.2",
++  "asset": "spokenform-gold-v0.1.0-exp.2.zip",
++  "archive_sha256": "ec840f4c8ecab6576d53966e07b504edc6f8fb575b2c4add19f0bdb11db78cac",
++  "release_manifest_sha256": "dd6b4b617a0cdde2ecab8dd8dd4f670d79ce5bba4de8ba1e741b3c8389328cd7",
++  "runtime_source_ref": "v0.1.0-exp.2",
++  "target_commit": "4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8",
+   "policy_contract": "v0.3.0"
+ }
+diff --git a/benchmarks/spokenform_gold_report.py b/benchmarks/spokenform_gold_report.py
+index 335b983..849a75c 100644
+--- a/benchmarks/spokenform_gold_report.py
++++ b/benchmarks/spokenform_gold_report.py
+@@ -28,11 +28,18 @@ def _gold_summary(summary: dict[str, Any]) -> dict[str, Any]:
+
+ def _kpis(summary: dict[str, Any]) -> tuple[KPI, ...]:
+     gold = _gold_summary(summary)
++    adapter = summary.get("adapter", {})
+     mode = summary.get("mode", "canonical")
+     primary_label = f"Primary accuracy ({mode})"
+     excluded = int(gold.get("excluded_count", 0) or 0)
+     ambiguous = int(gold.get("ambiguous_count", 0) or 0)
+     quarantine = int(gold.get("quarantine_count", 0) or 0)
++    release_records = int(adapter.get("release_records", 0) or 0)
++    evaluated_records = int(adapter.get("evaluated_records", summary.get("record_count", 0)) or 0)
++    coverage = (
++        f"{number(evaluated_records)} / {number(release_records)}" if release_records else "N/A"
++    )
++    completeness = "full" if adapter.get("full_corpus") else "filtered selection"
+     return (
+         KPI("Scorable records", number(gold.get("records_scorable", 0))),
+         KPI(primary_label, percent(gold.get("primary_accuracy", 0)), mode),
+@@ -40,6 +47,7 @@ def _kpis(summary: dict[str, Any]) -> tuple[KPI, ...]:
+         KPI("Accepted accuracy", percent(gold.get("accepted_variant_accuracy", 0))),
+         KPI("No-change accuracy", percent(gold.get("no_change_accuracy", 0))),
+         KPI("False-positive rate", percent(gold.get("false_positive_normalization_rate", 0))),
++        KPI("Release coverage", coverage, completeness),
+         KPI("Excluded", number(excluded), f"{ambiguous} ambiguous · {quarantine} quarantine"),
+     )
+
+@@ -71,13 +79,23 @@ def _aggregate_table(mapping: dict[str, Any], label: str) -> str:
+
+ def _overview(summary: dict[str, Any]) -> str:
+     gold = _gold_summary(summary)
++    adapter = summary.get("adapter", {})
++    release_records = int(adapter.get("release_records", 0) or 0)
++    evaluated_records = int(adapter.get("evaluated_records", summary.get("record_count", 0)) or 0)
++    completeness = "full" if adapter.get("full_corpus") else "filtered selection"
+     lines = [
++        f"<p><strong>Release:</strong> {escape(adapter.get('release_tag') or 'explicit local release')}</p>",
++        f"<p><strong>Gold version:</strong> {escape(adapter.get('release_version') or summary.get('spokenform_gold_version', 'unknown'))}</p>",
+         f"<p><strong>Selection:</strong> {escape(summary.get('selection', summary.get('split') or 'corpus'))}</p>",
+         f"<p><strong>Scoring mode:</strong> {escape(summary.get('mode', 'canonical'))}</p>",
+         f"<p><strong>Profile:</strong> {escape(summary.get('profile_name', 'unknown'))}</p>",
+-        f"<p><strong>Total records:</strong> {number(gold.get('records_total', summary.get('record_count', 0)))}; "
+-        f"<strong>Scorable:</strong> {number(gold.get('records_scorable', 0))}</p>",
+-        f"<p><strong>Ambiguous:</strong> {number(gold.get('ambiguous_count', 0))}; "
++        f"<p><strong>Release records:</strong> {number(release_records)}; "
++        f"<strong>Evaluated records:</strong> {number(evaluated_records)}</p>",
++        f"<p><strong>Embedded:</strong> {number(adapter.get('embedded_records', 0))}; "
++        f"<strong>External reference:</strong> {number(adapter.get('external_reference_records', 0))}</p>",
++        f"<p><strong>Corpus completeness:</strong> {escape(completeness)}</p>",
++        f"<p><strong>Scorable:</strong> {number(gold.get('records_scorable', 0))}; "
++        f"<strong>Ambiguous:</strong> {number(gold.get('ambiguous_count', 0))}; "
+         f"<strong>Quarantine:</strong> {number(gold.get('quarantine_count', 0))}</p>",
+         "<p>Canonical mode requires the Gold canonical output. Accepted mode permits Gold-declared accepted variants. "
+         "Ambiguous and quarantine records are excluded from scoring. No-change records measure false-positive normalization.</p>",
+@@ -201,9 +219,23 @@ def _metadata(summary: dict[str, Any]) -> str:
+         "spokenform_version": summary.get("spokenform_version"),
+         "spokenform_commit": summary.get("spokenform_commit"),
+         "gold_repository": summary.get("adapter", {}).get("repository"),
++        "release_tag": summary.get("adapter", {}).get("release_tag"),
++        "release_version": summary.get("adapter", {}).get("release_version"),
++        "release_target_commit": summary.get("adapter", {}).get("release_target_commit"),
++        "release_asset": summary.get("adapter", {}).get("release_asset"),
++        "release_archive_sha256": summary.get("adapter", {}).get("release_archive_sha256"),
+         "gold_source_commit": summary.get("adapter", {}).get("dataset_commit"),
+         "gold_benchmark_version": summary.get("spokenform_gold_version"),
+         "gold_manifest_hash": summary.get("gold_manifest_hash"),
++        "gold_manifest_format": summary.get("adapter", {}).get("gold_manifest_format"),
++        "gold_schema_version": summary.get("adapter", {}).get("gold_schema_version"),
++        "release_maturity": summary.get("adapter", {}).get("release_maturity"),
++        "coverage_profile": summary.get("adapter", {}).get("coverage_profile"),
++        "release_records": summary.get("adapter", {}).get("release_records"),
++        "evaluated_records": summary.get("adapter", {}).get("evaluated_records"),
++        "external_reference_records": summary.get("adapter", {}).get("external_reference_records"),
++        "full_corpus": summary.get("adapter", {}).get("full_corpus"),
++        "upstream_licenses_accepted": summary.get("adapter", {}).get("upstream_licenses_accepted"),
+         "profile": summary.get("profile_name"),
+         "profile_config": summary.get("profile_config"),
+         "mode": summary.get("mode"),
+@@ -242,7 +274,11 @@ def render_report(
+         Section("failures", "Failures", "Failure explorer", _failure_table(failures)),
+         Section("metadata", "Metadata", "Run provenance", _metadata(summary)),
+     ]
+-    source = summary.get("adapter", {}).get("dataset_commit") or "explicit local release"
++    source = (
++        summary.get("adapter", {}).get("release_tag")
++        or summary.get("adapter", {}).get("dataset_commit")
++        or "explicit local release"
++    )
+     subtitle = f"{source} | {number(summary.get('record_count', 0))} selected records | {summary.get('mode', 'canonical')} mode"
+     return render_page(
+         title="Spokenform Gold benchmark",
+diff --git a/docs/benchmarks.md b/docs/benchmarks.md
+index a4a53ff..248f28e 100644
+--- a/docs/benchmarks.md
++++ b/docs/benchmarks.md
+@@ -40,28 +40,33 @@ selection project.
+ Run the pinned Gold release diagnostic benchmark with:
+
+ ```bash
+-python -m benchmarks.spokenform_gold --split corpus
++python -m benchmarks.spokenform_gold \
++  --split corpus \
++  --accept-upstream-licenses \
++  --report html
+ ```
+
+-The consumer reads the exact release asset pinned in
++The consumer reads the exact `v0.1.0-exp.2` release asset pinned in
+ `benchmarks/spokenform_gold_release.json`. It never rebuilds Gold data from a
+ source checkout and never selects the latest GitHub release dynamically. The
+-pin contains the release tag, asset SHA-256, manifest SHA-256, and matching
+-runtime source tag. The first online run downloads and verifies the release
+-zip and matching-tag runtime source under `.cache/spokenform-gold/`.
+-
+-Use `--offline` after the cache is populated, `--refresh` to replace it after
+-an intentional pin update, `--download-only` to populate without evaluation,
+-`--cache-dir` or `--source-cache-dir` to relocate release or external-source
+-caches, `--gold-root` for an extracted release directory containing
+-`manifest.json`, `--split corpus`, `--mode canonical|accepted`, and
+-`--report none` to disable HTML. Passing a source checkout to `--gold-root`
+-is rejected with a targeted diagnostic.
+-
+-Some releases reference public upstream source artifacts. Hydration is
+-explicitly controlled with `--accept-upstream-licenses`; restricted sources
+-remain unavailable unless that acknowledgement is supplied. Use `--offline`
+-to guarantee that source hydration performs no network access.
++pin contains the release tag, asset SHA-256, manifest SHA-256, target commit,
++and matching runtime source ref. The first online run downloads and verifies the
++release zip and matching runtime source under `.cache/spokenform-gold/`. The
++v2 corpus is unsplit and contains 20,037 public release records, including 1,978
++external-reference records and 18,059 embedded records.
++
++Use `--offline` after the cache is populated, `--refresh` only after an intentional
++pin update, `--download-only` to populate without evaluation, `--cache-dir` or
++`--source-cache-dir` to relocate release or external-source caches, `--gold-root`
++for an extracted release directory containing `manifest.json`, `--split corpus`,
++`--mode canonical|accepted`, and `--report none` to disable HTML. Passing a source
++checkout to `--gold-root` is rejected with a targeted diagnostic.
++
++Full corpus runs require `--accept-upstream-licenses` before source hydration. The
++benchmark fails before scoring if the flag is absent, evaluates all 20,037 release
++records, and records release identity and coverage in `summary.json` and the
++self-contained `report.html`. Use `--offline` to guarantee that source hydration
++performs no network access.
+
+ ## Lexhint A/B comparison
+
+diff --git a/docs/release-checklist.md b/docs/release-checklist.md
+index 7a428d4..8403740 100644
+--- a/docs/release-checklist.md
++++ b/docs/release-checklist.md
+@@ -24,6 +24,24 @@ The Gold release workflow is operator-triggered and serializes one candidate per
+
+ For a first dispatch, confirm that `../spokenform/benchmarks/spokenform_gold_release.json` points to a published immutable asset. Its archive and manifest hashes must be real values, not placeholders. The consumer must be able to run with `--offline` after one successful online cache fill. Do not replace the pin with a branch, a latest-release lookup, or a source checkout.
+
++For the current pin, verify `v0.1.0-exp.2`, public release count `20,037`, embedded count `18,059`, and external-reference count `1,978`. A full consumer run must use:
++```bash
++python -m benchmarks.spokenform_gold \
++  --split corpus \
++  --accept-upstream-licenses \
++  --report html
++```
++
++When updating the pin:
++1. Inspect the intended release by tag, including prereleases.
++2. Copy the release ZIP SHA-256 and manifest SHA-256.
++3. Copy the release target commit.
++4. Update `benchmarks/spokenform_gold_release.json`.
++5. Run focused pin, cache, and release-consumer tests.
++6. Populate the cache with the online full benchmark.
++7. Verify all 20,037 records and the generated report metadata.
++8. Rerun the same command with `--offline` and compare release identity, manifest hash, source revisions, counts, and results.
++
+ 13. Publish the GitHub release only after all required checks pass.
+ 14. Before a downstream kokorog2p release raises its spokenform minimum, publish
+     the spokenform release and verify the real `de`, `es`, and `fr` integration
+diff --git a/tests/test_spokenform_gold.py b/tests/test_spokenform_gold.py
+index 113d2c5..63413aa 100644
+--- a/tests/test_spokenform_gold.py
++++ b/tests/test_spokenform_gold.py
+@@ -72,6 +72,94 @@ def test_v2_release_rejects_legacy_split() -> None:
+         cli._validate_split_for_manifest("test", {"format": "v2"})
+
+
++def test_full_corpus_requires_license_acknowledgement_before_scoring(
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    from benchmarks import spokenform_gold as cli
++
++    class FakeBenchmark:
++        @staticmethod
++        def verify_release(root: Path) -> dict[str, object]:
++            return {
++                "manifest": {
++                    "format": "v2",
++                    "public_external_ref_records": 1978,
++                    "public_release_records": 20037,
++                },
++                "manifest_hash": "manifest-hash",
++            }
++
++        @staticmethod
++        def run_benchmark(**kwargs: object) -> dict:
++            pytest.fail("scoring must not start before license acknowledgement")
++
++    source = cli.GoldSource(tmp_path / "release", None, "explicit", None, "explicit-root", None)
++    monkeypatch.setattr(cli, "_resolve_gold_source", lambda args: source)
++    monkeypatch.setattr(cli, "_load_gold_benchmark", lambda source_root=None: FakeBenchmark)
++    args = cli._parser().parse_args(["--gold-root", str(source.gold_root)])
++
++    with pytest.raises(PermissionError, match="1,978 external-reference records"):
++        cli.evaluate_and_write(args)
++
++
++def test_source_loader_receives_license_acknowledgement(
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    from benchmarks import spokenform_gold as cli
++
++    calls: dict[str, object] = {}
++
++    class LoaderModule:
++        @staticmethod
++        def build_release_source_loader(*args: object, **kwargs: object) -> object:
++            calls["args"] = args
++            calls.update(kwargs)
++            return object()
++
++    monkeypatch.setattr(cli, "load_gold_module", lambda *args, **kwargs: LoaderModule)
++    source = cli.GoldSource(
++        tmp_path / "release",
++        tmp_path / "runtime",
++        "explicit",
++        None,
++        "explicit-root",
++        None,
++    )
++    args = cli._parser().parse_args(
++        ["--gold-root", str(source.gold_root), "--accept-upstream-licenses"]
++    )
++
++    cli._source_loader_for(source, args)
++
++    assert calls["accept_upstream_licenses"] is True
++
++
++def test_full_corpus_count_mismatch_fails_before_writing_rows(
++    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
++) -> None:
++    from benchmarks import spokenform_gold as cli
++
++    class FakeBenchmark:
++        @staticmethod
++        def verify_release(root: Path) -> dict[str, object]:
++            return {
++                "manifest": {"format": "v2", "public_release_records": 20037},
++                "manifest_hash": "manifest-hash",
++            }
++
++        @staticmethod
++        def run_benchmark(**kwargs: object) -> dict:
++            return {"record_count": 20036}
++
++    source = cli.GoldSource(tmp_path / "release", None, "explicit", None, "explicit-root", None)
++    monkeypatch.setattr(cli, "_resolve_gold_source", lambda args: source)
++    monkeypatch.setattr(cli, "_load_gold_benchmark", lambda source_root=None: FakeBenchmark)
++    args = cli._parser().parse_args(["--gold-root", str(source.gold_root)])
++
++    with pytest.raises(RuntimeError, match="evaluated 20036 of 20037"):
++        cli.evaluate_and_write(args)
++
++
+ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
+     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+ ) -> None:
+@@ -111,7 +199,10 @@ def test_evaluation_writes_enriched_artifacts_without_sibling_checkout(
+     class FakeBenchmark:
+         @staticmethod
+         def verify_release(root: Path) -> dict[str, object]:
+-            return {"manifest": {"format": "v2"}, "manifest_hash": "manifest-hash"}
++            return {
++                "manifest": {"format": "v2", "public_release_records": 2},
++                "manifest_hash": "manifest-hash",
++            }
+
+         @staticmethod
+         def run_benchmark(**kwargs: object) -> dict:
+diff --git a/tests/test_spokenform_gold_data.py b/tests/test_spokenform_gold_data.py
+index 3b53c31..c5518d0 100644
+--- a/tests/test_spokenform_gold_data.py
++++ b/tests/test_spokenform_gold_data.py
+@@ -97,6 +97,8 @@ def test_first_download_cache_hit_refresh_and_metadata(
+     release = data.ensure_data(cache_dir=tmp_path / "cache")
+     assert release == data.release_path(tmp_path / "cache")
+     metadata = json.loads(data.metadata_path(tmp_path / "cache").read_text(encoding="utf-8"))
++    assert data.source_path(tmp_path / "cache").is_dir()
++    assert data.source_path(tmp_path / "cache") == (data.cache_path(tmp_path / "cache") / "runtime")
+     assert metadata["tag"] == "v0.2.0-exp"
+     assert metadata["release_format"] == "v2"
+     assert metadata["gold_schema_version"] == "2.0.0"
+@@ -109,6 +111,23 @@ def test_first_download_cache_hit_refresh_and_metadata(
+     assert len(calls) == 4
+
+
++def test_checked_in_gold_pin_is_exp2() -> None:
++    assert data.SPOKENFORM_GOLD_TAG == "v0.1.0-exp.2"
++    assert data.SPOKENFORM_GOLD_RELEASE_VERSION == "0.1.0-exp.2"
++    assert data.SPOKENFORM_GOLD_ASSET == "spokenform-gold-v0.1.0-exp.2.zip"
++    assert data.SPOKENFORM_GOLD_ARCHIVE_SHA256 == (
++        "ec840f4c8ecab6576d53966e07b504edc6f8fb575b2c4add19f0bdb11db78cac"
++    )
++    assert data.SPOKENFORM_GOLD_RELEASE_MANIFEST_SHA256 == (
++        "dd6b4b617a0cdde2ecab8dd8dd4f670d79ce5bba4de8ba1e741b3c8389328cd7"
++    )
++    assert data.SPOKENFORM_GOLD_TARGET_COMMIT == ("4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8")
++    assert data.SPOKENFORM_GOLD_TAG == f"v{data.SPOKENFORM_GOLD_RELEASE_VERSION}"
++    assert data.SPOKENFORM_GOLD_ASSET == (
++        f"spokenform-gold-v{data.SPOKENFORM_GOLD_RELEASE_VERSION}.zip"
++    )
++
++
+ @pytest.mark.parametrize(
+     ("release_kwargs", "message"),
+     [
+diff --git a/tests/test_spokenform_gold_report.py b/tests/test_spokenform_gold_report.py
+index e4bef2a..b74c4a6 100644
+--- a/tests/test_spokenform_gold_report.py
++++ b/tests/test_spokenform_gold_report.py
+@@ -34,7 +34,21 @@ def test_report_contains_sections_and_exact_failure_values(tmp_path: Path) -> No
+             "quarantine_count": 0,
+             "excluded_count": 0,
+         },
+-        "adapter": {"repository": "repo", "dataset_commit": "commit", "source_mode": "auto-cache"},
++        "adapter": {
++            "repository": "repo",
++            "dataset_commit": "4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8",
++            "release_tag": "v0.1.0-exp.2",
++            "release_version": "0.1.0-exp.2",
++            "release_target_commit": "4496ed9deaf4d9fbffa64c94d56c7aa45d3dcbd8",
++            "release_asset": "spokenform-gold-v0.1.0-exp.2.zip",
++            "release_archive_sha256": "archive-hash",
++            "release_records": 20037,
++            "evaluated_records": 20037,
++            "embedded_records": 18059,
++            "external_reference_records": 1978,
++            "full_corpus": True,
++            "source_mode": "auto-cache",
++        },
+         "identity": {"configuration_hash": "config"},
+     }
+     rows = [
+@@ -81,6 +95,11 @@ def test_report_contains_sections_and_exact_failure_values(tmp_path: Path) -> No
+     assert "Second original" in html
+     assert "Second expected" in html
+     assert "Second actual" in html
++    assert "v0.1.0-exp.2" in html
++    assert "20,037" in html
++    assert "18,059" in html
++    assert "1,978" in html
++    assert "full" in html
+     assert "First actual" not in html

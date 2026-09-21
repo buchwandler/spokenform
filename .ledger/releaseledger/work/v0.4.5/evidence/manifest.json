@@ -1,0 +1,88 @@
+{
+  "candidate_count": 4,
+  "candidates": [
+    {
+      "additions": 333,
+      "deletions": 46,
+      "patch_file": "ff07ce0.patch",
+      "patch_sha256": "e2686092233901d542dd4c64c169beb00e1e26ec4d544a0310c797dffbd086eb",
+      "paths": [
+        "benchmarks/README.md",
+        "benchmarks/spokenform_gold.py",
+        "benchmarks/spokenform_gold_data.py",
+        "benchmarks/spokenform_gold_release.json",
+        "benchmarks/spokenform_gold_report.py",
+        "docs/benchmarks.md",
+        "docs/release-checklist.md",
+        "tests/test_spokenform_gold.py",
+        "tests/test_spokenform_gold_data.py",
+        "tests/test_spokenform_gold_report.py"
+      ],
+      "sha": "ff07ce04f68edf21db1e208d48a7479345467e64",
+      "short_sha": "ff07ce0",
+      "source_ref": "git:ff07ce04f68edf21db1e208d48a7479345467e64"
+    },
+    {
+      "additions": 239,
+      "deletions": 96,
+      "patch_file": "fc371e4.patch",
+      "patch_sha256": "693e2d87cb6f6014777d020bae2563b68848743014fd2d172ca163aa483c849a",
+      "paths": [
+        ".github/workflows/tests.yml",
+        "README.md",
+        "docs/language-coverage.md",
+        "docs/languages.md",
+        "docs/profiles.md",
+        "docs/quickstart.md",
+        "docs/release-checklist.md",
+        "pyproject.toml",
+        "scripts/generate_language_coverage.py",
+        "tests/data/language_registry_contract.json",
+        "tests/test_foundation_count_locales.py",
+        "tests/test_language.py",
+        "tests/test_language_registry_parity.py",
+        "tests/test_packaging.py"
+      ],
+      "sha": "fc371e4e19050f071724784cb226ca37bd7e16eb",
+      "short_sha": "fc371e4",
+      "source_ref": "git:fc371e4e19050f071724784cb226ca37bd7e16eb"
+    },
+    {
+      "additions": 12,
+      "deletions": 12,
+      "patch_file": "e7a071c.patch",
+      "patch_sha256": "4bb2bfffe8be52b8958ba0b8713944ac6248e63ed4835bf808b88623c29d05c3",
+      "paths": [
+        ".github/workflows/tests.yml",
+        "README.md",
+        "docs/migration-kokorog2p.md",
+        "docs/profiles.md",
+        "docs/release-checklist.md",
+        "pyproject.toml",
+        "tests/data/language_registry_contract.json",
+        "tests/test_packaging.py"
+      ],
+      "sha": "e7a071cefb96f60c17a5178e9d5db838592f898f",
+      "short_sha": "e7a071c",
+      "source_ref": "git:e7a071cefb96f60c17a5178e9d5db838592f898f"
+    },
+    {
+      "additions": 7,
+      "deletions": 1,
+      "patch_file": "66df79a.patch",
+      "patch_sha256": "d45cdc84a79e063258fb1c7a687c200b94ca99db859c71df70af02cf024a74b7",
+      "paths": ["spokenform/locales/es.py", "spokenform/number_words.py"],
+      "sha": "66df79a6da2d23341a4f6001bd9cce184f991ba6",
+      "short_sha": "66df79a",
+      "source_ref": "git:66df79a6da2d23341a4f6001bd9cce184f991ba6"
+    }
+  ],
+  "git_base_ref": "9df9cc335466061fd21aeb1a6ddbf0ef97e15480",
+  "git_base_sha": "9df9cc335466061fd21aeb1a6ddbf0ef97e15480",
+  "git_head_ref": "66df79a6da2d23341a4f6001bd9cce184f991ba6",
+  "git_head_sha": "66df79a6da2d23341a4f6001bd9cce184f991ba6",
+  "include_merges": "nontrivial",
+  "object_type": "git_evidence_manifest",
+  "release_version": "v0.4.5",
+  "schema_version": 1
+}

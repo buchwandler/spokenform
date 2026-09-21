@@ -1,0 +1,93 @@
+schema: releaseledger.entry-batch.v1
+operation: create
+schema_version: 1
+object_type: release_entry_batch
+release_version: v0.4.5
+git_base_ref: 9df9cc335466061fd21aeb1a6ddbf0ef97e15480
+git_base_sha: 9df9cc335466061fd21aeb1a6ddbf0ef97e15480
+git_head_ref: 66df79a6da2d23341a4f6001bd9cce184f991ba6
+git_head_sha: 66df79a6da2d23341a4f6001bd9cce184f991ba6
+include_merges: nontrivial
+entries:
+  - kind: changed
+    summary: Improved Spokenform Gold benchmark validation with release provenance and complete-corpus checks
+    status: accepted
+    source_refs:
+      - git:ff07ce04f68edf21db1e208d48a7479345467e64
+    paths:
+      - benchmarks/README.md
+      - benchmarks/spokenform_gold.py
+      - benchmarks/spokenform_gold_data.py
+      - benchmarks/spokenform_gold_release.json
+      - benchmarks/spokenform_gold_report.py
+      - docs/benchmarks.md
+      - docs/release-checklist.md
+      - tests/test_spokenform_gold.py
+      - tests/test_spokenform_gold_data.py
+      - tests/test_spokenform_gold_report.py
+    sources:
+      - git:ff07ce04f68edf21db1e208d48a7479345467e64
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: added
+    summary: Added 13 foundation language families with reviewed plain-cardinal rendering and explicit capability boundaries
+    status: accepted
+    source_refs:
+      - git:fc371e4e19050f071724784cb226ca37bd7e16eb
+    paths:
+      - .github/workflows/tests.yml
+      - README.md
+      - docs/language-coverage.md
+      - docs/languages.md
+      - docs/profiles.md
+      - docs/quickstart.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - scripts/generate_language_coverage.py
+      - tests/data/language_registry_contract.json
+      - tests/test_foundation_count_locales.py
+      - tests/test_language.py
+      - tests/test_language_registry_parity.py
+      - tests/test_packaging.py
+    sources:
+      - git:fc371e4e19050f071724784cb226ca37bd7e16eb
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: changed
+    summary: Changed dependency floors to abbr2words 0.2.16 and numeralform 0.1.9 with matching CI coverage
+    status: accepted
+    source_refs:
+      - git:e7a071cefb96f60c17a5178e9d5db838592f898f
+    paths:
+      - .github/workflows/tests.yml
+      - README.md
+      - docs/migration-kokorog2p.md
+      - docs/profiles.md
+      - docs/release-checklist.md
+      - pyproject.toml
+      - tests/data/language_registry_contract.json
+      - tests/test_packaging.py
+    sources:
+      - git:e7a071cefb96f60c17a5178e9d5db838592f898f
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"
+  - kind: fixed
+    summary: Fixed Spanish ordinal normalization to fail closed outside the reviewed range
+    status: accepted
+    source_refs:
+      - git:66df79a6da2d23341a4f6001bd9cce184f991ba6
+    paths:
+      - spokenform/locales/es.py
+      - spokenform/number_words.py
+    sources:
+      - git:66df79a6da2d23341a4f6001bd9cce184f991ba6
+    prs: []
+    issues: []
+    contributors:
+      - "@holgern"

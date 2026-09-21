@@ -1,0 +1,38 @@
+ spokenform/locales/es.py   | 6 +++++-
+ spokenform/number_words.py | 2 ++
+ 2 files changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/spokenform/locales/es.py b/spokenform/locales/es.py
+index 14492de..33f32b0 100644
+--- a/spokenform/locales/es.py
++++ b/spokenform/locales/es.py
+@@ -529,11 +529,15 @@ def _iter_es_ordinals(
+     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
+ ) -> None:
+     for match in _ORDINAL_SYMBOL.finditer(text):
++        try:
++            replacement = _ordinal_text(int(match["number"]), match["suffix"], language)
++        except ValueError:
++            continue
+         _add_candidate(
+             candidates,
+             match.start(),
+             match.end(),
+-            _ordinal_text(int(match["number"]), match["suffix"], language),
++            replacement,
+             "es.ordinal",
+             protected,
+         )
+diff --git a/spokenform/number_words.py b/spokenform/number_words.py
+index 8b7888e..934a683 100644
+--- a/spokenform/number_words.py
++++ b/spokenform/number_words.py
+@@ -153,6 +153,8 @@ def ordinal(value: int, language: str) -> str:
+     """Render an ordinal, rejecting languages without an ordinal contract."""
+     if isinstance(value, bool) or not isinstance(value, int):
+         raise TypeError("ordinal values must be integers")
++    if base_language(language) == "es" and value > 20:
++        raise ValueError(f"Cannot render ordinal for {normalize_language(language)!r}: value is outside the reviewed range")
+     backend = require_number_backend(language)
+     if backend.name == "cn2an":
+         raise ValueError(f"Ordinal rendering is not supported for {normalize_language(language)!r}")
