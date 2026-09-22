@@ -44,13 +44,13 @@ def test_german_month_table_is_preserved() -> None:
 
 def test_german_number_word_semantics_are_public_pipeline_behavior() -> None:
     cases = {
-        "0": "null",
-        "1": "eins",
-        "21": "einundzwanzig",
-        "-5": "minus fünf",
-        "11": "elf",
-        "12": "zwölf",
-        "17": "siebzehn",
+        "0": "Null",
+        "1": "Eins",
+        "21": "Einundzwanzig",
+        "-5": "Minus fünf",
+        "11": "Elf",
+        "12": "Zwölf",
+        "17": "Siebzehn",
         "Ich habe 42 Bücher.": "Ich habe zweiundvierzig Bücher.",
     }
     for source, expected in cases.items():

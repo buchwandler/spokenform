@@ -100,7 +100,7 @@ def test_source_replacements_are_ordered_non_overlapping_and_reconstructable() -
         for item in edits
     )
     assert [(item.source, item.replacement) for item in edits] == [
-        ("1 kWh", "eine Kilowattstunde"),
+        ("1 kWh", "Eine Kilowattstunde"),
         ("12,50 EUR", "zwölf Euro fünfzig Cent"),
     ]
 

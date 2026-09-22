@@ -36,10 +36,10 @@ def test_german_currency_does_not_backtrack_to_partial_amount() -> None:
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("12,50 EUR", "zwölf Euro fünfzig Cent"),
+        ("12,50 EUR", "Zwölf Euro fünfzig Cent"),
         ("EUR 12,50", "zwölf Euro fünfzig Cent"),
-        ("-1,25 EUR", "minus ein Euro fünfundzwanzig Cent"),
-        ("0,05 EUR", "null Euro fünf Cent"),
+        ("-1,25 EUR", "Minus ein Euro fünfundzwanzig Cent"),
+        ("0,05 EUR", "Null Euro fünf Cent"),
     ],
 )
 def test_reviewed_german_euro_contract_remains_stable(source: str, expected: str) -> None:

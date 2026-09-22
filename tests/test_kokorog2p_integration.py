@@ -54,7 +54,7 @@ def test_adapter_contract_keeps_runs_composable() -> None:
     source = "  Hallo  2 kg  "
     left = prepare_for_kokorog2p(source[:8], "de")
     right = prepare_for_kokorog2p(source[8:], "de")
-    assert left.spoken_text + right.spoken_text == "  Hallo  zwei Kilogramm  "
+    assert left.spoken_text + right.spoken_text == "  Hallo  Zwei Kilogramm  "
 
 
 def test_french_adapter_token_and_phoneme_parity_fixture() -> None:

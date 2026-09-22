@@ -17,7 +17,7 @@ def test_module_cli_json() -> None:
     payload = json.loads(completed.stdout)
     assert completed.stdout.isascii()
     assert payload["language"] == "de"
-    assert "zwei Kilogramm" in payload["spoken_text"]
+    assert "Zwei Kilogramm" in payload["spoken_text"]
 
 
 def test_cli_selects_an_installed_spacy_model_without_detection_flag() -> None:

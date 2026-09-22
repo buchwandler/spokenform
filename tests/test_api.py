@@ -181,7 +181,7 @@ def test_kokorog2p_number_policy_is_explicit_by_language() -> None:
         ),
     )
 
-    assert "zwei Kilogramm" in german.spoken_text
+    assert "Zwei Kilogramm" in german.spoken_text
     assert english.spoken_text == "two"
     assert not any("caller-managed" in warning for warning in english.warnings)
     assert disabled.spoken_text == "2"

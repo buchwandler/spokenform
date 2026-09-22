@@ -143,6 +143,20 @@ QUANTITY_GRAMMAR.update(
     }
 )
 
+_DE_NUMERALFORM_GENDER = {
+    "m": "masculine",
+    "f": "feminine",
+    "n": "neuter",
+}
+_DE_ORDINAL_NOUN_GENDER = {
+    "frau": "f",
+    "mann": "m",
+    "kind": "n",
+}
+_DE_QUANTITY_NOUN_GENDER = {
+    grammar.singular.casefold(): grammar.gender for grammar in QUANTITY_GRAMMAR.values()
+}
+
 _DE_LEFT_BOUNDARY = r"(?<![\w.])"
 _DE_RIGHT_BOUNDARY = r"(?!\w)"
 _NUMBER = r"[+\-−]?(?:(?:\d{1,3}(?:[.\s]\d{3})+|\d+)(?:[.,]\d+)?|[.,]\d+)"
@@ -214,7 +228,10 @@ _LABEL = re.compile(
     r"(?P<label>laufende\s+Nummer|Lfd\.\s*Nr\.|Nummer|Gleis|Kapitel|Absatz|Seite|S\.)\s+(?P<number>\d+)(?!\w)",
     re.IGNORECASE,
 )
-_ORDINAL = re.compile(r"(?<![\w.])(?P<number>\d+)\.(?=\s+[A-Za-zÄÖÜäöüß])")
+_ORDINAL = re.compile(
+    rf"{_DE_LEFT_BOUNDARY}(?P<number>\d+)\."
+    rf"(?=\s+(?P<noun>[A-ZÄÖÜẞ][A-Za-zÄÖÜẞäöüß-]*))"
+)
 _DE_REDUNDANT_CENTURY_RE = re.compile(
     r"(?<![\w.])(?P<number>\d+)\.\s+Jh\.\s*\(\s*"
     r"(?P<roman>[IVXLCDM]+)\.\s+Jahrhundert\s*\)(?!\w)",
@@ -329,25 +346,44 @@ def _year(value: int, language: str = "de", *, year_digits: int | None = None) -
     return render_year(value, language=language, source_digits=year_digits)
 
 
-def _ordinal(value: int, ending: str, language: str = "de") -> str:
-    from ..number_words import number_words
+def _ordinal(
+    value: int,
+    ending: str | None = None,
+    language: str = "de",
+    *,
+    gender: str | None = None,
+) -> str:
+    from ..number_words import ordinal as render_ordinal
 
-    word = str(number_words(value, lang=language, to="ordinal"))
+    if ending is None and gender is not None:
+        return render_ordinal(value, language, gender=gender)
+    word = str(render_ordinal(value, language))
     if ending == "er" and word.endswith("e"):
         return word[:-1] + "er"
     if ending == "e":
-        return re.sub(r"(?:er|en|em)$", "e", word)
+        return re.sub(r"(?:er|en|em|es)$", "e", word)
     if ending == "en":
-        return re.sub(r"(?:er|e|em)$", "en", word)
+        return re.sub(r"(?:er|e|em|es)$", "en", word)
     return word
 
 
-def _ending(text: str, start: int) -> str:
+def _contextual_ordinal_ending(text: str, start: int) -> str | None:
     prefix = re.sub(r"\s+", " ", text[max(0, start - 48) : start].casefold()).rstrip()
     for pattern, ending in _DE_ORDINAL_ENDING_PATTERNS:
         if pattern.search(prefix):
             return ending
-    return "er"
+    return None
+
+
+def _ending(text: str, start: int) -> str:
+    return _contextual_ordinal_ending(text, start) or "er"
+
+
+def _ordinal_noun_gender(noun: str) -> str | None:
+    short_gender = _DE_ORDINAL_NOUN_GENDER.get(noun.casefold())
+    if short_gender is None:
+        short_gender = _DE_QUANTITY_NOUN_GENDER.get(noun.casefold())
+    return _DE_NUMERALFORM_GENDER.get(short_gender) if short_gender else None
 
 
 def _valid(day: int, month: int, year: int) -> bool:
@@ -804,6 +840,16 @@ def _roman_canonical(value: int) -> str:
     return "".join(result)
 
 
+def _render_bare_ordinal(match: re.Match[str], text: str, language: str) -> str:
+    ending = _contextual_ordinal_ending(text, match.start())
+    if ending is not None:
+        return _ordinal(int(match["number"]), ending, language)
+    gender = _ordinal_noun_gender(match["noun"])
+    if gender is not None:
+        return _ordinal(int(match["number"]), language=language, gender=gender)
+    return _ordinal(int(match["number"]), "er", language)
+
+
 def _iter_de_labels(
     text: str, language: str, protected: tuple[tuple[int, int], ...], candidates: list[Replacement]
 ) -> None:
@@ -847,7 +893,7 @@ def _iter_de_labels(
         _add_candidate(
             candidates,
             match,
-            _ordinal(int(match["number"]), _ending(text, match.start())),
+            _render_bare_ordinal(match, text, language),
             "de.ordinal",
             protected,
         )

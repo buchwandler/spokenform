@@ -102,6 +102,23 @@ def test_numeralform_ordinals_and_years_remain_available() -> None:
     assert year(2024, "en") == "twenty twenty-four"
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (1, ("erster", "erste", "erstes")),
+        (21, ("einundzwanzigster", "einundzwanzigste", "einundzwanzigstes")),
+        (100, ("hundertster", "hundertste", "hundertstes")),
+        (1000, ("tausendster", "tausendste", "tausendstes")),
+    ],
+)
+def test_german_ordinal_gender_is_forwarded_to_numeralform(
+    value: int, expected: tuple[str, str, str]
+) -> None:
+    assert ordinal(value, "de", gender="masculine") == expected[0]
+    assert ordinal(value, "de", gender="feminine") == expected[1]
+    assert ordinal(value, "de", gender="neuter") == expected[2]
+
+
 def test_chinese_ordinals_fail_closed() -> None:
     with pytest.raises(ValueError, match="Ordinal rendering"):
         ordinal(3, "zh")

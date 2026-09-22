@@ -6,7 +6,7 @@ from spokenform.numeric_lexeme import parse_numeric_lexeme
 
 
 def test_german_decimal_and_unit_ready_text() -> None:
-    assert normalize_numbers("1,5 Kilogramm", language="de") == "eins Komma fünf Kilogramm"
+    assert normalize_numbers("1,5 Kilogramm", language="de") == "Eins Komma fünf Kilogramm"
 
 
 @pytest.mark.parametrize(

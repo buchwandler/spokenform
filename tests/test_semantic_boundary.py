@@ -33,7 +33,7 @@ def test_generic_speech_preset_is_not_kokoro_specific() -> None:
     assert config.language == "de"
     assert config == PreparationConfig(language="de")
     result = prepare("2 kg", config=config, use_spacy=False)
-    assert result.spoken_text == "zwei Kilogramm"
+    assert result.spoken_text == "Zwei Kilogramm"
     assert "kokoro" not in type(config).__module__.casefold()
 
 
@@ -97,11 +97,11 @@ def test_generic_preparation_does_not_import_kokorog2p(monkeypatch: pytest.Monke
 
     monkeypatch.setattr(builtins, "__import__", reject_kokoro)
     result = prepare_language("2", language="de", use_spacy=False)
-    assert result.spoken_text == "zwei"
-    assert prepare_for_kokorog2p("2", "de", use_spacy=False).spoken_text == "zwei"
+    assert result.spoken_text == "Zwei"
+    assert prepare_for_kokorog2p("2", "de", use_spacy=False).spoken_text == "Zwei"
 
 
 def test_optional_lexical_evidence_keeps_core_normalization_available() -> None:
     result = prepare_language("2 kg", language="de", use_spacy=False, lexical_evidence=None)
-    assert result.spoken_text == "zwei Kilogramm"
+    assert result.spoken_text == "Zwei Kilogramm"
     assert any(item.rule == "de.quantity" for item in result.source_replacements)

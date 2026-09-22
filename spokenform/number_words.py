@@ -114,6 +114,8 @@ def _render_numeralform(
     *,
     form: str | None = None,
     style: str | None = None,
+    gender: str | None = None,
+    syntax: str | None = None,
 ) -> str:
     """Render Numeralform and apply reviewed Spokenform surface policy."""
     backend = require_number_backend(language)
@@ -123,13 +125,17 @@ def _render_numeralform(
         )
     rendered_value = _coerce_numeralform_value(value)
     style = _numeralform_style(rendered_value, language, form, style)
+    render_kwargs: dict[str, object] = {
+        "locale": backend.language,
+        "form": form,
+        "style": style,
+    }
+    if gender is not None:
+        render_kwargs["gender"] = gender
+    if syntax is not None:
+        render_kwargs["syntax"] = syntax
     try:
-        rendered = numeralform.render(
-            rendered_value,
-            locale=backend.language,
-            form=form,
-            style=style,
-        )
+        rendered = numeralform.render(rendered_value, **render_kwargs)
     except numeralform.NumeralFormError as exc:
         requested_form = form or "cardinal"
         raise ValueError(
@@ -149,7 +155,12 @@ def cardinal(value: Number, language: str) -> str:
     return _render_numeralform(rendered_value, language)
 
 
-def ordinal(value: int, language: str) -> str:
+def ordinal(
+    value: int,
+    language: str,
+    *,
+    gender: str | None = None,
+) -> str:
     """Render an ordinal, rejecting languages without an ordinal contract."""
     if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError("ordinal values must be integers")
@@ -160,7 +171,13 @@ def ordinal(value: int, language: str) -> str:
     backend = require_number_backend(language)
     if backend.name == "cn2an":
         raise ValueError(f"Ordinal rendering is not supported for {normalize_language(language)!r}")
-    return _render_numeralform(value, language, form="ordinal")
+    return _render_numeralform(
+        value,
+        language,
+        form="ordinal",
+        gender=gender,
+        syntax="ordinal-adjectival" if gender is not None else None,
+    )
 
 
 def year(value: int, language: str) -> str:

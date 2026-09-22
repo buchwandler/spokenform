@@ -55,12 +55,12 @@ def test_german_time_does_not_consume_uhrzeit_prefix() -> None:
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("14:30 Uhr", "vierzehn Uhr dreißig"),
-        ("14:30", "vierzehn Uhr dreißig"),
+        ("14:30 Uhr", "Vierzehn Uhr dreißig"),
+        ("14:30", "Vierzehn Uhr dreißig"),
         ("24:00 Uhr", "24:00 Uhr"),
         ("23:99 Uhr", "23:99 Uhr"),
-        ("14:00-15:30 Uhrzeit", "vierzehn bis fünfzehn Uhr dreißig Uhrzeit"),
-        ("14:00 bis 15:30 Uhrwerk", "vierzehn bis fünfzehn Uhr dreißig Uhrwerk"),
+        ("14:00-15:30 Uhrzeit", "Vierzehn bis fünfzehn Uhr dreißig Uhrzeit"),
+        ("14:00 bis 15:30 Uhrwerk", "Vierzehn bis fünfzehn Uhr dreißig Uhrwerk"),
     ],
 )
 def test_german_time_boundaries_and_invalid_values(source: str, expected: str) -> None:
@@ -198,17 +198,17 @@ def test_german_large_ordinals_and_calendar_validation() -> None:
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("€1", "ein Euro"),
-        ("1 EUR", "ein Euro"),
-        ("€2", "zwei Euro"),
-        ("€0,01", "null Euro ein Cent"),
-        ("€0,02", "null Euro zwei Cent"),
-        ("€1,01", "ein Euro ein Cent"),
-        ("€2,01", "zwei Euro ein Cent"),
-        ("€2,02", "zwei Euro zwei Cent"),
-        ("€9,99", "neun Euro neunundneunzig Cent"),
-        ("9,99 EUR", "neun Euro neunundneunzig Cent"),
-        ("-9,99 EUR", "minus neun Euro neunundneunzig Cent"),
+        ("€1", "Ein Euro"),
+        ("1 EUR", "Ein Euro"),
+        ("€2", "Zwei Euro"),
+        ("€0,01", "Null Euro ein Cent"),
+        ("€0,02", "Null Euro zwei Cent"),
+        ("€1,01", "Ein Euro ein Cent"),
+        ("€2,01", "Zwei Euro ein Cent"),
+        ("€2,02", "Zwei Euro zwei Cent"),
+        ("€9,99", "Neun Euro neunundneunzig Cent"),
+        ("9,99 EUR", "Neun Euro neunundneunzig Cent"),
+        ("-9,99 EUR", "Minus neun Euro neunundneunzig Cent"),
         ("CHF 12,80", "zwölf Komma acht null Schweizer Franken"),
     ],
 )
@@ -238,9 +238,9 @@ def test_german_currency_cent_replacement_maps_exactly() -> None:
 
 def test_currency_preserves_excess_fractional_precision() -> None:
     cases = [
-        ("de", "9,999 EUR", "neun Komma neun neun neun Euro"),
-        ("de", "€9,999", "neun Komma neun neun neun Euro"),
-        ("de", "-9,999 EUR", "minus neun Komma neun neun neun Euro"),
+        ("de", "9,999 EUR", "Neun Komma neun neun neun Euro"),
+        ("de", "€9,999", "Neun Komma neun neun neun Euro"),
+        ("de", "-9,999 EUR", "Minus neun Komma neun neun neun Euro"),
         ("fr", "9,999 EUR", "neuf virgule neuf neuf neuf euros"),
     ]
     for language, source, expected in cases:
@@ -323,10 +323,10 @@ def test_german_phone_policy_rejects_version_context() -> None:
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("25%", "fünfundzwanzig Prozent"),
-        ("12,5%", "zwölf Komma fünf Prozent"),
-        ("-1,2%", "minus eins Komma zwei Prozent"),
-        ("25 %", "fünfundzwanzig Prozent"),
+        ("25%", "Fünfundzwanzig Prozent"),
+        ("12,5%", "Zwölf Komma fünf Prozent"),
+        ("-1,2%", "Minus eins Komma zwei Prozent"),
+        ("25 %", "Fünfundzwanzig Prozent"),
     ],
 )
 def test_german_percent_uses_shared_typed_renderer(source: str, expected: str) -> None:
@@ -338,9 +338,9 @@ def test_german_percent_uses_shared_typed_renderer(source: str, expected: str) -
 @pytest.mark.parametrize(
     ("source", "expected"),
     [
-        ("1000000", "eine Million"),
-        ("1000000000", "eine Milliarde"),
-        ("1000000000000", "eine Billion"),
+        ("1000000", "Eine Million"),
+        ("1000000000", "Eine Milliarde"),
+        ("1000000000000", "Eine Billion"),
         ("der 100. Versuch", "der hundertste Versuch"),
         ("am 1000. Tag", "am tausendsten Tag"),
     ],

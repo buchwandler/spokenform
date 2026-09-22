@@ -120,9 +120,9 @@ def test_safe_symbol_tokens_are_category_aware() -> None:
 
 def test_postal_recognizer_does_not_steal_measurements_or_counts() -> None:
     for source, expected in (
-        ("1500 Tonnen", "eintausendfünfhundert Tonnen"),
-        ("2024 Punkte", "zweitausendvierundzwanzig Punkte"),
-        ("4711 Teilnehmer", "viertausendsiebenhundertelf Teilnehmer"),
+        ("1500 Tonnen", "Eintausendfünfhundert Tonnen"),
+        ("2024 Punkte", "Zweitausendvierundzwanzig Punkte"),
+        ("4711 Teilnehmer", "Viertausendsiebenhundertelf Teilnehmer"),
     ):
         assert prepare(source, language="de", use_spacy=False).spoken_text == expected
 
@@ -146,7 +146,7 @@ def test_legal_and_product_claims_require_typed_evidence() -> None:
 
 def test_locale_numeric_policies_are_selected_before_separator_heuristics() -> None:
     assert prepare("42,195 km", language="de_DE", use_spacy=False).spoken_text == (
-        "zweiundvierzig Komma eins neun fünf Kilometer"
+        "Zweiundvierzig Komma eins neun fünf Kilometer"
     )
     assert prepare("3,000", language="es_MX", use_spacy=False).spoken_text == "Tres mil"
     assert (
@@ -173,7 +173,7 @@ def test_typed_and_contextual_renderers_do_not_use_global_code_rules() -> None:
 
 
 def test_typed_locale_numeric_cleanup_is_contextual() -> None:
-    assert prepare("1,80 m", language="de", use_spacy=False).spoken_text == ("ein Meter achtzig")
+    assert prepare("1,80 m", language="de", use_spacy=False).spoken_text == ("Ein Meter achtzig")
     assert prepare("Código postal 03900", language="es", use_spacy=False).spoken_text == (
         "Código postal cero tres nueve cero cero"
     )

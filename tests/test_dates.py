@@ -4,13 +4,13 @@ from spokenform.dates import DateCandidate
 
 def test_german_date_grammar_covers_short_text_hyphenated_and_ranges() -> None:
     cases = {
-        "12.10.23": "zwölfte zehnten dreiundzwanzig",
+        "12.10.23": "Zwölfte zehnten dreiundzwanzig",
         "5. Nov. 1990": "fünfter November neunzehnhundertneunzig",
-        "15-Jan-2023": "fünfzehnter Januar zweitausenddreiundzwanzig",
+        "15-Jan-2023": "Fünfzehnter Januar zweitausenddreiundzwanzig",
         "31. Dez. 2025": "einunddreißigster Dezember zweitausendfünfundzwanzig",
         "’23": "dreiundzwanzig",
-        "30.06.": "dreißigster sechster.",
-        "10.-12. Mai": "zehnter bis zwölfter Mai",
+        "30.06.": "Dreißigster sechster.",
+        "10.-12. Mai": "Zehnter bis zwölfter Mai",
     }
     for source, expected in cases.items():
         assert prepare(source, language="de", use_spacy=False).spoken_text == expected

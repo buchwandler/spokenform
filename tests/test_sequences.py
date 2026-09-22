@@ -82,9 +82,9 @@ def test_opaque_short_handles_use_letterwise_rendering() -> None:
 
 def test_coordinates_support_integer_precision_and_direction_words() -> None:
     assert prepare("90° N", language="en", use_spacy=False).spoken_text == "ninety degrees north"
-    assert prepare("0°", language="de", use_spacy=False).spoken_text == "null Grad"
+    assert prepare("0°", language="de", use_spacy=False).spoken_text == "Null Grad"
     assert prepare("12.3456° E", language="de", use_spacy=False).spoken_text == (
-        "zwölf Komma drei vier fünf sechs Grad Ost"
+        "Zwölf Komma drei vier fünf sechs Grad Ost"
     )
 
 
@@ -328,7 +328,7 @@ def test_product_code_supports_mixed_suffixes_without_claiming_words() -> None:
     ("language", "source", "expected"),
     [
         ("en", "1/2", "one half"),
-        ("de", "3/7", "drei Siebtel"),
+        ("de", "3/7", "Drei Siebtel"),
         ("es", "1 1/2", "Uno y un medio"),
         ("fr", "3/7", "trois septièmes"),
         ("it", "1½", "uno e un mezzo"),

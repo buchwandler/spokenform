@@ -18,10 +18,10 @@ CASES = [
         "Die IBAN lautet D E acht neun drei sieben null vier null null vier vier null fünf drei zwei null eins drei null null null.",
     ),
     ("½ + ¼ = ¾", "einhalb plus ein Viertel gleich drei Viertel"),
-    ("2x + 3 = 15", "zwei x plus drei gleich fünfzehn"),
+    ("2x + 3 = 15", "Zwei x plus drei gleich fünfzehn"),
     (
         "3 × (4 + 5) = 27",
-        "drei mal vier plus fünf in Klammern gleich siebenundzwanzig",
+        "Drei mal vier plus fünf in Klammern gleich siebenundzwanzig",
     ),
     ("Die Note ist ein A♯.", "Die Note ist ein Ais."),
     ("Jahrgang MCMLXXXIX", "Jahrgang neunzehnhundertneunundachtzig"),
@@ -149,9 +149,9 @@ def test_social_identifier_case_and_separator_policy(source: str, expected: str)
     ("source", "expected"),
     [
         ("192.168.1.1.", "eins neun zwei Punkt eins sechs acht Punkt eins Punkt eins."),
-        ("1:00 Stunden", "einer Stunde"),
-        ("1:01 Stunden", "einer Stunde und einer Minute"),
-        ("2:05 Stunden", "zwei Stunden und fünf Minuten"),
+        ("1:00 Stunden", "Einer Stunde"),
+        ("1:01 Stunden", "Einer Stunde und einer Minute"),
+        ("2:05 Stunden", "Zwei Stunden und fünf Minuten"),
         ("v1.02.003", "Version eins Punkt null zwei Punkt null null drei"),
     ],
 )

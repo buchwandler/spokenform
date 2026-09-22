@@ -1,6 +1,8 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from spokenform import PreparationConfig, iter_structured_replacements, prepare
 
 PARITY_PATH = Path(__file__).parent / "data" / "de_kokorog2p_parity.json"
@@ -14,18 +16,18 @@ def test_german_parity_corpus() -> None:
 
 def test_german_quantity_inventory_and_grammar() -> None:
     cases = {
-        "1 kg": "ein Kilogramm",
-        "2 kg": "zwei Kilogramm",
-        "1 Std.": "eine Stunde.",
-        "2 Std.": "zwei Stunden.",
-        "1 Mio.": "eine Million.",
-        "2 Mio.": "zwei Millionen.",
-        "1 kWh": "eine Kilowattstunde",
-        "2 kWh": "zwei Kilowattstunden",
-        "1,0 kg": "ein Kilogramm",
-        "1,5 kg": "eins Komma fünf Kilogramm",
-        "-2 kg": "minus zwei Kilogramm",
-        "2kg": "zwei Kilogramm",
+        "1 kg": "Ein Kilogramm",
+        "2 kg": "Zwei Kilogramm",
+        "1 Std.": "Eine Stunde.",
+        "2 Std.": "Zwei Stunden.",
+        "1 Mio.": "Eine Million.",
+        "2 Mio.": "Zwei Millionen.",
+        "1 kWh": "Eine Kilowattstunde",
+        "2 kWh": "Zwei Kilowattstunden",
+        "1,0 kg": "Ein Kilogramm",
+        "1,5 kg": "Eins Komma fünf Kilogramm",
+        "-2 kg": "Minus zwei Kilogramm",
+        "2kg": "Zwei Kilogramm",
         "Model5kg": "Model5kg",
     }
     for source, expected in cases.items():
@@ -34,34 +36,34 @@ def test_german_quantity_inventory_and_grammar() -> None:
 
 def test_german_extended_quantity_inventory_and_aliases() -> None:
     cases = {
-        "1 mm²": "ein Quadratmillimeter",
-        "2 mm²": "zwei Quadratmillimeter",
-        "1 cm²": "ein Quadratzentimeter",
-        "2 cm²": "zwei Quadratzentimeter",
-        "1 m²": "ein Quadratmeter",
-        "2 m²": "zwei Quadratmeter",
-        "1 km²": "ein Quadratkilometer",
-        "2 km²": "zwei Quadratkilometer",
-        "1 ha": "ein Hektar",
-        "2 ha": "zwei Hektar",
-        "1 mm³": "ein Kubikmillimeter",
-        "2 mm³": "zwei Kubikmillimeter",
-        "1 cm³": "ein Kubikzentimeter",
-        "2 cm³": "zwei Kubikzentimeter",
-        "1 m³": "ein Kubikmeter",
-        "2 m³": "zwei Kubikmeter",
-        "1 m/s": "ein Meter pro Sekunde",
-        "2 m/s": "zwei Meter pro Sekunde",
-        "1 km/h": "ein Kilometer pro Stunde",
-        "2 km/h": "zwei Kilometer pro Stunde",
+        "1 mm²": "Ein Quadratmillimeter",
+        "2 mm²": "Zwei Quadratmillimeter",
+        "1 cm²": "Ein Quadratzentimeter",
+        "2 cm²": "Zwei Quadratzentimeter",
+        "1 m²": "Ein Quadratmeter",
+        "2 m²": "Zwei Quadratmeter",
+        "1 km²": "Ein Quadratkilometer",
+        "2 km²": "Zwei Quadratkilometer",
+        "1 ha": "Ein Hektar",
+        "2 ha": "Zwei Hektar",
+        "1 mm³": "Ein Kubikmillimeter",
+        "2 mm³": "Zwei Kubikmillimeter",
+        "1 cm³": "Ein Kubikzentimeter",
+        "2 cm³": "Zwei Kubikzentimeter",
+        "1 m³": "Ein Kubikmeter",
+        "2 m³": "Zwei Kubikmeter",
+        "1 m/s": "Ein Meter pro Sekunde",
+        "2 m/s": "Zwei Meter pro Sekunde",
+        "1 km/h": "Ein Kilometer pro Stunde",
+        "2 km/h": "Zwei Kilometer pro Stunde",
         "m2": "m2",
         "m3": "m3",
         "cm2": "cm2",
         "cm3": "cm3",
-        "1 m2": "ein Quadratmeter",
-        "1 m3": "ein Kubikmeter",
-        "1 cm2": "ein Quadratzentimeter",
-        "1 cm3": "ein Kubikzentimeter",
+        "1 m2": "Ein Quadratmeter",
+        "1 m3": "Ein Kubikmeter",
+        "1 cm2": "Ein Quadratzentimeter",
+        "1 cm3": "Ein Kubikzentimeter",
     }
     for source, expected in cases.items():
         assert prepare(source, language="de", use_spacy=False).spoken_text == expected, source
@@ -70,10 +72,10 @@ def test_german_extended_quantity_inventory_and_aliases() -> None:
 def test_german_extended_quantity_near_misses_are_not_rewritten_as_units() -> None:
     cases = {
         "m³": "m³",
-        "1 m³x": "eins m³x",
-        "1 m ³": "ein Meter ³",
+        "1 m³x": "Eins m³x",
+        "1 m ³": "Ein Meter ³",
         "foo 1 km/hbar": "foo eins km/hbar",
-        "1 mm²x": "eins mm²x",
+        "1 mm²x": "Eins mm²x",
     }
     for source, expected in cases.items():
         result = prepare(source, language="de", use_spacy=False)
@@ -87,12 +89,12 @@ def test_german_extended_quantity_source_replacements_and_composed_map() -> None
     source = "1 m³ plus 1 m³"
     result = prepare(source, language="de", use_spacy=False)
 
-    assert result.spoken_text == "ein Kubikmeter plus ein Kubikmeter"
+    assert result.spoken_text == "Ein Kubikmeter plus ein Kubikmeter"
     assert [
         (item.source_start, item.source_end, item.source, item.replacement, item.rule)
         for item in result.source_replacements
     ] == [
-        (0, 4, "1 m³", "ein Kubikmeter", "de.quantity"),
+        (0, 4, "1 m³", "Ein Kubikmeter", "de.quantity"),
         (10, 14, "1 m³", "ein Kubikmeter", "de.quantity"),
     ]
     assert all(
@@ -112,12 +114,12 @@ def test_german_extended_quantity_source_replacements_and_composed_map() -> None
 
     source = "1 m³ then 1 km/h"
     result = prepare(source, language="de", use_spacy=False)
-    assert result.spoken_text == "ein Kubikmeter then ein Kilometer pro Stunde"
+    assert result.spoken_text == "Ein Kubikmeter then ein Kilometer pro Stunde"
     assert [
         (item.source_start, item.source_end, item.source, item.replacement)
         for item in result.source_replacements
     ] == [
-        (0, 4, "1 m³", "ein Kubikmeter"),
+        (0, 4, "1 m³", "Ein Kubikmeter"),
         (10, 16, "1 km/h", "ein Kilometer pro Stunde"),
     ]
     assert result.offset_map is not None
@@ -127,24 +129,24 @@ def test_german_extended_quantity_source_replacements_and_composed_map() -> None
 
 def test_german_structured_values_and_invalid_candidates() -> None:
     cases = {
-        "03.01.2026": "dritte Januar zweitausendsechsundzwanzig",
+        "03.01.2026": "Dritte Januar zweitausendsechsundzwanzig",
         "am 3. Tag": "am dritten Tag",
         "der 3. Versuch": "der dritte Versuch",
         "auf die 2. Schiene": "auf die zweite Schiene",
-        "14:05": "vierzehn Uhr fünf",
-        "01:00 Uhr": "ein Uhr",
+        "14:05": "Vierzehn Uhr fünf",
+        "01:00 Uhr": "Ein Uhr",
         "25:99": "25:99",
         "24:00": "24:00",
         "31.02.2026": "31.02.2026",
         "29.02.2025": "29.02.2025",
-        "3°C": "drei Grad Celsius",
-        "-1,2 °F": "minus eins Komma zwei Grad Fahrenheit",
-        "12,50 EUR": "zwölf Euro fünfzig Cent",
+        "3°C": "Drei Grad Celsius",
+        "-1,2 °F": "Minus eins Komma zwei Grad Fahrenheit",
+        "12,50 EUR": "Zwölf Euro fünfzig Cent",
         "EUR 12,50": "zwölf Euro fünfzig Cent",
-        "1.234 EUR": "eintausendzweihundertvierunddreißig Euro",
+        "1.234 EUR": "Eintausendzweihundertvierunddreißig Euro",
         "CHF 12,80": "zwölf Komma acht null Schweizer Franken",
-        ".02": "null Komma null zwei",
-        ",02": "null Komma null zwei",
+        ".02": "Null Komma null zwei",
+        ",02": "Null Komma null zwei",
         "Lfd. Nr. 12.": "laufende Nummer zwölf.",
         "S. 12": "Seite zwölf",
     }
@@ -159,7 +161,7 @@ def test_structured_is_independent_of_lexical_abbreviations() -> None:
         use_spacy=False,
         config=PreparationConfig(language="de", expand_abbreviations=False),
     )
-    assert result.spoken_text == "eine Stunde zweiundvierzig Kilogramm Prof."
+    assert result.spoken_text == "Eine Stunde zweiundvierzig Kilogramm Prof."
 
 
 def test_protected_values_are_unchanged() -> None:
@@ -174,7 +176,7 @@ def test_protected_values_are_unchanged() -> None:
 def test_structured_replacement_is_one_exact_semantic_edit() -> None:
     replacements = iter_structured_replacements("2 kg 2 kg", language="de")
     assert [(item.start, item.end, item.text, item.rule) for item in replacements] == [
-        (0, 4, "zwei Kilogramm", "de.quantity"),
+        (0, 4, "Zwei Kilogramm", "de.quantity"),
         (5, 9, "zwei Kilogramm", "de.quantity"),
     ]
 
@@ -219,23 +221,23 @@ def test_german_source_replacements_are_sorted_and_reconstruct_final_text() -> N
 
 def test_brief_german_parity_categories() -> None:
     cases = {
-        "1 Wh": "eine Wattstunde",
-        "1 mAh": "eine Milliamperestunde",
-        "1 Sek.": "eine Sekunde.",
-        "1 MIN. warten": "eine Minute warten",
-        "1 Ltr. Milch": "ein Liter Milch",
-        "2 STCK. Eier": "zwei Stück Eier",
-        "1 mio. EUR": "eine Million Euro",
-        "2 mrd. EUR": "zwei Milliarden Euro",
-        "1 EUR": "ein Euro",
-        "2 EUR": "zwei Euro",
-        "12.50 EUR": "zwölf Euro fünfzig Cent",
-        "-1,25 EUR": "minus ein Euro fünfundzwanzig Cent",
-        "0,05 EUR": "null Euro fünf Cent",
-        "1.000,50": "eintausend Komma fünf null",
-        "3,14": "drei Komma eins vier",
-        ".02": "null Komma null zwei",
-        "03/01/26": "dritte ersten zweitausendsechsundzwanzig",
+        "1 Wh": "Eine Wattstunde",
+        "1 mAh": "Eine Milliamperestunde",
+        "1 Sek.": "Eine Sekunde.",
+        "1 MIN. warten": "Eine Minute warten",
+        "1 Ltr. Milch": "Ein Liter Milch",
+        "2 STCK. Eier": "Zwei Stück Eier",
+        "1 mio. EUR": "Eine Million Euro",
+        "2 mrd. EUR": "Zwei Milliarden Euro",
+        "1 EUR": "Ein Euro",
+        "2 EUR": "Zwei Euro",
+        "12.50 EUR": "Zwölf Euro fünfzig Cent",
+        "-1,25 EUR": "Minus ein Euro fünfundzwanzig Cent",
+        "0,05 EUR": "Null Euro fünf Cent",
+        "1.000,50": "Eintausend Komma fünf null",
+        "3,14": "Drei Komma eins vier",
+        ".02": "Null Komma null zwei",
+        "03/01/26": "Dritte ersten zweitausendsechsundzwanzig",
         "3. Maerz 2026": "dritter März zweitausendsechsundzwanzig",
         "3. Mär 2026": "dritter März zweitausendsechsundzwanzig",
         "zur 6. Version": "zur sechsten Version",
@@ -253,4 +255,18 @@ def test_brief_german_parity_categories() -> None:
 
 def test_structured_match_is_fail_closed_at_partial_decimal_overlap() -> None:
     result = prepare("1.000,50 kg", language="de", use_spacy=False)
-    assert result.spoken_text == "eintausend Komma fünf null Kilogramm"
+    assert result.spoken_text == "Eintausend Komma fünf null Kilogramm"
+
+
+@pytest.mark.parametrize(
+    ("source", "expected"),
+    [
+        ("die 1. Frau", "die erste Frau"),
+        ("der 1. Mann", "der erste Mann"),
+        ("das 1. Kind", "das erste Kind"),
+    ],
+)
+def test_german_determiner_context_keeps_existing_ordinal_inflection(
+    source: str, expected: str
+) -> None:
+    assert prepare(source, language="de", use_spacy=False).spoken_text == expected
