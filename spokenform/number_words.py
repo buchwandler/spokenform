@@ -125,12 +125,23 @@ def _render_numeralform(
         )
     rendered_value = _coerce_numeralform_value(value)
     style = _numeralform_style(rendered_value, language, form, style)
+    german_gender_fallback = (
+        gender in {"masculine", "feminine", "neuter"}
+        and base_language(language) == "de"
+        and form == "ordinal"
+        and not numeralform.supports(
+            backend.language,
+            form=form,
+            syntax=syntax or "standalone",
+            morphology={"gender": gender},
+        )
+    )
     render_kwargs: dict[str, object] = {
         "locale": backend.language,
         "form": form,
         "style": style,
     }
-    if gender is not None:
+    if gender is not None and not german_gender_fallback:
         render_kwargs["gender"] = gender
     if syntax is not None:
         render_kwargs["syntax"] = syntax
@@ -141,6 +152,12 @@ def _render_numeralform(
         raise ValueError(
             f"Cannot render {requested_form} for {normalize_language(language)!r}: {exc}"
         ) from exc
+    if german_gender_fallback:
+        assert gender is not None
+        if not rendered.endswith("e"):
+            raise ValueError("German ordinal agreement requires an -e base form")
+        ending = {"masculine": "er", "feminine": "e", "neuter": "es"}[gender]
+        rendered = rendered[:-1] + ending
     return _apply_spokenform_numeric_surface_policy(
         rendered, value=rendered_value, language=language, form=form
     )

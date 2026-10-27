@@ -119,6 +119,15 @@ def test_german_ordinal_gender_is_forwarded_to_numeralform(
     assert ordinal(value, "de", gender="neuter") == expected[2]
 
 
+def test_german_ordinal_gender_falls_back_without_numeralform_gender_support(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(numeralform, "supports", lambda *args, **kwargs: False)
+
+    assert ordinal(21, "de", gender="masculine") == "einundzwanzigster"
+    assert ordinal(21, "de", gender="feminine") == "einundzwanzigste"
+    assert ordinal(21, "de", gender="neuter") == "einundzwanzigstes"
+
 def test_chinese_ordinals_fail_closed() -> None:
     with pytest.raises(ValueError, match="Ordinal rendering"):
         ordinal(3, "zh")
