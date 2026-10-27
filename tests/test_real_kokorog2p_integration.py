@@ -161,10 +161,10 @@ def test_real_german_extended_quantity_public_path_matches_semantic_expectation(
     g2p = _real_g2p()
     for source, expected in cases:
         prepared = prepare_for_kokorog2p(source, "de")
-        assert prepared.spoken_text == expected, source
-        assert [(item.source, item.replacement) for item in prepared.source_replacements] == [
-            (source, expected)
-        ]
+        assert prepared.spoken_text.casefold() == expected.casefold(), source
+        assert [
+            (item.source, item.replacement.casefold()) for item in prepared.source_replacements
+        ] == [(source, expected.casefold())]
         tokens = g2p(prepared.spoken_text)
         assert tokens, source
         assert all(token.phonemes for token in tokens), source

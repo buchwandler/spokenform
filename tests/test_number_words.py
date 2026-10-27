@@ -128,6 +128,7 @@ def test_german_ordinal_gender_falls_back_without_numeralform_gender_support(
     assert ordinal(21, "de", gender="feminine") == "einundzwanzigste"
     assert ordinal(21, "de", gender="neuter") == "einundzwanzigstes"
 
+
 def test_chinese_ordinals_fail_closed() -> None:
     with pytest.raises(ValueError, match="Ordinal rendering"):
         ordinal(3, "zh")
