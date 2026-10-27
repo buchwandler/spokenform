@@ -78,6 +78,7 @@ _DOMAIN_BY_RULE: dict[str, RecognitionDomain] = {
     "sequence.parenthesized-initialism": RecognitionDomain.CORE,
     "sequence.roman": RecognitionDomain.REFERENCES,
     "sequence.symbol": RecognitionDomain.CORE,
+    "sequence.lexical-slash": RecognitionDomain.CORE,
 }
 
 _CONTEXTUAL_RULES = frozenset(

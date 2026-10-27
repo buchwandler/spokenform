@@ -31,6 +31,7 @@ class SequencePriority(IntEnum):
     PHONE_AMBIGUOUS = 35
     GENERIC_NUMBER = 20
     SYMBOL = 10
+    LEXICAL_FALLBACK = 5
 
 
 _RULE_PRIORITIES: dict[str, int] = {
@@ -52,6 +53,7 @@ _RULE_PRIORITIES: dict[str, int] = {
     "sequence.duration": SequencePriority.DURATION,
     "es.time": SequencePriority.EXPLICIT_TIME,
     "sequence.exchange-rate": SequencePriority.EXCHANGE_RATE,
+    "sequence.lexical-slash": SequencePriority.LEXICAL_FALLBACK,
     "sequence.quantity": SequencePriority.QUANTITY,
     "en.quantity": SequencePriority.QUANTITY,
     "sequence.year": SequencePriority.YEAR,

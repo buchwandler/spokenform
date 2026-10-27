@@ -161,6 +161,10 @@ _BARE_DOMAIN_RE = re.compile(
     r"(?:/[^\s<>]*)?",
     re.IGNORECASE,
 )
+_LEXICAL_SLASH_RE = re.compile(
+    r"(?<![\w./:])(?P<source>[^\W\d_]+(?:/[^\W\d_]+)+)(?![\w/:]|\.[^\W\d_])"
+)
+_MATH_SLASH_OPERATOR_CHARS = frozenset("=+−-*×÷<>≈≠≤≥^")
 _ROMAN_PREFIX_CARDINAL_RE = re.compile(
     r"(?P<context>\b(?i:article|act|scene|chapter|volume|part|section|block|page|super\s+bowl|"
     r"artikel|seite|akt|szene|kapitel|band|teil|abschnitt|block|"
@@ -1077,6 +1081,91 @@ def _compound_unit_text(number: str | None, unit: str, language: str) -> str:
 
 def _claimed(start: int, end: int, protected: tuple[tuple[int, int], ...]) -> bool:
     return not any(start < right and left < end for left, right in protected)
+
+
+@dataclass(frozen=True, slots=True)
+class LexicalSlashCandidate:
+    start: int
+    end: int
+    source: str
+    parts: tuple[str, ...]
+
+
+_LEXICAL_SLASH_UNIT_FORMS = frozenset({"km/h", "m/s"})
+_LEXICAL_SLASH_UNIT_PREFIXES = frozenset({"m", "km", "g", "cm", "mm", "kg", "ml", "l", "s", "h"})
+
+
+def iter_lexical_slash_candidates(
+    text: str,
+    *,
+    language: str = "en",
+    protected_ranges: Iterable[tuple[int, int]] = (),
+) -> Iterable[LexicalSlashCandidate]:
+    """Yield conservative, whole-token lexical slash candidates."""
+    if vocabulary(language).slash is None:
+        return
+    protected = tuple(protected_ranges)
+    for match in _LEXICAL_SLASH_RE.finditer(text):
+        source = match["source"]
+        parts = tuple(source.split("/"))
+        if len(parts) < 2 or not all(part.isalpha() for part in parts):
+            continue
+        folded = source.casefold()
+        if folded in _LEXICAL_SLASH_UNIT_FORMS:
+            continue
+        if all(part.isupper() for part in parts):
+            continue
+        if len(parts) == 2 and all(canonical_currency_id(part) for part in parts):
+            continue
+        if any(
+            0x0370 <= ord(character) <= 0x03FF or 0x1F00 <= ord(character) <= 0x1FFF
+            for character in source
+        ):
+            continue
+        start, end = match.span("source")
+        left = start
+        while left > 0 and text[left - 1].isspace():
+            left -= 1
+        right = end
+        while right < len(text) and text[right].isspace():
+            right += 1
+        if left > 0 and text[left - 1] in _MATH_SLASH_OPERATOR_CHARS:
+            continue
+        if right < len(text) and text[right] in _MATH_SLASH_OPERATOR_CHARS:
+            continue
+        if (
+            parts[0].casefold() in _LEXICAL_SLASH_UNIT_PREFIXES
+            and left > 0
+            and text[left - 1].isdigit()
+        ):
+            continue
+        if not _claimed(start, end, protected):
+            continue
+        yield LexicalSlashCandidate(start, end, source, parts)
+
+
+def _iter_lexical_slash_replacements(
+    text: str,
+    language: str,
+    protected: tuple[tuple[int, int], ...],
+    candidates: list[Replacement],
+) -> None:
+    separator = vocabulary(language).slash
+    if separator is None:
+        return
+    for candidate in iter_lexical_slash_candidates(
+        text, language=language, protected_ranges=protected
+    ):
+        candidates.append(
+            Replacement(
+                candidate.start,
+                candidate.end,
+                f" {separator} ".join(candidate.parts),
+                "structured",
+                language,
+                "sequence.lexical-slash",
+            )
+        )
 
 
 def _phone_is_plausible(value: str) -> bool:
@@ -3865,10 +3954,11 @@ def iter_sequence_replacements(
 ) -> tuple[Replacement, ...]:
     """Recognize and render high-confidence atomic structured sequences."""
     language = normalize_language(language)
-    if base_language(language) in {"ru", "sv", "vi", "th"}:
-        return ()
     protected = tuple(protected_ranges)
     candidates: list[Replacement] = []
+    if base_language(language) in {"ru", "sv", "vi", "th"}:
+        _iter_lexical_slash_replacements(text, language, protected, candidates)
+        return tuple(candidates)
     candidates.extend(
         iter_biomedical_replacements(text, language=language, protected_ranges=protected)
     )
@@ -3898,6 +3988,7 @@ def iter_sequence_replacements(
     _iter_product_vehicle_candidates(text, language, protected, candidates)
     _iter_duration_sports_candidates(text, language, protected, candidates, evidence=evidence)
     _iter_address_candidates(text, language, protected, candidates)
+    _iter_lexical_slash_replacements(text, language, protected, candidates)
     return tuple(candidates)
 
 

@@ -235,6 +235,8 @@ Residual punctuation and symbols are unchanged by default:
 PreparationConfig(language="en", symbol_mode="none")
 ```
 
+Confidently lexical prose compounds are handled earlier as structured speech normalization: `open/close` becomes `open slash close`. This is not generic punctuation rewriting: fractions, dates, URLs, paths, unit ratios, exchange pairs, and other structured slash forms retain their own recognition rules, while unrecognized slash punctuation remains unchanged by default.
+
 Use `symbol_mode="remove"` to remove all residual Unicode punctuation and
 symbols, or use an exact-codepoint allowlist with `symbol_mode="keep"`:
 
